@@ -705,23 +705,21 @@ private fun notificationKindColor(kind: String): Color {
 @Composable
 private fun relativeTime(isoDate: String): String {
     if (isoDate.isBlank()) return ""
-    // Compose rule: stringResource cannot be called inside try/catch, so resolve first.
-    val justNow = stringResource(R.string.market_time_just_now)
-    return try {
+    // Compose rule: stringResource cannot be called inside try/catch, so parse first.
+    val seconds = try {
         val instant = java.time.Instant.parse(isoDate)
         val now = java.time.Instant.now()
-        val duration = java.time.Duration.between(instant, now)
-        val seconds = duration.seconds
-        when {
-            seconds < 60 -> justNow
-            seconds < 3600 -> stringResource(R.string.market_time_minutes_ago, seconds / 60)
-            seconds < 86400 -> stringResource(R.string.market_time_hours_ago, seconds / 3600)
-            seconds < 2592000 -> stringResource(R.string.market_time_days_ago, seconds / 86400)
-            seconds < 31104000 -> stringResource(R.string.market_time_months_ago, seconds / 2592000)
-            else -> stringResource(R.string.market_time_years_ago, seconds / 31104000)
-        }
+        java.time.Duration.between(instant, now).seconds
     } catch (e: Exception) {
-        isoDate.take(16).replace("T", " ")
+        return isoDate.take(16).replace("T", " ")
+    }
+    return when {
+        seconds < 60 -> stringResource(R.string.market_time_just_now)
+        seconds < 3600 -> stringResource(R.string.market_time_minutes_ago, seconds / 60)
+        seconds < 86400 -> stringResource(R.string.market_time_hours_ago, seconds / 3600)
+        seconds < 2592000 -> stringResource(R.string.market_time_days_ago, seconds / 86400)
+        seconds < 31104000 -> stringResource(R.string.market_time_months_ago, seconds / 2592000)
+        else -> stringResource(R.string.market_time_years_ago, seconds / 31104000)
     }
 }
 

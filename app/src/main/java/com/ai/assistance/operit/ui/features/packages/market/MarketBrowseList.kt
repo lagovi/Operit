@@ -163,6 +163,9 @@ fun <T> MarketBrowseList(
             if (showInitialLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
+                // LazyListScope content is not a composable context: resolve the
+                // label here, above LazyColumn, and pass it down.
+                val earlierDateLabel = stringResource(R.string.market_date_earlier)
                 val listContent: @Composable () -> Unit = {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -175,7 +178,7 @@ fun <T> MarketBrowseList(
                                 items = items,
                                 itemKey = itemKey,
                                 updatedAtSelector = updatedAtSelector,
-                                earlierDateLabel = stringResource(R.string.market_date_earlier),
+                                earlierDateLabel = earlierDateLabel,
                                 itemContent = itemContent
                             )
                         } else {

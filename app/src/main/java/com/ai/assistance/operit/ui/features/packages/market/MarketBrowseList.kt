@@ -315,10 +315,11 @@ private fun MarketBrowseDateHeader(dateLabel: String) {
     )
 }
 
+@Composable
 private fun resolveMarketUpdatedDateLabel(rawUpdatedAt: String): String {
     val trimmed = rawUpdatedAt.trim()
     if (trimmed.isBlank()) {
-        return "更早"
+        return stringResource(R.string.market_date_earlier)
     }
 
     parseMarketUpdatedDate(trimmed)?.let { date ->

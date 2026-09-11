@@ -224,8 +224,15 @@ def should_exclude_string(content: str, line: str, string_pos: Tuple[int, int]) 
 
 def count_chinese_strings_in_file(file_path: Path) -> Dict:
     """统计单个文件中的中文字符串"""
+    # Path is reported relative to the repo root so the tool works on any
+    # machine; the previous hardcoded developer path crashed on Linux/macOS.
+    repo_root = Path(__file__).resolve().parents[2]
+    try:
+        display_path = str(file_path.relative_to(repo_root))
+    except ValueError:
+        display_path = str(file_path)
     result = {
-        'file': str(file_path.relative_to('D:\\Code\\prog\\assistance')),
+        'file': display_path,
         'total': 0,
         'excluded_comments': 0,
         'excluded_logs': 0,

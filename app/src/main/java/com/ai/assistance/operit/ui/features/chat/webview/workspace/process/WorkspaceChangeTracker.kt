@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.features.chat.webview.workspace.process
 
 import android.content.Context
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.WatchConfig
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.WorkspaceConfigReader
 import com.ai.assistance.operit.util.AppLogger
@@ -245,7 +246,7 @@ class WorkspaceChangeTracker private constructor(private val context: Context) {
                 ?.sortedWith(compareBy({ !it.isDirectory }, { it.name }))
                 ?: emptyList()
 
-        if (rootItems.isEmpty()) return "工作区为空"
+        if (rootItems.isEmpty()) return context.getString(R.string.workspace_empty)
 
         return buildString {
             rootItems.forEachIndexed { index, file ->

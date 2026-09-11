@@ -635,7 +635,10 @@ private fun MarketNotificationCard(notification: MarketV2Notification) {
                     Text(
                         text = notificationKindLabel(notification.kind),
                         style = MaterialTheme.typography.labelMedium,
-                        color = notificationKindColor(notification.kind)
+                        color = notificationKindColor(notification.kind),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
                     )
                     Text(
                         text = relativeTime(notification.createdAt),
@@ -702,13 +705,15 @@ private fun notificationKindColor(kind: String): Color {
 @Composable
 private fun relativeTime(isoDate: String): String {
     if (isoDate.isBlank()) return ""
+    // Compose rule: stringResource cannot be called inside try/catch, so resolve first.
+    val justNow = stringResource(R.string.market_time_just_now)
     return try {
         val instant = java.time.Instant.parse(isoDate)
         val now = java.time.Instant.now()
         val duration = java.time.Duration.between(instant, now)
         val seconds = duration.seconds
         when {
-            seconds < 60 -> stringResource(R.string.market_time_just_now)
+            seconds < 60 -> justNow
             seconds < 3600 -> stringResource(R.string.market_time_minutes_ago, seconds / 60)
             seconds < 86400 -> stringResource(R.string.market_time_hours_ago, seconds / 3600)
             seconds < 2592000 -> stringResource(R.string.market_time_days_ago, seconds / 86400)

@@ -175,6 +175,7 @@ fun <T> MarketBrowseList(
                                 items = items,
                                 itemKey = itemKey,
                                 updatedAtSelector = updatedAtSelector,
+                                earlierDateLabel = stringResource(R.string.market_date_earlier),
                                 itemContent = itemContent
                             )
                         } else {
@@ -287,11 +288,12 @@ private fun <T> LazyListScope.groupedMarketItems(
     items: List<T>,
     itemKey: (T) -> Any,
     updatedAtSelector: (T) -> String,
+    earlierDateLabel: String,
     itemContent: @Composable (T) -> Unit
 ) {
     val groupedItems =
         items.groupBy { item ->
-            resolveMarketUpdatedDateLabel(updatedAtSelector(item))
+            resolveMarketUpdatedDateLabel(updatedAtSelector(item), earlierDateLabel)
         }
 
     groupedItems.forEach { (dateLabel, groupItems) ->
@@ -315,11 +317,10 @@ private fun MarketBrowseDateHeader(dateLabel: String) {
     )
 }
 
-@Composable
-private fun resolveMarketUpdatedDateLabel(rawUpdatedAt: String): String {
+private fun resolveMarketUpdatedDateLabel(rawUpdatedAt: String, earlierDateLabel: String): String {
     val trimmed = rawUpdatedAt.trim()
     if (trimmed.isBlank()) {
-        return stringResource(R.string.market_date_earlier)
+        return earlierDateLabel
     }
 
     parseMarketUpdatedDate(trimmed)?.let { date ->

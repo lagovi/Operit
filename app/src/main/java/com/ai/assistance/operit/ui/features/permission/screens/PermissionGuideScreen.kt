@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -199,6 +200,10 @@ fun PermissionGuideScreen(
             modifier =
                     Modifier.fillMaxSize()
                             .background(MaterialTheme.colorScheme.background)
+                            // The activity is edge-to-edge; without this the bottom
+                            // navigation row lands under the system gesture bar and
+                            // its buttons become unreachable (observed on-device).
+                            .systemBarsPadding()
                             .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
     ) {

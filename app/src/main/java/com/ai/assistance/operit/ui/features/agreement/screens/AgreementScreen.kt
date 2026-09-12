@@ -38,6 +38,8 @@ fun AgreementScreen(onAgreementAccepted: () -> Unit) {
         Column(
                 modifier =
                         Modifier.fillMaxSize()
+                                // Edge-to-edge: keep the agree button above the system nav bar.
+                                .systemBarsPadding()
                                 .padding(16.dp)
                                 .background(MaterialTheme.colorScheme.background),
                 horizontalAlignment = Alignment.CenterHorizontally

@@ -504,6 +504,48 @@
         }
       ],
       "reverify": "none; this is a deliberate exclusion and belongs on the cjk-allowlist"
+    },
+    {
+      "id": "SIZE-007",
+      "area": "size",
+      "title": "OPEN: further distribution-size reduction, 296 MB debug APK",
+      "commit": null,
+      "status": "planned",
+      "rationale": "296 MB after the first pass. Largest remaining blocks: dex 72 (R8 now on but the saving was never measured), proot Ubuntu rootfs 64, lib 57, assets/subpack 37, assets/packages 28 (of which apktool.toolpkg is 27), ML Kit OCR 5.5, assets misc 20. Note that ML Kit cannot be trimmed partially: the 1.49 MB of model weights and the 10 MB of multi-script engine are only useful together, so it is all-or-nothing. Recognition is fully on-device and only runs on explicit user action. Also undecided: useLegacyPackaging = true in app/build.gradle.kts trades a larger APK for less installed size, which is the wrong direction for download size and the right one for install size.",
+      "files": [
+        "app/build.gradle.kts",
+        "out/apk/debug/app-debug.apk"
+      ],
+      "anchors": [
+        {
+          "file": "app/build.gradle.kts",
+          "contains": "useLegacyPackaging = true",
+          "why": "the switch that decides whether native libs are compressed in the APK or extracted at install"
+        }
+      ],
+      "reverify": "measure the APK after each block; see docs/FORK-REGISTRY/HANDOFF.md for the size table"
+    },
+    {
+      "id": "STT-002",
+      "area": "speech",
+      "title": "OPEN: replace sherpa-ncnn zh-en with GigaAM-Multilingual CTC",
+      "commit": null,
+      "status": "planned",
+      "rationale": "The user selected fussraider/GigaAM-Multilingual-sherpa-onnx-ctc (MIT), a character-wise CTC export of ai-sage/GigaAM-Multilingual. It is the right choice for Russian: WER 7.1% on Common Voice versus 9.1% for Whisper large v3, and a 71-token character vocabulary that covers Cyrillic natively rather than bolting it onto a sentence-piece model. Three things make this a change of engine rather than a URL swap. (1) The app bundles libsherpa-ncnn-jni.so and the com.k2fsa.sherpa.ncnn API; this model is in the sherpa-onnx format, which is a different JNI and a different API, and both .so files arrive from a Google Drive archive that belongs to upstream. The preferred path is to run the ONNX directly through com.microsoft.onnxruntime, which is already a dependency and already used by OnnxSileroVad; greedy CTC decoding over a 71-token alphabet is trivial. (2) The export is offline but the current provider is a streaming transducer that emits partial results, so the UX decision of when text appears must be made. (3) model.int8.onnx is 225 MB against the current 141 MB, so quality improves while the download grows by 84 MB; large/model.int8.onnx is 592 MB. Pin revision 9f5a77e8975211abe8511693accd3a63ee1e9f43, files model.int8.onnx and tokens.txt.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/api/speech/SherpaSpeechProvider.kt",
+        "app/src/main/java/com/ai/assistance/operit/api/speech/SpeechServiceFactory.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelRepository.kt",
+        "app/src/main/java/com/ai/assistance/operit/util/OnnxSileroVad.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/api/speech/SherpaSpeechProvider.kt",
+          "contains": "sherpa-ncnn-streaming-zipformer-bilingual-zh-en-2023-02-13",
+          "why": "the model being replaced; the provider cannot know Russian at all today"
+        }
+      ],
+      "reverify": "Russian WER against a real recording; see docs/FORK-REGISTRY/HANDOFF.md for the streaming-vs-offline question that must be answered first"
     }
   ]
 }

@@ -1,5 +1,9 @@
 # Fork registry
 
+**Starting fresh? Read [`HANDOFF.md`](HANDOFF.md) first.** It says what state
+this work is in, what is deliberately unfinished, and which two topics are next:
+further distribution-size reduction, and replacing the local speech recogniser.
+
 This directory is the fork's answer to "what did we change, and what has to be
 re-done after the next upstream merge?"
 
@@ -104,6 +108,7 @@ name. A bad anchor is a common word or a line number.
 
 ```
 docs/FORK-REGISTRY/
+  HANDOFF.md            start here: state, open questions, rules that break the build
   index.md              this file
   registry.json         every fork change
   cjk-allowlist.json    reviewed Chinese literals in Kotlin

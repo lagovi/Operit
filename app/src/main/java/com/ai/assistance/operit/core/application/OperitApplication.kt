@@ -274,7 +274,7 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         LanguageFactory.init()
         AppLogger.d(TAG, "【启动计时】语言工厂初始化完成 - ${System.currentTimeMillis() - startTime}ms")
 
-        // 后台预热 TextSegmenter，避免首次搜索记忆时才触发 Jieba 初始化
+        // 后台预热 TextSegmenter，避免首次搜索记忆时才初始化分词器
         applicationScope.launch {
             val segmenterStartTime = System.currentTimeMillis()
             TextSegmenter.initialize(applicationContext)
@@ -522,25 +522,12 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
     private fun initializeAppLanguage() {
         try {
             // 同步获取已保存的语言设置
-            val languageCode = runBlocking {
-                try {
-                    // 使用更安全的方式检查preferencesManager
-                    val manager = runCatching { preferencesManager }.getOrNull()
-                    if (manager != null) {
-                        manager.appLanguage.first()
-                    } else {
-                        UserPreferencesManager.DEFAULT_LANGUAGE
-                    }
-                } catch (e: Exception) {
-                    AppLogger.e(TAG, "获取语言设置失败", e)
-                    UserPreferencesManager.DEFAULT_LANGUAGE
-                }
-            }
+            val languageCode = runBlocking { preferencesManager.appLanguage.first() }
 
             AppLogger.d(TAG, "获取语言设置: $languageCode")
 
             // 立即应用语言设置
-            val locale = LocaleUtils.getLocaleForLanguageCode(languageCode, this)
+            val locale = LocaleUtils.getLocaleForLanguageCode(languageCode)
             // 设置默认语言
             LocaleUtils.setDefaultLocales(locale)
 
@@ -551,14 +538,8 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
                 AppLogger.d(TAG, "使用AppCompatDelegate设置语言: $languageCode")
             } else {
                 // 较旧版本Android - 此处使用的部分更新将在attachBaseContext中完成更完整更新
-                val config = Configuration()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    val localeList = LocaleUtils.createPlatformLocaleList(locale)
-                    config.setLocales(localeList)
-                } else {
-                    config.locale = locale
-                }
-
+                val config = Configuration(resources.configuration)
+                config.setLocales(LocaleUtils.createPlatformLocaleList(locale))
                 resources.updateConfiguration(config, resources.displayMetrics)
                 AppLogger.d(TAG, "使用Configuration设置语言: $languageCode")
             }
@@ -570,26 +551,16 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
     override fun attachBaseContext(base: Context) {
         configureOpenMpEnvironment()
         // 在基础上下文附加前应用语言设置
-        try {
-            val code = LocaleUtils.getCurrentLanguage(base)
-            val locale = LocaleUtils.getLocaleForLanguageCode(code, base)
-            val config = LocaleUtils.createLocaleOverrideConfiguration(locale)
+        val code = LocaleUtils.getCurrentLanguage(base)
+        val locale = LocaleUtils.getLocaleForLanguageCode(code)
 
-            // 设置语言配置
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                LocaleUtils.setDefaultLocales(locale)
-            } else {
-                Locale.setDefault(locale)
-            }
+        // 设置语言配置
+        LocaleUtils.setDefaultLocales(locale)
 
-            // 使用createConfigurationContext创建新的上下文
-            val context = base.createConfigurationContext(config)
-            super.attachBaseContext(context)
-            AppLogger.d(TAG, "成功应用基础上下文语言: $code")
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "应用基础上下文语言失败", e)
-            super.attachBaseContext(base)
-        }
+        // 使用createConfigurationContext创建新的上下文
+        val context = base.createConfigurationContext(LocaleUtils.createLocaleOverrideConfiguration(locale))
+        super.attachBaseContext(context)
+        AppLogger.d(TAG, "成功应用基础上下文语言: $code")
     }
 
     override fun onTerminate() {

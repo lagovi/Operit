@@ -46,6 +46,38 @@
 # 保留 QuickJS 反射绑定对象
 -keep class com.ai.assistance.operit.core.tools.javascript.JsEngine$JsToolCallInterface { *; }
 
+# Fork: R8 is now enabled for release and nightly. The rules below cover the
+# places this app reaches types reflectively, which R8 cannot see.
+
+# The APK reverse-engineering and re-signing path loads these by name at runtime
+# (core/subpack/ApkReverseEngineer.kt, ApkEditor).
+-keep class com.android.apksig.** { *; }
+-keep class net.dongliu.apkparser.** { *; }
+-keep class net.lingala.zip4j.** { *; }
+
+# ToolPkg packages are JS bundles loaded from assets and from the market, and they
+# call back into the host by name.
+-keep class com.ai.assistance.operit.core.tools.packTool.** { *; }
+-keep class com.ai.assistance.operit.plugins.toolpkg.** { *; }
+-keep class com.ai.assistance.operit.core.tools.ToolPackage { *; }
+-keep class com.ai.assistance.operit.core.tools.ToolPackage$* { *; }
+
+# Kotlin data classes that are serialized by kotlinx.serialization, and the
+# enums whose constant names are persisted or sent over the wire.
+-keepclassmembers class kotlinx.serialization.json.** { *; }
+-keepattributes *Annotation*, InnerClasses, Signature, RuntimeVisible*Annotations, AnnotationDefault
+
+# Enum valueOf is used by name for persisted settings and provider ids.
+-keepclassmembers enum com.ai.assistance.operit.** {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
+
+# Room and ObjectBox generated code.
+-keep class * extends androidx.room.RoomDatabase { <init>(); }
+-keep @androidx.room.Entity class * { *; }
+-dontwarn io.objectbox.**
+
 # Rules to suppress R8 warnings about missing classes
 # SVG Support
 -dontwarn com.caverock.androidsvg.SVG

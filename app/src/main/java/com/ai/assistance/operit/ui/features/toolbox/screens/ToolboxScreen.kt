@@ -127,7 +127,10 @@ fun ToolCard(tool: Tool) {
                                 isPressed = false
                         }
                 },
-                modifier = Modifier.fillMaxWidth().height(156.dp).scale(scale),
+                // A fixed height clipped the description through the middle of the
+                // glyphs once a title wrapped to two lines. The card now takes a
+                // range and the description absorbs the slack above the minimum.
+                modifier = Modifier.fillMaxWidth().heightIn(min = 156.dp, max = 200.dp).scale(scale),
                 colors =
                         CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation =
@@ -139,7 +142,7 @@ fun ToolCard(tool: Tool) {
         ) {
                 // 卡片内容
                 Column(
-                        modifier = Modifier.fillMaxSize().padding(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -178,9 +181,11 @@ fun ToolCard(tool: Tool) {
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center,
-                                        modifier = Modifier.padding(horizontal = 2.dp),
+                                        // The description is the only elastic child, so a
+                                        // wrapped title costs it a line rather than clipping it.
+                                        modifier = Modifier.padding(horizontal = 2.dp).weight(1f, fill = false),
                                         minLines = 1,
-                                        maxLines = 2,
+                                        maxLines = 3,
                                         overflow = TextOverflow.Ellipsis
                                 )
                         }

@@ -343,10 +343,12 @@ fun SpeechToTextScreen(navController: NavController) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = stringResource(R.string.recognition_engine) + ": ",
+                        text = stringResource(R.string.recognition_engine_colon),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+
+                    Spacer(modifier = Modifier.width(4.dp))
                     
                     Text(
                         text = getEngineName(recognitionMode),
@@ -375,7 +377,7 @@ fun SpeechToTextScreen(navController: NavController) {
 
                 // 语言选择
                 Text(
-                    text = stringResource(R.string.recognition_language) + ":",
+                    text = stringResource(R.string.recognition_language_colon),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )

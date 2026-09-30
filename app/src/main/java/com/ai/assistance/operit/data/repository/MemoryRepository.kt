@@ -133,9 +133,10 @@ class MemoryRepository(private val context: Context, profileId: String) {
     /**
      * 对关键词做“切碎扩展”：
      * - 保留原词
-     * - 使用 Jieba 分词补充分片
+     * - add fragments produced by the segmenter
      *
-     * 目的：在未开启语义检索时，提高中文长句与标题之间的匹配召回。
+     * Purpose: raise recall between a long phrase and a title when semantic
+     * search is disabled.
      */
     private fun expandKeywordToken(token: String): Set<String> {
         val normalized = token.trim().lowercase(Locale.ROOT)
@@ -149,11 +150,11 @@ class MemoryRepository(private val context: Context, profileId: String) {
             return expanded
         }
 
-        // 优先使用项目内已集成的 Jieba 分词，提升中文检索召回质量。
-        val jiebaTokens = TextSegmenter.segment(normalized)
+        // Add fragments to raise recall.
+        val segmentTokens = TextSegmenter.segment(normalized)
             .map { it.trim().lowercase(Locale.ROOT) }
             .filter { shouldKeepRawLexicalToken(it) }
-        expanded.addAll(jiebaTokens)
+        expanded.addAll(segmentTokens)
 
         return expanded.filterTo(linkedSetOf()) { shouldKeepRawLexicalToken(it) }
     }

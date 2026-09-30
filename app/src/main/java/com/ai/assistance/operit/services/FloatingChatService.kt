@@ -44,6 +44,7 @@ import com.ai.assistance.operit.services.floating.FloatingWindowState
 import com.ai.assistance.operit.services.floating.StatusIndicatorStyle
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.LocaleUtils
 import com.ai.assistance.operit.util.FileUtils
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.google.gson.Gson
@@ -332,8 +333,11 @@ class FloatingChatService : Service(), FloatingWindowCallback {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = getString(R.string.floating_chat_window_title)
-            val descriptionText = getString(R.string.floating_service_description)
+            // A Service's `this` is the Application context, whose Resources keep the
+            // locale the process started with; resolve strings through a localized one.
+            val localized = LocaleUtils.getLocalizedContext(this)
+            val name = localized.getString(R.string.floating_chat_window_title)
+            val descriptionText = localized.getString(R.string.floating_service_description)
             val importance = NotificationManager.IMPORTANCE_LOW
             val channel =
                     NotificationChannel(CHANNEL_ID, name, importance).apply {
@@ -348,8 +352,14 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     private fun createNotification() =
             NotificationCompat.Builder(this, CHANNEL_ID)
                     .setSmallIcon(android.R.drawable.ic_dialog_info)
-                    .setContentTitle(getString(R.string.floating_chat_window_title))
-                    .setContentText(getString(R.string.floating_chat_running_in_background))
+                    .setContentTitle(
+                            LocaleUtils.getLocalizedContext(this)
+                                    .getString(R.string.floating_chat_window_title)
+                    )
+                    .setContentText(
+                            LocaleUtils.getLocalizedContext(this)
+                                    .getString(R.string.floating_chat_running_in_background)
+                    )
                     .setPriority(NotificationCompat.PRIORITY_LOW)
                     .setOngoing(true)
                     .setCategory(NotificationCompat.CATEGORY_SERVICE)

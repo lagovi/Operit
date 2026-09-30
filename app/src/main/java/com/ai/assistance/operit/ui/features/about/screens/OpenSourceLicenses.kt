@@ -83,7 +83,6 @@ private fun getOpenSourceLibraries(): List<OpenSourceLibrary> {
 
         // NLP & Search
         OpenSourceLibrary("HNSWLib", "Fast approximate nearest neighbor search", "Apache-2.0", "https://github.com/jelmerk/hnswlib"),
-        OpenSourceLibrary("Jieba-Android", "Jieba Chinese word segmentation for Android", "MIT", "https://github.com/huaban/jieba-analysis"),
 
         // Networking
         OpenSourceLibrary("Apache FTPServer", "FTP server library", "Apache-2.0", "https://mina.apache.org/ftpserver-project/"),

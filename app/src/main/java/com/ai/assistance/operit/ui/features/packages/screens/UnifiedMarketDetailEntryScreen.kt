@@ -589,7 +589,7 @@ private fun MarketVersionHistoryRow(
             }
             version.publishedAt?.takeIf { it.isNotBlank() }?.let {
                 Text(
-                    text = stringResource(R.string.market_detail_published_label) + " " + formatMarketDetailDate(it),
+                    text = stringResource(R.string.market_detail_published_on, formatMarketDetailDate(it)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -314,7 +314,7 @@ private fun PackageListItemWithTag(
                             text = description,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            maxLines = 3,
                             overflow = TextOverflow.Ellipsis
                         )
                     }

@@ -55,7 +55,7 @@ fun ToolTestDialog(
                         CircularProgressIndicator()
                     }
                 } else if (result.isNotEmpty()) {
-                    Text(stringResource(R.string.memory_test_results) + ":", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.memory_test_results_colon), style = MaterialTheme.typography.titleSmall)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()

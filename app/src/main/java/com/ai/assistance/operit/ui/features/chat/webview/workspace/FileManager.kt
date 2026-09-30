@@ -532,15 +532,15 @@ fun FileBrowser(
                             onDismissRequest = { showSortMenu = false }
                     ) {
                         DropdownMenuItem(
-                                text = { Text(stringResource(R.string.file_manager_sort_name) + "${if (sortMode == 0) " ✓" else ""}") },
+                                text = { Text(stringResource(R.string.file_manager_sort_name, if (sortMode == 0) stringResource(R.string.file_manager_sort_check_suffix) else "")) },
                                 onClick = { sortMode = 0; showSortMenu = false }
                         )
                         DropdownMenuItem(
-                                text = { Text(stringResource(R.string.file_manager_sort_size) + "${if (sortMode == 1) " ✓" else ""}") },
+                                text = { Text(stringResource(R.string.file_manager_sort_size, if (sortMode == 1) stringResource(R.string.file_manager_sort_check_suffix) else "")) },
                                 onClick = { sortMode = 1; showSortMenu = false }
                         )
                         DropdownMenuItem(
-                                text = { Text(stringResource(R.string.file_manager_sort_by_modified) + "${if (sortMode == 2) " ✓" else ""}") },
+                                text = { Text(stringResource(R.string.file_manager_sort_by_modified, if (sortMode == 2) stringResource(R.string.file_manager_sort_check_suffix) else "")) },
                                 onClick = { sortMode = 2; showSortMenu = false }
                         )
                     }

@@ -52,7 +52,7 @@ fun MemoryInfoDialog(
                 ) {
                     Text("${stringResource(R.string.memory_title)}: ${memory.title}", style = MaterialTheme.typography.titleMedium)
                     HorizontalDivider()
-                    Text(stringResource(R.string.memory_content) + ":", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.memory_content_colon), style = MaterialTheme.typography.titleSmall)
                     Text(memory.content)
                     HorizontalDivider()
                     Text("${stringResource(R.string.memory_folder)}: ${memory.folderPath?.ifEmpty { stringResource(R.string.memory_uncategorized) }}", style = MaterialTheme.typography.bodySmall)

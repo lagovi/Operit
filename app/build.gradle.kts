@@ -404,7 +404,13 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        
+
+        // Fork: this distribution ships English only. Filtering here also strips
+        // the AndroidX/Google library translations, which app-level resource
+        // pruning cannot reach and which account for most of the saving.
+        // Keeping "en" is safe because values/strings.xml is itself English.
+        localeFilters += listOf("en")
+
         ndk {
             // Keep native compilation aligned with the app's only supported ABI.
             abiFilters.addAll(listOf("arm64-v8a"))
@@ -422,8 +428,13 @@ android {
         val releaseSigningConfig = signingConfigs.findByName("release")
 
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // Fork: R8 is enabled for the shipped builds. app/proguard-rules.pro
+            // already carries the keep rules this app needs (Shizuku, QuickJS
+            // reflection, Room/ObjectBox, AIDL, and the runtime APK parser and
+            // re-packer), so it was written for R8 and simply was never switched
+            // on. See docs/FORK-REGISTRY/registry.json SIZE-005.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -447,8 +458,8 @@ android {
             resValue("string", "app_name", "Operit Clone")
         }
         create("nightly") {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -604,14 +615,12 @@ dependencies {
     // Desugaring support for modern Java APIs on older Android
     coreLibraryDesugaring(libs.desugar.jdk)
 
-    // ML Kit - 文本识别
+    // ML Kit - 文本识别.
+    // Fork: only the Latin recognizer. The Chinese/Japanese/Korean/Devanagari
+    // artifacts are separate bundled models that cannot read Latin script and
+    // add ~2.4 MB of assets. See docs/FORK-REGISTRY/registry.json SIZE-002.
     implementation(libs.mlkit.text.recognition)
-    // ML Kit - 多语言识别支持
-    implementation(libs.mlkit.text.chinese)
-    implementation(libs.mlkit.text.japanese)
-    implementation(libs.mlkit.text.korean)
-    implementation(libs.mlkit.text.devanagari)
-    
+
     implementation(libs.zxing.core)
     
     // diff
@@ -692,8 +701,8 @@ dependencies {
     // HJSON dependency for human-friendly JSON parsing
     implementation(libs.hjson)
 
-    // 中文分词库 - Jieba Android
-    implementation(libs.jieba)
+    // Fork: the Chinese word segmenter (Jieba) was removed; see
+    // docs/FORK-REGISTRY/registry.json SIZE-003.
 
     // 向量搜索库 - 轻量级实现，适合Android
     implementation(libs.hnswlib.core)

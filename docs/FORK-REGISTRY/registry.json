@@ -1,0 +1,388 @@
+{
+  "schema_version": 1,
+  "fork": "lagovi/Operit",
+  "upstream": "AAswordman/Operit",
+  "upstream_ref": "upstream/dev",
+  "summary": "English-only distribution. The unqualified values/ bucket is English and is the single source of truth for resource keys. Only en is shipped.",
+  "default_locale": "en",
+  "shipped_locales": [
+    "en"
+  ],
+  "entries": [
+    {
+      "id": "I18N-001",
+      "area": "localization",
+      "title": "Hardcoded Chinese UI literals extracted into string resources",
+      "commit": "610d9f0b",
+      "rationale": "Chinese string literals written directly in Kotlin bypass the resource system entirely, so they are never translated and always reach the user. Roughly 110 literals across 19 files were moved into values/ + values-en/ (+99 new keys).",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/UnifiedMarketScreen.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/ModelConfigScreen.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/packages/market/MarketBrowseList.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/mcp/MCPLocalServer.kt",
+        "app/src/main/res/values/strings.xml",
+        "app/src/main/res/values-en/strings.xml"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/UnifiedMarketScreen.kt",
+          "contains": "TextOverflow.Ellipsis",
+          "why": "notification label ellipsis fix from the same commit"
+        }
+      ],
+      "reverify": "python3 ci/script/fork_audit.py",
+      "status": "applied"
+    },
+    {
+      "id": "UI-001",
+      "area": "layout",
+      "title": "Edge-to-edge insets on onboarding screens",
+      "commit": "fdcac81f",
+      "rationale": "The app is edge-to-edge (setDecorFitsSystemWindows(false)). The agreement and permission-guide screens render outside AppContent's inset handling, so their bottom buttons sat under the system gesture bar and were unreachable. Reproduced on SM-A207F.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/ui/features/agreement/screens/AgreementScreen.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/permission/screens/PermissionGuideScreen.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/agreement/screens/AgreementScreen.kt",
+          "contains": "systemBarsPadding()",
+          "why": "inset fix on the agreement screen"
+        },
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/permission/screens/PermissionGuideScreen.kt",
+          "contains": "systemBarsPadding()",
+          "why": "inset fix on the permission guide screen"
+        }
+      ],
+      "reverify": "adb install + uiautomator dump; the accept/continue button bounds must clear the system nav bar",
+      "status": "applied"
+    },
+    {
+      "id": "TOOL-001",
+      "area": "tooling",
+      "title": "CJK scanner no longer assumes a Windows checkout path",
+      "commit": "610d9f0b",
+      "rationale": "tools/string/count_ui_strings.py built report paths relative to a hardcoded D:\\Code\\prog\\assistance root, so it crashed on every other machine.",
+      "files": [
+        "tools/string/count_ui_strings.py"
+      ],
+      "anchors": [
+        {
+          "file": "tools/string/count_ui_strings.py",
+          "contains": "relative_to",
+          "why": "path relativization against the repo root"
+        }
+      ],
+      "reverify": "python3 tools/string/count_ui_strings.py",
+      "status": "applied"
+    },
+    {
+      "id": "TOOL-002",
+      "area": "tooling",
+      "title": "APK deploy helper for device verification",
+      "commit": "7e1f4065",
+      "rationale": "Downloads the newest successful CI build and installs it over adb, so on-device checks do not need a local Android SDK.",
+      "files": [
+        "ci/script/deploy_latest_apk.sh"
+      ],
+      "anchors": [
+        {
+          "file": "ci/script/deploy_latest_apk.sh",
+          "contains": "gh run download",
+          "why": "CI artifact download entry point"
+        }
+      ],
+      "reverify": "ci/script/deploy_latest_apk.sh",
+      "status": "applied"
+    },
+    {
+      "id": "L10N-001",
+      "area": "localization",
+      "title": "Unsupported system locale must not leak through as the app language",
+      "commit": null,
+      "rationale": "resolveSupportedLanguageCode returned an unsupported system locale (e.g. ru-RU) verbatim. Android then found no matching resource bucket and fell back to the unqualified values/ bucket, which was Chinese. A fresh install on a ru-RU phone therefore started in Chinese with no way to predict it.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/util/LocaleUtils.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/util/LocaleUtils.kt",
+          "contains": "return LanguageCodes.ENGLISH",
+          "why": "unsupported locale resolves to English"
+        }
+      ],
+      "reverify": "adb shell pm clear + fresh launch on a ru-RU phone; first screen must be English",
+      "status": "applied"
+    },
+    {
+      "id": "L10N-002",
+      "area": "localization",
+      "title": "Default app language is English, not Follow-system",
+      "commit": null,
+      "rationale": "UserPreferencesManager.DEFAULT_LANGUAGE was AUTO, which resolves to the system locale. Even with L10N-001 a zh-CN phone would still start in Chinese. The fork's default language is English by design.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/data/preferences/UserPreferencesManager.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/data/preferences/UserPreferencesManager.kt",
+          "contains": "const val DEFAULT_LANGUAGE = LanguageCodes.ENGLISH",
+          "why": "English is the default when the key is absent"
+        }
+      ],
+      "reverify": "adb shell pm clear + fresh launch; verify values/strings.xml is the English text",
+      "status": "applied"
+    },
+    {
+      "id": "L10N-003",
+      "area": "localization",
+      "title": "Non-Activity components must read strings through getLocalizedContext",
+      "commit": null,
+      "rationale": "Services such as AIForegroundService resolve strings against the Application context. On API < 33 setAppLanguage only reconfigures the Activity, and the process is not restarted, so the Application context keeps the old locale forever: notification titles, actions and shortcuts stayed in the previous language after a language change. getLocalizedContext rebuilds a ConfigurationContext from the current DataStore language, which is the single source of truth.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/util/LocaleUtils.kt",
+        "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt",
+          "contains": "val localized = LocaleUtils.getLocalizedContext(this)",
+          "why": "notification strings must come from a localized context"
+        },
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/services/FloatingChatService.kt",
+          "contains": "val localized = LocaleUtils.getLocalizedContext(this)",
+          "why": "floating-window notification, same reason"
+        }
+      ],
+      "reverify": "switch the app language, then read the notification text from the shade; it must match the UI language",
+      "status": "applied"
+    },
+    {
+      "id": "L10N-004",
+      "area": "localization",
+      "title": "ToolPkg input-menu hook payload carries useEnglish",
+      "commit": null,
+      "rationale": "Bundled JS plugins choose their UI language from event.eventPayload.useEnglish. The host built the toolpkg_input_menu_toggle payload without that key, so the plugin fell back to zh and rendered 思考引导 inside an otherwise English UI.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/plugins/toolpkg/ToolPkgCommonBridgePlugin.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/plugins/toolpkg/ToolPkgCommonBridgePlugin.kt",
+          "contains": "\"useEnglish\" to !LocaleUtils.usesChineseContent(params.context)",
+          "why": "both input-menu payloads must carry useEnglish"
+        }
+      ],
+      "reverify": "open the model/thinking sheet; plugin-contributed toggles must be English",
+      "status": "applied"
+    },
+    {
+      "id": "L10N-005",
+      "area": "localization",
+      "title": "English promoted to the unqualified values/ bucket",
+      "commit": null,
+      "rationale": "values/ was the Chinese source of truth while values-en held English. An English-only APK must keep the unqualified bucket, because that is the bucket Android falls back to for any unresolved reference and for system-rendered labels. Chinese moved out to be dropped; the tooling that treated values/ as zh was updated in the same change.",
+      "files": [
+        "app/src/main/res/values/strings.xml",
+        "app/src/main/res/xml/locales_config.xml",
+        "ci/script/check_localizations.py",
+        "tools/string/check_strings.py"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/res/values/strings.xml",
+          "contains": "<string name=\"app_name\">Operit AI</string>",
+          "why": "the default bucket is English and starts with the app name"
+        },
+        {
+          "file": "app/src/main/res/xml/locales_config.xml",
+          "contains": "android:name=\"en\"",
+          "why": "en is the only locale registered with the system"
+        }
+      ],
+      "reverify": "python3 ci/script/check_localizations.py --base <ref> --candidate HEAD",
+      "status": "applied"
+    },
+    {
+      "id": "SIZE-001",
+      "area": "size",
+      "title": "Only English resources are packaged",
+      "commit": null,
+      "rationale": "Eight app locales plus AndroidX/Google library translations were shipped: ~5.7 MB of resources.arsc, which is stored uncompressed so it is 1:1 in the APK. localeFilters strips library translations that app-level filtering cannot reach.",
+      "files": [
+        "app/build.gradle.kts"
+      ],
+      "anchors": [
+        {
+          "file": "app/build.gradle.kts",
+          "contains": "localeFilters += listOf(\"en\")",
+          "why": "the build-time locale filter"
+        }
+      ],
+      "reverify": "unzip -l the APK and confirm no non-en values-* bucket survived",
+      "status": "applied"
+    },
+    {
+      "id": "SIZE-002",
+      "area": "size",
+      "title": "Non-Latin ML Kit text recognition removed",
+      "commit": null,
+      "rationale": "The bundled Chinese/Japanese/Korean/Devanagari recognition models are ~2.4 MB of APK assets and cannot recognize Latin text, which is all an English build needs.",
+      "files": [
+        "app/build.gradle.kts",
+        "app/src/main/java/com/ai/assistance/operit/util/OCRUtils.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/build.gradle.kts",
+          "contains": "implementation(libs.mlkit.text.recognition)",
+          "why": "the Latin recognizer, which is the one we keep"
+        },
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/util/OCRUtils.kt",
+          "contains": "enum class Language {",
+          "why": "Latin is the only recognizer the enum offers"
+        }
+      ],
+      "reverify": "confirm assets/mlkit-google-ocr-models contains only Latn + shared models",
+      "status": "applied"
+    },
+    {
+      "id": "SIZE-003",
+      "area": "size",
+      "title": "Chinese jieba tokenizer replaced",
+      "commit": null,
+      "rationale": "com.huaban:jieba-analysis ships ~2.4 MB of Chinese word-segmentation dictionaries and is used only to score memory-search relevance. Segmenting English with a Chinese dictionary produces character bigrams, so the data was both large and wrong for this build.",
+      "files": [
+        "app/build.gradle.kts",
+        "app/src/main/java/com/ai/assistance/operit/util/TextSegmenter.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/util/TextSegmenter.kt",
+          "contains": "WORD_BOUNDARY",
+          "why": "word-boundary segmentation replaced the Chinese dictionary"
+        }
+      ],
+      "reverify": "unzip -l the APK and confirm dict.txt / prob_emit.txt are gone",
+      "status": "applied"
+    },
+    {
+      "id": "SIZE-004",
+      "area": "size",
+      "title": "Heavy single-feature assets downloaded on demand",
+      "commit": null,
+      "rationale": "The proot rootfs, the sherpa-ncnn STT model, the subpack APKs and apktool.toolpkg are ~252 MB of the 420 MB debug APK and each serves exactly one feature. They are fetched on first use of that feature instead. SherpaMnnSpeechProvider already downloads its model to OperitPaths.sherpaNcnnModelsDir, so the path exists.",
+      "files": [
+        "app/config/stt-model-assets.properties",
+        "app/build.gradle.kts",
+        "app/src/main/java/com/ai/assistance/operit/api/speech/SherpaSpeechProvider.kt",
+        "terminal/build.gradle.kts"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelRepository.kt",
+          "contains": "suspend fun ensureNcnnModel",
+          "why": "the local STT model is fetched on first use"
+        },
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/util/RemoteAssetFetcher.kt",
+          "contains": "suspend fun ensureAssets",
+          "why": "shared resumable, checksum-verified downloader"
+        },
+        {
+          "file": "app/config/stt-model-assets.properties",
+          "contains": "silero_vad.onnx",
+          "why": "the language-agnostic VAD model stays bundled"
+        }
+      ],
+      "reverify": "install with no network, exercise each feature, confirm a single explicit error rather than a silent empty state",
+      "status": "applied"
+    },
+    {
+      "id": "PROMPT-001",
+      "area": "prompts",
+      "title": "Chinese prompt branches deleted; user-visible prompt text is English",
+      "commit": null,
+      "rationale": "The fork ships no Chinese resources, so every useEnglish=false branch is unreachable. Prompt fragments that the user can read or edit in the UI must be English: the waifu custom prompt field, character card defaults, tag-market preset content, tool category/description subtitles, the summary bubble, generated package descriptions and the one Chinese tool-result error. Prompt text the user never sees stays as it is, because it is model input.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/core/config/FunctionalPrompts.kt",
+        "app/src/main/java/com/ai/assistance/operit/core/config/SystemToolPrompts.kt",
+        "app/src/main/java/com/ai/assistance/operit/core/chat/AIMessageManager.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/preferences/WaifuPreferences.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/preferences/CharacterCardBilingualData.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/TagMarketBilingualData.kt",
+        "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardUITools.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/data/preferences/WaifuPreferences.kt",
+          "contains": "DEFAULT_WAIFU_CUSTOM_PROMPT = \"You must follow these rules",
+          "why": "the waifu prompt default is user-visible and therefore English"
+        },
+        {
+          "file": "app/src/main/res/values/strings.xml",
+          "contains": "ui_controller_image_capability_required",
+          "why": "the one Chinese ToolResult.error is now a resource"
+        }
+      ],
+      "reverify": "python3 ci/script/fork_audit.py; then walk the re-audit list in docs/FORK-REGISTRY/re-audit-prompts.md",
+      "status": "applied"
+    },
+    {
+      "id": "LAYOUT-001",
+      "area": "layout",
+      "title": "Localized text overflow fixes",
+      "commit": null,
+      "rationale": "English strings are two to three times wider than the Chinese originals, which exposed containers whose height or width was tuned to the shorter text. English is also the widest supported locale, so fixing for it fixes every future locale.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/ui/features/toolbox/screens/ToolboxScreen.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/main/components/AppContent.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/ModelApiSettingsSection.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/input/agent/AgentChatInputSection.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/PluginTabContent.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/toolbox/screens/ToolboxScreen.kt",
+          "contains": "heightIn(min = 156.dp, max = 200.dp)",
+          "why": "the toolbox card grows instead of clipping its description"
+        },
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/ModelApiSettingsSection.kt",
+          "contains": "fill = false",
+          "why": "the provider label takes only the width it needs"
+        },
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/PluginTabContent.kt",
+          "contains": "maxLines = 3",
+          "why": "package descriptions are no longer clamped to one line"
+        }
+      ],
+      "reverify": "on-device at the maximum in-app font scale (1.5), sweep the screens listed in docs/FORK-REGISTRY/re-audit-layout.md",
+      "status": "applied"
+    },
+    {
+      "id": "SIZE-005",
+      "area": "size",
+      "title": "R8 and resource shrinking enabled for release and nightly",
+      "commit": null,
+      "status": "planned",
+      "rationale": "R8 was disabled in every build type, so the dex payload shipped at 72.7 MB uncompressed-in-APK terms. app/proguard-rules.pro already carried the keep rules this app needs (Shizuku, QuickJS reflection, Room/ObjectBox, AIDL, runtime APK parsing and re-signing), so it was written for R8 and simply was never switched on. The fork added the missing rules for apkparser/apksig/zip4j, ToolPkg, kotlinx.serialization and enum valueOf. Debug is deliberately left unminified because that is the variant used for on-device verification.",
+      "files": [
+        "app/build.gradle.kts",
+        "app/proguard-rules.pro"
+      ],
+      "anchors": [
+        {
+          "file": "app/build.gradle.kts",
+          "contains": "isMinifyEnabled = true",
+          "why": "release and nightly must be minified; debug must not be"
+        }
+      ],
+      "reverify": "build a release variant and smoke-test the APK reverse-engineering path, ToolPkg package loading, and the settings screens; R8 breakage is invisible until a reflective path is exercised"
+    }
+  ]
+}

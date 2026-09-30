@@ -157,7 +157,7 @@ class MainActivity : ComponentActivity() {
     override fun attachBaseContext(newBase: Context) {
         // 获取当前设置的语言
         val code = LocaleUtils.getCurrentLanguage(newBase)
-        val locale = LocaleUtils.getLocaleForLanguageCode(code, newBase)
+        val locale = LocaleUtils.getLocaleForLanguageCode(code)
         val config = LocaleUtils.createLocaleOverrideConfiguration(locale)
 
         // 设置语言配置

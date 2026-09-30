@@ -274,8 +274,11 @@ fun AccessibilityWizardCard(
     // 警告对话框
     if (showWarningDialog) {
         val warningTitle = stringResource(R.string.accessibility_risk_warning_title)
-        val warningMessage = stringResource(R.string.accessibility_risk_warning_message) + "\n\n" +
-                stringResource(R.string.accessibility_risk_warning_additional)
+        val warningMessage = stringResource(
+            R.string.accessibility_risk_warning_message_full,
+            stringResource(R.string.accessibility_risk_warning_message),
+            stringResource(R.string.accessibility_risk_warning_additional)
+        )
         val warningInputError = stringResource(R.string.accessibility_risk_warning_input_error)
         val warningConfirm = stringResource(R.string.accessibility_risk_warning_confirm)
         val expectedText = stringResource(R.string.a11y_wizard_risk_acknowledgment)

@@ -97,6 +97,18 @@ jobs:
             --base "${{ steps.plan.outputs.base_sha }}" \
             --candidate "${{ steps.plan.outputs.candidate_sha }}"
 
+      # Fork: every upstream merge must be checked against the fork's own
+      # invariants — that each recorded fork change is still applied, that every
+      # R.string reference has a definition, and that no untranslated Chinese
+      # literal has appeared. See docs/FORK-REGISTRY/index.md.
+      - name: Check fork invariants
+        if: always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "${{ steps.plan.outputs.base_sha }}" 2>/dev/null || true
+          python3 ci/script/fork_audit.py --no-color
+
       - name: Check changed YAML and Actions workflows
         id: yaml
         if: steps.plan.outputs.yaml == 'true'

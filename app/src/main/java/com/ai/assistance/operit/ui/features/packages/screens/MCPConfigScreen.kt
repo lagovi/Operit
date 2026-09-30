@@ -1735,7 +1735,7 @@ private fun PluginListItem(
                                         color = MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
                                     ) {
                                         Text(
-                                            text = stringResource(R.string.more) + "${toolNames.size - 5}",
+                                            text = stringResource(R.string.more_with_count, toolNames.size - 5),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),

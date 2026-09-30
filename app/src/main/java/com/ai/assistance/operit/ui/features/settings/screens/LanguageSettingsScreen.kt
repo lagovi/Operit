@@ -1,34 +1,20 @@
 package com.ai.assistance.operit.ui.features.settings.screens
 
-import android.content.Context
-import android.content.Intent
-import android.os.Build
-import android.os.LocaleList
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Language
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,169 +24,86 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.ai.assistance.operit.ui.components.CustomScaffold
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.os.LocaleListCompat
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.preferences.preferencesManager
-import com.ai.assistance.operit.ui.main.MainActivity
 import com.ai.assistance.operit.util.LocaleUtils
-import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * 语言设置界面
+ * Language settings.
+ *
+ * Fork: this build ships one locale, so the screen is informational rather than
+ * a picker. The list is driven by [LocaleUtils.getSupportedLanguages] — adding a
+ * language means adding a resource directory and one entry there, and this
+ * screen becomes a picker with no other change. The selection path is kept
+ * working so that entry is the only thing that has to be correct.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LanguageSettingsScreen(
-    onBackPressed: () -> Unit
-) {
-    val context = LocalContext.current
-    var currentLanguage by remember { mutableStateOf(LocaleUtils.getCurrentLanguage(context)) }
-    val supportedLanguages = remember { LocaleUtils.getSupportedLanguages() }
-    var isChangingLanguage by remember { mutableStateOf(false) }
+fun LanguageSettingsScreen(onBackPressed: () -> Unit) {
+    val supportedLanguages = LocaleUtils.getSupportedLanguages()
+    var currentLanguage by remember { mutableStateOf(supportedLanguages.first().code) }
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(key1 = true) {
-        currentLanguage = LocaleUtils.getCurrentLanguage(context)
-    }
+    LaunchedEffect(Unit) { currentLanguage = LocaleUtils.currentLanguageCode() }
 
-    CustomScaffold() { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.select_language),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = stringResource(R.string.language_info),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(16.dp)
+        )
 
-            if (isChangingLanguage) {
-                // 显示语言切换中的进度指示器
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    Text(
-                        text = stringResource(id = R.string.language_changing),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            } else {
-                LazyColumn {
-                    items(supportedLanguages) { language ->
-                        LanguageItem(
-                            language = language,
-                            isSelected = language.code == currentLanguage,
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            items(supportedLanguages) { language ->
+                val isSelected = language.code == currentLanguage
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .selectable(
+                            selected = isSelected,
                             onClick = {
-                                if (language.code != currentLanguage) {
-                                    // 设置状态为正在切换语言
-                                    isChangingLanguage = true
-                                    
-                                    // 应用新的语言设置（使用已初始化的全局实例）
+                                if (language.code == currentLanguage) return@selectable
+                                val context = LocalContext.current
+                                currentLanguage = language.code
+                                scope.launch {
+                                    delay(300)
                                     LocaleUtils.setAppLanguage(context, language.code)
-                                    
-                                    // 显示切换语言的提示
-                                    Toast.makeText(
-                                        context, 
-                                        context.getString(R.string.language_changed), 
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    
-                                    // 延迟重启应用以确保语言设置完全生效
-                                    scope.launch {
-                                        delay(600) // 短暂延迟确保设置已保存
-                                        
-                                        // 重启应用
-                                        val intent = Intent(context, MainActivity::class.java).apply {
-                                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
-                                                   Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                        }
-                                        context.startActivity(intent)
-                                    }
                                 }
                             }
                         )
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = language.displayName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+                        if (language.nativeName != language.displayName) {
+                            Text(
+                                text = language.nativeName,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = stringResource(R.string.language_info),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = stringResource(R.string.confirm_action),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
         }
     }
 }
-
-@Composable
-fun LanguageItem(
-    language: LocaleUtils.Language,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Default.Language,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
-        )
-        
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp)
-        ) {
-            Text(
-                text = language.displayName,
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Text(
-                text = language.nativeName,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        
-        if (isSelected) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-    }
-    
-    HorizontalDivider(
-        modifier = Modifier.fillMaxWidth(),
-        thickness = 0.5.dp,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-    )
-} 

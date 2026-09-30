@@ -11,9 +11,6 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.TextRecognizer
-import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
-import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
-import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.File
 import java.io.FileOutputStream
@@ -28,18 +25,14 @@ import kotlinx.coroutines.withContext
 object OCRUtils {
     private const val TAG = "OCRUtils"
 
-    // 识别器缓存
+    // Fork: only the bundled Latin recognizer ships. The Chinese, Japanese,
+    // Korean and Devanagari recognizers are separate ML Kit artifacts that
+    // cannot read Latin script and cost ~2.4 MB of APK assets between them.
     private var latinRecognizer: TextRecognizer? = null
-    private var chineseRecognizer: TextRecognizer? = null
-    private var japaneseRecognizer: TextRecognizer? = null
-    private var koreanRecognizer: TextRecognizer? = null
 
     /** 文本识别语言选项 */
     enum class Language {
-        LATIN, // 拉丁语系（英文、法文、德文等）
-        CHINESE, // 中文
-        JAPANESE, // 日文
-        KOREAN // 韩文
+        LATIN // 拉丁语系（英文、法文、德文等）
     }
 
     /** 识别质量选项 */
@@ -59,31 +52,6 @@ object OCRUtils {
                             TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
                 }
                 latinRecognizer!!
-            }
-            Language.CHINESE -> {
-                if (chineseRecognizer == null) {
-                    chineseRecognizer =
-                            TextRecognition.getClient(
-                                    ChineseTextRecognizerOptions.Builder().build()
-                            )
-                }
-                chineseRecognizer!!
-            }
-            Language.JAPANESE -> {
-                if (japaneseRecognizer == null) {
-                    japaneseRecognizer =
-                            TextRecognition.getClient(
-                                    JapaneseTextRecognizerOptions.Builder().build()
-                            )
-                }
-                japaneseRecognizer!!
-            }
-            Language.KOREAN -> {
-                if (koreanRecognizer == null) {
-                    koreanRecognizer =
-                            TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
-                }
-                koreanRecognizer!!
             }
         }
     }
@@ -244,19 +212,13 @@ object OCRUtils {
             bitmap: Bitmap,
             quality: Quality = Quality.LOW
     ): String {
-        // 同时进行拉丁文和中文识别
-        val latinResult = recognizeTextFromBitmap(bitmap, Language.LATIN, quality)
-        val chineseResult = recognizeTextFromBitmap(bitmap, Language.CHINESE, quality)
-
-        val latinText = if (latinResult is OCRResult.Success) latinResult.getFullText() else ""
-        val chineseText = if (chineseResult is OCRResult.Success) chineseResult.getFullText() else ""
-
-        // 合并结果，如果两种结果相同或其中一个为空，则直接返回非空结果
-        return when {
-            latinText.isEmpty() -> chineseText
-            chineseText.isEmpty() -> latinText
-            latinText == chineseText -> latinText
-            else -> "$latinText\n$chineseText" // 不同结果合并返回
+        val result = recognizeTextFromBitmap(bitmap, Language.LATIN, quality)
+        return when (result) {
+            is OCRResult.Success -> result.getFullText()
+            is OCRResult.Error -> {
+                AppLogger.e(TAG, "Text recognition failed: ${result.message}")
+                ""
+            }
         }
     }
 
@@ -296,19 +258,13 @@ object OCRUtils {
      */
     @WorkerThread
     suspend fun recognizeText(context: Context, uri: Uri, quality: Quality = Quality.LOW): String {
-        // 同时进行拉丁文和中文识别
-        val latinResult = recognizeTextFromUri(context, uri, Language.LATIN, quality)
-        val chineseResult = recognizeTextFromUri(context, uri, Language.CHINESE, quality)
-
-        val latinText = if (latinResult is OCRResult.Success) latinResult.getFullText() else ""
-        val chineseText = if (chineseResult is OCRResult.Success) chineseResult.getFullText() else ""
-
-        // 合并结果，如果两种结果相同或其中一个为空，则直接返回非空结果
-        return when {
-            latinText.isEmpty() -> chineseText
-            chineseText.isEmpty() -> latinText
-            latinText == chineseText -> latinText
-            else -> "$latinText\n$chineseText" // 不同结果合并返回
+        val result = recognizeTextFromUri(context, uri, Language.LATIN, quality)
+        return when (result) {
+            is OCRResult.Success -> result.getFullText()
+            is OCRResult.Error -> {
+                AppLogger.e(TAG, "Text recognition failed: ${result.message}")
+                ""
+            }
         }
     }
 
@@ -323,7 +279,7 @@ object OCRUtils {
     @WorkerThread
     suspend fun extractTextBlocks(
             bitmap: Bitmap,
-            languages: List<Language> = listOf(Language.LATIN, Language.CHINESE),
+            languages: List<Language> = listOf(Language.LATIN),
             quality: Quality = Quality.LOW
     ): List<String> {
         val textBlocks = mutableListOf<String>()
@@ -370,15 +326,6 @@ object OCRUtils {
     fun closeRecognizers() {
         latinRecognizer?.close()
         latinRecognizer = null
-
-        chineseRecognizer?.close()
-        chineseRecognizer = null
-
-        japaneseRecognizer?.close()
-        japaneseRecognizer = null
-
-        koreanRecognizer?.close()
-        koreanRecognizer = null
     }
 
     /** OCR识别结果 */

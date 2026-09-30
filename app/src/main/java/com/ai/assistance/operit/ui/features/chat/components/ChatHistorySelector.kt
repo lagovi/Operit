@@ -2269,8 +2269,9 @@ fun ChatHistorySelector(
                                                 modifier = Modifier.clearAndSetSemantics {}
                                             )
                                             if (item.name != ungroupedText && !hasLongPressedGroup) {
+                                                Spacer(modifier = Modifier.width(4.dp))
                                                 Text(
-                                                    text = " (" + stringResource(R.string.long_press_manage) + ")",
+                                                    text = stringResource(R.string.long_press_manage_parenthetical),
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                                     modifier = Modifier.clearAndSetSemantics {}

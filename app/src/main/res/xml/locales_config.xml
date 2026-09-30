@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fork: the system per-app language picker only offers locales this build
+  actually ships. It must stay in sync with docs/FORK-REGISTRY/registry.json
+  (shipped_locales) and with LocaleUtils.getSupportedLanguages().
+-->
 <locale-config xmlns:android="http://schemas.android.com/apk/res/android">
-    <locale android:name="zh"/>
     <locale android:name="en"/>
-    <locale android:name="ja"/>
-    <locale android:name="ko"/>
-    <locale android:name="es"/>
-    <locale android:name="ms"/>
-    <locale android:name="id"/>
-    <locale android:name="pt-BR"/>
-    <locale android:name="ro"/>
-</locale-config> 
+</locale-config>

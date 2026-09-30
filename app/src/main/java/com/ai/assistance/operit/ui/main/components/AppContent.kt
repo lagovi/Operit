@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -296,15 +297,20 @@ fun AppContent(
                                     },
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp,
-                                    color = appBarContentColor
+                                    color = appBarContentColor,
+                                    modifier = Modifier.weight(1f, fill = false),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
 
                                 // 显示当前聊天标题（仅在AI对话页面)
                                 if (currentScreen is Screen.AiChat && currentChatTitle.isNotBlank()) {
+                                    Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "- $currentChatTitle",
+                                        text = stringResource(R.string.chat_title_conversation_suffix, currentChatTitle),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = appBarContentColor.copy(alpha = 0.8f),
+                                        modifier = Modifier.weight(1f),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )

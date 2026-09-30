@@ -1080,21 +1080,9 @@ class ConversationService(
         multiServiceManager: MultiServiceManager,
         recordTokenUsage: Boolean = true,
     ): String {
-        val currentLanguage = LocaleUtils.getCurrentLanguage(context)
-        
-        // 根据当前语言确定目标语言
-        val targetLanguage = when (currentLanguage) {
-            LocaleUtils.LanguageCodes.CHINESE -> context.getString(R.string.conversation_language_chinese)
-            LocaleUtils.LanguageCodes.ENGLISH -> "English"
-            LocaleUtils.LanguageCodes.JAPANESE -> "Japanese"
-            LocaleUtils.LanguageCodes.KOREAN -> "Korean"
-            LocaleUtils.LanguageCodes.SPANISH -> "Spanish"
-            LocaleUtils.LanguageCodes.MALAY -> "Malay"
-            LocaleUtils.LanguageCodes.INDONESIAN -> "Indonesian"
-            LocaleUtils.LanguageCodes.PORTUGUESE_BRAZIL -> "Portuguese (Brazil)"
-            LocaleUtils.LanguageCodes.ROMANIAN -> "Romanian"
-            else -> context.getString(R.string.conversation_language_chinese) // 默认翻译为中文
-        }
+        // Fork: English is the only shipped language, so English is the translation
+        // target. The former default sent unmatched locales to Chinese.
+        val targetLanguage = "English"
         
         val translationPrompt = """
 ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}

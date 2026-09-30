@@ -438,7 +438,7 @@ fun ClassicChatSettingsBar(
             ) {
                 Box(modifier = Modifier.padding(top = 0.dp, bottom = 76.dp)) {
                     Card(
-                        modifier = Modifier.width(280.dp),
+                        modifier = Modifier.widthIn(min = 280.dp, max = 340.dp),
                         shape = RoundedCornerShape(8.dp),
                             colors =
                                     CardDefaults.cardColors(
@@ -1213,13 +1213,18 @@ private fun ThinkingSettingsItem(
                 else -> stringResource(R.string.thinking_type_off)
             }
 
-    val stateText = buildString {
-        append(stringResource(R.string.thinking_mode))
-        append(": ")
-        append(if (enableThinkingMode) context.getString(R.string.enabled) else context.getString(R.string.disabled))
-    }
-    val accessibilityDesc =
-            "${stringResource(R.string.thinking_settings)}: $thinkingTypeText, $stateText, $expandStateDesc"
+    val stateText = stringResource(
+        R.string.a11y_label_value,
+        stringResource(R.string.thinking_mode),
+        if (enableThinkingMode) context.getString(R.string.enabled) else context.getString(R.string.disabled)
+    )
+    val accessibilityDesc = stringResource(
+        R.string.a11y_row_states_four,
+        stringResource(R.string.thinking_settings),
+        thinkingTypeText,
+        stateText,
+        expandStateDesc
+    )
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1250,7 +1255,7 @@ private fun ThinkingSettingsItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.thinking_settings) + ":",
+                    text = stringResource(R.string.thinking_settings_colon),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -1261,10 +1266,10 @@ private fun ThinkingSettingsItem(
                     text = thinkingTypeText,
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.primary,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f, fill = false).clearAndSetSemantics {}
+                    modifier = Modifier.weight(1f).clearAndSetSemantics {}
                 )
             }
             Icon(
@@ -1335,7 +1340,12 @@ private fun MemorySelectorItem(
 
     val currentProfileName = currentProfile?.name ?: stringResource(R.string.not_selected)
     val expandStateDesc = if (expanded) stringResource(R.string.expanded) else stringResource(R.string.collapsed)
-    val accessibilityDesc = "${stringResource(R.string.memory)}: $currentProfileName, $expandStateDesc"
+    val accessibilityDesc = stringResource(
+        R.string.a11y_row_states,
+        stringResource(R.string.memory),
+        currentProfileName,
+        expandStateDesc
+    )
     
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1371,7 +1381,7 @@ private fun MemorySelectorItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.memory) + ":",
+                    text = stringResource(R.string.memory_colon),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -1382,10 +1392,10 @@ private fun MemorySelectorItem(
                     text = currentProfile?.name ?: stringResource(R.string.not_selected),
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.primary,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f, fill = false).clearAndSetSemantics {}
+                    modifier = Modifier.weight(1f).clearAndSetSemantics {}
                 )
             }
             Icon(
@@ -1484,7 +1494,12 @@ private fun ModelSelectorItem(
     val effectiveExpanded = expanded
     val expandStateDesc =
             if (effectiveExpanded) stringResource(R.string.expanded) else stringResource(R.string.collapsed)
-    val accessibilityDesc = "${stringResource(R.string.model)}: $currentModelName, $expandStateDesc"
+    val accessibilityDesc = stringResource(
+        R.string.a11y_row_states,
+        stringResource(R.string.model),
+        currentModelName,
+        expandStateDesc
+    )
     
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -1536,7 +1551,7 @@ private fun ModelSelectorItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.model) + ":",
+                    text = stringResource(R.string.model_colon),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Normal,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -1551,21 +1566,21 @@ private fun ModelSelectorItem(
                         text = selectedModel.ifEmpty { stringResource(R.string.not_selected) },
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.primary,
-                        maxLines = 2,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier
-                            .weight(1f, fill = false)
+                            .weight(1f)
                             .clearAndSetSemantics {}
                     )
                 } ?: Text(
                     text = stringResource(R.string.not_selected),
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.primary,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f, fill = false).clearAndSetSemantics {}
+                    modifier = Modifier.weight(1f).clearAndSetSemantics {}
                 )
             }
             Icon(

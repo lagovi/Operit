@@ -1201,8 +1201,7 @@ fun ModelApiSettingsSection(
                                 enabled = selectedModels.value.isNotEmpty()
                         ) { 
                             Text(
-                                stringResource(R.string.confirm_action) + 
-                                    if (selectedModels.value.isNotEmpty()) " (${selectedModels.value.size})" else "",
+                                stringResource(R.string.confirm_action_with_count, selectedModels.value.size),
                                 fontSize = 14.sp
                             ) 
                         }
@@ -1675,7 +1674,7 @@ private fun SettingsSelectorRow(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f, fill = false)) {
                 Text(
                         text = title,
                         style = MaterialTheme.typography.bodyMedium,
@@ -1695,7 +1694,7 @@ private fun SettingsSelectorRow(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
                             .padding(end = 8.dp)
-                            .weight(0.5f, fill = false),
+                            .weight(1f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
             )

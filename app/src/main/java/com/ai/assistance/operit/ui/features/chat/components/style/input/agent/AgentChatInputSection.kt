@@ -1572,7 +1572,9 @@ private fun AgentModelSelectorPopup(
                 modifier =
                     Modifier
                         .padding(bottom = 44.dp, end = 12.dp)
-                        .width(300.dp)
+                        // A fixed 300dp truncated long model ids. A range keeps the card
+                        // flush on narrow screens and gives the id room on wide ones.
+                        .widthIn(min = 280.dp, max = 340.dp)
                         .heightIn(max = 420.dp)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -1742,7 +1744,7 @@ private fun AgentThinkingSettingsItem(
         }
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = stringResource(R.string.thinking_settings) + ":",
+            text = stringResource(R.string.thinking_settings_colon),
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -1751,7 +1753,7 @@ private fun AgentThinkingSettingsItem(
             text = thinkingTypeText,
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.primary,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f),
@@ -2007,7 +2009,7 @@ private fun AgentModelSelectorItem(
         }
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = stringResource(R.string.model) + ":",
+            text = stringResource(R.string.model_colon),
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -2016,7 +2018,7 @@ private fun AgentModelSelectorItem(
             text = currentModelName.ifEmpty { stringResource(R.string.not_selected) },
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.primary,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f),
@@ -2311,7 +2313,8 @@ private fun AgentExtraSettingsPopup(
                 modifier =
                     Modifier
                         .padding(bottom = 44.dp, end = 12.dp)
-                        .width(300.dp)
+                        // Same reason: a fixed width truncated the value in English.
+                        .widthIn(min = 280.dp, max = 340.dp)
                         .heightIn(max = 420.dp)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -2511,7 +2514,7 @@ private fun AgentMemorySelectorItem(
         }
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = stringResource(R.string.memory) + ":",
+            text = stringResource(R.string.memory_colon),
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -2520,7 +2523,7 @@ private fun AgentMemorySelectorItem(
             text = currentProfileName,
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.primary,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f),

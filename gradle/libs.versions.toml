@@ -44,7 +44,6 @@ uuid = "0.8.2"
 gson = "2.10.1"
 hjson = "3.0.0"
 json = "20250517"
-jieba = "1.0.2"
 hnswlib = "0.0.46"
 tensorflow = "2.10.0"
 room = "2.8.4"
@@ -112,10 +111,6 @@ desugar-jdk = { group = "com.android.tools", name = "desugar_jdk_libs", version.
 
 # ML Kit
 mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition", version.ref = "mlkit-text" }
-mlkit-text-chinese = { group = "com.google.mlkit", name = "text-recognition-chinese", version.ref = "mlkit-text" }
-mlkit-text-japanese = { group = "com.google.mlkit", name = "text-recognition-japanese", version.ref = "mlkit-text" }
-mlkit-text-korean = { group = "com.google.mlkit", name = "text-recognition-korean", version.ref = "mlkit-text" }
-mlkit-text-devanagari = { group = "com.google.mlkit", name = "text-recognition-devanagari", version.ref = "mlkit-text" }
 
 # ZXing
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
@@ -175,7 +170,6 @@ hjson = { group = "org.hjson", name = "hjson", version.ref = "hjson" }
 json-jvm = { group = "org.json", name = "json", version.ref = "json" }
 
 # NLP
-jieba = { group = "com.huaban", name = "jieba-analysis", version.ref = "jieba" }
 hnswlib-core = { group = "com.github.jelmerk", name = "hnswlib-core", version.ref = "hnswlib" }
 hnswlib-utils = { group = "com.github.jelmerk", name = "hnswlib-utils", version.ref = "hnswlib" }
 

@@ -566,7 +566,7 @@ private fun RepoPublishConfirmDialog(
                 }
                 if (category.isNotBlank()) {
                     Text(
-                        stringResource(R.string.market_detail_category_label) + ": " + category,
+                        stringResource(R.string.market_detail_category_colon, category),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

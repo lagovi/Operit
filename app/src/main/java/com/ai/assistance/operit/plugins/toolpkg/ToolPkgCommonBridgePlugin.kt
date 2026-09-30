@@ -26,6 +26,7 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.I
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.InputMenuTogglePlugin
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.InputMenuTogglePluginRegistry
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.LocaleUtils
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgXmlRenderHookComposeDslResult
 import com.ai.assistance.operit.core.tools.packTool.ToolPkgXmlRenderHookObjectResult
@@ -728,7 +729,11 @@ private object ToolPkgInputMenuToggleBridgePlugin : InputMenuTogglePlugin {
                                     "action" to "toggle",
                                     "toggleId" to spec.id,
                                     "chatId" to params.chatId,
-                                    "runtime" to params.runtime
+                                    "runtime" to params.runtime,
+                                    // Bundled JS plugins read this to pick their UI
+                                    // language; without it they fall back to Chinese
+                                    // regardless of the app locale.
+                                    "useEnglish" to !LocaleUtils.usesChineseContent(params.context)
                                 )
                         )
                         triggerRefresh(
@@ -796,7 +801,8 @@ private object ToolPkgInputMenuToggleBridgePlugin : InputMenuTogglePlugin {
                         mapOf(
                             "action" to "create",
                             "chatId" to params.chatId,
-                            "runtime" to params.runtime
+                            "runtime" to params.runtime,
+                            "useEnglish" to !LocaleUtils.usesChineseContent(params.context)
                         )
                 )
             val value =

@@ -27,6 +27,7 @@ import android.view.View
 import android.view.WindowManager
 import android.graphics.PixelFormat
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.LocaleUtils
 import androidx.core.app.NotificationCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -297,7 +298,10 @@ class AIForegroundService : Service() {
                     return
                 }
 
-                val appContext = context.applicationContext
+                // Localized on purpose: the Application context keeps the locale the
+                // process started with, so a reply notification would otherwise
+                // stay in the previous language after an in-session switch.
+                val appContext = LocaleUtils.getLocalizedContext(context.applicationContext)
                 val displayPreferences = DisplayPreferencesManager.getInstance(appContext)
                 val globalEnableReplyNotification = runBlocking {
                     displayPreferences.enableReplyNotification.first()
@@ -1305,15 +1309,17 @@ class AIForegroundService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelName = getString(R.string.service_operit_running)
+            // The channel name and description are resolved once, when the system
+            // first sees the channel, so they must come from a localized context.
+            val localized = LocaleUtils.getLocalizedContext(this)
             val serviceChannel =
                     NotificationChannel(
                             CHANNEL_ID,
-                            channelName,
+                            localized.getString(R.string.service_operit_running),
                             NotificationManager.IMPORTANCE_LOW // 低重要性，避免打扰用户
                     )
                     .apply {
-                        description = getString(R.string.service_keep_background)
+                        description = localized.getString(R.string.service_keep_background)
                     }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
@@ -1857,34 +1863,39 @@ class AIForegroundService : Service() {
     private fun createNotification(): Notification {
         // 为了简单起见，使用一个安卓内置图标。
         // 在实际项目中，应替换为应用的自定义图标。
+        // A Service's `this` is the Application context, whose Resources keep
+        // whatever locale the process started with. Reading strings from a
+        // localized context is what makes the notification follow a language
+        // change made without restarting the process.
+        val localized = LocaleUtils.getLocalizedContext(this)
         val wakeListeningEnabledSnapshot = wakeListeningEnabled
         val wakeListeningSuspendedSnapshot = wakeListeningSuspendedForIme || wakeListeningSuspendedForExternalRecording || wakeListeningSuspendedForFloatingFullscreen
         val externalHttpSnapshot = externalHttpStateFlow.value
         val title =
             if (isAiBusy) {
-                characterName ?: getString(R.string.service_operit_running)
+                characterName ?: localized.getString(R.string.service_operit_running)
             } else {
                 if (wakeListeningEnabledSnapshot) {
                     if (wakeListeningSuspendedSnapshot) {
-                        getString(R.string.service_running_wake_pause)
+                        localized.getString(R.string.service_running_wake_pause)
                     } else {
-                        getString(R.string.service_running_wake_listening)
+                        localized.getString(R.string.service_running_wake_listening)
                     }
                 } else {
-                    getString(R.string.service_operit_running)
+                    localized.getString(R.string.service_operit_running)
                 }
             }
         val activeConversationCount = chatRuntimeHolder.activeConversationCount.value
         val currentSessionToolCount = chatRuntimeHolder.currentSessionToolCount.value
         val contentText =
             if (isAiBusy && activeConversationCount > 0) {
-                val statsText = getString(
+                val statsText = localized.getString(
                     R.string.service_running_stats,
                     activeConversationCount,
                     currentSessionToolCount
                 )
                 if (externalHttpSnapshot.isRunning && externalHttpSnapshot.port != null) {
-                    getString(
+                    localized.getString(
                         R.string.service_running_with_http,
                         statsText,
                         externalHttpSnapshot.port
@@ -1893,12 +1904,12 @@ class AIForegroundService : Service() {
                     statsText
                 }
             } else if (externalHttpSnapshot.isRunning && externalHttpSnapshot.port != null) {
-                getString(
+                localized.getString(
                     R.string.service_running_http_listening,
                     externalHttpSnapshot.port
                 )
             } else {
-                getString(R.string.service_operit_running)
+                localized.getString(R.string.service_operit_running)
             }
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
@@ -1946,7 +1957,7 @@ class AIForegroundService : Service() {
         }
         builder.addAction(
             android.R.drawable.ic_btn_speak_now,
-            getString(R.string.service_voice_floating_window),
+            localized.getString(R.string.service_voice_floating_window),
             floatingPendingIntent
         )
 
@@ -1966,9 +1977,9 @@ class AIForegroundService : Service() {
         builder.addAction(
             android.R.drawable.ic_lock_silent_mode_off,
             if (wakeListeningEnabledSnapshot) {
-                getString(R.string.service_turn_off_wake)
+                localized.getString(R.string.service_turn_off_wake)
             } else {
-                getString(R.string.service_turn_on_wake)
+                localized.getString(R.string.service_turn_on_wake)
             },
             toggleWakePendingIntent
         )
@@ -1989,7 +2000,7 @@ class AIForegroundService : Service() {
 
         builder.addAction(
             android.R.drawable.ic_menu_close_clear_cancel,
-            getString(R.string.service_exit),
+            localized.getString(R.string.service_exit),
             exitPendingIntent
         )
 
@@ -2010,7 +2021,7 @@ class AIForegroundService : Service() {
 
             builder.addAction(
                 android.R.drawable.ic_menu_close_clear_cancel,
-                getString(R.string.service_stop),
+                localized.getString(R.string.service_stop),
                 pendingIntent
             )
         }

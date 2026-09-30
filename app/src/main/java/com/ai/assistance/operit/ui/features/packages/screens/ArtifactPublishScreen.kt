@@ -1241,7 +1241,7 @@ fun ArtifactPublishScreen(
                         if (detail.isNotBlank()) {
                             Text(stringResource(R.string.detail_colon, detail))
                         }
-                        Text(stringResource(R.string.market_detail_category_label) + ": " + categoryId)
+                        Text(stringResource(R.string.market_detail_category_colon, categoryId))
                         if (initialInfo?.type == PublishArtifactType.PACKAGE) {
                             Text(
                                 stringResource(
@@ -1269,7 +1269,7 @@ fun ArtifactPublishScreen(
                         if (detail.isNotBlank()) {
                             Text(stringResource(R.string.detail_colon, detail))
                         }
-                        Text(stringResource(R.string.market_detail_category_label) + ": " + categoryId)
+                        Text(stringResource(R.string.market_detail_category_colon, categoryId))
                         Text(stringResource(R.string.version_colon, effectiveVersion))
                         toolPkgApiVersion?.let { apiVersionValue ->
                             Text(stringResource(R.string.toolpkg_api_version_value, apiVersionValue))

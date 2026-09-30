@@ -1,7 +1,6 @@
 package com.ai.assistance.operit.util
 
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.os.Build
 import android.os.LocaleList
@@ -16,20 +15,8 @@ import kotlinx.coroutines.runBlocking
 object LocaleUtils {
 
     object LanguageCodes {
-        const val AUTO = "system"
-        const val CHINESE = "zh"
         const val ENGLISH = "en"
-        const val JAPANESE = "ja"
-        const val KOREAN = "ko"
-        const val SPANISH = "es"
-        const val MALAY = "ms"
-        const val INDONESIAN = "id"
-        const val PORTUGUESE_BRAZIL = "pt-BR"
-        const val ROMANIAN = "ro"
     }
-
-    private val legacyLanguageCodeAliases =
-            mapOf("pt" to LanguageCodes.PORTUGUESE_BRAZIL, "in" to LanguageCodes.INDONESIAN)
 
     /**
      * 语言信息数据类
@@ -39,44 +26,22 @@ object LocaleUtils {
      */
     data class Language(val code: String, val displayName: String, val nativeName: String)
 
+    // Fork: this distribution ships English resources only, so English is both the
+    // default and the only entry. The list, the resolver and DEFAULT_LANGUAGE are
+    // all driven from here; adding a locale later means adding one Language entry,
+    // one values-<code>/ directory and one line to res/xml/locales_config.xml.
     private val supportedLanguages =
-            listOf(
-                    Language(LanguageCodes.AUTO, "Follow system", "跟随系统"),
-                    Language(LanguageCodes.CHINESE, "Chinese", "中文"),
-                    Language(LanguageCodes.ENGLISH, "English", "English"),
-                    Language(LanguageCodes.JAPANESE, "Japanese", "日本語"),
-                    Language(LanguageCodes.KOREAN, "Korean", "한국어"),
-                    Language(LanguageCodes.SPANISH, "Spanish", "Español"),
-                    Language(LanguageCodes.MALAY, "Malay", "Bahasa Melayu"),
-                    Language(LanguageCodes.INDONESIAN, "Indonesian", "Bahasa Indonesia"),
-                    Language(
-                            LanguageCodes.PORTUGUESE_BRAZIL,
-                            "Portuguese (Brazil)",
-                            "Português (Brasil)"
-                    ),
-                    Language(LanguageCodes.ROMANIAN, "Romanian", "Română")
-            )
+            listOf(Language(LanguageCodes.ENGLISH, "English", "English"))
 
-    private val supportedLanguageCodes =
-            supportedLanguages.map { it.code }.filter { it != LanguageCodes.AUTO }.toSet()
+    private val supportedLanguageCodes = supportedLanguages.map { it.code }.toSet()
 
     /** 获取支持的语言列表 */
     fun getSupportedLanguages(): List<Language> {
         return supportedLanguages
     }
 
-    fun getLocaleForLanguageCode(languageCode: String, context: Context? = null): Locale {
-        val resolvedCode =
-                if (languageCode.isBlank() || languageCode == LanguageCodes.AUTO) {
-                    context?.let(::getCurrentSystemLanguageCode)
-                            ?: resolveSupportedLanguageCode(Locale.getDefault().toLanguageTag())
-                } else {
-                    resolveSupportedLanguageCode(languageCode)
-                }
-
-        return Locale.forLanguageTag(resolvedCode)
-                .takeIf { it.language.isNotBlank() }
-                ?: Locale(resolvedCode)
+    fun getLocaleForLanguageCode(languageCode: String): Locale {
+        return Locale.forLanguageTag(resolveSupportedLanguageCode(languageCode))
     }
 
     fun createLocaleOverrideConfiguration(locale: Locale): Configuration {
@@ -91,23 +56,12 @@ object LocaleUtils {
         }
     }
 
-    /**
-     * 日本語で未翻訳の項目は英語リソースを使用し、中国語の既定リソースを表示しない。
-     */
     fun createCompatLocaleList(locale: Locale): LocaleListCompat {
-        return if (locale.language.equals(LanguageCodes.JAPANESE, ignoreCase = true)) {
-            LocaleListCompat.forLanguageTags("${locale.toLanguageTag()},${LanguageCodes.ENGLISH}")
-        } else {
-            LocaleListCompat.create(locale)
-        }
+        return LocaleListCompat.create(locale)
     }
 
     fun createPlatformLocaleList(locale: Locale): LocaleList {
-        return if (locale.language.equals(LanguageCodes.JAPANESE, ignoreCase = true)) {
-            LocaleList(locale, Locale.ENGLISH)
-        } else {
-            LocaleList(locale)
-        }
+        return LocaleList(locale)
     }
 
     fun setDefaultLocales(locale: Locale) {
@@ -117,11 +71,18 @@ object LocaleUtils {
         }
     }
 
-    /** 中国語専用コンテンツを選ぶ必要がある場合だけtrueを返す。 */
+    /**
+     * Whether the app's language is Chinese.
+     *
+     * This build ships English only, so the answer is always false. It is kept
+     * because prompt builders are still bilingual and gate their Chinese variants
+     * on it; removing it means deleting every Chinese prompt, which is a separate
+     * change with a much larger merge surface.
+     */
     fun usesChineseContent(context: Context): Boolean {
         return getCurrentLanguage(context)
                 .lowercase(Locale.ROOT)
-                .startsWith(LanguageCodes.CHINESE)
+                .startsWith("zh")
     }
 
     /**
@@ -133,158 +94,89 @@ object LocaleUtils {
      * @return 带有更新后语言配置的新上下文.
      */
     fun getLocalizedContext(context: Context): Context {
-        val lang = getCurrentLanguage(context)
-        val locale = getLocaleForLanguageCode(lang, context)
+        val locale = getLocaleForLanguageCode(getCurrentLanguage(context))
         return context.createConfigurationContext(createLocaleOverrideConfiguration(locale))
     }
 
     /**
      * 获取当前应用设置的语言
      * @param context 上下文
-     * @return 当前语言代码，如zh、en
+     * @return the active language code, e.g. en
      */
     fun getCurrentLanguage(context: Context): String {
-        try {
-            val savedLanguage =
-                    UserPreferencesManager.getInstance(context).getCurrentLanguage()
-            if (savedLanguage.isNotEmpty() && savedLanguage != LanguageCodes.AUTO) {
-                return resolveSupportedLanguageCode(savedLanguage)
-            }
-        } catch (e: Exception) {
-            AppLogger.e("LocaleUtils", "读取应用语言设置失败", e)
-        }
+        val savedLanguage =
+                runCatching { UserPreferencesManager.getInstance(context).getCurrentLanguage() }
+                        .onFailure { error ->
+                            AppLogger.e("LocaleUtils", "读取应用语言设置失败", error)
+                        }
+                        .getOrDefault("")
 
-        return getCurrentSystemLanguage(context)
+        return resolveSupportedLanguageCode(savedLanguage)
     }
 
-    /** 获取系统当前语言 */
-    private fun getCurrentSystemLanguage(context: Context): String {
-        return getCurrentSystemLanguageCode(context)
-    }
+    /** The single shipped language code, for UI that has no context available. */
+    fun currentLanguageCode(): String = supportedLanguages.first().code
 
     /**
      * 设置应用语言
      * @param context 上下文
-     * @param languageCode 语言代码，如zh、en、pt-BR
+     * @param languageCode language code, e.g. en
      */
     fun setAppLanguage(context: Context, languageCode: String) {
-        
-        try {
-            val manager = UserPreferencesManager.getInstance(context)
-            runBlocking(Dispatchers.IO) {
-                manager.saveAppLanguage(languageCode)
-            }
-        } catch (e: Exception) {
-            AppLogger.e("LocaleUtils", "保存应用语言设置失败: $languageCode", e)
+        val localeToSet = getLocaleForLanguageCode(languageCode)
+
+        runBlocking(Dispatchers.IO) {
+            UserPreferencesManager.getInstance(context).saveAppLanguage(localeToSet.toLanguageTag())
         }
 
-        // 根据 languageCode 获取相应的 Locale
-        val localeToSet = getLocaleForLanguageCode(languageCode, context)
-        
         // 设置默认语言
         setDefaultLocales(localeToSet)
-        
+
         // 根据Android版本应用语言设置
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // Android 13+ 使用AppCompatDelegate API
-            val localeList = createCompatLocaleList(localeToSet)
-            AppCompatDelegate.setApplicationLocales(localeList)
+            AppCompatDelegate.setApplicationLocales(createCompatLocaleList(localeToSet))
         } else {
-            // 较旧版本Android使用资源配置
-            try {
-                val config = Configuration(context.resources.configuration)
-                
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    val localeList = createPlatformLocaleList(localeToSet)
-                    config.setLocales(localeList)
-                } else {
-                    config.locale = localeToSet
-                }
-                
-                // 更新上下文资源配置
-                @Suppress("DEPRECATION")
-                context.resources.updateConfiguration(config, context.resources.displayMetrics)
-                
-                // 尝试更新Activity
-                try {
-                    val ctx = context.applicationContext
-                    if (ctx is ContextWrapper) {
-                        val baseContext = ctx.baseContext
-                        if (baseContext != null) {
-                            @Suppress("DEPRECATION")
-                            baseContext.resources.updateConfiguration(
-                                config, 
-                                baseContext.resources.displayMetrics
-                            )
-                        }
-                    }
-                } catch (e: Exception) {
-                    // 忽略无法更新的上下文
-                }
-            } catch (e: Exception) {
-                // 错误时静默处理
-            }
-        }
-    }
-
-    private fun getCurrentSystemLocale(context: Context): Locale {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            context.resources.configuration.locales.get(0)
-        } else {
+            // Below Android 13 the app owns the locale itself: AppCompat cannot
+            // reconfigure the process. Reconfigure the calling context, and let
+            // every component that reads the Application context go through
+            // getLocalizedContext, which rebuilds the configuration from the
+            // preference that was just saved.
+            val config = Configuration(context.resources.configuration)
+            config.setLocales(createPlatformLocaleList(localeToSet))
             @Suppress("DEPRECATION")
-            context.resources.configuration.locale
+            context.resources.updateConfiguration(config, context.resources.displayMetrics)
         }
-    }
-
-    private fun getCurrentSystemLanguageCode(context: Context): String {
-        return resolveSupportedLanguageCode(getCurrentSystemLocale(context).toLanguageTag())
     }
 
     private fun normalizeStoredLanguageCode(languageCode: String): String {
-        if (languageCode.isBlank() || languageCode == LanguageCodes.AUTO) {
-            return languageCode
-        }
-
-        val normalizedCode = languageCode.replace("_", "-").replace("-r", "-")
-        val canonicalCode =
-                Locale.forLanguageTag(normalizedCode)
-                        .takeIf { it.language.isNotBlank() }
-                        ?.toLanguageTag()
-                        ?.takeIf { it.isNotBlank() && it != "und" }
-                        ?: normalizedCode
-        return legacyLanguageCodeAliases[canonicalCode] ?: canonicalCode
+        return languageCode.replace("_", "-").replace("-r", "-")
     }
 
+    /**
+     * Fork: a language this build does not ship must not reach the resource
+     * system. Returning it verbatim made Android fall back to the unqualified
+     * bucket, which is why a fresh install on an unsupported system locale
+     * started in the wrong language. English is the only shipped locale, so it
+     * is the resolution for anything else.
+     */
     private fun resolveSupportedLanguageCode(languageCode: String): String {
         val normalizedCode = normalizeStoredLanguageCode(languageCode)
-        if (normalizedCode.isBlank() || normalizedCode == LanguageCodes.AUTO) {
-            return normalizedCode
+        if (normalizedCode.isBlank()) {
+            return LanguageCodes.ENGLISH
         }
 
         if (normalizedCode in supportedLanguageCodes) {
             return normalizedCode
         }
 
-        val locale =
+        val language =
                 Locale.forLanguageTag(normalizedCode)
                         .takeIf { it.language.isNotBlank() }
-                        ?: return normalizedCode
-        val language = locale.language.lowercase(Locale.ROOT)
+                        ?.language
+                        ?: return LanguageCodes.ENGLISH
 
-        val languageOnlyMatch =
-                supportedLanguageCodes.firstOrNull { it.equals(language, ignoreCase = true) }
-        if (languageOnlyMatch != null) {
-            return languageOnlyMatch
-        }
-
-        val sameLanguageVariants =
-                supportedLanguageCodes.filter {
-                    Locale.forLanguageTag(it).language.equals(language, ignoreCase = true)
-                }
-        if (sameLanguageVariants.size == 1) {
-            return sameLanguageVariants.first()
-        }
-
-        return normalizedCode
+        return supportedLanguageCodes.firstOrNull { it.equals(language, ignoreCase = true) }
+                ?: LanguageCodes.ENGLISH
     }
 }

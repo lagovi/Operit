@@ -5,12 +5,12 @@ import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.speech.SttModelRepository
 import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.OperitPaths
 import com.k2fsa.sherpa.ncnn.*
 import com.ai.assistance.operit.api.speech.SpeechPrerollStore
 import java.io.File
-import com.ai.assistance.operit.util.AssetCopyUtils
 import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -127,21 +127,31 @@ class SherpaSpeechProvider(private val context: Context) : SpeechService {
     }
 
     private fun createRecognizer() {
+        // Fork: the model is no longer bundled in the APK; it is downloaded on
+        // first use and verified by size and SHA-256. See registry SIZE-004.
         val localModelDir: File
         try {
-            val modelDirName = "sherpa-ncnn-streaming-zipformer-bilingual-zh-en-2023-02-13"
-            val assetModelDir = "models/$modelDirName"
-            val targetDir = File(OperitPaths.sherpaNcnnModelsDir(context), modelDirName)
-            localModelDir = AssetCopyUtils.copyAssetDirRecursive(
-                context,
-                assetModelDir,
-                targetDir
-            )
-        } catch (e: IOException) {
-            AppLogger.e(TAG, "Failed to copy model assets.", e)
+            localModelDir =
+                    runBlocking {
+                                SttModelRepository(context)
+                                        .ensureNcnnModel { downloaded, total, _ ->
+                                            AppLogger.d(
+                                                    TAG,
+                                                    "Model download progress: $downloaded/$total"
+                                            )
+                                        }
+                                        .getOrElse { error ->
+                                            AppLogger.e(TAG, "Speech model unavailable", error)
+                                            throw IOException(error)
+                                        }
+                    }
+        } catch (e: Exception) {
             _recognitionState.value = SpeechService.RecognitionState.ERROR
             _recognitionError.value =
-                    SpeechService.RecognitionError(-1, "Failed to prepare model files.")
+                    SpeechService.RecognitionError(
+                            -1,
+                            context.getString(R.string.stt_model_unavailable)
+                    )
             return
         }
 

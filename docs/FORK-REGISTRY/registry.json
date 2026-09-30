@@ -383,6 +383,25 @@
         }
       ],
       "reverify": "build a release variant and smoke-test the APK reverse-engineering path, ToolPkg package loading, and the settings screens; R8 breakage is invisible until a reflective path is exercised"
+    },
+    {
+      "id": "TOOL-003",
+      "area": "tooling",
+      "title": "terminal submodule points at a fork this account can push to",
+      "commit": null,
+      "status": "applied",
+      "rationale": "The terminal module is a git submodule pinned to AAswordman/OperitTerminalCore. The fork's English-only change to it cannot live in a commit the upstream does not have, and CI fails to fetch the submodule otherwise ('upload-pack: not our ref'). The submodule URL is now lagovi/OperitTerminalCore, forked from upstream at the same commit, so the change is pushable. 'upstream' is kept as a remote in the submodule so upstream merges still work: merge inside terminal/ against upstream/master, then push to origin.",
+      "files": [
+        ".gitmodules"
+      ],
+      "anchors": [
+        {
+          "file": ".gitmodules",
+          "contains": "lagovi/OperitTerminalCore",
+          "why": "the submodule must resolve to a repo this fork can push to"
+        }
+      ],
+      "reverify": "git submodule sync && git submodule update --init --recursive, then a CI Android Build"
     }
   ]
 }

@@ -217,8 +217,8 @@
       "anchors": [
         {
           "file": "app/build.gradle.kts",
-          "contains": "val englishOnlyLocales = listOf(\"en\")",
-          "why": "localeFilters is on the variant dimension, so every build type sets it"
+          "contains": "localeFilters += listOf(\"en\")",
+          "why": "localeFilters belongs to androidResources; it does not resolve on defaultConfig or on a build type"
         }
       ],
       "reverify": "unzip -l the APK and confirm no non-en values-* bucket survived",

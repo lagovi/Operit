@@ -393,6 +393,19 @@ android {
         }
     }
 
+    // Fork: this distribution ships English only. This also strips the
+    // AndroidX/Google library translations, which app-level resource pruning
+    // cannot reach and which are the larger half of the saving (~5.7 MB of
+    // resources.arsc, which is stored uncompressed and therefore 1:1 in the
+    // APK). Keeping "en" is safe because values/strings.xml is itself English.
+    //
+    // localeFilters lives on androidResources, not on defaultConfig or on a
+    // build type. resourceConfigurations, the older equivalent, was deprecated
+    // in AGP 8.8.
+    androidResources {
+        localeFilters += listOf("en")
+    }
+
     defaultConfig {
         applicationId = "com.ai.assistance.operit"
         minSdk = 26
@@ -418,15 +431,6 @@ android {
 
     }
 
-    // Fork: this distribution ships English only, so every variant keeps just the
-    // English bucket. This also strips the AndroidX/Google library translations,
-    // which app-level resource pruning cannot reach and which are the larger half
-    // of the saving (~5.7 MB of resources.arsc, which is stored uncompressed and
-    // therefore 1:1 in the APK). Keeping "en" is safe because values/strings.xml
-    // is itself English. localeFilters lives on the variant dimension, not
-    // defaultConfig, so it has to be set per build type.
-    val englishOnlyLocales = listOf("en")
-
     buildTypes {
         val releaseSigningConfig = signingConfigs.findByName("release")
 
@@ -442,20 +446,17 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            localeFilters += englishOnlyLocales
             if (releaseSigningConfig != null) {
                 signingConfig = releaseSigningConfig
             }
         }
         debug {
-            localeFilters += englishOnlyLocales
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("debug")
             resValue("string", "app_name", "Operit Debug")
         }
         create("clone") {
             initWith(getByName("debug"))
-            localeFilters += englishOnlyLocales
             applicationIdSuffix = ".clone"
             if (releaseSigningConfig != null) {
                 signingConfig = releaseSigningConfig
@@ -473,7 +474,6 @@ android {
             if (releaseSigningConfig != null) {
                 signingConfig = releaseSigningConfig
             }
-            localeFilters += englishOnlyLocales
             matchingFallbacks += listOf("release")
             signingConfig = signingConfigs.getByName("debug")
         }

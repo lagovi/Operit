@@ -46,6 +46,7 @@ Exit status is non-zero when a check fails, so it can gate CI.
 | `ANCHOR-LOST` | a fork change is no longer applied — its anchor string is gone from the tree | re-apply the change, or confirm it is no longer needed and drop the entry |
 | `STRING-UNDEFINED` | an `R.string.x` referenced from Kotlin has no definition in the default resource bucket | this is upstream having added a string nobody translated. Add the English text. **This is the check that catches an untranslated upstream string before it ships.** |
 | `CJK-NEW` | a new Chinese string literal in Kotlin that is not on the reviewed allowlist | decide whether it is user-visible. If it is, extract it into a resource. If not, add it to the allowlist. |
+| `LABEL-CONCAT` | a label is built by joining two resources in code instead of being one format resource | merge into a single format resource with a placeholder |
 | `UNREGISTERED` | the shipped `values-*` directories do not match `registry.json`'s `shipped_locales` | keep `registry.json`, `res/xml/locales_config.xml` and `LocaleUtils.getSupportedLanguages()` in agreement |
 
 The audit also prints **merge hotspots**: files the fork has touched since the

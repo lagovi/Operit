@@ -294,6 +294,34 @@ def check_cjk_literals(result: AuditResult) -> None:
     )
 
 
+def check_label_concatenation(result: AuditResult) -> None:
+    """Labels must be format resources, not code that joins two of them.
+
+    A translator cannot reorder or re-spaced ``Title: %s`` when the colon lives
+    in Kotlin. Both shapes this catches — ``+ ":"`` and ``"${stringResource(X)}: $v"``
+    — were present in the tree and both are now gone, which makes this a gate.
+    """
+    patterns = (
+        (re.compile(r"stringResource\([^)]*\)\s*\+"), 'stringResource(...) + "..."'),
+        (re.compile(r"\$\{stringResource\("), '"${stringResource(...)}..."'),
+    )
+    for kotlin_file in list_kotlin_files():
+        module = collect_module_for(kotlin_file)
+        if module is None:
+            continue
+        text = kotlin_file.read_text(encoding="utf-8", errors="replace")
+        for pattern, shape in patterns:
+            for match in pattern.finditer(text):
+                line = text.count("\n", 0, match.start()) + 1
+                result.findings.append(
+                    Finding(
+                        "LABEL-CONCAT",
+                        f"{module[1]}:{line}",
+                        f"label built by joining resources in code ({shape})",
+                    )
+                )
+
+
 def check_locale_dirs(result: AuditResult) -> None:
     """Shipped locale directories must match what the registry declares."""
     if not REGISTRY_PATH.exists():
@@ -430,6 +458,7 @@ def main() -> int:
     check_anchors(result)
     check_string_references(result)
     check_cjk_literals(result)
+    check_label_concatenation(result)
     check_locale_dirs(result)
 
     if args.no_hotspots:

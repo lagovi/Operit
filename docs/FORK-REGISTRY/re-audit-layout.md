@@ -41,19 +41,22 @@ Which one a user sees is a choice that was made implicitly by omission.
 
 ## String concatenation
 
-Roughly twenty sites built labels as `stringResource(R.string.X) + ":"` or
-`+ " (%d)"`. None of them can be reordered or re-spaced by a translator. All are
-now format resources. `R.string.model_label` = `Model: %1$s` was the existing
-precedent; the new `*_colon` keys follow it.
+Roughly thirty sites built labels by joining resources in code — either
+`stringResource(R.string.X) + ":"` or a `"${stringResource(X)}: $value"`
+template. None of them can be reordered or re-spaced by a translator. All are
+now format resources; `R.string.model_label` = `Model: %1$s` was the existing
+precedent and the new keys follow it.
 
-The last four held out because they joined two independent sentences rather than
-a label and its value, and were closed separately: `models_displayed` now has
-three complete variants instead of being concatenated with a suffix and a
-hardcoded `" • n"`, and the llama download tip and blur radius became format
-resources.
+The ones joining two independent sentences rather than a label and its value
+were closed separately: `models_displayed` has three complete variants instead of
+being concatenated with a suffix and a hardcoded `" • n"`.
+
+Both shapes are now gone from the tree, so the check is a gate rather than a
+survey:
 
 ```bash
-grep -rn 'stringResource([^)]*) *+"' app/src/main/java --include=*.kt   # expect: nothing
+grep -rn 'stringResource([^)]*) *+"' app/src/main/java --include=*.kt   # expect nothing
+grep -rnP '\$\{stringResource' app/src/main/java --include=*.kt         # expect nothing
 ```
 
 ## Fixed-width menus

@@ -383,8 +383,8 @@
       "area": "size",
       "title": "R8 and resource shrinking enabled for release and nightly",
       "commit": null,
-      "status": "planned",
-      "rationale": "R8 was disabled in every build type, so the dex payload shipped at 72.7 MB uncompressed-in-APK terms. app/proguard-rules.pro already carried the keep rules this app needs (Shizuku, QuickJS reflection, Room/ObjectBox, AIDL, runtime APK parsing and re-signing), so it was written for R8 and simply was never switched on. The fork added the missing rules for apkparser/apksig/zip4j, ToolPkg, kotlinx.serialization and enum valueOf. Debug is deliberately left unminified because that is the variant used for on-device verification.",
+      "status": "applied",
+      "rationale": "R8 was disabled in every build type, so the dex payload shipped at 72.7 MB in the APK. app/proguard-rules.pro already carried the keep rules this app needs (Shizuku, QuickJS reflection, Room/ObjectBox, AIDL, runtime APK parsing and re-signing), so it was written for R8 and simply was never switched on. Enabling it required 14 -dontwarn rules that could not be predicted without running it: the PDF Box JPX decoder, auto-value's shaded javapoet touching the annotation model at compile time only, Apache SSHD's optional JMX integration, and its optional Ed25519 support. Debug is deliberately left unminified because that is the variant used for on-device verification. VERIFIED: minifyNightlyWithR8 runs clean in CI. The nightly build then fails at signRotatedNightlyApk because the CI runner has no release keystore, which is a credential gap unrelated to minification.",
       "files": [
         "app/build.gradle.kts",
         "app/proguard-rules.pro"
@@ -394,9 +394,14 @@
           "file": "app/build.gradle.kts",
           "contains": "isMinifyEnabled = true",
           "why": "release and nightly must be minified; debug must not be"
+        },
+        {
+          "file": "app/proguard-rules.pro",
+          "contains": "-dontwarn com.gemalto.jp2.**",
+          "why": "the -dontwarn set R8 needs to link; removing one fails the release build"
         }
       ],
-      "reverify": "build a release variant and smoke-test the APK reverse-engineering path, ToolPkg package loading, and the settings screens; R8 breakage is invisible until a reflective path is exercised"
+      "reverify": "CI: gh workflow run android-build.yml -f gradle_task=':app:assembleNightly'. R8 itself passes; the build stops at signing without a release keystore. Then smoke-test the APK reverse-engineering path, ToolPkg package loading and the settings screens — R8 breakage is invisible until a reflective path is exercised."
     },
     {
       "id": "TOOL-003",

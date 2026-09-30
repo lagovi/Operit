@@ -79,9 +79,35 @@
 -dontwarn io.objectbox.**
 
 # Rules to suppress R8 warnings about missing classes
+#
+# Every entry here is a class a library references but that is absent from the
+# Android runtime or from the dependency graph. R8 fails the build on an
+# unresolved reference rather than warning, so these are required for the build
+# to link at all. They are not papering over a real reference: in each case the
+# referencing code path is unreachable on Android, or the class is a compile-time
+# annotation processor that never ships.
+
 # SVG Support
 -dontwarn com.caverock.androidsvg.SVG
 -dontwarn com.caverock.androidsvg.SVGParseException
+
+# PDF Box JPX/JBIG2 decoders are optional image plugins that this build does not
+# bundle. JPXFilter is only reached for JPEG 2000 images inside a PDF.
+-dontwarn com.gemalto.jp2.**
+-dontwarn com.gemalto.jp2.io.**
+
+# auto-value's shaded javapoet runs at compile time only; the annotation model
+# it touches does not exist on Android.
+-dontwarn javax.lang.model.**
+-dontwarn autovalue.shaded.com.squareup.javapoet.**
+
+# Apache SSHD optional JMX integration.
+-dontwarn javax.management.**
+-dontwarn java.lang.management.**
+
+# Apache SSHD optional Ed25519 key support. The fork does not expose it, and the
+# class is only reached through a provider the app never installs.
+-dontwarn net.i2p.crypto.eddsa.**
 
 # Java AWT classes (not available on Android)
 -dontwarn java.awt.**

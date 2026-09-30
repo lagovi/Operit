@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.content.pm.PackageManager
 import android.media.projection.MediaProjection
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.core.config.FunctionalPrompts
 import com.ai.assistance.operit.core.tools.AutomationExecutionResult

@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun LanguageSettingsScreen(onBackPressed: () -> Unit) {
+    val context = LocalContext.current
     val supportedLanguages = LocaleUtils.getSupportedLanguages()
     var currentLanguage by remember { mutableStateOf(supportedLanguages.first().code) }
     val scope = rememberCoroutineScope()
@@ -68,7 +69,6 @@ fun LanguageSettingsScreen(onBackPressed: () -> Unit) {
                             selected = isSelected,
                             onClick = {
                                 if (language.code == currentLanguage) return@selectable
-                                val context = LocalContext.current
                                 currentLanguage = language.code
                                 scope.launch {
                                     delay(300)

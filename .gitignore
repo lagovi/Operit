@@ -93,3 +93,6 @@ temp
 
 # Local build output (APK artefacts, hundreds of MB)
 /out/
+
+# Generated report from tools/string/count_ui_strings.py, not source
+/tools/string/chinese_strings_detailed.txt

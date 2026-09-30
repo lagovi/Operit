@@ -157,7 +157,12 @@ fun EdgeInfoDialog(
                         )
                 )
                 HorizontalDivider()
-                Text(stringResource(R.string.memory_type_value, edge.label))
+                Text(
+                        stringResource(
+                                R.string.memory_type_value,
+                                edge.label ?: stringResource(R.string.memory_uncategorized)
+                        )
+                )
                 Text(stringResource(R.string.memory_weight_value, edge.weight))
             }
         },

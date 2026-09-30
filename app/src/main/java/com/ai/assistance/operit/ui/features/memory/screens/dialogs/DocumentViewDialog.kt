@@ -65,7 +65,7 @@ fun DocumentViewDialog(
                 )
                 if (folderPath.isNotEmpty()) {
                     Text(
-                        text = "${stringResource(R.string.memory_folder_label)}: $folderPath",
+                        text = stringResource(R.string.memory_folder_value, folderPath),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 4.dp)

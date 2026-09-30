@@ -46,10 +46,25 @@ Roughly twenty sites built labels as `stringResource(R.string.X) + ":"` or
 now format resources. `R.string.model_label` = `Model: %1$s` was the existing
 precedent; the new `*_colon` keys follow it.
 
-The same class of bug still exists in the `"${stringResource(X)}: ${value}"`
-template-literal form, in `MemoryDialogs`, `FolderNavigator`, `EditMemoryDialog`,
-`DocumentViewDialog` and the markdown renderers. Each needs its own `%1$s`
-resource per label. It was left out of scope; treat it as known debt.
+The last four held out because they joined two independent sentences rather than
+a label and its value, and were closed separately: `models_displayed` now has
+three complete variants instead of being concatenated with a suffix and a
+hardcoded `" • n"`, and the llama download tip and blur radius became format
+resources.
+
+```bash
+grep -rn 'stringResource([^)]*) *+"' app/src/main/java --include=*.kt   # expect: nothing
+```
+
+## Fixed-width menus
+
+`DropdownMenu(Modifier.width(180.dp))` in `ChatArea` and `ChatScreenContent`
+left the longest English labels shorter than the menu item's own padding, so
+they were clipped through the glyphs. Both are `widthIn(min = 180.dp, max = 280.dp)`.
+
+This is the general shape of the bug worth looking for: a fixed width tuned to
+the shortest translation, where the padding is a fixed cost that the text has to
+fit inside.
 
 ## Font scale
 

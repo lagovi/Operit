@@ -148,7 +148,7 @@ fun MarkdownImageRenderer(
 
     // 无障碍朗读描述：只朗读块类型
     val accessibilityDesc = if (imageAlt.isNotEmpty()) {
-        "${stringResource(R.string.image_block)}: $imageAlt"
+        stringResource(R.string.image_block_alt, imageAlt)
     } else {
         stringResource(R.string.image_block)
     }

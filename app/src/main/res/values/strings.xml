@@ -8511,4 +8511,27 @@
     <string name="market_time_days_ago">%1$d d ago</string>
     <string name="market_time_months_ago">%1$d mo ago</string>
     <string name="market_time_years_ago">%1$d y ago</string>
+    <string name="phone_agent_step">Phone agent %1$d/%2$d</string>
+    <string name="image_block_alt">Image: %1$s</string>
+    <string name="audio_block_alt">Audio: %1$s</string>
+    <string name="video_block_alt">Video: %1$s</string>
+    <string name="code_block_lang">%1$s code block</string>
+    <string name="process_limit_error_output_value">Error output: %1$s</string>
+    <string name="reply_message_preview">Reply: %1$s</string>
+    <string name="memory_to_value">To: %1$s</string>
+    <string name="memory_type_value">Type: %1$s</string>
+    <string name="memory_weight_value">Weight: %1$s</string>
+    <string name="memory_folder_value">Folder: %1$s</string>
+    <string name="memory_credibility_value">Credibility: %1$s</string>
+    <string name="memory_importance_value">Importance: %1$s</string>
+    <string name="workspace_project_of_type">Project (%1$s)</string>
+    <string name="speech_services_tts_cleaner_with_count">TTS cleaner rules (%1$d)</string>
+    <string name="memory_current_path_value">Current path: %1$s</string>
+    <string name="memory_title_value">Title: %1$s</string>
+    <string name="memory_folder_value2">Folder: %1$s</string>
+    <string name="memory_uuid_value">UUID: %1$s</string>
+    <string name="memory_source_value">Source: %1$s</string>
+    <string name="memory_created_at_value">Created: %1$s</string>
+    <string name="memory_updated_at_value">Updated: %1$s</string>
+    <string name="memory_from_value">From: %1$s</string>
 </resources>

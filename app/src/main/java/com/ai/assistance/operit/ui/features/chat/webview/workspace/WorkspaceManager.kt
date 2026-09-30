@@ -1637,7 +1637,12 @@ fun CommandButtonsView(
         )
         
         Text(
-            text = config.title ?: "${config.projectType.uppercase()} ${stringResource(R.string.workspace_project_suffix)}",
+            text =
+                    config.title
+                            ?: stringResource(
+                                    R.string.workspace_project_of_type,
+                                    config.projectType.uppercase()
+                            ),
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface
         )

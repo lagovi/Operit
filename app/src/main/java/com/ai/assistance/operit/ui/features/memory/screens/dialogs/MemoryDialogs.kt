@@ -50,28 +50,57 @@ fun MemoryInfoDialog(
                         modifier = Modifier.verticalScroll(scrollState),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("${stringResource(R.string.memory_title)}: ${memory.title}", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.memory_title_value, memory.title),
+                        style = MaterialTheme.typography.titleMedium
+                )
                     HorizontalDivider()
                     Text(stringResource(R.string.memory_content_colon), style = MaterialTheme.typography.titleSmall)
                     Text(memory.content)
                     HorizontalDivider()
-                    Text("${stringResource(R.string.memory_folder)}: ${memory.folderPath?.ifEmpty { stringResource(R.string.memory_uncategorized) }}", style = MaterialTheme.typography.bodySmall)
-                    Text("${stringResource(R.string.memory_uuid)}: ${memory.uuid}", style = MaterialTheme.typography.bodySmall)
-                    Text("${stringResource(R.string.memory_source)}: ${memory.source}", style = MaterialTheme.typography.bodySmall)
                     Text(
-                            "${stringResource(R.string.memory_importance)}: ${String.format("%.2f", memory.importance)}",
+                        stringResource(
+                                R.string.memory_folder_value2,
+                                memory.folderPath
+                                        ?.ifEmpty { stringResource(R.string.memory_uncategorized) }
+                                        ?: stringResource(R.string.memory_uncategorized)
+                        ),
+                        style = MaterialTheme.typography.bodySmall
+                )
+                    Text(
+                        stringResource(R.string.memory_uuid_value, memory.uuid),
+                        style = MaterialTheme.typography.bodySmall
+                )
+                    Text(
+                        stringResource(R.string.memory_source_value, memory.source),
+                        style = MaterialTheme.typography.bodySmall
+                )
+                    Text(
+                            stringResource(
+                                    R.string.memory_importance_value,
+                                    String.format("%.2f", memory.importance)
+                            ),
                             style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                            "${stringResource(R.string.memory_credibility)}: ${String.format("%.2f", memory.credibility)}",
+                            stringResource(
+                                    R.string.memory_credibility_value,
+                                    String.format("%.2f", memory.credibility)
+                            ),
                             style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                            "${stringResource(R.string.memory_created_at)}: ${dateFormat.format(memory.createdAt)}",
+                            stringResource(
+                                    R.string.memory_created_at_value,
+                                    dateFormat.format(memory.createdAt)
+                            ),
                             style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                            "${stringResource(R.string.memory_updated_at)}: ${dateFormat.format(memory.updatedAt)}",
+                            stringResource(
+                                    R.string.memory_updated_at_value,
+                                    dateFormat.format(memory.updatedAt)
+                            ),
                             style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -113,11 +142,23 @@ fun EdgeInfoDialog(
         title = { Text(stringResource(R.string.memory_link_details)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("${stringResource(R.string.memory_from)}: ${sourceNode?.label ?: stringResource(R.string.memory_uncategorized)}")
-                Text("${stringResource(R.string.memory_to)}: ${targetNode?.label ?: stringResource(R.string.memory_uncategorized)}")
+                Text(
+                        stringResource(
+                                R.string.memory_from_value,
+                                sourceNode?.label
+                                        ?: stringResource(R.string.memory_uncategorized)
+                        )
+                )
+                Text(
+                        stringResource(
+                                R.string.memory_to_value,
+                                targetNode?.label
+                                        ?: stringResource(R.string.memory_uncategorized)
+                        )
+                )
                 HorizontalDivider()
-                Text("${stringResource(R.string.memory_type)}: ${edge.label}")
-                Text("${stringResource(R.string.memory_weight)}: ${edge.weight}")
+                Text(stringResource(R.string.memory_type_value, edge.label))
+                Text(stringResource(R.string.memory_weight_value, edge.weight))
             }
         },
         confirmButton = {

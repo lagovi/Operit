@@ -80,7 +80,7 @@ fun MarkdownAudioRenderer(
     }
 
     val accessibilityDesc = if (audioAlt.isNotBlank()) {
-        "${stringResource(R.string.audio_block)}: $audioAlt"
+        stringResource(R.string.audio_block_alt, audioAlt)
     } else {
         stringResource(R.string.audio_block)
     }

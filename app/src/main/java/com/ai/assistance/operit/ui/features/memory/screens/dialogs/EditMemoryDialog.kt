@@ -132,7 +132,12 @@ fun EditMemoryDialog(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text("${stringResource(R.string.memory_credibility)}: ${String.format("%.2f", credibility)}")
+                        Text(
+                                stringResource(
+                                        R.string.memory_credibility_value,
+                                        String.format("%.2f", credibility)
+                                )
+                        )
                         Slider(
                             value = credibility,
                             onValueChange = { credibility = it },
@@ -140,7 +145,12 @@ fun EditMemoryDialog(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        Text("${stringResource(R.string.memory_importance)}: ${String.format("%.2f", importance)}")
+                        Text(
+                                stringResource(
+                                        R.string.memory_importance_value,
+                                        String.format("%.2f", importance)
+                                )
+                        )
                         Slider(
                             value = importance,
                             onValueChange = { importance = it },

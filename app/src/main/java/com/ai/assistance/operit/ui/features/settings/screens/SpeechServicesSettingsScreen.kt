@@ -703,7 +703,11 @@ fun SpeechServicesSettingsScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "${stringResource(R.string.speech_services_tts_cleaner_title)} (${ttsCleanerRegexsState.size})",
+                                    text =
+                                            stringResource(
+                                                    R.string.speech_services_tts_cleaner_with_count,
+                                                    ttsCleanerRegexsState.size
+                                            ),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Medium,
                                 )

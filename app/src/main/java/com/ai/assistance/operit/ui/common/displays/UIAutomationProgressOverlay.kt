@@ -486,7 +486,12 @@ private fun ProgressCard(
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
-                                text = "${stringResource(R.string.common_phone_agent)} ${info.currentStep}/${info.totalSteps}",
+                                text =
+                                        stringResource(
+                                                R.string.phone_agent_step,
+                                                info.currentStep,
+                                                info.totalSteps
+                                        ),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold
                             )

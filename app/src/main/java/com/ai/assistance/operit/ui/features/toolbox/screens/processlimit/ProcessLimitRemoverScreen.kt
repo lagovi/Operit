@@ -576,7 +576,11 @@ fun ProcessLimitRemoverScreen(navController: NavController? = null) {
                     if (!lastResult!!.result.success && lastResult!!.result.stderr.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "${stringResource(R.string.process_limit_error_output)}: ${lastResult!!.result.stderr}",
+                            text =
+                                    stringResource(
+                                            R.string.process_limit_error_output_value,
+                                            lastResult!!.result.stderr
+                                    ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )

@@ -82,16 +82,41 @@ fails if the last two disagree.
 
 ## Things a script cannot check
 
-- `tools/string/check_strings.py` and `ci/script/check_localizations.py` were
-  written when `values/` was Chinese. Both treat the unqualified bucket as the
-  `zh` source. If upstream re-adds a locale directory, they need updating before
-  they mean anything again.
 - `usesChineseContent(context)` is now always false. It is kept because the
   prompt builders are still bilingual. Do not assume a prompt is English because
   the app is — see `re-audit-prompts.md`.
 - Chinese text fetched from `operit.app` (announcements, market package names)
   is not a resource and is not affected by any of the above. See
   `docs/TODO/remote_content_translation/`.
+
+## Notification channels are the one thing resources cannot fix
+
+A channel's name and description are captured by the system the first time the
+channel is created and cannot be changed afterwards. An install whose first
+launch was in another language therefore keeps that language's channel name in
+the system settings permanently, no matter what the app does. Observed on device
+before the fix:
+
+```
+NotificationChannel{mId='AI_SERVICE_CHANNEL', mName=Operit 正在运行, ...}
+```
+
+A string resource cannot help — it only ever applies to a fresh install. The
+channel name is a plain constant and the channel id carries a version suffix,
+which is the only mechanism that makes the system create a new channel. If you
+add a channel, give it a version-suffixed id and a constant name, not a resource.
+
+## Tooling that used to be wrong
+
+`tools/string/check_strings.py` and `ci/script/check_localizations.py` both
+hardcoded the source locale as `zh` and treated `values/` as the Chinese origin.
+Once `values/` became English they compared every other bucket against English
+and called the result a "missing translation" — silently, because with a single
+locale shipped there was nothing to compare and the gate reported zero errors.
+The source is now identified by being the unqualified bucket (`SOURCE_LOCALE`).
+
+Both tools are only meaningfully exercised once a second locale exists. If you
+add one, that is the moment to trust them.
 
 ## Commands
 

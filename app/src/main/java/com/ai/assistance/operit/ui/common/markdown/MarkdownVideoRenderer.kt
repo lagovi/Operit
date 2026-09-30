@@ -77,7 +77,7 @@ fun MarkdownVideoRenderer(
     }
 
     val accessibilityDesc = if (videoAlt.isNotBlank()) {
-        "${stringResource(R.string.video_block)}: $videoAlt"
+        stringResource(R.string.video_block_alt, videoAlt)
     } else {
         stringResource(R.string.video_block)
     }

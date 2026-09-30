@@ -679,7 +679,7 @@ fun AgentChatInputSection(
                                 .trim()
                                 .let { if (it.length > 50) it.take(50) + "..." else it }
                         Text(
-                            text = "${stringResource(R.string.reply_message)}: $previewText",
+                            text = stringResource(R.string.reply_message_preview, previewText),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,

@@ -130,7 +130,7 @@ fun EnhancedCodeBlock(code: String, language: String = "", modifier: Modifier = 
 
     // 无障碍朗读描述：只朗读块类型
     val accessibilityDesc = if (language.isNotEmpty()) {
-        "$language ${stringResource(R.string.code_block)}"
+        stringResource(R.string.code_block_lang, language)
     } else {
         stringResource(R.string.code_block)
     }

@@ -512,7 +512,10 @@ private fun FolderContextMenu(
         title = { Text(stringResource(R.string.memory_folder_operations)) },
         text = {
             Column {
-                Text("${stringResource(R.string.memory_folder_label)}: $folderPath", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.memory_folder_value, folderPath),
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         },
         confirmButton = {
@@ -597,7 +600,10 @@ private fun FolderRenameDialog(
         title = { Text(stringResource(R.string.memory_rename_folder)) },
         text = {
             Column {
-                Text("${stringResource(R.string.memory_current_path)}: $currentPath", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.memory_current_path_value, currentPath),
+                    style = MaterialTheme.typography.bodySmall
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 androidx.compose.material3.OutlinedTextField(
                     value = newName,
@@ -639,7 +645,10 @@ private fun FolderDeleteDialog(
             Column {
                 Text(stringResource(R.string.memory_confirm_delete_folder_message), style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("${stringResource(R.string.memory_folder_label)}: $folderPath", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.memory_folder_value, folderPath),
+                    style = MaterialTheme.typography.bodySmall
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     stringResource(R.string.memory_delete_folder_warning),

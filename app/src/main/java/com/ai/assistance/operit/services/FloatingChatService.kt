@@ -63,7 +63,9 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     private val binder = LocalBinder()
 
     private val NOTIFICATION_ID = 1001
-    private val CHANNEL_ID = "floating_chat_channel"
+    private val CHANNEL_ID = "floating_chat_channel_v2"
+    private val CHANNEL_NAME = "Voice floating window"
+    private val CHANNEL_DESCRIPTION = "Keeps the floating voice window running"
 
     private val PREF_KEY_STATUS_INDICATOR_STYLE = "status_indicator_style"
     private val PREF_KEY_COLOR_SCHEME = "floating_color_scheme_json"
@@ -333,11 +335,12 @@ class FloatingChatService : Service(), FloatingWindowCallback {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // A Service's `this` is the Application context, whose Resources keep the
-            // locale the process started with; resolve strings through a localized one.
-            val localized = LocaleUtils.getLocalizedContext(this)
-            val name = localized.getString(R.string.floating_chat_window_title)
-            val descriptionText = localized.getString(R.string.floating_service_description)
+            // Fork: a channel name is captured by the system on first creation and
+            // cannot change afterwards, so it is a constant rather than a string
+            // resource, and the id carries a version suffix so an upgrade creates a
+            // new channel. See docs/FORK-REGISTRY/registry.json L10N-006.
+            val name = CHANNEL_NAME
+            val descriptionText = CHANNEL_DESCRIPTION
             val importance = NotificationManager.IMPORTANCE_LOW
             val channel =
                     NotificationChannel(CHANNEL_ID, name, importance).apply {

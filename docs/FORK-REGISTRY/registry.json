@@ -152,8 +152,8 @@
         },
         {
           "file": "app/src/main/java/com/ai/assistance/operit/services/FloatingChatService.kt",
-          "contains": "val localized = LocaleUtils.getLocalizedContext(this)",
-          "why": "floating-window notification, same reason"
+          "contains": "LocaleUtils.getLocalizedContext(this)\n                                    .getString(R.string.floating_chat_window_title)",
+          "why": "the notification text, as opposed to the immutable channel name, must stay resource-backed"
         }
       ],
       "reverify": "switch the app language, then read the notification text from the shade; it must match the UI language",
@@ -217,8 +217,8 @@
       "anchors": [
         {
           "file": "app/build.gradle.kts",
-          "contains": "localeFilters += listOf(\"en\")",
-          "why": "the build-time locale filter"
+          "contains": "val englishOnlyLocales = listOf(\"en\")",
+          "why": "localeFilters is on the variant dimension, so every build type sets it"
         }
       ],
       "reverify": "unzip -l the APK and confirm no non-en values-* bucket survived",
@@ -402,6 +402,31 @@
         }
       ],
       "reverify": "git submodule sync && git submodule update --init --recursive, then a CI Android Build"
+    },
+    {
+      "id": "L10N-006",
+      "area": "localization",
+      "title": "Notification channel names are constants, and channel ids are versioned",
+      "commit": null,
+      "status": "applied",
+      "rationale": "A notification channel's name and description are captured by the system the first time the channel is created and cannot be changed afterwards. An install whose first launch was Chinese therefore kept a Chinese channel name in the system settings even after the app switched to English — observed on device as NotificationChannel{mId='AI_SERVICE_CHANNEL', mName=Operit 正在运行}. A string resource cannot fix this: it can only ever apply to a fresh install. The channel name is now a plain English constant and the channel id carries a version suffix, which is the only mechanism that makes the system create a new channel.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt",
+        "app/src/main/java/com/ai/assistance/operit/services/FloatingChatService.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt",
+          "contains": "private const val CHANNEL_ID = \"AI_SERVICE_CHANNEL_V2\"",
+          "why": "bumping this id is what replaces a channel name captured in another language"
+        },
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/services/FloatingChatService.kt",
+          "contains": "CHANNEL_ID = \"floating_chat_channel_v2\"",
+          "why": "same reason for the floating window channel"
+        }
+      ],
+      "reverify": "adb shell dumpsys notification | grep mName — no CJK in any Operit channel"
     }
   ]
 }

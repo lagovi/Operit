@@ -105,8 +105,21 @@ class AIForegroundService : Service() {
         private const val TAG = "AIForegroundService"
         private const val NOTIFICATION_ID = 1
         private const val REPLY_NOTIFICATION_ID = 2001
-        private const val CHANNEL_ID = "AI_SERVICE_CHANNEL"
-        private const val REPLY_CHANNEL_ID_PREFIX = "AI_REPLY_COMPLETE_CHANNEL"
+        // Fork: see REPLY_CHANNEL_ID_PREFIX. A new id forces the system to create
+        // a new channel, which is the only way to replace a channel name that was
+        // captured in another language. The name is a plain constant for the same
+        // reason: it is not a string resource, because a resource here can only
+        // ever apply to the first install.
+        private const val CHANNEL_ID = "AI_SERVICE_CHANNEL_V2"
+        private const val CHANNEL_NAME = "Operit is running"
+        private const val CHANNEL_DESCRIPTION = "Keeps the assistant running in the background"
+        // Fork: a notification channel's name and description are captured by the
+        // system the first time the channel is created and cannot be changed
+        // afterwards, so a channel created while the app was still Chinese keeps
+        // its Chinese name forever regardless of any code change. The id carries a
+        // version suffix so an upgrade creates a fresh channel under the name this
+        // build ships. See docs/FORK-REGISTRY/registry.json L10N-006.
+        private const val REPLY_CHANNEL_ID_PREFIX = "AI_REPLY_COMPLETE_CHANNEL_V2"
         private val REPLY_VIBRATION_PATTERN = longArrayOf(0L, 250L, 150L, 250L)
 
         private const val ACTION_CANCEL_CURRENT_OPERATION = "com.ai.assistance.operit.action.CANCEL_CURRENT_OPERATION"
@@ -1309,17 +1322,13 @@ class AIForegroundService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // The channel name and description are resolved once, when the system
-            // first sees the channel, so they must come from a localized context.
-            val localized = LocaleUtils.getLocalizedContext(this)
             val serviceChannel =
                     NotificationChannel(
                             CHANNEL_ID,
-                            localized.getString(R.string.service_operit_running),
+                            CHANNEL_NAME,
                             NotificationManager.IMPORTANCE_LOW // 低重要性，避免打扰用户
-                    )
-                    .apply {
-                        description = localized.getString(R.string.service_keep_background)
+                    ).apply {
+                        description = CHANNEL_DESCRIPTION
                     }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)

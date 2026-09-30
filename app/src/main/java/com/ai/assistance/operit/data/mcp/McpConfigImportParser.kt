@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.data.mcp
 
+import android.content.Context
+import com.ai.assistance.operit.R
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -33,132 +35,136 @@ internal data class RemoteMcpImportedServer(
 
 /**
  * Parses the public MCP configuration format without conflating HTTP transports with stdio.
+ *
+ * Fork: every rejection message used to be a hardcoded Chinese literal, and all
+ * three call sites let the exception propagate to a user-visible error, so a
+ * malformed config produced Chinese in an English UI. The messages are now
+ * resources, which means a Context has to reach the parser rather than the
+ * failure being reported as an opaque code.
  */
 internal object McpConfigImportParser {
     private const val STREAMABLE_HTTP_TYPE = "streamable_http"
     private const val SSE_TYPE = "sse"
     private const val STDIO_TYPE = "stdio"
 
-    fun parse(jsonConfig: String): McpConfigImport {
+    fun parse(context: Context, jsonConfig: String): McpConfigImport {
         val root = try {
             JsonParser.parseString(jsonConfig)
         } catch (e: Exception) {
-            throw IllegalArgumentException("配置不是有效的 JSON", e)
+            throw IllegalArgumentException(context.getString(R.string.mcp_config_not_valid_json), e)
         }
 
-        require(root.isJsonObject) { "配置根节点必须是对象" }
-        val mcpServers = root.asJsonObject.requiredObject("mcpServers")
-        require(mcpServers.entrySet().isNotEmpty()) { "mcpServers 不能为空" }
+        require(root.isJsonObject) { context.getString(R.string.mcp_config_root_must_be_object) }
+        val mcpServers = root.asJsonObject.requiredObject(context, "mcpServers")
+        require(mcpServers.entrySet().isNotEmpty()) { context.getString(R.string.mcp_config_servers_empty) }
 
         return McpConfigImport(
             servers = mcpServers.entrySet().map { (serverId, configElement) ->
-                parseServer(serverId, configElement)
+                parseServer(context, serverId, configElement)
             }
         )
     }
 
-    private fun parseServer(serverId: String, configElement: JsonElement): McpImportedServer {
-        require(serverId.isNotBlank()) { "mcpServers 中存在空服务器 ID" }
-        require(configElement.isJsonObject) { "mcpServers.$serverId 必须是对象" }
+    private fun parseServer(context: Context, serverId: String, configElement: JsonElement): McpImportedServer {
+        require(serverId.isNotBlank()) { context.getString(R.string.mcp_config_empty_server_id) }
+        require(configElement.isJsonObject) { context.getString(R.string.mcp_config_server_must_be_object, serverId) }
 
         val config = configElement.asJsonObject
-        val declaredType = config.optionalString("type")
+        val declaredType = config.optionalString(context, "type")
         return if (config.has("command")) {
-            parseStdioServer(serverId, config, declaredType)
+            parseStdioServer(context, serverId, config, declaredType)
         } else {
-            parseRemoteServer(serverId, config, declaredType)
+            parseRemoteServer(context, serverId, config, declaredType)
         }
     }
 
-    private fun parseStdioServer(
-        serverId: String,
+    private fun parseStdioServer(context: Context, serverId: String,
         config: JsonObject,
         declaredType: String?
     ): StdioMcpImportedServer {
         require(declaredType == null || declaredType == STDIO_TYPE) {
-            "mcpServers.$serverId 同时声明了 command 和非 stdio transport"
+            context.getString(R.string.mcp_config_command_with_non_stdio, serverId)
         }
 
         return StdioMcpImportedServer(
             id = serverId,
-            command = config.requiredNonBlankString("command", serverId),
-            args = config.optionalStringList("args", serverId),
-            env = config.optionalStringMap("env", serverId),
-            autoApprove = config.optionalStringList("autoApprove", serverId),
-            disabled = config.optionalBoolean("disabled", serverId)
+            command = config.requiredNonBlankString(context, "command", serverId),
+            args = config.optionalStringList(context, "args", serverId),
+            env = config.optionalStringMap(context, "env", serverId),
+            autoApprove = config.optionalStringList(context, "autoApprove", serverId),
+            disabled = config.optionalBoolean(context, "disabled", serverId)
         )
     }
 
-    private fun parseRemoteServer(
-        serverId: String,
+    private fun parseRemoteServer(context: Context, serverId: String,
         config: JsonObject,
         declaredType: String?
     ): RemoteMcpImportedServer {
         val connectionType = when (declaredType) {
             STREAMABLE_HTTP_TYPE -> "httpStream"
             SSE_TYPE -> SSE_TYPE
-            STDIO_TYPE -> throw IllegalArgumentException("mcpServers.$serverId 缺少 command")
-            null -> throw IllegalArgumentException("mcpServers.$serverId 缺少 command 或 type")
+            STDIO_TYPE -> throw IllegalArgumentException(context.getString(R.string.mcp_config_missing_command, serverId))
+            null -> throw IllegalArgumentException(context.getString(R.string.mcp_config_missing_command_or_type, serverId))
             else -> throw IllegalArgumentException(
-                "mcpServers.$serverId 使用了不支持的 transport: $declaredType"
+                context.getString(R.string.mcp_config_unsupported_transport, serverId, declaredType)
             )
         }
 
         return RemoteMcpImportedServer(
             id = serverId,
-            endpoint = config.requiredNonBlankString("url", serverId),
+            endpoint = config.requiredNonBlankString(context, "url", serverId),
             connectionType = connectionType,
-            headers = config.optionalStringMap("headers", serverId),
-            disabled = config.optionalBoolean("disabled", serverId)
+            headers = config.optionalStringMap(context, "headers", serverId),
+            disabled = config.optionalBoolean(context, "disabled", serverId)
         )
     }
 
-    private fun JsonObject.requiredObject(field: String): JsonObject {
+    private fun JsonObject.requiredObject(context: Context, field: String): JsonObject {
         val value = get(field)
-            ?: throw IllegalArgumentException("配置中没有找到 $field 字段")
-        require(value.isJsonObject) { "$field 必须是对象" }
+            ?: throw IllegalArgumentException(context.getString(R.string.mcp_config_field_missing, field))
+        require(value.isJsonObject) { context.getString(R.string.mcp_config_field_must_be_object, field) }
         return value.asJsonObject
     }
 
-    private fun JsonObject.requiredNonBlankString(field: String, serverId: String): String {
-        val value = optionalString(field)
-            ?: throw IllegalArgumentException("mcpServers.$serverId 缺少 $field")
-        require(value.isNotBlank()) { "mcpServers.$serverId 的 $field 不能为空" }
+    private fun JsonObject.requiredNonBlankString(context: Context, field: String, serverId: String): String {
+        val value = optionalString(context, field)
+            ?: throw IllegalArgumentException(context.getString(R.string.mcp_config_server_missing_field, serverId, field))
+        require(value.isNotBlank()) { context.getString(R.string.mcp_config_field_must_not_be_blank, serverId, field) }
         return value.trim()
     }
 
-    private fun JsonObject.optionalString(field: String): String? {
+    private fun JsonObject.optionalString(context: Context, field: String): String? {
         val value = get(field) ?: return null
-        require(value.isJsonPrimitive && value.asJsonPrimitive.isString) { "$field 必须是字符串" }
+        require(value.isJsonPrimitive && value.asJsonPrimitive.isString) { context.getString(R.string.mcp_config_field_must_be_string, field) }
         return value.asString
     }
 
-    private fun JsonObject.optionalBoolean(field: String, serverId: String): Boolean {
+    private fun JsonObject.optionalBoolean(context: Context, field: String, serverId: String): Boolean {
         val value = get(field) ?: return false
         require(value.isJsonPrimitive && value.asJsonPrimitive.isBoolean) {
-            "mcpServers.$serverId 的 $field 必须是布尔值"
+            context.getString(R.string.mcp_config_field_must_be_boolean, serverId, field)
         }
         return value.asBoolean
     }
 
-    private fun JsonObject.optionalStringList(field: String, serverId: String): List<String> {
+    private fun JsonObject.optionalStringList(context: Context, field: String, serverId: String): List<String> {
         val value = get(field) ?: return emptyList()
-        require(value.isJsonArray) { "mcpServers.$serverId 的 $field 必须是字符串数组" }
+        require(value.isJsonArray) { context.getString(R.string.mcp_config_field_must_be_string_array, serverId, field) }
         return value.asJsonArray.mapIndexed { index, item ->
             require(item.isJsonPrimitive && item.asJsonPrimitive.isString) {
-                "mcpServers.$serverId 的 $field[$index] 必须是字符串"
+                context.getString(R.string.mcp_config_array_item_must_be_string, serverId, field, index)
             }
             item.asString
         }
     }
 
-    private fun JsonObject.optionalStringMap(field: String, serverId: String): Map<String, String> {
+    private fun JsonObject.optionalStringMap(context: Context, field: String, serverId: String): Map<String, String> {
         val value = get(field) ?: return emptyMap()
-        require(value.isJsonObject) { "mcpServers.$serverId 的 $field 必须是对象" }
+        require(value.isJsonObject) { context.getString(R.string.mcp_config_field_must_be_object_for_server, serverId, field) }
         return value.asJsonObject.entrySet().associate { (key, item) ->
-            require(key.isNotBlank()) { "mcpServers.$serverId 的 $field 包含空键" }
+            require(key.isNotBlank()) { context.getString(R.string.mcp_config_field_empty_key, serverId, field) }
             require(item.isJsonPrimitive && item.asJsonPrimitive.isString) {
-                "mcpServers.$serverId 的 $field.$key 必须是字符串"
+                context.getString(R.string.mcp_config_entry_must_be_string, serverId, field, key)
             }
             key to item.asString
         }

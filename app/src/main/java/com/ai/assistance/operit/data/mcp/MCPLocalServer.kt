@@ -600,7 +600,7 @@ class MCPLocalServer private constructor(private val context: Context) {
             try {
                 AppLogger.d(TAG, "开始合并配置，输入长度: ${jsonConfig.length}")
                 val parsedConfig = try {
-                    McpConfigImportParser.parse(jsonConfig)
+                    McpConfigImportParser.parse(context, jsonConfig)
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "标准 MCP 配置解析失败", e)
                     return@withContext Result.failure(

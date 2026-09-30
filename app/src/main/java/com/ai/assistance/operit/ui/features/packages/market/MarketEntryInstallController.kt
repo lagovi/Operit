@@ -71,7 +71,7 @@ class MarketEntryInstallController(
         }
 
         if (installConfig.isNotBlank() && !mcpRepository.checkConfigNeedsPhysicalInstallation(installConfig)) {
-            val serverIds = parseMcpServerIds(installConfig)
+            val serverIds = parseMcpServerIds(context, installConfig)
             if (serverIds.isEmpty()) {
                 throw IllegalStateException(context.getString(R.string.mcp_local_no_mcp_servers_field))
             }
@@ -137,7 +137,7 @@ class MarketEntryInstallController(
     }
 
     private suspend fun saveMcpConfigEntryMetadata(entry: MarketV2Entry) {
-        val serverIds = parseMcpServerIds(entry.latestVersion?.installConfig.orEmpty())
+        val serverIds = parseMcpServerIds(appContext, entry.latestVersion?.installConfig.orEmpty())
         if (serverIds.isEmpty()) return
         val localServer = MCPLocalServer.getInstance(appContext)
         for (serverId in serverIds) {
@@ -227,8 +227,8 @@ fun MarketV2Entry.canInstallFromUnifiedMarket(): Boolean {
     }
 }
 
-fun parseMcpServerIds(installConfig: String): Set<String> {
-    return McpConfigImportParser.parse(installConfig).servers
+fun parseMcpServerIds(context: Context, installConfig: String): Set<String> {
+    return McpConfigImportParser.parse(context, installConfig).servers
         .map { server -> server.id }
         .toSet()
 }

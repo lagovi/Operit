@@ -226,7 +226,7 @@ class MCPRepository(private val context: Context) {
      * 远程 HTTP/SSE 服务器只写入远程元数据，不需要仓库目录。
      */
     fun checkConfigNeedsPhysicalInstallation(jsonConfig: String): Boolean {
-        val parsedConfig = McpConfigImportParser.parse(jsonConfig)
+        val parsedConfig = McpConfigImportParser.parse(context, jsonConfig)
         return parsedConfig.servers
             .filterIsInstance<StdioMcpImportedServer>()
             .any { server ->

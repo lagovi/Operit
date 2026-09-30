@@ -754,7 +754,7 @@ fun ModelApiSettingsSection(
                     subtitle = when {
                         isMnnProvider -> stringResource(R.string.mnn_select_downloaded_model)
                         isLlamaProvider -> stringResource(R.string.llama_select_downloaded_model)
-                        else -> stringResource(R.string.model_name_placeholder) + stringResource(R.string.model_name_multiple_hint)
+                        else -> stringResource(R.string.model_name_placeholder)
                     },
                         value = modelNameInput,
                         onValueChange = {
@@ -1166,9 +1166,24 @@ fun ModelApiSettingsSection(
                     if (filteredModelsList.isNotEmpty()) {
                         Text(
                                 text =
-                                        stringResource(R.string.models_displayed, filteredModelsList.size) +
-                                                (if (searchQuery.isNotEmpty()) stringResource(R.string.models_displayed_filtered) else "") +
-                                                (if (selectedModels.value.isNotEmpty()) " • ${selectedModels.value.size}" + stringResource(R.string.models_selected_suffix) else ""),
+                                        when {
+                                            selectedModels.value.isNotEmpty() ->
+                                                stringResource(
+                                                        R.string.models_displayed_with_selection,
+                                                        filteredModelsList.size,
+                                                        selectedModels.value.size
+                                                )
+                                            searchQuery.isNotEmpty() ->
+                                                stringResource(
+                                                        R.string.models_displayed_with_filter,
+                                                        filteredModelsList.size
+                                                )
+                                            else ->
+                                                stringResource(
+                                                        R.string.models_displayed,
+                                                        filteredModelsList.size
+                                                )
+                                        },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 6.dp, bottom = 6.dp),
@@ -1861,11 +1876,12 @@ private fun LlamaSettingsBlock(
 
         SettingsInfoBanner(
             text =
-                stringResource(R.string.llama_local_model_download_tip) +
-                    "\n" +
                     stringResource(
-                        R.string.llama_local_model_dir,
-                        LlamaProvider.getModelsDir().absolutePath
+                            R.string.llama_local_model_download_tip,
+                            stringResource(
+                                    R.string.llama_local_model_dir,
+                                    LlamaProvider.getModelsDir().absolutePath
+                            )
                     )
         )
 

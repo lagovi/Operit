@@ -15,6 +15,11 @@ from check_output import Diagnostic, report
 
 
 RESOURCE_ROOT = "app/src/main/res"
+# Fork: the unqualified values/ bucket is the source of truth for resource keys.
+# It used to be Chinese and the source was hardcoded as the "zh" locale, which
+# silently inverted the meaning of every check once values/ became English. The
+# source is now identified by being unqualified rather than by its language.
+SOURCE_LOCALE = "default"
 LOCALE_CONFIG_PATH = f"{RESOURCE_ROOT}/xml/locales_config.xml"
 ANDROID_NAME = "{http://schemas.android.com/apk/res/android}name"
 ANDROID_DEFAULT_LOCALE = "{http://schemas.android.com/apk/res/android}defaultLocale"
@@ -84,7 +89,7 @@ def locale_path_details(path: str) -> tuple[str, bool] | None:
         return None
     directory = match.group(1)
     if directory == "values":
-        return "zh", True
+        return SOURCE_LOCALE, True
     qualifier = directory.removeprefix("values-")
     parts = qualifier.split("-")
     bcp47 = BCP47_QUALIFIER_RE.fullmatch(parts[0])
@@ -256,9 +261,9 @@ def snapshot_issues(snapshot: Snapshot) -> list[LocalizationIssue]:
                 )
             )
 
-    source = snapshot.entries.get("zh", {})
+    source = snapshot.entries.get(SOURCE_LOCALE, {})
     source_names = set(source)
-    source_path = snapshot.files.get("zh")
+    source_path = snapshot.files.get(SOURCE_LOCALE)
     for path, (locale, target) in sorted(snapshot.localized_files.items()):
         if path == source_path:
             continue
@@ -269,7 +274,7 @@ def snapshot_issues(snapshot: Snapshot) -> list[LocalizationIssue]:
                     path,
                     locale,
                     name,
-                    f"resource is not present in the zh source: {name}",
+                    f"resource is not present in the default source: {name}",
                 )
             )
         for name in sorted(source_names & set(target)):
@@ -282,7 +287,7 @@ def snapshot_issues(snapshot: Snapshot) -> list[LocalizationIssue]:
                         path,
                         locale,
                         name,
-                        f"resource type differs from zh ({source_entry.tag} vs {target_entry.tag}): {name}",
+                        f"resource type differs from the source ({source_entry.tag} vs {target_entry.tag}): {name}",
                     )
                 )
             elif placeholder_mismatch(source_entry, target_entry):
@@ -292,7 +297,7 @@ def snapshot_issues(snapshot: Snapshot) -> list[LocalizationIssue]:
                         path,
                         locale,
                         name,
-                        f"placeholder structure differs from zh: {name}",
+                        f"placeholder structure differs from the source: {name}",
                     )
                 )
 
@@ -343,8 +348,8 @@ def touched_state(
                 if locale is not None:
                     touched_locales.add(locale)
 
-    base_source = base.entries.get("zh", {})
-    candidate_source = candidate.entries.get("zh", {})
+    base_source = base.entries.get(SOURCE_LOCALE, {})
+    candidate_source = candidate.entries.get(SOURCE_LOCALE, {})
     source_touched = {
         key
         for key in set(base_source) | set(candidate_source)
@@ -389,13 +394,13 @@ def select_blocking_issues(base: Snapshot, candidate: Snapshot) -> tuple[list[Lo
 
 
 def quality_notes(snapshot: Snapshot, existing_issue_count: int) -> list[str]:
-    source = snapshot.entries.get("zh", {})
+    source = snapshot.entries.get(SOURCE_LOCALE, {})
     source_names = set(source)
     missing_total = 0
     untranslated_total = 0
     han_total = 0
     for locale, entries in snapshot.entries.items():
-        if locale == "zh":
+        if locale == SOURCE_LOCALE:
             continue
         missing_total += len(source_names - set(entries))
         for name in source_names & set(entries):
@@ -404,8 +409,9 @@ def quality_notes(snapshot: Snapshot, existing_issue_count: int) -> list[str]:
             if HAN_RE.search(entries[name].text):
                 han_total += 1
     return [
-        f"Languages: {len(snapshot.entries)}; missing translations: {missing_total}; identical to zh: {untranslated_total}.",
-        f"Non-zh values containing Han characters: {han_total}.",
+        f"Languages: {len(snapshot.entries)}; missing translations: {missing_total}; "
+        f"identical to the source: {untranslated_total}.",
+        f"Translated values containing Han characters: {han_total}.",
         f"Existing localization diagnostic(s) outside this candidate: {existing_issue_count}.",
     ]
 

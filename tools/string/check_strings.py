@@ -12,8 +12,14 @@ if sys.platform == "win32":
 
 
 LANG_DIR_RE = re.compile(r"^values-([a-z]{2,3})(?:-r([A-Z0-9]{2,3}))?$")
+# Fork: the unqualified values/ bucket is the source of truth for resource keys.
+# It used to be Chinese and the source was hardcoded as "zh", which inverted the
+# meaning of every report once values/ became English. The source is now the
+# unqualified bucket, labelled by the locale it actually holds.
+SOURCE_LOCALE = "default"
+
 LANG_LABELS = {
-    "zh": "中文",
+    "default": "默认(default)",
     "en": "英文",
     "ko": "韩语",
     "es": "西班牙语",
@@ -29,7 +35,7 @@ def _repo_root() -> str:
 
 def _dir_to_language_code(dir_name: str):
     if dir_name == "values":
-        return "zh"
+        return SOURCE_LOCALE
     match = LANG_DIR_RE.fullmatch(dir_name)
     if not match:
         return None
@@ -50,7 +56,7 @@ def _discover_files(repo_root: str):
 
     default_file = os.path.join(res_dir, "values", "strings.xml")
     if os.path.exists(default_file):
-        files["zh"] = default_file
+        files[SOURCE_LOCALE] = default_file
 
     if not os.path.isdir(res_dir):
         return files
@@ -60,7 +66,7 @@ def _discover_files(repo_root: str):
         if not os.path.isdir(full_dir):
             continue
         code = _dir_to_language_code(entry)
-        if code in (None, "zh"):
+        if code in (None, SOURCE_LOCALE):
             continue
         file_path = os.path.join(full_dir, "strings.xml")
         if os.path.exists(file_path):

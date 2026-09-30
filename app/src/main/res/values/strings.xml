@@ -2256,7 +2256,7 @@
     <string name="theme_appbar_content_color_dark">Dark (Black Scheme)</string>
     <string name="theme_background_blur">Background Blur</string>
     <string name="theme_background_blur_desc">Add Gaussian blur effect to background images or videos</string>
-    <string name="theme_background_blur_radius">Blur Radius</string>
+    <string name="theme_background_blur_radius_value">Blur Radius: %1$d</string>
     <string name="theme_chat_header_history_icon_color">Chat Header History Icon Color</string>
     <string name="theme_chat_header_pip_icon_color">Chat Header PIP Icon Color</string>
     <string name="theme_chat_header_overlay_mode">Overlay Mode</string>
@@ -4034,7 +4034,7 @@
     <string name="endpoint_completion_hint">Hint: If you enter a base URL, the system will automatically complete the path. To disable, add # at the end of the URL.</string>
     <string name="api_key_placeholder_default">Using default key, you can input directly</string>
     <string name="api_key_placeholder_custom">Enter API key</string>
-    <string name="model_name_placeholder">e.g.: gpt-4, claude-3-opus-20240229...</string>
+    <string name="model_name_placeholder">e.g.: gpt-4, claude-3-opus-20240229... (can use comma to separate multiple models)</string>
     <string name="get_models_list">Get Models List</string>
     <string name="getting_models_list">Getting models list...</string>
     <string name="models_list_success">Successfully retrieved %d models</string>
@@ -4076,10 +4076,9 @@
     <string name="refresh_models_list">Refresh Models List</string>
     <string name="search_models">Search models</string>
     <string name="no_models_found">No models found</string>
-    <string name="models_displayed">Showing %d models</string>
-    <string name="models_displayed_filtered"> (filtered)</string>
-    <string name="models_selected_suffix"> selected</string>
-    <string name="model_name_multiple_hint"> (can use comma to separate multiple models)</string>
+    <string name="models_displayed">Showing %1$d models</string>
+    <string name="models_displayed_with_filter">Showing %1$d models (filtered)</string>
+    <string name="models_displayed_with_selection">Showing %1$d models • %2$d selected</string>
     <string name="auto_save_failed">Auto save failed</string>
     <!-- API Provider names -->
     <string name="provider_openai">OpenAI (GPT Series)</string>
@@ -4124,7 +4123,7 @@
 
     <!-- llama.cpp Local Inference -->
     <string name="llama_local_model_tip">Local models are usually weaker. Consider disabling memory links and disabling tools for chat.</string>
-    <string name="llama_local_model_download_tip">llama.cpp models must be downloaded manually (.gguf). Put the model file in the folder below, then enter the file name in “Model name”:</string>
+    <string name="llama_local_model_download_tip">llama.cpp models must be downloaded manually (.gguf). Put the model file in the folder below, then enter the file name in “Model name”:\n%1$s</string>
     <string name="llama_local_model_dir">Default model folder: %1$s</string>
     <string name="llama_auto_config_tip">Batch size, mmap, Flash Attention, KV, and other Android compatibility settings are built in. In normal use, you only need thread count, context size, and GPU layers.</string>
     <string name="llama_select_downloaded_model">Select downloaded model</string>
@@ -7057,6 +7056,29 @@
     <!-- Fork: on-demand local STT model. See docs/FORK-REGISTRY/registry.json SIZE-004. -->
     <!-- Fork: ToolResult.error is rendered by the Tool Tester screen, so this
          string is user-visible. See docs/FORK-REGISTRY/registry.json PROMPT-001. -->
+    <!-- Fork: MCP config import rejection messages. These used to be hardcoded
+         Chinese literals and every call site let the exception reach a
+         user-visible error. See docs/FORK-REGISTRY/registry.json L10N-007. -->
+    <string name="mcp_config_not_valid_json">The configuration is not valid JSON</string>
+    <string name="mcp_config_root_must_be_object">The configuration root must be an object</string>
+    <string name="mcp_config_servers_empty">mcpServers must not be empty</string>
+    <string name="mcp_config_empty_server_id">mcpServers contains an empty server ID</string>
+    <string name="mcp_config_server_must_be_object">mcpServers.%1$s must be an object</string>
+    <string name="mcp_config_command_with_non_stdio">mcpServers.%1$s declares both a command and a non-stdio transport</string>
+    <string name="mcp_config_missing_command">mcpServers.%1$s is missing a command</string>
+    <string name="mcp_config_missing_command_or_type">mcpServers.%1$s is missing a command or a type</string>
+    <string name="mcp_config_unsupported_transport">mcpServers.%1$s uses an unsupported transport: %2$s</string>
+    <string name="mcp_config_field_missing">No %1$s field was found in the configuration</string>
+    <string name="mcp_config_field_must_be_object">%1$s must be an object</string>
+    <string name="mcp_config_server_missing_field">mcpServers.%1$s is missing %2$s</string>
+    <string name="mcp_config_field_must_not_be_blank">%2$s in mcpServers.%1$s must not be blank</string>
+    <string name="mcp_config_field_must_be_string">%1$s must be a string</string>
+    <string name="mcp_config_field_must_be_boolean">%2$s in mcpServers.%1$s must be a boolean</string>
+    <string name="mcp_config_field_must_be_string_array">%2$s in mcpServers.%1$s must be an array of strings</string>
+    <string name="mcp_config_array_item_must_be_string">%3$s[%4$d] in mcpServers.%1$s must be a string</string>
+    <string name="mcp_config_field_must_be_object_for_server">%2$s in mcpServers.%1$s must be an object</string>
+    <string name="mcp_config_field_empty_key">%2$s in mcpServers.%1$s contains an empty key</string>
+    <string name="mcp_config_entry_must_be_string">%3$s.%4$s in mcpServers.%1$s must be a string</string>
     <string name="ui_controller_image_capability_required">The UI Controller model has image understanding disabled. Choose a vision-capable model for the UI Controller function in Settings, then try again.</string>
     <string name="stt_model_unavailable">The local speech model has not been downloaded yet. Connect to the internet and try again.</string>
     <string name="stt_model_download_failed">Could not download %1$s</string>

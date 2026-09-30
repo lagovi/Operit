@@ -509,8 +509,10 @@ internal fun ThemeSettingsBackgroundSection(
                 if (useBackgroundBlurInput) {
                     Text(
                         text =
-                            stringResource(id = R.string.theme_background_blur_radius) +
-                                ": ${backgroundBlurRadiusInput.toInt()}",
+                                stringResource(
+                                        id = R.string.theme_background_blur_radius_value,
+                                        backgroundBlurRadiusInput.toInt()
+                                ),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
                     )

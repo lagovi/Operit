@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -806,7 +807,11 @@ private fun MessageItem(
             expanded = showContextMenu,
             onDismissRequest = { showContextMenu = false },
             modifier = Modifier
-                .width(180.dp)
+                // English labels are several times wider than the Chinese ones this
+                // width was tuned for; the longest ("Add to summary memory") does not
+                // fit 180dp once menu item padding is counted. Let the menu size to
+                // its content instead. See docs/FORK-REGISTRY/registry.json LAYOUT-001.
+                .widthIn(min = 180.dp, max = 280.dp)
                 .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(6.dp)),
             properties = PopupProperties(
                 focusable = true,

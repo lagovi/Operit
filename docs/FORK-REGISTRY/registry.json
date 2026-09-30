@@ -65,13 +65,19 @@
       "commit": "610d9f0b",
       "rationale": "tools/string/count_ui_strings.py built report paths relative to a hardcoded D:\\Code\\prog\\assistance root, so it crashed on every other machine.",
       "files": [
-        "tools/string/count_ui_strings.py"
+        "tools/string/count_ui_strings.py",
+        "tools/string/check_strings.py"
       ],
       "anchors": [
         {
           "file": "tools/string/count_ui_strings.py",
           "contains": "relative_to",
           "why": "path relativization against the repo root"
+        },
+        {
+          "file": "tools/string/check_strings.py",
+          "contains": "SOURCE_LOCALE = \"default\"",
+          "why": "the source is the unqualified bucket, not the zh locale, since values/ now holds English"
         }
       ],
       "reverify": "python3 tools/string/count_ui_strings.py",
@@ -314,7 +320,10 @@
         "app/src/main/java/com/ai/assistance/operit/data/preferences/WaifuPreferences.kt",
         "app/src/main/java/com/ai/assistance/operit/data/preferences/CharacterCardBilingualData.kt",
         "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/TagMarketBilingualData.kt",
-        "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardUITools.kt"
+        "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardUITools.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/mcp/McpConfigImportParser.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/mcp/MCPRepository.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/packages/market/MarketEntryInstallController.kt"
       ],
       "anchors": [
         {
@@ -326,6 +335,11 @@
           "file": "app/src/main/res/values/strings.xml",
           "contains": "ui_controller_image_capability_required",
           "why": "the one Chinese ToolResult.error is now a resource"
+        },
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/data/mcp/McpConfigImportParser.kt",
+          "contains": "fun parse(context: Context, jsonConfig: String)",
+          "why": "config rejection messages are resources; all three call sites let the exception reach a user-visible error"
         }
       ],
       "reverify": "python3 ci/script/fork_audit.py; then walk the re-audit list in docs/FORK-REGISTRY/re-audit-prompts.md",
@@ -427,6 +441,64 @@
         }
       ],
       "reverify": "adb shell dumpsys notification | grep mName — no CJK in any Operit channel"
+    },
+    {
+      "id": "TOOL-004",
+      "area": "tooling",
+      "title": "Localization CI gate no longer assumes the default bucket is Chinese",
+      "commit": null,
+      "status": "applied",
+      "rationale": "check_localizations.py hardcoded the source locale as 'zh' and treated values/ as the Chinese origin. Once values/ became English the gate silently inverted: every other bucket was compared against English and reported as a 'missing translation' of English. It reported errors=0 only because a single locale ships, so the failure mode was invisible rather than loud. The source is now identified as the unqualified bucket.",
+      "files": [
+        "ci/script/check_localizations.py"
+      ],
+      "anchors": [
+        {
+          "file": "ci/script/check_localizations.py",
+          "contains": "SOURCE_LOCALE = \"default\"",
+          "why": "the source must be identified by qualification, not by language"
+        }
+      ],
+      "reverify": "add a second locale, then run: python3 ci/script/check_localizations.py --base <ref> --candidate HEAD"
+    },
+    {
+      "id": "SIZE-006",
+      "area": "size",
+      "title": "INVESTIGATED, NOT DONE: the two bundled aapt2 copies cannot be de-duplicated",
+      "commit": null,
+      "status": "planned",
+      "rationale": "assets/templates/android/tools/aapt2 and assets/templates/flutter/android/tools/aapt2 are byte-identical 4.7 MB files, 2.16 MB of the APK. The obvious de-duplication is not achievable: WorkspaceUtils.copyTemplateFiles materialises each template into an independent project directory, and each template's setup_android_env.sh resolves aapt2 relative to its own SCRIPT_DIR. Removing one file would break the other template's Android build. Sharing it would require changing the copy mechanism, which risks the on-device build toolchain for 2.16 MB. Recorded so this is a decision rather than an oversight.",
+      "files": [
+        "app/src/main/assets/templates/android/setup_android_env.sh",
+        "app/src/main/assets/templates/flutter/android/setup_android_env.sh"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/assets/templates/android/setup_android_env.sh",
+          "contains": "bundled_aapt2=\"$SCRIPT_DIR/tools/aapt2/aapt2-arm64-v8a\"",
+          "why": "each template resolves aapt2 relative to its own script directory, which is why the copies cannot be shared"
+        }
+      ],
+      "reverify": "do not attempt without first changing copyTemplateFiles"
+    },
+    {
+      "id": "PROMPT-002",
+      "area": "prompts",
+      "title": "DECISION: MiMo voice names stay in Chinese",
+      "commit": null,
+      "status": "applied",
+      "rationale": "MimoVoiceProvider lists voices whose id and name are both Chinese (冰糖, 茉莉, 苏打, 白桦). The id is a wire value sent to the upstream TTS API and must not change. The name is a vendor product name, not UI copy: a user looking for a voice searches the vendor's name for it, so an English alias would make the picker harder to use rather than easier. The same names are already documented in the English string speech_services_mimo_voice_id_hint, so they appear in English context deliberately. Recorded so the decision is explicit.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt"
+      ],
+      "anchors": [
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt",
+          "contains": "Voice(id = \"冰糖\", name = \"冰糖\"",
+          "why": "id and name are the same wire value; changing either would break voice selection"
+        }
+      ],
+      "reverify": "none; this is a deliberate exclusion and belongs on the cjk-allowlist"
     }
   ]
 }

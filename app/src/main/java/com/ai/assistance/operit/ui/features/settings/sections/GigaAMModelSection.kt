@@ -1,0 +1,132 @@
+package com.ai.assistance.operit.ui.features.settings.sections
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.speech.GigaAMModelDownload
+import com.ai.assistance.operit.data.speech.GigaAMModelFiles
+import com.ai.assistance.operit.data.speech.SttModelStorage
+
+/**
+ * The one-time GigaAM download block, shown under the local engine in
+ * settings. This is also the way back after declining the dictation-screen
+ * consent: declining stores no flag, the files simply stay absent, and this
+ * block keeps offering the download until they exist.
+ */
+@Composable
+fun GigaAMModelSection(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val downloads = remember(context) { GigaAMModelDownload.getInstance(context) }
+    val storage = remember(context) { SttModelStorage(context) }
+    val state by downloads.state.collectAsState()
+
+    LaunchedEffect(Unit) { downloads.refresh() }
+
+    val sizeLabel = remember { formatMegabytes(GigaAMModelFiles.TOTAL_BYTES) }
+    val locationLabel = remember { storage.describe(storage.currentLocation()) }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.gigaam_model_title),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Medium,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+
+        val summary = when (val s = state) {
+            is GigaAMModelDownload.State.Ready ->
+                stringResource(R.string.gigaam_ready_summary, sizeLabel, locationLabel)
+            is GigaAMModelDownload.State.Failed ->
+                stringResource(R.string.gigaam_download_failed_summary, s.message)
+            else ->
+                stringResource(R.string.gigaam_absent_summary, sizeLabel)
+        }
+        Text(
+            text = summary,
+            style = MaterialTheme.typography.bodySmall,
+            color = when (state) {
+                is GigaAMModelDownload.State.Failed -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+
+        if (state !is GigaAMModelDownload.State.Ready) {
+            locationLabel.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        when (val s = state) {
+            is GigaAMModelDownload.State.Downloading -> {
+                val fraction =
+                    if (s.totalBytes > 0) s.downloadedBytes.toFloat() / s.totalBytes else 0f
+                LinearProgressIndicator(
+                    progress = { fraction },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(
+                            R.string.stt_model_downloading,
+                            (fraction * 100).toInt(),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = { downloads.cancel() }) {
+                        Text(stringResource(R.string.floating_cancel))
+                    }
+                }
+            }
+            is GigaAMModelDownload.State.Ready -> Unit
+            else -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { downloads.download() }) {
+                        Text(stringResource(R.string.update_download))
+                    }
+                    if (state is GigaAMModelDownload.State.Failed) {
+                        OutlinedButton(onClick = { downloads.download() }) {
+                            Text(stringResource(R.string.action_retry))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 224762512 bytes reads as "225 MB", which is what the consent screen quotes. */
+internal fun formatMegabytes(bytes: Long): String = "${(bytes + 500_000L) / 1_000_000L} MB"

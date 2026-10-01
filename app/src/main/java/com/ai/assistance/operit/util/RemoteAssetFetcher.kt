@@ -7,6 +7,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -100,7 +101,7 @@ class RemoteAssetFetcher(private val context: Context) {
         return sha256(file) == asset.sha256.lowercase()
     }
 
-    private fun download(asset: RemoteAsset, destination: File): Boolean {
+    private suspend fun download(asset: RemoteAsset, destination: File): Boolean {
         val partial = File(destination.parentFile, "${destination.name}$PARTIAL_SUFFIX")
         val alreadyHave = if (partial.isFile) partial.length() else 0L
 
@@ -137,7 +138,16 @@ class RemoteAssetFetcher(private val context: Context) {
                     if (appending) {
                         output.channel.position(alreadyHave)
                     }
-                    input.copyTo(output)
+                    // Chunked instead of copyTo() so cancelling the coroutine
+                    // actually stops the transfer. The partial file stays and
+                    // the next run resumes it with Range, so cancel is free.
+                    val buffer = ByteArray(BUFFER_SIZE)
+                    while (true) {
+                        ensureActive()
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        output.write(buffer, 0, read)
+                    }
                 }
             } ?: return false
 

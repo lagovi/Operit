@@ -573,14 +573,16 @@
     {
       "id": "STT-003",
       "area": "speech",
-      "title": "OPEN: ask before the 214 MB speech model download",
+      "title": "APPLIED: consent before the 225 MB model download; settings offers it after a decline",
       "commit": null,
-      "status": "planned",
-      "rationale": "The user requires every download to go through an explicit consent step. The previous sherpa-ncnn model downloaded silently on the first press of the recognition button, which is not acceptable at this size. Needs a sheet stating the size and the chosen storage location, then the RemoteAssetFetcher download behind the user's choice. RemoteAssetFetcher already verifies byte size and SHA-256 and is resumable, so only the consent UI and its persistence are missing.",
+      "status": "applied",
+      "rationale": "The model downloads only after explicit consent, in the dictation screen or in settings. Declining stores no flag: the files stay absent and settings keeps offering the download until they exist, which is the whole change-your-mind mechanism. GigaAMModelDownload is the shared singleton (Unknown/Checking/Absent/Downloading/Ready/Failed); the dictation consent dialog shows size and storage location, downloads with progress, and auto-starts recognition on completion. RemoteAssetFetcher now cancels mid-transfer via chunked ensureActive() instead of blocking copyTo(); partial bytes stay for Range resume. SttModelStorage.isDownloaded() checks sizes only, never hashes 225 MB for a status row.",
       "files": [
+        "app/src/main/java/com/ai/assistance/operit/data/speech/GigaAMModelDownload.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelStorage.kt",
         "app/src/main/java/com/ai/assistance/operit/util/RemoteAssetFetcher.kt",
-        "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelRepository.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/SpeechToTextScreen.kt"
+        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/GigaAMModelSection.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/toolbox/screens/speechtotext/SpeechToTextScreen.kt"
       ],
       "anchors": [
         {

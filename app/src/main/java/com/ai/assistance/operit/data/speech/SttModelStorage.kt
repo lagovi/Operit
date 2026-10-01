@@ -32,6 +32,25 @@ class SttModelStorage(private val context: Context) {
     /** Directory for the current location, created if needed. Null when unusable. */
     fun currentDir(): File? = locations.dirFor(locations.read(), payload.leaf)
 
+    /**
+     * Whether both model files are present at their exact sizes.
+     *
+     * Size only, deliberately not SHA-256: hashing 225 MB on every settings
+     * visit would stall the UI, and the fetcher already verifies the digest of
+     * every byte it writes. A size mismatch means absent or corrupt, and the
+     * next download repairs it.
+     *
+     * @return the directory when downloaded, null otherwise
+     */
+    fun isDownloaded(): File? {
+        val dir = locations.dirFor(locations.read(), payload.leaf) ?: return null
+        val intact = payload.assets.all { asset ->
+            val file = File(dir, asset.name)
+            file.isFile && file.length() == asset.sizeBytes
+        }
+        return if (intact) dir else null
+    }
+
     fun dirFor(location: AppDataLocation.Location): File? =
         locations.dirFor(location, payload.leaf)
 

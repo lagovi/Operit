@@ -2662,6 +2662,15 @@
     
     <!-- STT Service Types -->
     <string name="speech_services_stt_type_gigaam">GigaAM (Local, offline)</string>
+    <!-- One-time GigaAM download. Declining stores nothing: settings keeps
+         offering the download until the files exist. -->
+    <string name="gigaam_model_title">Offline speech model</string>
+    <string name="gigaam_consent_title">Download the offline speech model?</string>
+    <string name="gigaam_consent_text">Speech recognition runs fully on your device. The model is about %1$s and will be stored %2$s. You can also download it later in Settings.</string>
+    <string name="gigaam_not_now">Not now</string>
+    <string name="gigaam_absent_summary">Not downloaded · about %1$s</string>
+    <string name="gigaam_ready_summary">Ready · %1$s · %2$s</string>
+    <string name="gigaam_download_failed_summary">Download failed: %1$s</string>
     <string name="speech_services_stt_type_openai">OpenAI STT (Remote)</string>
     <string name="speech_services_stt_type_deepgram">Deepgram STT (Remote)</string>
     

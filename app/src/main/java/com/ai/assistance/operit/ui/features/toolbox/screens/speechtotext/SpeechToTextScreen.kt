@@ -29,6 +29,10 @@ import androidx.navigation.NavController
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.speech.SpeechService
 import com.ai.assistance.operit.api.speech.SpeechServiceFactory
+import com.ai.assistance.operit.data.speech.GigaAMModelDownload
+import com.ai.assistance.operit.data.speech.GigaAMModelFiles
+import com.ai.assistance.operit.data.speech.SttModelStorage
+import com.ai.assistance.operit.ui.features.settings.sections.formatMegabytes
 import kotlinx.coroutines.launch
 
 /** 语音识别演示屏幕 */
@@ -119,6 +123,7 @@ fun SpeechToTextScreen(navController: NavController) {
     var selectedLanguage by remember { mutableStateOf("zh-CN") }
     var error by remember { mutableStateOf<String?>(null) }
     var availableLanguages by remember { mutableStateOf<List<String>>(emptyList()) }
+    var showModelConsent by remember { mutableStateOf(false) }
     
     // recognitionMode 是驱动服务实例创建的唯一状态源
     var recognitionMode by remember { mutableStateOf(SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM) }
@@ -157,8 +162,15 @@ fun SpeechToTextScreen(navController: NavController) {
         if (success) {
             availableLanguages = speechService.getSupportedLanguages()
         } else {
-            error = context.getString(R.string.engine_init_failed, recognitionMode.name)
-        } 
+            // A missing local model is not an error banner: the consent dialog
+            // covers it when the user presses start.
+            val missingLocalModel =
+                recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM &&
+                    SttModelStorage(context).isDownloaded() == null
+            if (!missingLocalModel) {
+                error = context.getString(R.string.engine_init_failed, recognitionMode.name)
+            }
+        }
     }
     
     // 当服务实例改变时，重新开始收集结果和错误
@@ -180,6 +192,14 @@ fun SpeechToTextScreen(navController: NavController) {
     // 开始语音识别
     fun startRecognition() {
         error = null
+        // The model downloads only with explicit consent. Declining stores no
+        // flag; settings keeps offering the download until the files exist.
+        if (recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM &&
+            SttModelStorage(context).isDownloaded() == null
+        ) {
+            showModelConsent = true
+            return
+        }
         coroutineScope.launch {
             try {
                 // 对于本地引擎，启用连续模式和部分结果
@@ -579,4 +599,111 @@ fun SpeechToTextScreen(navController: NavController) {
             }
         }
     }
+
+    if (showModelConsent) {
+        GigaAMConsentDialog(
+            onDismiss = { showModelConsent = false },
+            onReady = {
+                showModelConsent = false
+                startRecognition()
+            },
+        )
+    }
+}
+
+/**
+ * Consent before the one-time model download, asked where the user pressed
+ * start. Accepting downloads with progress; declining dismisses and stores
+ * nothing, and settings keeps offering the download until the files exist.
+ */
+@Composable
+private fun GigaAMConsentDialog(
+    onDismiss: () -> Unit,
+    onReady: () -> Unit,
+) {
+    val context = LocalContext.current
+    val downloads = remember { GigaAMModelDownload.getInstance(context) }
+    val storage = remember { SttModelStorage(context) }
+    val state by downloads.state.collectAsState()
+
+    LaunchedEffect(Unit) { downloads.refresh() }
+    val ready = state is GigaAMModelDownload.State.Ready
+    LaunchedEffect(ready) {
+        if (ready) onReady()
+    }
+    if (ready) return
+
+    val sizeLabel = remember { formatMegabytes(GigaAMModelFiles.TOTAL_BYTES) }
+    val locationLabel = remember { storage.describe(storage.currentLocation()) }
+    val downloading = state as? GigaAMModelDownload.State.Downloading
+    val failed = state as? GigaAMModelDownload.State.Failed
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.gigaam_consent_title)) },
+        text = {
+            Column {
+                if (downloading != null) {
+                    val fraction =
+                        if (downloading.totalBytes > 0) {
+                            downloading.downloadedBytes.toFloat() / downloading.totalBytes
+                        } else {
+                            0f
+                        }
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        stringResource(
+                            R.string.stt_model_downloading,
+                            (fraction * 100).toInt(),
+                        ),
+                    )
+                } else {
+                    Text(
+                        stringResource(
+                            R.string.gigaam_consent_text,
+                            sizeLabel,
+                            locationLabel,
+                        ),
+                    )
+                    if (failed != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(
+                                R.string.gigaam_download_failed_summary,
+                                failed.message,
+                            ),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            when {
+                downloading != null -> {
+                    TextButton(onClick = { downloads.cancel() }) {
+                        Text(stringResource(R.string.floating_cancel))
+                    }
+                }
+                failed != null -> {
+                    TextButton(onClick = { downloads.download() }) {
+                        Text(stringResource(R.string.action_retry))
+                    }
+                }
+                else -> {
+                    TextButton(onClick = { downloads.download() }) {
+                        Text(stringResource(R.string.update_download))
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            if (downloading == null) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.gigaam_not_now))
+                }
+            }
+        },
+    )
 }

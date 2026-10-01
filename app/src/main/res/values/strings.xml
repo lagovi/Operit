@@ -7084,6 +7084,15 @@
     <string name="stt_model_download_failed">Could not download %1$s</string>
     <string name="stt_model_dir_unavailable">Could not create the model directory</string>
     <string name="stt_model_downloading">Downloading speech model… %1$d%%</string>
+    <string name="stt_storage_title">Speech model storage</string>
+    <string name="stt_storage_summary">Where the 214 MB offline speech model is kept. Putting it on a memory card keeps it out of the phone\'s internal storage, at the cost of slower loading.</string>
+    <string name="stt_storage_internal">Internal storage</string>
+    <string name="stt_storage_external_app">App folder on external storage</string>
+    <string name="stt_storage_external_shared">Shared folder (survives reinstall)</string>
+    <string name="stt_storage_location_value">%1$s\n%2$s</string>
+    <string name="stt_storage_unavailable">This location is not available</string>
+    <string name="stt_storage_move_failed">Could not move the speech model. The model stays where it was.</string>
+    <string name="stt_storage_not_enough_space">Not enough free space in the new location</string>
     <string name="service_stop">Stop</string>
 
     <!-- TextExporter (新增) -->

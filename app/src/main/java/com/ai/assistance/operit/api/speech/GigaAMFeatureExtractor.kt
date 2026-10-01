@@ -53,7 +53,7 @@ object GigaAMFeatureExtractor {
     private const val MEL_HZ_FACTOR = 2595.0
     private const val MEL_HZ_SCALE = 700.0
 
-    private val filterbank: FloatArray by lazy { buildMelFilterbank() }
+    private val filterbank: DoubleArray by lazy { buildMelFilterbank() }
     private val window: FloatArray by lazy { buildHannWindow() }
     private val plan: DftPlan by lazy { DftPlan(N_FFT) }
 
@@ -79,9 +79,10 @@ object GigaAMFeatureExtractor {
 
         // Allocated once and reused for every frame.
         val windowed = DoubleArray(N_FFT)
-        val binRe = FloatArray(nFreqs)
-        val binIm = FloatArray(nFreqs)
-        val power = FloatArray(nFreqs)
+        // Double, not Float: the oracle sums the mel filters in float64, and
+        // rounding the power spectrum to float32 first flips near-tied argmax
+        // decisions — enough to change a character in the decoded text.
+        val power = DoubleArray(nFreqs)
         val melAcc = FloatArray(N_MELS)
         val binReD = DoubleArray(nFreqs)
         val binImD = DoubleArray(nFreqs)
@@ -98,10 +99,8 @@ object GigaAMFeatureExtractor {
 
             plan.transform(windowed, binReD, binImD)
             for (k in 0 until nFreqs) {
-                val r = binReD[k].toFloat()
-                val i2 = binImD[k].toFloat()
-                binRe[k] = r
-                binIm[k] = i2
+                val r = binReD[k]
+                val i2 = binImD[k]
                 power[k] = r * r + i2 * i2
             }
 
@@ -110,7 +109,7 @@ object GigaAMFeatureExtractor {
                 var acc = 0.0
                 for (k in 0 until nFreqs) {
                     val w = fb[row + k]
-                    if (w != 0.0f) acc += w.toDouble() * power[k]
+                    if (w != 0.0) acc += w * power[k]
                 }
                 melAcc[m] = ln(max(min(acc, LOG_CLAMP_MAX), LOG_CLAMP_MIN)).toFloat()
             }
@@ -133,9 +132,9 @@ object GigaAMFeatureExtractor {
      * HTK mel scale, triangular filters over the rfft bins, no area
      * normalisation. Matches torchaudio's `mel_scale="htk"`, `norm=None`.
      */
-    private fun buildMelFilterbank(): FloatArray {
+    private fun buildMelFilterbank(): DoubleArray {
         val nFreqs = N_FFT / 2 + 1
-        val filters = FloatArray(N_MELS * nFreqs)
+        val filters = DoubleArray(N_MELS * nFreqs)
 
         val fftFreqs = DoubleArray(nFreqs) { it * (SAMPLE_RATE / 2.0) / (nFreqs - 1) }
         val melMin = hzToMel(0.0)
@@ -158,7 +157,7 @@ object GigaAMFeatureExtractor {
                         nearest = k
                     }
                 }
-                filters[row + nearest] = 1.0f
+                filters[row + nearest] = 1.0
                 continue
             }
             for (k in 0 until nFreqs) {
@@ -166,7 +165,7 @@ object GigaAMFeatureExtractor {
                 val rising = (f - left) / (centre - left)
                 val falling = (right - f) / (right - centre)
                 val w = min(rising, falling)
-                if (w > 0.0) filters[row + k] = w.toFloat()
+                if (w > 0.0) filters[row + k] = w
             }
         }
         return filters

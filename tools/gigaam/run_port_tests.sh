@@ -28,18 +28,38 @@ fi
 mkdir -p "$work/lib"
 for spec in \
   "junit/junit/4.13.2/junit-4.13.2.jar:junit.jar" \
-  "org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:hamcrest.jar"; do
+  "org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:hamcrest.jar" \
+  "com/microsoft/onnxruntime/onnxruntime/1.20.0/onnxruntime-1.20.0.jar:onnxruntime.jar"; do
   dest="$work/lib/${spec##*:}"
   [[ -f "$dest" ]] || curl -sSfL -o "$dest" "https://repo1.maven.org/maven2/${spec%%:*}"
 done
 
-rm -rf "$work/classes"
-mkdir -p "$work/classes"
+# AppLogger and RemoteAsset live in app/src/main/java/.../util but pull in the
+# Android framework, so compile local stand-ins instead. They exist only for this
+# harness and are never shipped.
+stubs="$work/stubs/com/ai/assistance/operit/util"
+mkdir -p "$stubs" "$work/classes"
+cat > "$stubs/AppLogger.kt" <<'STUB'
+package com.ai.assistance.operit.util
+object AppLogger {
+    fun e(tag: String, msg: String, t: Throwable? = null) =
+        System.err.println("[$tag] $msg${t?.let { ": $it" } ?: ""}")
+}
+STUB
+cat > "$stubs/RemoteAsset.kt" <<'STUB'
+package com.ai.assistance.operit.util
+data class RemoteAsset(val name: String, val url: String, val sizeBytes: Long, val sha256: String)
+STUB
 "$kotlinc" -nowarn \
-  -cp "$work/lib/junit.jar:$work/lib/hamcrest.jar" \
+  -cp "$work/lib/junit.jar:$work/lib/hamcrest.jar:$work/lib/onnxruntime.jar" \
+  "$stubs/AppLogger.kt" \
+  "$stubs/RemoteAsset.kt" \
   "$repo/GigaAMFeatureExtractor.kt" \
   "$repo/GigaAMTokenVocabulary.kt" \
+  "$repo/GigaAMRecognizer.kt" \
+  "$repo_root/app/src/main/java/com/ai/assistance/operit/data/speech/GigaAMModelFiles.kt" \
   "$tests/GigaAMFeatureExtractorTest.kt" \
+  "$tests/GigaAMRecognizerTest.kt" \
   -d "$work/classes"
 
 kotlin_home="$(cd "$(dirname "$kotlinc")/.." && pwd)"
@@ -47,7 +67,9 @@ stdlib="$kotlin_home/lib/kotlin-stdlib.jar"
 java_bin="$JAVA_HOME/bin/java"
 [[ -x "$java_bin" ]] || { echo "java not found at $java_bin" >&2; exit 2; }
 
-"$java_bin" -cp "$work/classes:$work/lib/junit.jar:$work/lib/hamcrest.jar:$resources:$stdlib" \
+"$java_bin" \
+  -cp "$work/classes:$work/lib/junit.jar:$work/lib/hamcrest.jar:$work/lib/onnxruntime.jar:$resources:$stdlib" \
   org.junit.runner.JUnitCore \
   com.ai.assistance.operit.api.speech.GigaAMFeatureExtractorTest \
-  com.ai.assistance.operit.api.speech.GigaAMTokenVocabularyTest
+  com.ai.assistance.operit.api.speech.GigaAMTokenVocabularyTest \
+  com.ai.assistance.operit.api.speech.GigaAMRecognizerTest

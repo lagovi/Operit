@@ -20,6 +20,9 @@ object OperitPaths {
     const val SHERPA_NCNN_MODELS_DIR_NAME = ".sherpa_ncnn_models"
     const val VECTOR_INDEX_DIR_NAME = ".vector_index"
 
+    /** GigaAM on-device speech model; see SttModelStorage for where it can live. */
+    const val MODEL_DIR_NAME = "stt_model"
+
     const val IMAGE_POOL_DIR_NAME = "image_pool"
     const val MEDIA_POOL_DIR_NAME = "media_pool"
     const val SKILL_REPO_ZIP_POOL_DIR_NAME = "skill_repo_zip_pool"

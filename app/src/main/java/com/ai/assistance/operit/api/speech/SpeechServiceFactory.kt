@@ -15,6 +15,8 @@ object SpeechServiceFactory {
     enum class SpeechServiceType {
         /** 基于Sherpa-ncnn的本地识别实现 */
         SHERPA_NCNN,
+        /** GigaAM offline plus Silero VAD; replaces SHERPA_NCNN once M5 lands. */
+        LOCAL_GIGAAM,
         OPENAI_STT,
         DEEPGRAM_STT,
     }
@@ -65,6 +67,7 @@ object SpeechServiceFactory {
     ): SpeechService {
         return when (type) {
             SpeechServiceType.SHERPA_NCNN -> acquireLocalSpeechService(context, type)
+            SpeechServiceType.LOCAL_GIGAAM -> acquireLocalSpeechService(context, type)
             SpeechServiceType.OPENAI_STT -> {
                 runBlocking {
                     OpenAISttProvider(
@@ -132,6 +135,7 @@ object SpeechServiceFactory {
                     val service =
                         when (type) {
                             SpeechServiceType.SHERPA_NCNN -> SherpaSpeechProvider(appContext)
+                            SpeechServiceType.LOCAL_GIGAAM -> GigaAMSpeechProvider(appContext)
                             else -> throw IllegalArgumentException("Not a local SpeechService type: $type")
                         }
                     LocalEntry(type = type, service = service, refCount = 1).also { localEntry = it }

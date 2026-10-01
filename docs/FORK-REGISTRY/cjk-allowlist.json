@@ -1227,7 +1227,7 @@
   ],
   [
    "app/src/main/java/com/ai/assistance/operit/core/config/SystemToolPromptsInternal.kt",
-   "\"可选，SHERPA_NCNN/OPENAI_STT/DEEPGRAM_STT\""
+   "\"可选，SHERPA_NCNN/LOCAL_GIGAAM/OPENAI_STT/DEEPGRAM_STT\""
   ],
   [
    "app/src/main/java/com/ai/assistance/operit/core/config/SystemToolPromptsInternal.kt",

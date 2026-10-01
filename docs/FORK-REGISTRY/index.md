@@ -111,6 +111,8 @@ docs/FORK-REGISTRY/
   HANDOFF.md            start here: state, open questions, rules that break the build
   index.md              this file
   registry.json         every fork change
+  research-size.md      measured sizes and hard limits; do not re-measure
+  re-audit-*.md         checklists for re-verifying after an upstream merge
   cjk-allowlist.json    reviewed Chinese literals in Kotlin
   re-audit-l10n.md      what to re-check after an upstream merge: resources
   re-audit-prompts.md   what to re-check: prompt text the user can read

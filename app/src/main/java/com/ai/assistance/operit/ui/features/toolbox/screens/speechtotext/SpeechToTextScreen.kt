@@ -121,7 +121,7 @@ fun SpeechToTextScreen(navController: NavController) {
     var availableLanguages by remember { mutableStateOf<List<String>>(emptyList()) }
     
     // recognitionMode 是驱动服务实例创建的唯一状态源
-    var recognitionMode by remember { mutableStateOf(SpeechServiceFactory.SpeechServiceType.SHERPA_NCNN) }
+    var recognitionMode by remember { mutableStateOf(SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM) }
 
     var speechService by remember {
         mutableStateOf(SpeechServiceFactory.createSpeechService(context, recognitionMode))
@@ -183,10 +183,8 @@ fun SpeechToTextScreen(navController: NavController) {
         coroutineScope.launch {
             try {
                 // 对于本地引擎，启用连续模式和部分结果
-                val continuousMode = recognitionMode == SpeechServiceFactory.SpeechServiceType.SHERPA_NCNN ||
-                    recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM
-                val partialResults = recognitionMode == SpeechServiceFactory.SpeechServiceType.SHERPA_NCNN ||
-                    recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM
+                val continuousMode = recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM
+                val partialResults = recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM
                 speechService.startRecognition(selectedLanguage, continuousMode, partialResults)
             } catch (e: Exception) {
                 error = context.getString(R.string.start_recognition_error, e.message ?: "")
@@ -208,21 +206,18 @@ fun SpeechToTextScreen(navController: NavController) {
     // 切换识别引擎现在只改变状态，Compose框架会处理后续的重新创建和初始化
     fun switchRecognitionMode() {
         recognitionMode = when (recognitionMode) {
-            SpeechServiceFactory.SpeechServiceType.SHERPA_NCNN ->
-                SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM
             SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM ->
                 SpeechServiceFactory.SpeechServiceType.OPENAI_STT
             SpeechServiceFactory.SpeechServiceType.OPENAI_STT ->
                 SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT
             SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT ->
-                SpeechServiceFactory.SpeechServiceType.SHERPA_NCNN
+                SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM
         }
     }
 
     // 获取当前引擎的显示名称
     fun getEngineName(mode: SpeechServiceFactory.SpeechServiceType): String {
         return when (mode) {
-            SpeechServiceFactory.SpeechServiceType.SHERPA_NCNN -> context.getString(R.string.sherpa_ncnn_best)
             SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM -> context.getString(R.string.speech_services_stt_type_gigaam)
             SpeechServiceFactory.SpeechServiceType.OPENAI_STT -> context.getString(R.string.speech_services_stt_type_openai)
             SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT -> context.getString(R.string.speech_services_stt_type_deepgram)

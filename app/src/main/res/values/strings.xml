@@ -1818,7 +1818,6 @@
     <string name="no_text_to_copy">No text to copy</string>
     <string name="recognition_settings">Recognition Settings</string>
     <string name="recognition_engine_colon">Recognition Engine:</string>
-    <string name="sherpa_ncnn_best">Sherpa-ncnn (Best)</string>
     <string name="switch_engine">Switch Engine</string>
     <string name="recognition_language_colon">Recognition Language:</string>
     <string name="start_recording">Start Recording</string>
@@ -1836,7 +1835,6 @@
     <string name="speech_usage_steps">1. Select speech engine\n2. Click start recording button\n3. Speak clearly\n4. Click stop recording\n5. Wait for transcription results</string>
     <string name="speech_engine_note">Note: Different speech engines may have different accuracy and supported languages</string>
     <string name="usage_instructions">Usage Instructions</string>
-    <string name="speech_recognition_instructions">1. Select recognition engine (Android Native/Sherpa-ncnn/Whisper Offline)\n2. Select recognition language (Chinese/English etc.)\n3. Click start recording button\n4. Click stop button after speaking\n5. View recognition results</string>
     <string name="activity_monitor">Activity Monitor</string>
     <string name="smart_build">Smart Build</string>
     <string name="target_app">Target: %1$s</string>
@@ -2244,8 +2242,6 @@
     <string name="ui_automation_in_progress">UI automation in progress...</string>
     
     <!-- Missing strings -->
-    <string name="sherpa_k2_ncnn_init_failed">Real-time speech recognition engine initialization failed</string>
-    <string name="sherpa_k2_ncnn_init_success">Real-time speech recognition engine initialization successful</string>
     <string name="floating_chat_window_desc">Display a floating window on screen for quick access to chat functionality</string>
     <string name="rename">Rename</string>
     
@@ -2665,9 +2661,7 @@
     <string name="speech_services_tts_type_openai">OpenAI Voice (HTTP)</string>
     
     <!-- STT Service Types -->
-    <string name="speech_services_stt_type_sherpa">Sherpa NCNN (Local)</string>
     <string name="speech_services_stt_type_gigaam">GigaAM (Local, offline)</string>
-    <string name="speech_services_stt_type_sherpa_mnn">Sherpa MNN (Local, with VAD)</string>
     <string name="speech_services_stt_type_openai">OpenAI STT (Remote)</string>
     <string name="speech_services_stt_type_deepgram">Deepgram STT (Remote)</string>
     
@@ -2813,7 +2807,6 @@
     <string name="speech_services_deepgram_stt_model_placeholder">e.g.: nova-2</string>
 
     <!-- STT Configuration -->
-    <string name="speech_services_stt_info">Supports local Sherpa engines and OpenAI / Deepgram STT (remote).</string>
     
     <!-- Save Actions -->
     <string name="speech_services_save_button">Save Settings</string>
@@ -2827,7 +2820,7 @@
     <string name="speech_services_info_tts_title">Text-to-Speech (TTS)</string>
     <string name="speech_services_info_tts_desc">TTS service converts text to speech. You can use the built-in system TTS engine or connect to remote HTTP / WebSocket speech APIs.</string>
     <string name="speech_services_info_stt_title">Speech-to-Text (STT)</string>
-    <string name="speech_services_info_stt_desc">STT service converts speech to text. Supports built-in Sherpa NCNN and Sherpa MNN engines, both run on local device without network connection. Sherpa MNN integrates VAD (Voice Activity Detection) capability for improved recognition accuracy and resource efficiency.</string>
+    <string name="speech_services_info_stt_desc">STT service converts speech to text. Supports the built-in GigaAM engine, which runs on the local device without network connection after a one-time model download. Silero VAD (Voice Activity Detection) splits speech into phrases for improved recognition accuracy and resource efficiency.</string>
     
     <!-- Permission Names -->
     <string name="perm_name_camera">Camera</string>

@@ -203,7 +203,7 @@
 - `OPENAI_TTS`：需填写 `url_template`、`api_key`、`model_name`、`voice_id`。
 - `VITS_TTS`：本地 VITS/Piper TTS。`tts_vits_package_path` 填本地模型包 `.zip` 或已解压目录，`tts_vits_speaker_id` 可选填数字 speaker id，`tts_vits_options` 可选填写 `sample_rate`、`threads`、`noise_scale`、`length_scale`、`noise_w`、`frontend`、`text_mode`、`speaker_count`、输入名和 blank/bos/eos token 等本地参数。
 3) STT（语音转文本）可选引擎：
-- `SHERPA_NCNN`：本地识别，通常无需 API Key。
+- `LOCAL_GIGAAM`：本地识别，通常无需 API Key。
 - `OPENAI_STT`：需填写 `endpoint_url`、`api_key`、`model_name`。
 - `DEEPGRAM_STT`：需填写 `endpoint_url`、`api_key`、`model_name`。
 4) 最常见填错点（优先检查）：
@@ -451,7 +451,7 @@
 - `OPENAI_TTS`: fill `url_template`, `api_key`, `model_name`, `voice_id`.
 - `VITS_TTS`: local VITS/Piper TTS. Set `tts_vits_package_path` to the local model package `.zip` or extracted package directory, optionally set `tts_vits_speaker_id` to a numeric speaker id, and use `tts_vits_options` for local options such as `sample_rate`, `threads`, `noise_scale`, `length_scale`, `noise_w`, `frontend`, `text_mode`, `speaker_count`, input names, and blank/bos/eos token settings.
 3) STT (speech-to-text) engines:
-- `SHERPA_NCNN`: local recognition, usually no API key required.
+- `LOCAL_GIGAAM`: local recognition, usually no API key required.
 - `OPENAI_STT`: fill `endpoint_url`, `api_key`, `model_name`.
 - `DEEPGRAM_STT`: fill `endpoint_url`, `api_key`, `model_name`.
 4) Most common mistakes (check first):
@@ -951,8 +951,8 @@
         {
           name: "stt_service_type"
           description: {
-            zh: "可选，SHERPA_NCNN/OPENAI_STT/DEEPGRAM_STT"
-            en: "Optional, SHERPA_NCNN/OPENAI_STT/DEEPGRAM_STT"
+            zh: "可选，LOCAL_GIGAAM/OPENAI_STT/DEEPGRAM_STT"
+            en: "Optional, LOCAL_GIGAAM/OPENAI_STT/DEEPGRAM_STT"
           }
           type: string
           required: false

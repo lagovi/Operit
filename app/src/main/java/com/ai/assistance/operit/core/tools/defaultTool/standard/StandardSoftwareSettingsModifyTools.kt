@@ -526,7 +526,7 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
                 getParameterValue(tool, "stt_service_type")?.let { raw ->
                     when {
                         raw.trim().equals("SHERPA_MNN", ignoreCase = true) ->
-                            SpeechServiceFactory.SpeechServiceType.SHERPA_NCNN
+                            SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM
 
                         else ->
                             SpeechServiceFactory.SpeechServiceType.values().firstOrNull {

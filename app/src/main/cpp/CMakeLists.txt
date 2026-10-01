@@ -35,43 +35,6 @@ function(resolve_wamr_android_target output_var)
     endif()
 endfunction()
 
-if(ANDROID)
-    # Build sherpa-ncnn as part of Android Studio externalNativeBuild.
-    operit_prepare_git_source(
-            OPERIT_SHERPA_NCNN_SOURCE_DIR
-            OPERIT_SHERPA_NCNN_BINARY_DIR
-            sherpa_ncnn
-            "https://github.com/k2-fsa/sherpa-ncnn.git"
-            "master"
-    )
-
-    list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-    list(APPEND CMAKE_MODULE_PATH "${OPERIT_SHERPA_NCNN_SOURCE_DIR}/cmake")
-    include_directories("${OPERIT_SHERPA_NCNN_SOURCE_DIR}")
-
-    set(SHERPA_NCNN_ENABLE_PORTAUDIO OFF CACHE BOOL "" FORCE)
-    set(SHERPA_NCNN_ENABLE_BINARY OFF CACHE BOOL "" FORCE)
-    set(SHERPA_NCNN_ENABLE_TEST OFF CACHE BOOL "" FORCE)
-    set(SHERPA_NCNN_ENABLE_C_API OFF CACHE BOOL "" FORCE)
-    set(SHERPA_NCNN_ENABLE_JNI ON CACHE BOOL "" FORCE)
-    set(SHERPA_NCNN_ENABLE_PYTHON OFF CACHE BOOL "" FORCE)
-    set(SHERPA_NCNN_ENABLE_FFMPEG_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set(SHERPA_NCNN_ENABLE_GENERATE_INT8_SCALE_TABLE OFF CACHE BOOL "" FORCE)
-
-    # Keep sherpa/ncnn static inside libsherpa-ncnn-jni and avoid OpenMP abort issues.
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-    set(NCNN_OPENMP OFF CACHE BOOL "" FORCE)
-
-    add_subdirectory(
-            "${OPERIT_SHERPA_NCNN_SOURCE_DIR}"
-            "${OPERIT_SHERPA_NCNN_BINARY_DIR}"
-    )
-
-    force_release_flags_for_debug(ncnn)
-    force_release_flags_for_debug(sherpa-ncnn-core)
-    force_release_flags_for_debug(sherpa-ncnn-jni)
-endif()
-
 add_library(
         streamnative
         SHARED

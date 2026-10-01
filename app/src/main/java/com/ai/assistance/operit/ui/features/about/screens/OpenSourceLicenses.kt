@@ -128,8 +128,6 @@ private fun getOpenSourceLibraries(): List<OpenSourceLibrary> {
         OpenSourceLibrary("java-diff-utils", "Diff library for Java", "Apache-2.0", "https://github.com/java-diff-utils/java-diff-utils"),
         OpenSourceLibrary("Kotlin Coroutines", "Kotlin coroutines library", "Apache-2.0", "https://github.com/Kotlin/kotlinx.coroutines"),
         OpenSourceLibrary("kotlin-logging", "Lightweight logging framework for Kotlin", "Apache-2.0", "https://github.com/oshai/kotlin-logging"),
-        OpenSourceLibrary("sherpa-ncnn", "Real-time speech recognition with Next-gen Kaldi", "Apache-2.0", "https://github.com/k2-fsa/sherpa-ncnn"),
-        OpenSourceLibrary("sherpa-mnn", "Speech recognition with MNN backend", "Apache-2.0", "https://github.com/k2-fsa/sherpa-mnn"),
         OpenSourceLibrary("SLF4J", "Simple Logging Facade for Java", "MIT", "https://www.slf4j.org/")
     ).sortedBy { it.name }
 }

@@ -13,9 +13,7 @@ object SpeechServiceFactory {
 
     /** 语音识别服务类型 */
     enum class SpeechServiceType {
-        /** 基于Sherpa-ncnn的本地识别实现 */
-        SHERPA_NCNN,
-        /** GigaAM offline plus Silero VAD; replaces SHERPA_NCNN once M5 lands. */
+        /** GigaAM offline plus Silero VAD; the only on-device engine. */
         LOCAL_GIGAAM,
         OPENAI_STT,
         DEEPGRAM_STT,
@@ -45,7 +43,7 @@ object SpeechServiceFactory {
         val effectiveType = when (selectedType) {
             SpeechServiceType.OPENAI_STT,
             SpeechServiceType.DEEPGRAM_STT,
-            -> SpeechServiceType.SHERPA_NCNN
+            -> SpeechServiceType.LOCAL_GIGAAM
             else -> selectedType
         }
         return createSpeechService(context, effectiveType, profile.httpConfig)
@@ -66,7 +64,6 @@ object SpeechServiceFactory {
         httpConfig: SttHttpConfig,
     ): SpeechService {
         return when (type) {
-            SpeechServiceType.SHERPA_NCNN -> acquireLocalSpeechService(context, type)
             SpeechServiceType.LOCAL_GIGAAM -> acquireLocalSpeechService(context, type)
             SpeechServiceType.OPENAI_STT -> {
                 runBlocking {
@@ -134,7 +131,6 @@ object SpeechServiceFactory {
                 } else {
                     val service =
                         when (type) {
-                            SpeechServiceType.SHERPA_NCNN -> SherpaSpeechProvider(appContext)
                             SpeechServiceType.LOCAL_GIGAAM -> GigaAMSpeechProvider(appContext)
                             else -> throw IllegalArgumentException("Not a local SpeechService type: $type")
                         }
@@ -219,7 +215,7 @@ object SpeechServiceFactory {
             return acquireLocalSpeechService(context, fallbackEntry.type)
         }
 
-        return createSpeechService(context, SpeechServiceType.SHERPA_NCNN)
+        return createSpeechService(context, SpeechServiceType.LOCAL_GIGAAM)
     }
 
     /** 重置单例实例 在需要更改语音识别服务类型或释放资源时调用 */

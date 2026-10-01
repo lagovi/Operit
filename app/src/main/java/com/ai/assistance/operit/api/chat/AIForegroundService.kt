@@ -1966,7 +1966,7 @@ class AIForegroundService : Service() {
         }
         builder.addAction(
             android.R.drawable.ic_btn_speak_now,
-            localized.getString(R.string.service_voice_floating_window),
+            localized.getString(R.string.service_action_voice_short),
             floatingPendingIntent
         )
 
@@ -1986,9 +1986,9 @@ class AIForegroundService : Service() {
         builder.addAction(
             android.R.drawable.ic_lock_silent_mode_off,
             if (wakeListeningEnabledSnapshot) {
-                localized.getString(R.string.service_turn_off_wake)
+                localized.getString(R.string.service_action_wake_off_short)
             } else {
-                localized.getString(R.string.service_turn_on_wake)
+                localized.getString(R.string.service_action_wake_on_short)
             },
             toggleWakePendingIntent
         )

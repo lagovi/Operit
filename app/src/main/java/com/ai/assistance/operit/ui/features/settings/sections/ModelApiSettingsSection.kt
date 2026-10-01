@@ -1050,8 +1050,10 @@ fun ModelApiSettingsSection(
                                 }
                             },
                             singleLine = true,
-                            modifier =
-                                    Modifier.fillMaxWidth().padding(bottom = 12.dp).height(48.dp),
+                            // No explicit height: the 36dp trailing IconButton sets the
+                            // intrinsic height, and forcing 48dp made Compose clip the
+                            // text vertically instead of shrinking it.
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                             colors =
                                     OutlinedTextFieldDefaults.colors(
                                             focusedBorderColor = MaterialTheme.colorScheme.primary,

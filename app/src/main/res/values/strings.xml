@@ -7052,6 +7052,12 @@
     <string name="service_turn_off_wake">Turn off wake</string>
     <string name="service_turn_on_wake">Turn on wake</string>
     <string name="service_exit">Exit</string>
+    <!-- Notification action labels. Three actions share one row, and the system
+         truncates anything longer, which is how "Voice floating window" ended up
+         on screen as "Voice floati...". -->
+    <string name="service_action_voice_short">Voice</string>
+    <string name="service_action_wake_on_short">Wake on</string>
+    <string name="service_action_wake_off_short">Wake off</string>
 
     <!-- Fork: on-demand local STT model. See docs/FORK-REGISTRY/registry.json SIZE-004. -->
     <!-- Fork: ToolResult.error is rendered by the Tool Tester screen, so this

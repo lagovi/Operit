@@ -43,6 +43,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -68,8 +70,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private data class SidebarPermissionStatus(
-        val badgeTextResId: Int
+        val level: SidebarPermissionLevel,
+        val labelResId: Int
 )
+
+/**
+ * The permission quick action is the only one of the three that has no count to
+ * show, so it shows a state instead of a number. That state used to be spelled
+ * out as a word, which does not fit: the badge is aligned to a 76dp card and a
+ * phrase like "Not Running" grew wider than the card and landed on the label.
+ */
+private enum class SidebarPermissionLevel { OK, INACTIVE, DENIED }
 
 private suspend fun resolveSidebarPermissionStatus(
         context: android.content.Context,
@@ -79,25 +90,30 @@ private suspend fun resolveSidebarPermissionStatus(
                 null,
                 AndroidPermissionLevel.STANDARD ->
                         SidebarPermissionStatus(
-                                badgeTextResId = R.string.sidebar_status_normal
+                                level = SidebarPermissionLevel.OK,
+                                labelResId = R.string.sidebar_status_normal
                         )
                 AndroidPermissionLevel.DEBUGGER ->
                         when {
                                 !ShizukuAuthorizer.isShizukuInstalled(context) ->
                                         SidebarPermissionStatus(
-                                                badgeTextResId = R.string.status_not_installed
+                                                level = SidebarPermissionLevel.INACTIVE,
+                                                labelResId = R.string.status_not_installed
                                         )
                                 !ShizukuAuthorizer.isShizukuServiceRunning() ->
                                         SidebarPermissionStatus(
-                                                badgeTextResId = R.string.status_not_running
+                                                level = SidebarPermissionLevel.INACTIVE,
+                                                labelResId = R.string.status_not_running
                                         )
                                 ShizukuAuthorizer.hasShizukuPermission() ->
                                         SidebarPermissionStatus(
-                                                badgeTextResId = R.string.sidebar_status_normal
+                                                level = SidebarPermissionLevel.OK,
+                                                labelResId = R.string.sidebar_status_normal
                                         )
                                 else ->
                                         SidebarPermissionStatus(
-                                                badgeTextResId = R.string.unauthorized
+                                                level = SidebarPermissionLevel.DENIED,
+                                                labelResId = R.string.unauthorized
                                         )
                         }
                 AndroidPermissionLevel.ACCESSIBILITY,
@@ -107,7 +123,13 @@ private suspend fun resolveSidebarPermissionStatus(
                                 ActionListenerFactory.getListener(context, preferredPermissionLevel)
                                         .hasPermission()
                         SidebarPermissionStatus(
-                                badgeTextResId =
+                                level =
+                                        if (permissionStatus.granted) {
+                                                SidebarPermissionLevel.OK
+                                        } else {
+                                                SidebarPermissionLevel.DENIED
+                                        },
+                                labelResId =
                                         if (permissionStatus.granted) {
                                                 R.string.sidebar_status_normal
                                         } else {
@@ -181,7 +203,8 @@ fun DrawerContent(
                 produceState(
                         initialValue =
                                 SidebarPermissionStatus(
-                                        badgeTextResId = R.string.sidebar_status_normal
+                                        level = SidebarPermissionLevel.OK,
+                                        labelResId = R.string.sidebar_status_normal
                                 ),
                         selectedRouteId,
                         preferredPermissionLevel
@@ -491,7 +514,8 @@ private fun NewSidebarTopContent(
                         modifier = Modifier.weight(1f),
                         icon = NavItem.ShizukuCommands.icon,
                         label = stringResource(id = R.string.sidebar_permission_short),
-                        badgeText = stringResource(id = permissionStatus.badgeTextResId),
+                        statusLevel = permissionStatus.level,
+                        statusLabel = stringResource(id = permissionStatus.labelResId),
                         selected = selectedItem == NavItem.ShizukuCommands,
                         appearance = appearance,
                         onClick = { onNavItemClick(NavItem.ShizukuCommands) }
@@ -611,10 +635,12 @@ private fun SidebarQuickActionCard(
         modifier: Modifier = Modifier,
         icon: androidx.compose.ui.graphics.vector.ImageVector,
         label: String,
-        badgeText: String,
         selected: Boolean,
         appearance: NavigationDrawerAppearance,
-        onClick: () -> Unit
+        onClick: () -> Unit,
+        badgeText: String? = null,
+        statusLevel: SidebarPermissionLevel? = null,
+        statusLabel: String = "",
 ) {
         val itemShape = RoundedCornerShape(12.dp)
         val selectedGlassOverlayColor =
@@ -662,14 +688,26 @@ private fun SidebarQuickActionCard(
                                                 .background(accentColor.copy(alpha = 0.7f))
                                 )
                         }
-                        SidebarQuickActionBadge(
-                                text = badgeText,
-                                appearance = appearance,
-                                selected = selected,
-                                modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(top = 6.dp, end = 6.dp)
-                        )
+                        if (statusLevel != null) {
+                                SidebarQuickActionStatusDot(
+                                        level = statusLevel,
+                                        contentDescription = statusLabel,
+                                        selected = selected,
+                                        appearance = appearance,
+                                        modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(top = 10.dp, end = 10.dp)
+                                )
+                        } else if (badgeText != null) {
+                                SidebarQuickActionBadge(
+                                        text = badgeText,
+                                        appearance = appearance,
+                                        selected = selected,
+                                        modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(top = 6.dp, end = 6.dp)
+                                )
+                        }
                         Column(
                                 modifier = Modifier
                                         .align(Alignment.Center)
@@ -704,6 +742,42 @@ private fun SidebarQuickActionCard(
         }
 }
 
+/**
+ * A dot rather than a word for the permission state.
+ *
+ * The word was the bug: it has to fit inside a 76dp card next to an icon and a
+ * label, and none of "Not Running", "Not Installed" and "Unauthorized" do. Colour
+ * carries the state the same way the WiFi indicator in this drawer already does,
+ * and the full text stays available to accessibility services.
+ */
+@Composable
+private fun SidebarQuickActionStatusDot(
+        level: SidebarPermissionLevel,
+        contentDescription: String,
+        appearance: NavigationDrawerAppearance,
+        selected: Boolean,
+        modifier: Modifier = Modifier
+) {
+        val dotColor =
+                when (level) {
+                        SidebarPermissionLevel.OK ->
+                                if (selected) {
+                                        appearance.selectedContentColor
+                                } else {
+                                        appearance.statusAvailableColor
+                                }
+                        SidebarPermissionLevel.INACTIVE -> appearance.itemColor.copy(alpha = 0.45f)
+                        SidebarPermissionLevel.DENIED -> MaterialTheme.colorScheme.error
+                }
+        Box(
+                modifier =
+                        modifier.size(9.dp)
+                                .clip(CircleShape)
+                                .background(dotColor)
+                                .semantics { this.contentDescription = contentDescription }
+        )
+}
+
 @Composable
 private fun SidebarQuickActionBadge(
         text: String,
@@ -731,7 +805,11 @@ private fun SidebarQuickActionBadge(
                                 else appearance.titleColor.copy(alpha = 0.8f),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                         fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        // Counts only. Without a line limit a longer string wraps
+                        // and grows past the card, which is what the phrase that
+                        // used to sit here did.
+                        maxLines = 1
                 )
         }
 }

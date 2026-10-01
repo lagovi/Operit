@@ -528,24 +528,34 @@
     {
       "id": "STT-002",
       "area": "speech",
-      "title": "OPEN: replace sherpa-ncnn zh-en with GigaAM-Multilingual CTC",
+      "title": "IN PROGRESS: GigaAM frontend+decoder done and verified; provider still to write",
       "commit": null,
       "status": "planned",
-      "rationale": "The user selected fussraider/GigaAM-Multilingual-sherpa-onnx-ctc (MIT), a character-wise CTC export of ai-sage/GigaAM-Multilingual. It is the right choice for Russian: WER 7.1% on Common Voice versus 9.1% for Whisper large v3, and a 71-token character vocabulary that covers Cyrillic natively rather than bolting it onto a sentence-piece model. Three things make this a change of engine rather than a URL swap. (1) The app bundles libsherpa-ncnn-jni.so and the com.k2fsa.sherpa.ncnn API; this model is in the sherpa-onnx format, which is a different JNI and a different API, and both .so files arrive from a Google Drive archive that belongs to upstream. The preferred path is to run the ONNX directly through com.microsoft.onnxruntime, which is already a dependency and already used by OnnxSileroVad; greedy CTC decoding over a 71-token alphabet is trivial. (2) The export is offline but the current provider is a streaming transducer that emits partial results, so the UX decision of when text appears must be made. (3) model.int8.onnx is 225 MB against the current 141 MB, so quality improves while the download grows by 84 MB; large/model.int8.onnx is 592 MB. Pin revision 9f5a77e8975211abe8511693accd3a63ee1e9f43, files model.int8.onnx and tokens.txt.",
+      "rationale": "The user selected fussraider/GigaAM-Multilingual-sherpa-onnx-ctc (MIT), a character-wise CTC export of ai-sage/GigaAM-Multilingual. Right choice for Russian: FLEURS WER 4.4 versus 9.1 for Whisper large v3, and a character vocabulary covering Cyrillic natively rather than bolting it onto a sentence-piece model. The pipeline is Silero VAD (already implemented in OnnxSileroVad.kt) feeding utterance chunks into GigaAM, not a continuous stream, because the export is offline CTC while the sherpa-ncnn provider it replaces streams partial results. sherpa-onnx JNI is NOT added: both .so files come from an upstream Google Drive archive we cannot modify, and onnxruntime-android is already a dependency and already used by OnnxSileroVad.kt, so the graph is run directly.\n\nTwo repositories publish the same int8 weights. Verified by comparing all 959 ONNX initializers: they are bit-identical, and the 10557 differing bytes are only protobuf serialisation and the 'language' metadata string. i2z1 is the one to use because it ships export-multilingual-ctc.py. Note DmitrySharonov/GigaAM-Multilingual-ONNX is FP32 only (844 MB) and its large_ctc file is truncated at 3.4 MB.\n\nConfig facts that are easy to get wrong and are pinned by unit tests: n_mels is 64 not 80 (the sherpa-onnx examples in the model card print a placeholder 80), n_fft and win_length are 320 not 400, center is false, the graph input is mel-major [batch, 64, frames], and in tokens.txt index 0 is the SPACE while <blk> is index 70.\n\nThe checkpoint has no digits, no uppercase and no punctuation beyond the apostrophe. Dictated numbers will not come out as numbers; this is a property of the model.\n\nDONE: reference NumPy frontend in tools/gigaam/reference_frontend.py, fixture generator, Kotlin extractor and decoder, and 8 JVM tests asserting the port matches the oracle to better than 1e-3. End-to-end check: features produced by the Kotlin code decode to a transcription identical to the Python reference on the official GigaAM test clip.\n\nSTILL TO DO: GigaAMRecognizer, the AudioRecord/VAD provider with on-the-fly resampling (the existing sherpa-ncnn path just asks the microphone for 16 kHz and has no resampler), model storage selection including microSD, consented download, and removing sherpa-ncnn.\n\nChunking note: naively overlapping consecutive chunks duplicates text, because the overlapping audio is decoded twice and both copies are emitted. Plain VAD chunks are acceptable. Do not add overlap without trimming the output to the centre span.",
       "files": [
-        "app/src/main/java/com/ai/assistance/operit/api/speech/SherpaSpeechProvider.kt",
-        "app/src/main/java/com/ai/assistance/operit/api/speech/SpeechServiceFactory.kt",
-        "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelRepository.kt",
-        "app/src/main/java/com/ai/assistance/operit/util/OnnxSileroVad.kt"
+        "tools/gigaam/reference_frontend.py",
+        "tools/gigaam/gen_fixture.py",
+        "tools/gigaam/run_port_tests.sh",
+        "tools/gigaam/tokens.txt",
+        "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractor.kt",
+        "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMTokenVocabulary.kt",
+        "app/src/test/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractorTest.kt",
+        "app/src/test/resources/gigaam/",
+        "app/src/main/java/com/ai/assistance/operit/api/speech/OnnxSileroVad.kt"
       ],
       "anchors": [
         {
-          "file": "app/src/main/java/com/ai/assistance/operit/api/speech/SherpaSpeechProvider.kt",
-          "contains": "sherpa-ncnn-streaming-zipformer-bilingual-zh-en-2023-02-13",
-          "why": "the model being replaced; the provider cannot know Russian at all today"
+          "file": "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractor.kt",
+          "contains": "const val N_MELS = 64",
+          "why": "the value the sherpa-onnx model card contradicts; 80 is wrong and 80 produces noise"
+        },
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractor.kt",
+          "contains": "Bluestein",
+          "why": "n_fft 320 is 2^6*5, so radix-2 Cooley-Tukey walks off the end of the array"
         }
       ],
-      "reverify": "Russian WER against a real recording; see docs/FORK-REGISTRY/HANDOFF.md for the streaming-vs-offline question that must be answered first"
+      "reverify": "Russian WER on a real recording on the device; speed must be measured on the phone, never on a 2-core build box. Run tools/gigaam/run_port_tests.sh after touching the extractor."
     }
   ]
 }

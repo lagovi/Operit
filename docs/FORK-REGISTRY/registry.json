@@ -508,10 +508,10 @@
     {
       "id": "SIZE-007",
       "area": "size",
-      "title": "OPEN: further distribution-size reduction, 296 MB debug APK",
+      "title": "PARTLY MISFRAMED: further size work — 296 MB is the APK, 435 MB is the phone",
       "commit": null,
       "status": "planned",
-      "rationale": "296 MB after the first pass. Largest remaining blocks: dex 72 (R8 now on but the saving was never measured), proot Ubuntu rootfs 64, lib 57, assets/subpack 37, assets/packages 28 (of which apktool.toolpkg is 27), ML Kit OCR 5.5, assets misc 20. Note that ML Kit cannot be trimmed partially: the 1.49 MB of model weights and the 10 MB of multi-script engine are only useful together, so it is all-or-nothing. Recognition is fully on-device and only runs on explicit user action. Also undecided: useLegacyPackaging = true in app/build.gradle.kts trades a larger APK for less installed size, which is the wrong direction for download size and the right one for install size.",
+      "rationale": "Kept for the asset numbers, which are right; the framing was wrong and SIZE-008 corrects it. These figures are compressed APK sizes, measured at HEAD 0200905f: assets 148 MiB overall, of which the terminal rootfs is 61.2, subpack 35.0, packages 26.4, helper APKs 9.1, templates/emoji/js 8.0. lib is 58.5 compressed and 151.5 raw.\n\nTwo conclusions that were missed. First, the app does not just download slowly, it occupies 435 MB installed, because useLegacyPackaging=true makes the native libraries appear twice. Second, ML Kit cannot be trimmed partially: the 1.49 MB of model weights and the 10 MB multi-script engine are only useful together, so it is all or nothing.\n\nWhat can still leave the APK, in order of size: the terminal rootfs, which already extracts to filesDir on first use so only the bundling has to change; subpack, whose archives live in an upstream Google Drive account and would need a download source this fork controls; apktool.toolpkg at 25.7 MiB, whose four jars are already zips and so barely compress, which makes it a candidate for deletion rather than for moving. See SIZE-008 for the shared location mechanism and for the packaging lever.\n\nNothing here should be read as a claim about installed size until a build measures it.",
       "files": [
         "app/build.gradle.kts",
         "out/apk/debug/app-debug.apk"
@@ -585,6 +585,33 @@
         }
       ],
       "reverify": "no download starts without a recorded user choice; cancelling leaves no partial directory"
+    },
+    {
+      "id": "SIZE-008",
+      "area": "size",
+      "title": "MEASURED: installed footprint is 435 MB, not the 296 MB the APK suggests",
+      "commit": null,
+      "status": "planned",
+      "rationale": "Measured on the device with adb, not inferred from the APK. The installed app is 435 MB: base.apk 297 MB plus lib/arm64 152 MB. The 152 MB exists because useLegacyPackaging=true makes the package manager extract the native libraries, and they are also present inside the APK, so the native code is paid for twice: 58.5 MB compressed in the APK and 151.5 MB raw extracted on disk.\n\nThis corrects the earlier record. The 439 -> 296 MB figure is the APK download size, which is what SIZE-004 through SIZE-007 optimised; the number that matters to the user, who said installed size matters more, is 435 MB.\n\nTwo separate opportunities follow. Assets can be moved off internal storage: the terminal rootfs 61.2 MB, subpack/android.apk 24.2, subpack/windows.zip 10.9, apktool.toolpkg 25.7, helper APKs 9.1, templates/emoji/js 8.0, about 139 MB of compressed assets that are read on demand. AppDataLocation and OfflinePayload are the shared mechanism for that, governed by one setting so switching once moves everything.\n\nNative libraries cannot be moved, and that is a platform limit rather than an oversight: the linker resolves them from the package manager's own libDir under /data/app, which external storage is not. All loads use System.loadLibrary, never System.load with a path, so nothing blocks the packaging change below.\n\nuseLegacyPackaging=false is the other lever and needs a real measurement, not a guess. It should stop the 152 MB extraction, but AGP then stores the libraries uncompressed so they can be mapped straight out of the APK, which grows the APK by roughly 93 MB while removing 152 MB of installed footprint. Net effect on the phone is expected to be a saving near 59 MB, at the cost of a larger download. Do not record the outcome until a build has measured it; the prebuilt jniLibs come from an upstream archive and may not all be page-alignable, which would fail the build outright.\n\nAlso on the list: libsherpa-ncnn-jni.so 5.05 MB and libsherpa-mnn-jni.so 3.76 MB disappear with STT-002, and libMNN.so 22 MB plus libMNNWrapper.so 5.5 MB become unused once the MNN recogniser goes.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/util/AppDataLocation.kt",
+        "app/src/main/java/com/ai/assistance/operit/util/OfflinePayloads.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelStorage.kt",
+        "app/build.gradle.kts"
+      ],
+      "anchors": [
+        {
+          "file": "app/build.gradle.kts",
+          "contains": "useLegacyPackaging",
+          "why": "decides whether the 151.5 MB of native libraries is also extracted next to the APK"
+        },
+        {
+          "file": "app/src/main/java/com/ai/assistance/operit/util/AppDataLocation.kt",
+          "contains": "val INTERNAL",
+          "why": "one setting now governs the location of every large payload, not just the speech model"
+        }
+      ],
+      "reverify": "adb shell du -sh on the installed package; compare base.apk plus lib/ plus the data directory"
     }
   ]
 }

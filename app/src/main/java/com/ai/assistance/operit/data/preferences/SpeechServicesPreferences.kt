@@ -291,7 +291,6 @@ class SpeechServicesPreferences(private val context: Context) {
             prefs[LOCAL_STT_MODEL_ID] = id.ifEmpty { BUILTIN_GIGAAM_ID }
         }
     }
-    }
 
     // --- Save STT Settings ---
     suspend fun saveSttSettings(

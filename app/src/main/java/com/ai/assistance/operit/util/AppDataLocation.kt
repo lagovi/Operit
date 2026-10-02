@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.util
 
 import android.content.Context
+import android.os.Environment
 import com.ai.assistance.operit.R
 import java.io.File
 
@@ -15,9 +16,12 @@ import java.io.File
  *
  *  - [INTERNAL] `filesDir`. Always available, fastest random reads. Removed when
  *    the app is uninstalled.
- *  - [EXTERNAL_APP] `getExternalFilesDir(null)`. No permission needed, and it is
- *    on the memory card whenever the user has moved app storage there. Also
- *    removed on uninstall.
+ *  - [EXTERNAL_APP] `getExternalFilesDir(null)`. No permission needed, removed
+ *    on uninstall. Despite the name this is usually the phone's own emulated
+ *    storage, not a memory card.
+ *  - [SDCARD_APP] the app folder on the removable memory card, when one is
+ *    mounted. No permission needed, removed on uninstall. This is the option
+ *    the memory-card setting is for; [EXTERNAL_APP] alone does not reach it.
  *  - [EXTERNAL_SHARED] `Download/Operit`. Visible in a file manager and survives
  *    reinstall, so re-downloading hundreds of megabytes after an update is not
  *    necessary. Needs the storage permission the app already requests.
@@ -33,7 +37,7 @@ import java.io.File
  */
 class AppDataLocation(private val context: Context) {
 
-    enum class Location { INTERNAL, EXTERNAL_APP, EXTERNAL_SHARED }
+    enum class Location { INTERNAL, EXTERNAL_APP, SDCARD_APP, EXTERNAL_SHARED }
 
     fun read(): Location {
         val raw = prefs.getString(KEY_LOCATION, null) ?: return Location.INTERNAL
@@ -60,6 +64,10 @@ class AppDataLocation(private val context: Context) {
                 AppLogger.e(TAG, "No external app directory available")
                 return null
             }
+            Location.SDCARD_APP -> sdcardRoot() ?: run {
+                AppLogger.w(TAG, "No removable memory card mounted")
+                return null
+            }
             Location.EXTERNAL_SHARED -> OperitPaths.operitRootDir()
         }
         val dir = File(root, leaf)
@@ -79,8 +87,29 @@ class AppDataLocation(private val context: Context) {
     fun label(location: Location): String = when (location) {
         Location.INTERNAL -> context.getString(R.string.stt_storage_internal)
         Location.EXTERNAL_APP -> context.getString(R.string.stt_storage_external_app)
+        Location.SDCARD_APP -> context.getString(R.string.stt_storage_sdcard)
         Location.EXTERNAL_SHARED -> context.getString(R.string.stt_storage_external_shared)
     }
+
+    /**
+     * The app folder on the removable card, or null when no card is mounted.
+     *
+     * The first entry of `getExternalFilesDirs` is always the primary volume,
+     * which is the phone itself on virtually every device; the card, if any,
+     * is one of the rest. Anything not reported removable is skipped, so an
+     * OEM that lists two emulated volumes cannot mislead this into offering
+     * internal storage under the memory-card name.
+     */
+    private fun sdcardRoot(): File? = runCatching {
+        pickRemovable(context.getExternalFilesDirs(null)) { file ->
+            Environment.isExternalStorageRemovable(file)
+        }
+    }.getOrElse {
+        AppLogger.w(TAG, "Cannot list external volumes", it)
+        null
+    }
+
+
 
     fun describe(location: Location, leaf: String): String {
         val dir = dirFor(location, leaf)
@@ -149,5 +178,20 @@ class AppDataLocation(private val context: Context) {
         private const val PREFS_NAME = "app_data_location"
         private const val KEY_LOCATION = "location"
         private const val PROBE_DIR = ".probe"
+
+        /**
+         * First removable volume after the primary one, ignoring nulls and
+         * non-directories. Pure so the selection rule is unit-testable.
+         */
+        internal fun pickRemovable(
+            dirs: Array<File?>?,
+            isRemovable: (File) -> Boolean,
+        ): File? {
+            if (dirs == null || dirs.size < 2) return null
+            return dirs.drop(1).firstOrNull { dir ->
+                dir != null && dir.isDirectory &&
+                    runCatching { isRemovable(dir) }.getOrDefault(false)
+            }
+        }
     }
 }

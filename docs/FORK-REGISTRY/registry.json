@@ -619,6 +619,21 @@
         }
       ],
       "reverify": "adb shell du -sh on the installed package; compare base.apk plus lib/ plus the data directory"
+    },
+    {
+      "id": "SIZE-009",
+      "area": "storage",
+      "title": "APPLIED: memory-card location is the physical removable volume, with a picker",
+      "commit": null,
+      "status": "applied",
+      "rationale": "The old EXTERNAL_APP option never reached a memory card: getExternalFilesDir is the phone's own emulated storage on virtually every device. AppDataLocation gains SDCARD_APP, resolved from getExternalFilesDirs by skipping the primary volume and requiring Environment.isExternalStorageRemovable, so two emulated volumes cannot masquerade as a card. The card entry is offered only while mounted; ejecting it makes the location read unavailable, not corrupt. Settings gains the location picker the storage strings were already waiting for (title/summary/move messages), wired to availableLocations/migrateTo; picking before downloading works because an absent model has nothing to move. The selection rule is pinned by 8 JVM tests. Class doc corrected: EXTERNAL_APP is not the memory card.",
+      "files": [
+        "app/src/main/java/com/ai/assistance/operit/util/AppDataLocation.kt",
+        "app/src/test/java/com/ai/assistance/operit/util/AppDataLocationTest.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/GigaAMModelSection.kt"
+      ],
+      "anchors": [],
+      "reverify": []
     }
   ]
 }

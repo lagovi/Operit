@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.features.settings.sections
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -17,7 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -28,6 +34,9 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.speech.GigaAMModelDownload
 import com.ai.assistance.operit.data.speech.GigaAMModelFiles
 import com.ai.assistance.operit.data.speech.SttModelStorage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The one-time GigaAM download block, shown under the local engine in
@@ -84,6 +93,8 @@ fun GigaAMModelSection(modifier: Modifier = Modifier) {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+        StorageLocationPicker(storage = storage)
+        Spacer(modifier = Modifier.height(8.dp))
         when (val s = state) {
             is GigaAMModelDownload.State.Downloading -> {
                 val fraction =
@@ -130,3 +141,105 @@ fun GigaAMModelSection(modifier: Modifier = Modifier) {
 
 /** 224762512 bytes reads as "225 MB", which is what the consent screen quotes. */
 internal fun formatMegabytes(bytes: Long): String = "${(bytes + 500_000L) / 1_000_000L} MB"
+
+/**
+ * Where the model lives. The memory-card entry appears only while a removable
+ * card is actually mounted; switching moves the downloaded files, and picking
+ * first and downloading after works too, since an absent model has nothing to
+ * move and only the setting flips.
+ */
+@Composable
+private fun StorageLocationPicker(storage: SttModelStorage) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var expanded by remember { mutableStateOf(false) }
+    var moving by remember { mutableStateOf(false) }
+    var moveFailed by remember { mutableStateOf(false) }
+    var current by remember { mutableStateOf(storage.currentLocation()) }
+    var offered by remember { mutableStateOf(storage.availableLocations()) }
+
+    fun refresh() {
+        current = storage.currentLocation()
+        offered = storage.availableLocations()
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.stt_storage_title),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Medium,
+        )
+        Text(
+            text = stringResource(R.string.stt_storage_summary),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = storage.label(current),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f),
+            )
+            Box {
+                TextButton(
+                    onClick = {
+                        refresh()
+                        expanded = true
+                    },
+                    enabled = !moving,
+                ) {
+                    Text(stringResource(R.string.stt_storage_change))
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                ) {
+                    offered.forEach { location ->
+                        DropdownMenuItem(
+                            text = { Text(storage.label(location)) },
+                            onClick = {
+                                expanded = false
+                                if (location == current) return@DropdownMenuItem
+                                moving = true
+                                moveFailed = false
+                                scope.launch(Dispatchers.IO) {
+                                    val ok = storage.migrateTo(location)
+                                    withContext(Dispatchers.Main) {
+                                        moving = false
+                                        moveFailed = !ok
+                                        refresh()
+                                        // The files moved, so a stale Ready
+                                        // pointing at the old dir must go.
+                                        GigaAMModelDownload.getInstance(context).refresh()
+                                    }
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        }
+        if (moving) {
+            Spacer(modifier = Modifier.height(4.dp))
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Text(
+                text = stringResource(R.string.stt_storage_moving),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (moveFailed) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.stt_storage_move_failed),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}

@@ -3,8 +3,10 @@ package com.ai.assistance.operit.data.preferences
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -60,6 +62,27 @@ class SpeechServicesPreferences(private val context: Context) {
         val modelName: String,
     )
 
+    /**
+     * Tuning for the on-device engine, global rather than per-profile: the
+     * microphone and the chunker do not belong to any single profile.
+     * Defaults reproduce the behavior the engine shipped with, so upgrading
+     * changes nothing until the user touches these.
+     */
+    data class LocalSttTuning(
+        /** Split speech into phrases; off means one decode per session. */
+        val vadEnabled: Boolean = true,
+        /** Aggressive VAD rejects more non-speech at the cost of harder cuts. */
+        val vadAggressive: Boolean = false,
+        /** Trailing silence that ends a phrase, in milliseconds. */
+        val endpointSilenceMs: Int = 300,
+        /** MediaRecorder AudioSource value for the microphone. */
+        val micSource: Int = android.media.MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+    ) {
+        companion object {
+            val ENDPOINT_OPTIONS_MS = listOf(300, 500, 800)
+        }
+    }
+
     companion object {
         // TTS Preference Keys
         val TTS_SERVICE_TYPE = stringPreferencesKey("tts_service_type")
@@ -76,6 +99,13 @@ class SpeechServicesPreferences(private val context: Context) {
         // Default Values
         val DEFAULT_TTS_SERVICE_TYPE = VoiceServiceFactory.VoiceServiceType.SIMPLE_TTS
         val DEFAULT_STT_SERVICE_TYPE = SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM
+
+        val DEFAULT_LOCAL_STT_TUNING = LocalSttTuning()
+
+        private val STT_VAD_ENABLED = booleanPreferencesKey("stt_vad_enabled")
+        private val STT_VAD_AGGRESSIVE = booleanPreferencesKey("stt_vad_aggressive")
+        private val STT_ENDPOINT_SILENCE_MS = intPreferencesKey("stt_endpoint_silence_ms")
+        private val STT_MIC_SOURCE = intPreferencesKey("stt_mic_source")
 
         const val DEFAULT_TTS_SPEECH_RATE = 1.0f
         const val DEFAULT_TTS_PITCH = 1.0f
@@ -216,6 +246,28 @@ class SpeechServicesPreferences(private val context: Context) {
     suspend fun saveTtsCleanerRegexs(regexs: List<String>) {
         dataStore.edit { prefs ->
             prefs[TTS_CLEANER_REGEXS] = regexs.filter { it.isNotBlank() }.toSet()
+        }
+    }
+
+    // --- Local STT tuning ---
+    val localSttTuningFlow: Flow<LocalSttTuning> = dataStore.data.map { prefs ->
+        LocalSttTuning(
+            vadEnabled = prefs[STT_VAD_ENABLED] ?: DEFAULT_LOCAL_STT_TUNING.vadEnabled,
+            vadAggressive = prefs[STT_VAD_AGGRESSIVE] ?: DEFAULT_LOCAL_STT_TUNING.vadAggressive,
+            endpointSilenceMs =
+                (prefs[STT_ENDPOINT_SILENCE_MS] ?: DEFAULT_LOCAL_STT_TUNING.endpointSilenceMs)
+                    .takeIf { it in LocalSttTuning.ENDPOINT_OPTIONS_MS }
+                    ?: DEFAULT_LOCAL_STT_TUNING.endpointSilenceMs,
+            micSource = prefs[STT_MIC_SOURCE] ?: DEFAULT_LOCAL_STT_TUNING.micSource,
+        )
+    }
+
+    suspend fun saveLocalSttTuning(tuning: LocalSttTuning) {
+        dataStore.edit { prefs ->
+            prefs[STT_VAD_ENABLED] = tuning.vadEnabled
+            prefs[STT_VAD_AGGRESSIVE] = tuning.vadAggressive
+            prefs[STT_ENDPOINT_SILENCE_MS] = tuning.endpointSilenceMs
+            prefs[STT_MIC_SOURCE] = tuning.micSource
         }
     }
 

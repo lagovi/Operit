@@ -82,6 +82,7 @@ import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.features.settings.sections.GigaAMModelSection
+import com.ai.assistance.operit.ui.features.settings.sections.LocalSttTuningSection
 import com.ai.assistance.operit.api.voice.SiliconFlowVoiceProvider
 import com.ai.assistance.operit.api.voice.MimoVoiceProvider
 import com.ai.assistance.operit.api.voice.DoubaoVoiceProvider
@@ -2172,6 +2173,8 @@ fun SpeechServicesSettingsScreen(
                         AnimatedVisibility(visible = sttServiceTypeInput == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM) {
                             Column(modifier = Modifier.padding(top = 16.dp)) {
                                 GigaAMModelSection()
+                                Spacer(modifier = Modifier.height(16.dp))
+                                LocalSttTuningSection()
                             }
                         }
 

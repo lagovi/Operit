@@ -7,6 +7,7 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.SystemClock
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences
 import com.ai.assistance.operit.data.speech.GigaAMModelFiles
 import com.ai.assistance.operit.data.speech.SttModelStorage
 import com.ai.assistance.operit.util.AppLogger
@@ -22,6 +23,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -71,6 +73,9 @@ class GigaAMSpeechProvider(
         /** Force-commit so one unpaused monologue cannot grow without bound. */
         private const val MAX_UTTERANCE_SAMPLES = 320_000 // 20 s
 
+        /** Safety net for a VAD-off session, which is otherwise unbounded. */
+        private const val MAX_UTTERANCE_OFF_SAMPLES = 960_000 // 60 s
+
         private const val READ_FRAMES = 2048
     }
 
@@ -111,6 +116,8 @@ class GigaAMSpeechProvider(
     private var captureJob: Job? = null
     private var decodeJob: Job? = null
     private var chunkChannel: Channel<ShortArray>? = null
+    /** Read fresh at every session start; the capture loop only reads it. */
+    private var sessionVadEnabled = true
     /**
      * The live chunker. It belongs to the capture coroutine while it runs;
      * stop() joins the capture first, so flushing it in flushTail() after the
@@ -143,10 +150,11 @@ class GigaAMSpeechProvider(
                         return@withContext false
                     }
                     val opened = GigaAMRecognizer.open(dir, threads)
-                    val created = OnnxSileroVad(context)
-                    created.reset()
+                    // The VAD is built per session in startRecognition, not here:
+                    // its mode and endpoint patience come from settings and must
+                    // be fresh every time, and building it is cheap next to the
+                    // 225 MB recognizer above.
                     recognizer = opened
-                    vad = created
                     AppLogger.d(TAG, "GigaAM initialized")
                     _isInitialized.value = true
                     _recognitionState.value = SpeechService.RecognitionState.IDLE
@@ -188,12 +196,39 @@ class GigaAMSpeechProvider(
             committedMutex.withLock { committed.clear() }
             wantPartialResults = partialResults
             smoothedVolume = 0f
+
+            // Tuning is read fresh every session. The microphone source for the
+            // local engine comes from settings, not from the caller's
+            // audioSource: callers leave the interface default, and two
+            // authorities for one microphone would disagree silently.
+            val tuning = withContext(Dispatchers.IO) {
+                SpeechServicesPreferences(context).localSttTuningFlow.first()
+            }
+            sessionVadEnabled = tuning.vadEnabled
             try {
-                vad?.reset()
+                vad?.close()
             } catch (_: Exception) {
             }
+            val sessionVad = try {
+                OnnxSileroVad(
+                    context,
+                    mode = if (tuning.vadAggressive) {
+                        OnnxSileroVad.Mode.AGGRESSIVE
+                    } else {
+                        OnnxSileroVad.Mode.NORMAL
+                    },
+                    silenceDurationMs = tuning.endpointSilenceMs,
+                ).also { it.reset() }
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "VAD unavailable, session cannot chunk", e)
+                _recognitionState.value = SpeechService.RecognitionState.ERROR
+                _recognitionError.value =
+                    SpeechService.RecognitionError(-1, e.message ?: "Unknown error")
+                return@withLock false
+            }
+            vad = sessionVad
 
-            val opened = openAudioRecord(audioSource) ?: return@withLock false
+            val opened = openAudioRecord(tuning.micSource) ?: return@withLock false
             audioRecord = opened.record
             resampler = opened.resampler
 
@@ -432,7 +467,13 @@ class GigaAMSpeechProvider(
         val chunker = VadUtteranceChunker(
             prerollSamples = PREROLL_SAMPLES,
             minUtteranceSamples = MIN_UTTERANCE_SAMPLES,
-            maxUtteranceSamples = MAX_UTTERANCE_SAMPLES,
+            // VAD off means one decode per session: the ceiling is a safety
+            // net, not a phrase length, so it sits far out.
+            maxUtteranceSamples = if (sessionVadEnabled) {
+                MAX_UTTERANCE_SAMPLES
+            } else {
+                MAX_UTTERANCE_OFF_SAMPLES
+            },
         )
         sessionChunker = chunker
         val carry = ShortArray(VAD_FRAME)
@@ -508,7 +549,12 @@ class GigaAMSpeechProvider(
         frame: ShortArray,
         chunker: VadUtteranceChunker,
     ): Boolean {
-        val speech = try {
+        // VAD off is not "no boundaries": without verdicts an offline model
+        // cannot chunk at all, so the session becomes one utterance decoded on
+        // stop (or at the far ceiling). Best accuracy per decode, no partials.
+        val speech = if (!sessionVadEnabled) {
+            true
+        } else try {
             vadInstance.isSpeech(frame)
         } catch (e: Exception) {
             AppLogger.w(TAG, "VAD failed on a frame", e)

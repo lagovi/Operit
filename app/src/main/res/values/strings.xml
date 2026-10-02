@@ -2671,6 +2671,20 @@
     <string name="gigaam_absent_summary">Not downloaded · about %1$s</string>
     <string name="gigaam_ready_summary">Ready · %1$s · %2$s</string>
     <string name="gigaam_download_failed_summary">Download failed: %1$s</string>
+    <!-- Local engine tuning. Defaults reproduce the shipped behavior. -->
+    <string name="stt_tuning_title">Local engine tuning</string>
+    <string name="stt_tuning_vad">Split speech into phrases</string>
+    <string name="stt_tuning_vad_on_summary">Voice detection cuts the microphone into phrases, each transcribed as it ends.</string>
+    <string name="stt_tuning_vad_off_summary">Off: the whole session is decoded once on Stop. Best accuracy per decode, no live partials.</string>
+    <string name="stt_tuning_sensitivity">Voice detection sensitivity</string>
+    <string name="stt_tuning_sensitivity_normal">Normal</string>
+    <string name="stt_tuning_sensitivity_aggressive">Aggressive</string>
+    <string name="stt_tuning_sensitivity_aggressive_summary">Rejects more non-speech, but may cut words harder.</string>
+    <string name="stt_tuning_endpoint">Pause that ends a phrase</string>
+    <string name="stt_tuning_endpoint_seconds">%1$.1f s</string>
+    <string name="stt_tuning_mic">Microphone processing</string>
+    <string name="stt_tuning_mic_communication">Calls (echo cancellation)</string>
+    <string name="stt_tuning_mic_recognition">Recognition (unprocessed)</string>
     <string name="speech_services_stt_type_openai">OpenAI STT (Remote)</string>
     <string name="speech_services_stt_type_deepgram">Deepgram STT (Remote)</string>
     

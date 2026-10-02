@@ -54,7 +54,11 @@ fun GigaAMModelSection(modifier: Modifier = Modifier) {
     LaunchedEffect(Unit) { downloads.refresh() }
 
     val sizeLabel = remember { formatMegabytes(GigaAMModelFiles.TOTAL_BYTES) }
-    val locationLabel = remember { storage.describe(storage.currentLocation()) }
+    // Keyed on a counter the picker bumps after every move: describe() reads
+    // the live setting, but remember{} would otherwise pin the first answer
+    // and the status line would keep showing the old location. Seen on device.
+    var locationEpoch by remember { mutableStateOf(0) }
+    val locationLabel = remember(locationEpoch) { storage.describe(storage.currentLocation()) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -93,7 +97,7 @@ fun GigaAMModelSection(modifier: Modifier = Modifier) {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        StorageLocationPicker(storage = storage)
+        StorageLocationPicker(storage = storage, onMoved = { locationEpoch++ })
         Spacer(modifier = Modifier.height(8.dp))
         when (val s = state) {
             is GigaAMModelDownload.State.Downloading -> {
@@ -149,7 +153,7 @@ internal fun formatMegabytes(bytes: Long): String = "${(bytes + 500_000L) / 1_00
  * move and only the setting flips.
  */
 @Composable
-private fun StorageLocationPicker(storage: SttModelStorage) {
+private fun StorageLocationPicker(storage: SttModelStorage, onMoved: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
@@ -216,6 +220,7 @@ private fun StorageLocationPicker(storage: SttModelStorage) {
                                         // The files moved, so a stale Ready
                                         // pointing at the old dir must go.
                                         GigaAMModelDownload.getInstance(context).refresh()
+                                        onMoved()
                                     }
                                 }
                             },

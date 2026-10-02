@@ -120,7 +120,12 @@ fun SpeechToTextScreen(navController: NavController) {
 
     // 状态变量
     var recognizedText by remember { mutableStateOf("") }
-    var selectedLanguage by remember { mutableStateOf("zh-CN") }
+    // The old default was zh-CN even for engines that do not offer it, so the
+    // field showed a language the list did not contain. Default to the device
+    // language when the engine speaks it, English otherwise.
+    var selectedLanguage by remember {
+        mutableStateOf(if (java.util.Locale.getDefault().language == "ru") "ru" else "en")
+    }
     var error by remember { mutableStateOf<String?>(null) }
     var availableLanguages by remember { mutableStateOf<List<String>>(emptyList()) }
     var showModelConsent by remember { mutableStateOf(false) }
@@ -167,7 +172,13 @@ fun SpeechToTextScreen(navController: NavController) {
                 SttModelStorage(context).isDownloaded() == null
         val success = speechService.initialize()
         if (success) {
-            availableLanguages = speechService.getSupportedLanguages()
+            val supported = speechService.getSupportedLanguages()
+            availableLanguages = supported
+            // The field must never show a language the engine does not offer,
+            // e.g. after switching engines. Snap to what is actually there.
+            if (supported.isNotEmpty() && selectedLanguage !in supported) {
+                selectedLanguage = supported.first()
+            }
         } else if (!modelMissing) {
             // A missing local model is not an error banner: the consent dialog
             // covers it when the user presses start.

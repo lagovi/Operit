@@ -5,6 +5,7 @@ import android.content.Context
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.os.SystemClock
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.speech.GigaAMModelFiles
 import com.ai.assistance.operit.data.speech.SttModelStorage
@@ -151,6 +152,9 @@ class GigaAMSpeechProvider(
                     _recognitionState.value = SpeechService.RecognitionState.IDLE
                     true
                 }
+            } catch (e: CancellationException) {
+                // The owning screen left; a cancelled init is not a broken engine.
+                throw e
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Failed to initialize GigaAM", e)
                 _recognitionState.value = SpeechService.RecognitionState.ERROR
@@ -545,13 +549,24 @@ class GigaAMSpeechProvider(
         val instance = recognizer ?: return
         try {
             for (chunk in channel) {
+                val audioSeconds = chunk.size / 16000.0
+                val startedAt = SystemClock.elapsedRealtime()
                 val text = try {
                     withContext(Dispatchers.Default) { instance.transcribe(chunk) }
                 } catch (e: Exception) {
                     AppLogger.w(TAG, "Utterance decode failed", e)
                     continue
                 }
-                if (text.isBlank()) continue
+                // Wall time per phrase, measured on the phone: the only speed
+                // number that matters for this engine.
+                val decodeMs = SystemClock.elapsedRealtime() - startedAt
+                if (text.isBlank()) {
+                    AppLogger.d(
+                        TAG,
+                        "Blank phrase: ${"%.1f".format(audioSeconds)} s audio in $decodeMs ms",
+                    )
+                    continue
+                }
                 val full = committedMutex.withLock {
                     if (committed.isNotEmpty()) committed.append(' ')
                     committed.append(text)
@@ -559,7 +574,10 @@ class GigaAMSpeechProvider(
                 }
                 _recognitionResult.value =
                     SpeechService.RecognitionResult(text = full, isFinal = false)
-                AppLogger.d(TAG, "Phrase: $text")
+                AppLogger.d(
+                    TAG,
+                    "Phrase (${"%.1f".format(audioSeconds)} s audio in $decodeMs ms): $text",
+                )
             }
         } catch (e: CancellationException) {
             // Channel cancelled under our feet by cancelRecognition; the session

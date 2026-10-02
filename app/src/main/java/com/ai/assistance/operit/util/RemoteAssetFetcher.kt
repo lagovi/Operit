@@ -6,6 +6,7 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.security.MessageDigest
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
@@ -101,7 +102,7 @@ class RemoteAssetFetcher(private val context: Context) {
         return sha256(file) == asset.sha256.lowercase()
     }
 
-    private suspend fun download(asset: RemoteAsset, destination: File): Boolean {
+    private suspend fun CoroutineScope.download(asset: RemoteAsset, destination: File): Boolean {
         val partial = File(destination.parentFile, "${destination.name}$PARTIAL_SUFFIX")
         val alreadyHave = if (partial.isFile) partial.length() else 0L
 

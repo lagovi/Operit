@@ -127,10 +127,12 @@ class GigaAMSpeechProvider(
             try {
                 withContext(Dispatchers.IO) {
                     val dir = SttModelStorage(context).currentDir()
-                    val modelFile = if (dir != null) File(dir, GigaAMModelFiles.MODEL_FILE_NAME) else null
-                    val tokensFile = if (dir != null) File(dir, GigaAMModelFiles.TOKENS_FILE_NAME) else null
-                    if (modelFile == null || !modelFile.isFile || tokensFile == null || !tokensFile.isFile) {
-                        // The 214 MB model downloads only with the user's explicit
+                    val modelFile = dir?.let { File(it, GigaAMModelFiles.MODEL_FILE_NAME) }
+                    val tokensFile = dir?.let { File(it, GigaAMModelFiles.TOKENS_FILE_NAME) }
+                    if (dir == null || modelFile == null || !modelFile.isFile ||
+                        tokensFile == null || !tokensFile.isFile
+                    ) {
+                        // The 225 MB model downloads only with the user's explicit
                         // consent on the download screen, so reaching here without
                         // files is a normal state, not a crash.
                         val message = context.getString(R.string.stt_model_unavailable)

@@ -124,6 +124,10 @@ fun SpeechToTextScreen(navController: NavController) {
     var error by remember { mutableStateOf<String?>(null) }
     var availableLanguages by remember { mutableStateOf<List<String>>(emptyList()) }
     var showModelConsent by remember { mutableStateOf(false) }
+    // True when the local engine has no model to initialize with. Start stays
+    // enabled in that case because it leads to the consent dialog, not to the
+    // microphone.
+    var modelMissing by remember { mutableStateOf(false) }
     
     // recognitionMode 是驱动服务实例创建的唯一状态源
     var recognitionMode by remember { mutableStateOf(SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM) }
@@ -158,18 +162,16 @@ fun SpeechToTextScreen(navController: NavController) {
     // 当服务实例改变时，执行初始化
     LaunchedEffect(speechService) {
         error = null // 清理旧的错误信息
+        modelMissing =
+            recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM &&
+                SttModelStorage(context).isDownloaded() == null
         val success = speechService.initialize()
         if (success) {
             availableLanguages = speechService.getSupportedLanguages()
-        } else {
+        } else if (!modelMissing) {
             // A missing local model is not an error banner: the consent dialog
             // covers it when the user presses start.
-            val missingLocalModel =
-                recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM &&
-                    SttModelStorage(context).isDownloaded() == null
-            if (!missingLocalModel) {
-                error = context.getString(R.string.engine_init_failed, recognitionMode.name)
-            }
+            error = context.getString(R.string.engine_init_failed, recognitionMode.name)
         }
     }
     
@@ -382,7 +384,9 @@ fun SpeechToTextScreen(navController: NavController) {
                 // 切换引擎按钮单独一行
                     Button(
                         onClick = { switchRecognitionMode() },
-                        enabled = !isListening && isInitialized,
+                        // Switching engines is the escape hatch from a dead one,
+                        // so it must never require initialization.
+                        enabled = !isListening,
                     modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -448,7 +452,7 @@ fun SpeechToTextScreen(navController: NavController) {
             Button(
                 onClick = { startRecognition() },
                 modifier = Modifier.weight(1f).height(56.dp),
-                enabled = isInitialized && !isListening,
+                enabled = (isInitialized || modelMissing) && !isListening,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -605,6 +609,7 @@ fun SpeechToTextScreen(navController: NavController) {
             onDismiss = { showModelConsent = false },
             onReady = {
                 showModelConsent = false
+                modelMissing = false
                 startRecognition()
             },
         )

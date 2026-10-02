@@ -200,3 +200,12 @@ OCR-окно, инструмент агента «прочитать карти�
 - Не форкай `terminal` submodule обратно на апстрим. Он уже на
   `lagovi/OperitTerminalCore`; внутри есть remote `upstream` для мержей.
 - Не коммить, пока `python3 ci/script/fork_audit.py` не зелёный.
+
+---
+
+## Test phone policy (2026-10-02, user directive)
+
+Device `R9TN601D6GJ` (adb) is a dedicated test phone, fully managed by the
+LLM agent. Anything may be done with it without asking the user first:
+uninstall (wiping data), install, change settings, download models, run
+acceptance. Do not ask for confirmation for device operations on this phone.

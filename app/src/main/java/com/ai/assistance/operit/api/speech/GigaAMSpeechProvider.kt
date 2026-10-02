@@ -8,6 +8,7 @@ import android.media.MediaRecorder
 import android.os.SystemClock
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.SpeechServicesPreferences
+import com.ai.assistance.operit.data.speech.CustomSttModels
 import com.ai.assistance.operit.data.speech.GigaAMModelFiles
 import com.ai.assistance.operit.data.speech.SttModelStorage
 import com.ai.assistance.operit.util.AppLogger
@@ -134,22 +135,19 @@ class GigaAMSpeechProvider(
             AppLogger.d(TAG, "Initializing GigaAM...")
             try {
                 withContext(Dispatchers.IO) {
-                    val dir = SttModelStorage(context).currentDir()
-                    val modelFile = dir?.let { File(it, GigaAMModelFiles.MODEL_FILE_NAME) }
-                    val tokensFile = dir?.let { File(it, GigaAMModelFiles.TOKENS_FILE_NAME) }
-                    if (dir == null || modelFile == null || !modelFile.isFile ||
-                        tokensFile == null || !tokensFile.isFile
-                    ) {
-                        // The 225 MB model downloads only with the user's explicit
-                        // consent on the download screen, so reaching here without
-                        // files is a normal state, not a crash.
+                    val prefs = SpeechServicesPreferences(context)
+                    val modelId = prefs.localSttModelIdFlow.first()
+                    val opened = openSelectedCheckpoint(modelId, threads)
+                    if (opened == null) {
+                        // Models download only with the user's explicit consent
+                        // on their own screens, so reaching here without files
+                        // is a normal state, not a crash.
                         val message = context.getString(R.string.stt_model_unavailable)
-                        AppLogger.w(TAG, "Model files absent: $message")
+                        AppLogger.w(TAG, "Model files absent for '$modelId': $message")
                         _recognitionState.value = SpeechService.RecognitionState.ERROR
                         _recognitionError.value = SpeechService.RecognitionError(-1, message)
                         return@withContext false
                     }
-                    val opened = GigaAMRecognizer.open(dir, threads)
                     // The VAD is built per session in startRecognition, not here:
                     // its mode and endpoint patience come from settings and must
                     // be fresh every time, and building it is cheap next to the
@@ -368,6 +366,44 @@ class GigaAMSpeechProvider(
             _recognitionError.value =
                 SpeechService.RecognitionError(-1, e.message ?: "Unknown error")
         }
+    }
+
+    /**
+     * Opens the checkpoint the user picked in settings. An unknown id means
+     * its entry is gone, so the built-in model takes over rather than
+     * failing every session; reinstalling the entry restores it because the
+     * stored id is left untouched.
+     *
+     * @return the recognizer, or null when its files are not downloaded
+     */
+    private fun openSelectedCheckpoint(modelId: String, threads: Int): GigaAMRecognizer? {
+        if (modelId != SpeechServicesPreferences.BUILTIN_GIGAAM_ID) {
+            val custom = CustomSttModels(context)
+            val entry = custom.get(modelId)
+            if (entry != null) {
+                val dir = custom.downloadedDir(entry)
+                if (dir != null) {
+                    AppLogger.d(TAG, "Opening custom checkpoint '${entry.displayName}'")
+                    return GigaAMRecognizer.openCustom(
+                        modelFile = File(dir, CustomSttModels.MODEL_FILE_NAME),
+                        tokensFile = File(dir, CustomSttModels.TOKENS_FILE_NAME),
+                        config = entry.config,
+                        threads = threads,
+                    )
+                }
+                return null
+            }
+            AppLogger.w(TAG, "Unknown local checkpoint '$modelId', falling back to built-in")
+        }
+        val dir = SttModelStorage(context).currentDir()
+        val modelFile = dir?.let { File(it, GigaAMModelFiles.MODEL_FILE_NAME) }
+        val tokensFile = dir?.let { File(it, GigaAMModelFiles.TOKENS_FILE_NAME) }
+        if (dir == null || modelFile == null || !modelFile.isFile ||
+            tokensFile == null || !tokensFile.isFile
+        ) {
+            return null
+        }
+        return GigaAMRecognizer.open(dir, threads)
     }
 
     private data class OpenedCapture(

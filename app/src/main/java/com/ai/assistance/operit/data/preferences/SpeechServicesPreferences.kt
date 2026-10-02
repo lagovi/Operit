@@ -107,6 +107,16 @@ class SpeechServicesPreferences(private val context: Context) {
         private val STT_ENDPOINT_SILENCE_MS = intPreferencesKey("stt_endpoint_silence_ms")
         private val STT_MIC_SOURCE = intPreferencesKey("stt_mic_source")
 
+        /**
+         * Which local checkpoint the on-device engine decodes with: either
+         * [BUILTIN_GIGAAM_ID] or a [CustomSttModel.id][com.ai.assistance.operit.data.speech.CustomSttModel].
+         * An id whose entry is gone falls back to built-in at use time; the
+         * stored value is left alone so reinstalling the model just works.
+         */
+        private val LOCAL_STT_MODEL_ID = stringPreferencesKey("local_stt_model_id")
+
+        const val BUILTIN_GIGAAM_ID = "gigaam"
+
         const val DEFAULT_TTS_SPEECH_RATE = 1.0f
         const val DEFAULT_TTS_PITCH = 1.0f
 
@@ -269,6 +279,18 @@ class SpeechServicesPreferences(private val context: Context) {
             prefs[STT_ENDPOINT_SILENCE_MS] = tuning.endpointSilenceMs
             prefs[STT_MIC_SOURCE] = tuning.micSource
         }
+    }
+
+    // --- Local STT checkpoint ---
+    val localSttModelIdFlow: Flow<String> = dataStore.data.map { prefs ->
+        prefs[LOCAL_STT_MODEL_ID] ?: BUILTIN_GIGAAM_ID
+    }
+
+    suspend fun saveLocalSttModelId(id: String) {
+        dataStore.edit { prefs ->
+            prefs[LOCAL_STT_MODEL_ID] = id.ifEmpty { BUILTIN_GIGAAM_ID }
+        }
+    }
     }
 
     // --- Save STT Settings ---

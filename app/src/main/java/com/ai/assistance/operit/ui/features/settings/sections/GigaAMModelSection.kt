@@ -98,6 +98,7 @@ fun GigaAMModelSection(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(8.dp))
         StorageLocationPicker(storage = storage, onMoved = { locationEpoch++ })
+        CustomSttModelSection(locationEpoch = locationEpoch)
         Spacer(modifier = Modifier.height(8.dp))
         when (val s = state) {
             is GigaAMModelDownload.State.Downloading -> {
@@ -212,10 +213,19 @@ private fun StorageLocationPicker(storage: SttModelStorage, onMoved: () -> Unit)
                                 moving = true
                                 moveFailed = false
                                 scope.launch(Dispatchers.IO) {
+                                    val source = storage.currentLocation()
                                     val ok = storage.migrateTo(location)
+                                    // Custom checkpoints live under the same
+                                    // root, so they travel with the built-in
+                                    // model instead of being left behind. The
+                                    // source is captured up front because the
+                                    // move above already flips the setting.
+                                    val customsOk =
+                                        com.ai.assistance.operit.data.speech.CustomSttModels(context)
+                                            .migrateTo(source, location)
                                     withContext(Dispatchers.Main) {
                                         moving = false
-                                        moveFailed = !ok
+                                        moveFailed = !ok || !customsOk
                                         refresh()
                                         // The files moved, so a stale Ready
                                         // pointing at the old dir must go.

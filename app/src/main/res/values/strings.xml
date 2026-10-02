@@ -7119,6 +7119,23 @@
     <string name="stt_storage_moving">Moving…</string>
     <string name="stt_storage_change">Change</string>
     <string name="stt_storage_not_enough_space">Not enough free space in the new location</string>
+    <string name="stt_custom_title">Additional speech models</string>
+    <string name="stt_custom_summary">Other compatible checkpoints from a Hugging Face link, decoded by the same on-device engine. Only add repos you trust: a model runs code-shaped math on your microphone.</string>
+    <string name="stt_custom_add">Add from link</string>
+    <string name="stt_custom_link_hint">Hugging Face repo or .onnx file link</string>
+    <string name="stt_custom_link_example">e.g. owner/repo or https://huggingface.co/owner/repo/blob/main/model.onnx</string>
+    <string name="stt_custom_resolve">Look up</string>
+    <string name="stt_custom_resolving">Looking up…</string>
+    <string name="stt_custom_confirm_add">Add %1$s (%2$s)? The token table downloads first, then the %2$s checkpoint.</string>
+    <string name="stt_custom_adding">Adding…</string>
+    <string name="stt_custom_add_failed">Could not add: %1$s</string>
+    <string name="stt_custom_builtin_name">Built-in GigaAM</string>
+    <string name="stt_custom_selected">In use</string>
+    <string name="stt_custom_not_downloaded">Not downloaded</string>
+    <string name="stt_custom_ready">Ready · %1$s</string>
+    <string name="stt_custom_delete">Delete</string>
+    <string name="stt_custom_delete_confirm">Delete %1$s and its downloaded files?</string>
+    <string name="stt_custom_deleted_builtin_fallback">Deleted. The built-in model is in use now.</string>
     <string name="service_stop">Stop</string>
 
     <!-- TextExporter (新增) -->

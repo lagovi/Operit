@@ -27,18 +27,20 @@ class GigaAMRecognizer private constructor(
     private val vocabulary: GigaAMTokenVocabulary,
     private val featuresInput: String,
     private val lengthsInput: String,
-    private val logProbsOutput: String
+    private val logProbsOutput: String,
+    private val config: CtcModelConfig = CtcModelConfig.GIGAAM_DEFAULT,
 ) : Closeable {
 
     private val env: OrtEnvironment = OrtEnvironment.getEnvironment()
+    private val frontend = LogMelFrontend(config)
 
     val vocabSize: Int get() = vocabulary.size
 
-    /** Encode mono 16 kHz PCM into text. */
+    /** Encode mono PCM at [CtcModelConfig.sampleRate] into text. */
     fun transcribe(pcm: ShortArray): String {
-        val frames = GigaAMFeatureExtractor.frameCount(pcm.size)
+        val frames = frontend.frameCount(pcm.size)
         if (frames == 0) return ""
-        val features = GigaAMFeatureExtractor.extract(pcm)
+        val features = frontend.extract(pcm)
         return transcribeFeatures(features, frames)
     }
 
@@ -55,14 +57,14 @@ class GigaAMRecognizer private constructor(
 
     /** Exposed so tests can assert against the NumPy oracle without re-decoding. */
     internal fun run(features: FloatArray, frames: Int): FloatArray? {
-        require(features.size == GigaAMFeatureExtractor.N_MELS * frames) {
-            "expected ${GigaAMFeatureExtractor.N_MELS * frames} feature values for " +
+        require(features.size == config.nMels * frames) {
+            "expected ${config.nMels * frames} feature values for " +
                 "$frames frames, got ${features.size}"
         }
         val featureTensor = OnnxTensor.createTensor(
             env,
             FloatBuffer.wrap(features),
-            longArrayOf(1, GigaAMFeatureExtractor.N_MELS.toLong(), frames.toLong())
+            longArrayOf(1, config.nMels.toLong(), frames.toLong())
         )
         val lengthTensor = OnnxTensor.createTensor(
             env,
@@ -108,12 +110,12 @@ class GigaAMRecognizer private constructor(
     }
 
     /**
-     * The conformer's subsampling front-end reduces the frame rate by 4, so the
-     * decoded sequence is a quarter of the input length. `encoded_lengths` in the
-     * graph's output is authoritative when it is available.
+     * The subsampling front-end reduces the frame rate, so the decoded sequence
+     * is shorter than the input by [CtcModelConfig.subsamplingFactor].
+     * `encoded_lengths` in the graph's output is authoritative when available.
      */
     private fun encodedFramesFor(frames: Int): Int =
-        ((frames + SUBSAMPLING_FACTOR - 1) / SUBSAMPLING_FACTOR).coerceAtLeast(1)
+        ((frames + config.subsamplingFactor - 1) / config.subsamplingFactor).coerceAtLeast(1)
 
     override fun close() {
         runCatching { session.close() }
@@ -131,6 +133,25 @@ class GigaAMRecognizer private constructor(
         fun open(modelDir: File, threads: Int = DEFAULT_THREADS): GigaAMRecognizer {
             val modelFile = File(modelDir, GigaAMModelFiles.MODEL_FILE_NAME)
             val tokensFile = File(modelDir, GigaAMModelFiles.TOKENS_FILE_NAME)
+            return openCustom(
+                modelFile = modelFile,
+                tokensFile = tokensFile,
+                config = CtcModelConfig.GIGAAM_DEFAULT,
+                threads = threads,
+            )
+        }
+
+        /**
+         * A checkpoint with its own acoustic numbers, e.g. added from a
+         * Hugging Face link. Verification, if any, is the caller's job;
+         * opening only fails loudly on unreadable files and unusable graphs.
+         */
+        fun openCustom(
+            modelFile: File,
+            tokensFile: File,
+            config: CtcModelConfig,
+            threads: Int = DEFAULT_THREADS,
+        ): GigaAMRecognizer {
             require(modelFile.isFile) { "missing ${modelFile.absolutePath}" }
             require(tokensFile.isFile) { "missing ${tokensFile.absolutePath}" }
 
@@ -148,7 +169,10 @@ class GigaAMRecognizer private constructor(
             }
             try {
                 // parse() closes the reader itself; wrapping it in another use{} double-closes.
-                val vocabulary = GigaAMTokenVocabulary.parse(tokensFile.inputStream())
+                val vocabulary = GigaAMTokenVocabulary.parse(
+                    tokensFile.inputStream(),
+                    blankOverride = config.blankId,
+                )
                 return GigaAMRecognizer(
                     session = session,
                     vocabulary = vocabulary,
@@ -159,7 +183,8 @@ class GigaAMRecognizer private constructor(
                         "lengths",
                         "length"
                     ),
-                    logProbsOutput = resolve(session.outputNames.toList(), "log_probs", "logits", "output")
+                    logProbsOutput = resolve(session.outputNames.toList(), "log_probs", "logits", "output"),
+                    config = config,
                 )
             } catch (e: Exception) {
                 session.close()

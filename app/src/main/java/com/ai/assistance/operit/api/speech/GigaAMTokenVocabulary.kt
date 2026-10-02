@@ -22,9 +22,13 @@ import java.nio.charset.StandardCharsets
  * apostrophe. That is a property of the checkpoint, not of this code: dictated
  * digits do not come out as digits.
  */
-class GigaAMTokenVocabulary private constructor(private val tokens: Array<String>) {
+class GigaAMTokenVocabulary private constructor(
+    private val tokens: Array<String>,
+    blankOverride: Int = -1,
+) {
 
-    val blankId: Int get() = tokens.size - 1
+    val blankId: Int =
+        if (blankOverride in tokens.indices) blankOverride else tokens.size - 1
 
     val size: Int get() = tokens.size
 
@@ -65,8 +69,10 @@ class GigaAMTokenVocabulary private constructor(private val tokens: Array<String
          * Parses `tokens.txt`, whose lines are `<symbol> <id>`. Lines are read in
          * file order, which is already id order for this export; the parsed ids
          * are asserted to agree so a reordered file cannot be silently misread.
+         *
+         * @param blankOverride explicit CTC blank id, or -1 for "last id".
          */
-        fun parse(stream: InputStream): GigaAMTokenVocabulary {
+        fun parse(stream: InputStream, blankOverride: Int = -1): GigaAMTokenVocabulary {
             val parsed = ArrayList<Pair<Int, String>>()
             BufferedReader(InputStreamReader(stream, StandardCharsets.UTF_8)).use { reader ->
                 var line: String? = reader.readLine()
@@ -91,7 +97,7 @@ class GigaAMTokenVocabulary private constructor(private val tokens: Array<String
             val missing = symbols.indices.filter { symbols[it] == null }
             require(missing.isEmpty()) { "tokens.txt is missing ids $missing" }
             @Suppress("UNCHECKED_CAST")
-            return GigaAMTokenVocabulary(symbols as Array<String>)
+            return GigaAMTokenVocabulary(symbols as Array<String>, blankOverride)
         }
     }
 }

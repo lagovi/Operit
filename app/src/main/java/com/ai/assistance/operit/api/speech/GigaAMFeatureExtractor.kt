@@ -37,6 +37,8 @@ import kotlin.math.sin
  */
 object GigaAMFeatureExtractor {
 
+    // Literals, not references into CtcModelConfig: these are the pinned
+    // reference numbers the oracle tests assert, and const requires literals.
     const val SAMPLE_RATE = 16000
     const val N_MELS = 64
     const val WIN_LENGTH = 320
@@ -44,55 +46,81 @@ object GigaAMFeatureExtractor {
     const val N_FFT = 320
     const val CENTER = false
 
-    private const val LOG_CLAMP_MIN = 1e-9
-    private const val LOG_CLAMP_MAX = 1e9
-
-    /** gigaam.preprocess.load_audio scales int16 by this to reach [-1, 1]. */
-    private const val PCM_SCALE = 32768.0
-
-    private const val MEL_HZ_FACTOR = 2595.0
-    private const val MEL_HZ_SCALE = 700.0
-
-    private val filterbank: DoubleArray by lazy { buildMelFilterbank() }
-    private val window: FloatArray by lazy { buildHannWindow() }
-    private val plan: DftPlan by lazy { DftPlan(N_FFT) }
+    /** The reference instance behind every function below. */
+    val default: LogMelFrontend = LogMelFrontend(CtcModelConfig.GIGAAM_DEFAULT)
 
     /** Output frames for [sampleCount] input samples, or 0 when it is too short. */
-    fun frameCount(sampleCount: Int): Int {
-        if (sampleCount < WIN_LENGTH) return 0
-        return 1 + (sampleCount - WIN_LENGTH) / HOP_LENGTH
-    }
+    fun frameCount(sampleCount: Int): Int = default.frameCount(sampleCount)
 
     /**
-     * @param samples mono PCM, treated as int16 and divided by [PCM_SCALE] to
+     * @param samples mono PCM, treated as int16 and divided by 32768 to
      *   reach [-1, 1], matching load_audio.
      * @return [N_MELS] * `frameCount(samples.size)` float32 values, mel-major.
      */
+    fun extract(samples: ShortArray): FloatArray = default.extract(samples)
+
+    /** Decode little-endian int16 PCM, the layout AudioRecord produces. */
+    fun decodePcm(bytes: ByteArray, count: Int): ShortArray {
+        val buffer = ByteBuffer.wrap(bytes, 0, count * 2).order(ByteOrder.LITTLE_ENDIAN)
+        val out = ShortArray(count)
+        for (i in 0 until count) out[i] = buffer.short
+        return out
+    }
+}
+
+/**
+ * Log-mel frontend parameterised by [CtcModelConfig].
+ *
+ * The GigaAM object above is this class with the reference config; custom
+ * models get their own instance with their own numbers. Everything that made
+ * the reference path exact — float64 mel accumulation, periodic Hann, no
+ * centering — is shared, because those are torchaudio semantics, not model
+ * numbers.
+ */
+class LogMelFrontend(val config: CtcModelConfig) {
+
+    private val winLength: Int get() = config.winLength
+    private val hopLength: Int get() = config.hopLength
+    private val nFft: Int get() = config.nFft
+    private val nMels: Int get() = config.nMels
+    private val sampleRate: Int get() = config.sampleRate
+
+    private val filterbank: DoubleArray by lazy { buildMelFilterbank() }
+    private val window: FloatArray by lazy { buildHannWindow() }
+    private val plan: DftPlan by lazy { DftPlan(nFft) }
+
+    /** Output frames for [sampleCount] input samples, or 0 when it is too short. */
+    fun frameCount(sampleCount: Int): Int {
+        if (sampleCount < winLength) return 0
+        return 1 + (sampleCount - winLength) / hopLength
+    }
+
+    /** [nMels] * `frameCount(samples.size)` float32 values, mel-major. */
     fun extract(samples: ShortArray): FloatArray {
         val frames = frameCount(samples.size)
-        val out = FloatArray(N_MELS * frames)
+        val out = FloatArray(nMels * frames)
         if (frames == 0) return out
 
         val win = window
         val fb = filterbank
-        val nFreqs = N_FFT / 2 + 1
+        val nFreqs = nFft / 2 + 1
 
         // Allocated once and reused for every frame.
-        val windowed = DoubleArray(N_FFT)
+        val windowed = DoubleArray(nFft)
         // Double, not Float: the oracle sums the mel filters in float64, and
         // rounding the power spectrum to float32 first flips near-tied argmax
         // decisions — enough to change a character in the decoded text.
         val power = DoubleArray(nFreqs)
-        val melAcc = FloatArray(N_MELS)
+        val melAcc = FloatArray(nMels)
         val binReD = DoubleArray(nFreqs)
         val binImD = DoubleArray(nFreqs)
 
         for (f in 0 until frames) {
-            val base = f * HOP_LENGTH
+            val base = f * hopLength
 
             // Window the frame, zero padding anything past the signal end.
             java.util.Arrays.fill(windowed, 0.0)
-            val limit = min(WIN_LENGTH, samples.size - base)
+            val limit = min(winLength, samples.size - base)
             for (i in 0 until limit) {
                 windowed[i] = (samples[base + i].toDouble() / PCM_SCALE) * win[i]
             }
@@ -104,7 +132,7 @@ object GigaAMFeatureExtractor {
                 power[k] = r * r + i2 * i2
             }
 
-            for (m in 0 until N_MELS) {
+            for (m in 0 until nMels) {
                 val row = m * nFreqs
                 var acc = 0.0
                 for (k in 0 until nFreqs) {
@@ -113,18 +141,10 @@ object GigaAMFeatureExtractor {
                 }
                 melAcc[m] = ln(max(min(acc, LOG_CLAMP_MAX), LOG_CLAMP_MIN)).toFloat()
             }
-            for (m in 0 until N_MELS) {
+            for (m in 0 until nMels) {
                 out[m * frames + f] = melAcc[m]
             }
         }
-        return out
-    }
-
-    /** Decode little-endian int16 PCM, the layout AudioRecord produces. */
-    fun decodePcm(bytes: ByteArray, count: Int): ShortArray {
-        val buffer = ByteBuffer.wrap(bytes, 0, count * 2).order(ByteOrder.LITTLE_ENDIAN)
-        val out = ShortArray(count)
-        for (i in 0 until count) out[i] = buffer.short
         return out
     }
 
@@ -133,16 +153,16 @@ object GigaAMFeatureExtractor {
      * normalisation. Matches torchaudio's `mel_scale="htk"`, `norm=None`.
      */
     private fun buildMelFilterbank(): DoubleArray {
-        val nFreqs = N_FFT / 2 + 1
-        val filters = DoubleArray(N_MELS * nFreqs)
+        val nFreqs = nFft / 2 + 1
+        val filters = DoubleArray(nMels * nFreqs)
 
-        val fftFreqs = DoubleArray(nFreqs) { it * (SAMPLE_RATE / 2.0) / (nFreqs - 1) }
+        val fftFreqs = DoubleArray(nFreqs) { it * (sampleRate / 2.0) / (nFreqs - 1) }
         val melMin = hzToMel(0.0)
-        val melMax = hzToMel(SAMPLE_RATE / 2.0)
-        val melPoints = DoubleArray(N_MELS + 2) { melMin + (melMax - melMin) * it / (N_MELS + 1) }
-        val hzPoints = DoubleArray(N_MELS + 2) { melToHz(melPoints[it]) }
+        val melMax = hzToMel(sampleRate / 2.0)
+        val melPoints = DoubleArray(nMels + 2) { melMin + (melMax - melMin) * it / (nMels + 1) }
+        val hzPoints = DoubleArray(nMels + 2) { melToHz(melPoints[it]) }
 
-        for (m in 0 until N_MELS) {
+        for (m in 0 until nMels) {
             val left = hzPoints[m]
             val centre = hzPoints[m + 1]
             val right = hzPoints[m + 2]
@@ -173,13 +193,24 @@ object GigaAMFeatureExtractor {
 
     /** `torch.hann_window(win_length, periodic=True)`. */
     private fun buildHannWindow(): FloatArray =
-        FloatArray(WIN_LENGTH) { i -> (0.5 - 0.5 * cos(2.0 * PI * i / WIN_LENGTH)).toFloat() }
+        FloatArray(winLength) { i -> (0.5 - 0.5 * cos(2.0 * PI * i / winLength)).toFloat() }
 
     private fun hzToMel(hz: Double): Double =
         MEL_HZ_FACTOR * Math.log10(1.0 + hz / MEL_HZ_SCALE)
 
     private fun melToHz(mel: Double): Double =
         MEL_HZ_SCALE * (Math.pow(10.0, mel / MEL_HZ_FACTOR) - 1.0)
+
+    companion object {
+        private const val LOG_CLAMP_MIN = 1e-9
+        private const val LOG_CLAMP_MAX = 1e9
+
+        /** gigaam.preprocess.load_audio scales int16 by this to reach [-1, 1]. */
+        private const val PCM_SCALE = 32768.0
+
+        private const val MEL_HZ_FACTOR = 2595.0
+        private const val MEL_HZ_SCALE = 700.0
+    }
 
     /**
      * Forward DFT of arbitrary length, computed with Blestein's algorithm.

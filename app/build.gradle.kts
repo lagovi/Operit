@@ -722,10 +722,12 @@ dependencies {
     implementation(libs.hnswlib.core)
     implementation(libs.hnswlib.utils)
     
-    // 用于向量嵌入的TF Lite (如果需要自定义嵌入)
-    implementation(libs.tensorflow.lite)
-    implementation(libs.mediapipe.tasks.text)
-    
+    // Fork SIZE: TF Lite + MediaPipe tasks-text removed 2026-10-03. They were
+    // speculative ("if custom embeddings are needed"), nothing in the code
+    // references either API, and embeddings go through ONNX Runtime below.
+    // This drops libtensorflowlite_jni.so (3.7 MB) and
+    // libmediapipe_tasks_text_jni.so (7.8 MB) from the APK.
+
     // ONNX Runtime for Android - 支持更强大的多语言Embedding模型
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.17.1")
 

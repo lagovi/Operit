@@ -396,6 +396,71 @@ private fun SettingsGroup(
     }
 }
 
+/**
+ * What the installed app occupies: internal flash, the memory card, total.
+ * Measured on entry on a background thread; sizes move while downloads run,
+ * and reopening the screen re-reads them, so no refresh button is needed.
+ */
+@Composable
+private fun AppStorageCard() {
+    val context = LocalContext.current
+    var breakdown by remember {
+        mutableStateOf<com.ai.assistance.operit.util.AppStorageBreakdown?>(null)
+    }
+    LaunchedEffect(Unit) {
+        breakdown =
+            kotlinx.coroutines.withContext(Dispatchers.IO) {
+                com.ai.assistance.operit.util.AppStorageUsage.measure(context)
+            }
+    }
+
+    fun megabytes(bytes: Long): String = "${(bytes + 500_000L) / 1_000_000L} MB"
+
+    SettingsGroup {
+        SettingsRow(
+            icon = Icons.Default.Storage,
+            iconTint = MaterialTheme.colorScheme.primary,
+            title = stringResource(id = R.string.about_storage_title),
+            subtitleText = breakdown?.let {
+                "${stringResource(id = R.string.about_storage_total)} · " +
+                    megabytes(it.totalBytes)
+            } ?: stringResource(id = R.string.about_storage_calculating),
+        )
+        HorizontalDivider(modifier = Modifier.padding(start = 66.dp))
+        SettingsRow(
+            icon = Icons.Default.Smartphone,
+            iconTint = MaterialTheme.colorScheme.secondary,
+            title = stringResource(id = R.string.about_storage_internal),
+            subtitleText = breakdown?.let {
+                stringResource(
+                    id = R.string.about_storage_value,
+                    megabytes(it.internalBytes),
+                    if (it.internalFreeBytes >= 0) megabytes(it.internalFreeBytes)
+                    else stringResource(id = R.string.about_version_unknown),
+                )
+            },
+        )
+        HorizontalDivider(modifier = Modifier.padding(start = 66.dp))
+        SettingsRow(
+            icon = Icons.Default.SdCard,
+            iconTint = MaterialTheme.colorScheme.tertiary,
+            title = stringResource(id = R.string.about_storage_sdcard),
+            subtitleText = breakdown?.let {
+                if (!it.hasSdCard) {
+                    stringResource(id = R.string.about_storage_no_card)
+                } else {
+                    stringResource(
+                        id = R.string.about_storage_value,
+                        megabytes(it.sdCardBytes),
+                        if (it.sdCardFreeBytes >= 0) megabytes(it.sdCardFreeBytes)
+                        else stringResource(id = R.string.about_version_unknown),
+                    )
+                }
+            },
+        )
+    }
+}
+
 @Composable
 private fun SettingsRow(
     icon: ImageVector,
@@ -946,6 +1011,10 @@ fun AboutScreen(
                         }
                     )
                 }
+            }
+
+            item {
+                AppStorageCard()
             }
 
             item {

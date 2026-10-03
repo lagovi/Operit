@@ -45,7 +45,6 @@ gson = "2.10.1"
 hjson = "3.0.0"
 json = "20250517"
 hnswlib = "0.0.46"
-tensorflow = "2.10.0"
 room = "2.8.4"
 commons-compress-v2 = "1.24.0"
 junrar = "7.5.5"
@@ -70,7 +69,6 @@ mockito-kotlin = "5.1.0"
 reorderable = "2.5.1"
 swipe = "1.2.0"
 objectbox = "5.3.0"
-mediapipe = "0.10.11"
 work = "2.9.0"
 uiTextAndroid = "1.10.4"
 animationAndroid = "1.10.4"
@@ -174,8 +172,7 @@ hnswlib-core = { group = "com.github.jelmerk", name = "hnswlib-core", version.re
 hnswlib-utils = { group = "com.github.jelmerk", name = "hnswlib-utils", version.ref = "hnswlib" }
 
 # Machine learning
-tensorflow-lite = { group = "org.tensorflow", name = "tensorflow-lite", version.ref = "tensorflow" }
-mediapipe-tasks-text = { group = "com.google.mediapipe", name = "tasks-text", version.ref = "mediapipe" }
+# (TF Lite + MediaPipe removed 2026-10-03, fork SIZE work; see app/build.gradle.kts)
 
 # Database
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }

@@ -592,6 +592,13 @@
     <string name="about_contact">Contact Us: aaswordsman@foxmail.com</string>
     <string name="about_website">&lt;a href="https://github.com/AAswordman/Operit"&gt;GitHub: https://github.com/AAswordman/Operit&lt;/a&gt;</string>
     <string name="about_copyright">© 2025 - 2026 Operit. All Rights Reserved.</string>
+    <string name="about_storage_title">Storage used</string>
+    <string name="about_storage_internal">Internal storage (app + data)</string>
+    <string name="about_storage_sdcard">Memory card (this app)</string>
+    <string name="about_storage_total">Total</string>
+    <string name="about_storage_value">%1$s used · %2$s free</string>
+    <string name="about_storage_no_card">No memory card</string>
+    <string name="about_storage_calculating">Calculating…</string>
     <string name="star_on_github">Star on GitHub</string>
     <string name="update_log">Update Log</string>
     <string name="app_logo_description">App Logo</string>

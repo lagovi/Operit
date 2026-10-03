@@ -1,5 +1,33 @@
 # Size research: measured numbers and hard limits
 
+## 2026-10-03: internal-storage prospects, ranked (APK anatomy at e9c7e0e1)
+
+Stored sizes = bytes on internal flash inside `base.apk` (369 MB total).
+`lib` is now uncompressed (useLegacyPackaging=false), so stored == raw there.
+
+| # | lever | internal saving | cost |
+|---|-------|----------------:|------|
+| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work |
+| 2 | GigaAM model (225 MB) to SD via the existing picker | 225 MB | zero code; operational, needs the SD present |
+| 3 | Drop `tensorflow.lite` + `mediapipe.tasks.text` (comment says "if needed", zero code references) | ~11.5 MB | two dependency lines; CI-verifiable |
+| 4 | R8/minify for debug builds too (dex stored ~75 MB over 43 files, no minification today) | est. 25–35 MB | slower CI builds; measure like the packaging lever |
+| 5 | oat/dexopt | follows 4 | — |
+| — | res/arsc, aapt2 dupes | negligible / wontfix | — |
+
+Breakdown of `assets` stored: rootfs 64 MB, `subpack/android.apk` 48 MB,
+`apktool.toolpkg` 27 MB, `subpack/windows.zip` 11 MB, `desktop.apk` 6.5 MB,
+aapt2 ×2 9.4 MB, helper APKs 5.4 MB, templates/emoji/js ~14 MB.
+
+Verified still-used (do NOT cut without a product decision): MNN 27.5 MB
+(`MNNProvider` + download screen), llama.cpp ~25 MB (`llm/llama` module +
+`getLlamaLocalModels`), ffmpeg ~27 MB (`FFmpegUtil`, `MediaPoolManager`),
+ML Kit OCR 10 MB (`OCRUtils`), FBX/MMD/filament ~13 MB (avatar factories),
+quickjs/busybox/bash/ripgrep/objectbox (terminal/tooling).
+
+Fresh-install `/data/data` is ~100 MB (rootfs copy 61 + toolpkg_cache 31),
+before any model download. The earlier 4.4 GB `du` reading was an artifact
+(run-as + symlink traversal), not real usage; per-dir numbers above add up.
+
 Written so nobody repeats the measurements. Every number here was produced by a
 command recorded in this file, not estimated. Re-run a command before trusting a
 number that has since gone stale.

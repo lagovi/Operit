@@ -322,3 +322,16 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   `lastUpdateTime` after install); uiautomator regex parsing breaks on
   quotes/newlines in text, use a real XML parser.
 - Disk: / at 96%, /tmp/opencode/apk* cleaned; keep an eye on it.
+
+## Size work acceptance (2026-10-03)
+
+- Model to SD: location preset to card before download, 225 MB downloaded to
+  `/storage/5982-1724/.../stt_model` (214 MB on disk), engine initialized
+  from SD (`GigaAM initialized` in logcat), dictation session started and
+  stopped cleanly. Internal `/data/data` has no `stt_model`.
+- tflite+mediapipe removal (CI 37127299796, apk 2026-10-03_13-46-05Z):
+  APK 386 -> 373 MB, lib 43 -> 41 .so, neither .so in the new APK.
+- About storage card on device: Total 472 MB, internal 472 used / 15191
+  free, card 0 used / 1028 free (fresh install, model not re-downloaded).
+- Trap: kotlinc resolves .java stubs but emits no .class for them; runtime
+  needs them compiled with javac (with coroutines on cp for prefs stub).

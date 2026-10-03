@@ -278,3 +278,10 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
 - Announcement 公告 (`..._011954...`): first-run dialog text comes from the
   network (upstream notice), not from app resources; out of scope for the
   English-only work unless the user says otherwise.
+
+## Dropped 2026-10-03 (user directive: strike, revisit in manual testing)
+
+- Dead network IconButton: no referent confirmed in code or screenshots
+  (Market has pull-to-refresh; search support is wired). Dropped.
+- U1 / D12: no referent in any artifact. Dropped. If either resurfaces in
+  manual testing, file it with a screenshot filename and screen path.

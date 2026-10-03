@@ -79,9 +79,18 @@ they can be mapped straight out of the APK, which grows the APK by roughly 93 MB
 while removing 152 MB of installed footprint. Net expected saving near 59 MB of
 installed size, paid for with a larger download.
 
-**Do not record the outcome from this estimate.** It has not been built. The
-prebuilt `jniLibs` come from an upstream archive and not all of them may be
-page-alignable, in which case the build fails outright. Measure before claiming.
+## Measured 2026-10-03: the lever works (commit bf48f418, CI 37086798853)
+
+| | APK download | installed on phone |
+|---|---:|---:|
+| `useLegacyPackaging = true` | 293 MB | 435 MB (base.apk ~297 + lib/arm64 152) |
+| `useLegacyPackaging = false` | 386 MB | 369 MB (base.apk 369 + lib 16K, no extraction) |
+| delta | +93 MB | −66 MB |
+
+Measured with `adb shell du -sh` on the package dir after a clean install.
+All prebuilt `jniLibs` aligned without a build failure. The flag stays `false`
+on the branch: the user values installed size over download size. Revert is one
+line in `app/build.gradle.kts` (`useLegacyPackaging = true`) if that ever flips.
 
 ## Provenance of the build inputs
 

@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.data.translation.CachedTranslator
 import com.ai.assistance.operit.ui.features.chat.components.compactDialogHeightWhenShort
 import com.ai.assistance.operit.ui.features.chat.components.rememberCompactDialogMetrics
 
@@ -132,6 +134,25 @@ private fun ToolResultDetailDialog(
     // dump verbatim. The envelope is still shown in full so no detail is
     // lost, but indented for reading, with the message line lifted above it.
     val (headline, body) = remember(result) { splitEnvelope(result) }
+    // T1: the message line is runtime text — tool implementations write it
+    // in Chinese. It goes through the cached LLM translation; the envelope
+    // body underneath stays byte-identical for copy-paste. Untranslatable
+    // (no model configured, offline) shows the source line, which is a
+    // property of this feature, not a silent fallback: there is nothing
+    // else this dialog could honestly show.
+    var translatedHeadline by remember(headline) { mutableStateOf<String?>(null) }
+    LaunchedEffect(headline) {
+        translatedHeadline = null
+        val line = headline ?: return@LaunchedEffect
+        if (!CachedTranslator.containsCjk(line)) return@LaunchedEffect
+        val cached = CachedTranslator(
+            cacheDir = context.filesDir,
+            fetchFresh = { source ->
+                EnhancedAIService.getInstance(context).translateText(source)
+            },
+        )
+        translatedHeadline = runCatching { cached.translate(line) }.getOrNull()
+    }
     val cardModifier =
             Modifier.fillMaxWidth().padding(16.dp).compactDialogHeightWhenShort(dialogMetrics)
     Dialog(
@@ -191,7 +212,7 @@ private fun ToolResultDetailDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 结果内容
-                headline?.let {
+                (translatedHeadline ?: headline)?.let {
                     Text(
                             text = it,
                             style = MaterialTheme.typography.bodyMedium,

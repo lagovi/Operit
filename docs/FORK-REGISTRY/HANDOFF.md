@@ -3,6 +3,36 @@
 **От:** агент, который делал англоязычный форк Operit
 **Кому:** мне же, чистый контекст, та же задача
 **Дата:** 2026-09-30, коммит `930f2543`, ветка `feat/english-only-build`
+**Статус на 2026-10-03, коммит `d248fe88` (читать первым, остальное ниже —
+история; разделы с пометкой SUPERSEDED устарели, но оставлены как контекст):**
+
+- STT = GigaAM (sherpa удалён полностью, см. M5 `e763e8ef`); движок тюнится,
+  кастомные CTC-модели добавляются по HF-ссылке, модель живёт на SD.
+- Актуальные числа размера: `docs/FORK-REGISTRY/research-size.md`
+  (installed 369 МБ после `useLegacyPackaging=false`, APK 373 МБ после
+  удаления tflite/mediapipe). Таблица блоков от 30.09 ниже — SUPERSEDED.
+- План работ по размеру: `docs/TODO/offline-assets-move/` (очередь 1:
+  rootfs → subpack → apktool на SD-first-run; очередь 2: on-demand при
+  появлении хостинга). Релизного хостинга payload до сих пор нет.
+- Открытое на следующую сессию (подробности — в конце файла, свежие разделы):
+  1. M6-приёмка речи: диктовка через custom-модель с реальным аудио, замер
+     скорости декода на телефоне, переезд SD туда-обратно, поле языка, фразы
+     аудиокниги. Требует пользователя (ночь/речь), не агента в одиночку.
+  2. T1-остаток: Market-листинги (`ui/features/packages/market/`) тем же
+     паттерном (`TranslatedText`); префикс ошибок тулов уже покрыт диалогом.
+  3. R8-эксперимент на debug (оценка −25–35 МБ dex): один CI-билд с
+     минификацией, замер `AppStorageUsage` на телефоне, откат если плохо.
+  4. Инфра, не код: workflow `android-tests` падает на setup SDK; нет keystore
+     для release/nightly; нет Releases hosting для payload.
+  5. Ручное тестирование пользователем: dead button / U1 / D12 вычеркнуты без
+     референта — если всплывут, заводить с именем скриншота и путём экрана.
+- APK каждой проверенной сборки: `/home/uzzzver/operit-fork/apk/<UTC-дата-старт-CI>/`
+  + `CHANGES.md` (разница с предыдущей). Правило уже в `AGENTS.md`.
+- Телефон `R9TN601D6GJ` полностью под управлением агента (policy ниже в
+  силе); USB нестабилен, adb только по WiFi `192.168.1.63:45687`.
+- LAN gateway для тестов (модель, перевод): `http://192.168.1.55:20128/v1`,
+  ключ и модель зашиты пресетом ТОЛЬКО в debug (`ModelConfigManager`,
+  `BuildConfig.DEBUG`-ветка). В релиз не тащить.
 
 ---
 
@@ -16,26 +46,35 @@
 |---|---|---|
 | 1 | **этот файл** | состояние, решения и два открытых вопроса |
 | 2 | `docs/FORK-REGISTRY/index.md` | что запускать и что означает каждый код проверки |
-| 3 | `docs/FORK-REGISTRY/registry.json` | 21 правка форка, у каждой `rationale` и `anchors` |
+| 3 | `docs/FORK-REGISTRY/registry.json` | ~26 правок форка, у каждой `rationale` и `anchors` (счёт от 30.09 устарел) |
 | 4 | `docs/FORK-REGISTRY/re-audit-l10n.md` | **исправленный диагноз.** Главный документ, если что-то снова по-китайски |
 | 5 | `docs/FORK-REGISTRY/re-audit-prompts.md` | какие промпты видит пользователь, а какие нет |
 | 6 | `docs/FORK-REGISTRY/re-audit-layout.md` | почему английский ломает вёрстку и что ещё не починено |
 | 7 | `docs/TODO/fork-l10n-runbook.md` | механика CI и устройства. **Диагноз в нём неверен**, помечено в шапке |
-| 8 | `docs/TODO/remote_content_translation/index.md` | план про серверный китайский, **не реализован** |
+| 8 | `docs/TODO/remote_content_translation/index.md` | план про серверный китайский, **реализован как T1 2026-10-03** (`CachedTranslator` + surfaces; остаток: Market-листинги) |
 
 Файлы, которые будешь править, когда дойдёшь до задач:
+
+> SUPERSEDED 2026-10-03: `SttModelRepository.kt` и `SherpaSpeechProvider.kt`
+> удалены (M5 `e763e8ef`). Актуальная карта: движок —
+> `api/speech/GigaAMSpeechProvider.kt`, распознаватель —
+> `api/speech/GigaAMRecognizer.kt`, конфиг чекпоинта —
+> `api/speech/CtcModelConfig.kt`, HF-резолв и реестр —
+> `data/speech/HfCtcModel.kt` + `data/speech/CustomSttModels.kt`, перевод —
+> `data/translation/CachedTranslator.kt`, места хранения —
+> `util/AppDataLocation.kt`, замер места — `util/AppStorageUsage.kt`.
 
 ```
 app/src/main/java/com/ai/assistance/operit/
   util/LocaleUtils.kt                     ← язык по умолчанию, здесь всё решение про English-only
   util/RemoteAssetFetcher.kt              ← общий загрузчик: докачка, Range, SHA-256
-  data/speech/SttModelRepository.kt       ← описание STT-модели: URL, размер, хеш
-  api/speech/SherpaSpeechProvider.kt      ← текущий движок распознавания
+  data/speech/SttModelRepository.kt       ← УДАЛЁН, см. пометку выше
+  api/speech/SherpaSpeechProvider.kt      ← УДАЛЁН, см. пометку выше
   api/speech/SpeechServiceFactory.kt      ← выбор движка
   api/speech/SpeechService.kt             ← контракт, который надо соблюсти
   ui/features/settings/screens/SpeechToTextScreen.kt   ← UI настроек распознавания
 app/src/main/res/values/strings.xml      ← единственный строковый бакет, здесь английский
-app/build.gradle.kts                      ← localeFilters, R8, зависимости
+app/build.gradle.kts                      ← localeFilters, useLegacyPackaging=false, зависимости
 terminal/                                 ← САБМОДУЛЬ, форк lagovi/OperitTerminalCore
 ```
 
@@ -76,7 +115,12 @@ terminal/                                 ← САБМОДУЛЬ, форк lagov
 
 ---
 
-## Открытый вопрос 1: дальнейшее урезание дистрибутива
+## Открытый вопрос 1: дальнейшее урезание дистрибутива (SUPERSEDED 2026-10-03)
+
+Таблица ниже — состояние на 30.09 (APK 296 МБ). Актуально:
+`docs/FORK-REGISTRY/research-size.md` + план `docs/TODO/offline-assets-move/`.
+OCR-решение ниже устарело частично: нелатинский ML Kit удалён (SIZE-002),
+латинский OCR жив (`OCRUtils`), движок+модель остаются.
 
 296 МБ, из них в APK крупнейшие блоки:
 
@@ -111,7 +155,12 @@ OCR-окно, инструмент агента «прочитать карти�
 
 ---
 
-## Открытый вопрос 2: замена STT на GigaAM-Multilingual
+## Открытый вопрос 2: замена STT на GigaAM-Multilingual (CLOSED 2026-10-03)
+
+Реализовано: провайдер `GigaAMSpeechProvider`, прямой ORT-рантайм вместо
+sherpa (вариант (б) ниже), VAD-чанкер вместо стриминга (фразы, не поток),
+модель 225 МБ в on-demand с consent. Остаток — M6-приёмка (см. статус
+сверху), не реализация.
 
 Пользователь выбрал `fussraider/GigaAM-Multilingual-sherpa-onnx-ctc`.
 Я проверил — выбор правильный, но **это не замена ссылки, а замена движка**,
@@ -245,20 +294,14 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   `splitEnvelope()` in the new `ToolResultFormat.kt` (same package): the
   message line heads the dialog, the same JSON follows indented, non-JSON
   passes through untouched. Unit-tested (`ToolResultFormatTest`, 4 tests).
-- T1 NETWORK CHINESE (open): Chinese strings arriving from outside the app
-  resources, so English-only packaging cannot catch them. Seen in three
-  places: (1) Packages screen, plugin `楼层限制器` with a Chinese description
-  (`Screenshot_20261001-013322`, plugin metadata comes from bundled
-  examples or the market API); (2) tool error prefix `工具执行时发生意外错误:`
-  before the English body (`Screenshot_20261001-015338`, emitted by the tool
-  framework, find the literal to locate the source file); (3) `"message"` inside
-  tool result JSON (`..._015352...`, produced by the tool implementation
-  itself). Surfaces where auto-translation could trigger: the tool result
-  dialog (`ToolResultDisplay.kt`), the Packages/Market lists
-  (`app/src/main/java/com/ai/assistance/operit/ui/features/packages/`), and
-  tool error toasts. No translation engine exists in the app; any fix needs
-  one (on-device dictionary for fixed prefixes vs polluting every result
-  with a network translation call). Scope decision left to the user.
+- T1 NETWORK CHINESE (решено пользователем 2026-10-03, реализовано, остаток:
+  Market-листинги): перевод дефолтной LLM + кэш по SHA-256 источника
+  (`data/translation/CachedTranslator.kt`). Закрыты: диалог результатов
+  (message + failure bodies, `ToolResultDisplay.kt`), имена и описания
+  плагинов (`TranslatedText`, `PluginTabContent.kt`). Префикс
+  `工具执行时发生意外错误` живёт в `examples/*.ts|*.js` (рантайм тулов, не
+  код приложения) — покрыт переводом failure body, править examples не надо.
+  Остаток: `ui/features/packages/market/` тем же `TranslatedText`.
 - DRAWER OVERLAP (already fixed, not U1): screenshot `..._012728...` shows the
   `Not Running` badge landing on the `Permissions` label in the drawer. Fixed
   earlier: `DrawerContent.kt` (~line 81 comment) replaced the word badge with
@@ -299,9 +342,9 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
 - Tests: `CachedTranslatorTest` 6/6 standalone (passthrough, translate-once,
   key stability/uniqueness, CJK detect, file roundtrip).
 - Open surfaces (same pattern: `CachedTranslator.containsCjk` gate +
-  LaunchedEffect + cached translate): plugin names/descriptions in
-  `ui/features/packages/` lists, tool error prefix
-  (find the `工具执行时发生意外错误` literal), Market listings. Not done.
+  LaunchedEffect + cached translate): plugin names/descriptions DONE
+  (`d54af436`), Market listings NOT done. Tool error prefix lives in
+  `examples/*.ts|*.js`, covered by failure-body translation, no action.
 - Trap met: a `Write` of `\uXXXX` escapes produced literal CJK chars plus a
   stray U+263A widening the regex range; fixed via python with pure escapes,
   verified by non-ASCII grep. Second trap: constructor param named

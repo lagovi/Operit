@@ -285,3 +285,25 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   (Market has pull-to-refresh; search support is wired). Dropped.
 - U1 / D12: no referent in any artifact. Dropped. If either resurfaces in
   manual testing, file it with a screenshot filename and screen path.
+
+## T1 runtime translation (2026-10-03, commit aa4234a5, CI 37089771706)
+
+- Decision (user): translate via the default LLM model, cache translations,
+  hash detects updates. Applies to all runtime Chinese the app can meet.
+- Implemented: `data/translation/CachedTranslator.kt` (SHA-256 key, CJK
+  detect, JSON file store capped at 2000 entries, in-memory store for
+  tests) + first surface: the tool result dialog message line in
+  `ToolResultDisplay.kt` via `EnhancedAIService.translateText` (the
+  TRANSLATION functional model, i.e. the default model unless the user set a
+  dedicated one). Envelope body stays byte-identical for copy-paste.
+- Tests: `CachedTranslatorTest` 6/6 standalone (passthrough, translate-once,
+  key stability/uniqueness, CJK detect, file roundtrip).
+- Open surfaces (same pattern: `CachedTranslator.containsCjk` gate +
+  LaunchedEffect + cached translate): plugin names/descriptions in
+  `ui/features/packages/` lists, tool error prefix
+  (find the `工具执行时发生意外错误` literal), Market listings. Not done.
+- Trap met: a `Write` of `\uXXXX` escapes produced literal CJK chars plus a
+  stray U+263A widening the regex range; fixed via python with pure escapes,
+  verified by non-ASCII grep. Second trap: constructor param named
+  `translate` shadowed the member `fun translate` = infinite recursion;
+  renamed to `fetchFresh`.

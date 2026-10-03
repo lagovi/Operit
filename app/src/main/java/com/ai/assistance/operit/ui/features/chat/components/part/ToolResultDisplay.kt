@@ -127,6 +127,11 @@ private fun ToolResultDetailDialog(
     val context = LocalContext.current
     val dialogMetrics = rememberCompactDialogMetrics()
     val resultMaxHeight = if (dialogMetrics.isCompactHeight) 160.dp else 300.dp
+    // Tool results arrive as a single-line JSON envelope
+    // ({"success":..,"message":..,"data":{...}}), which the dialog used to
+    // dump verbatim. The envelope is still shown in full so no detail is
+    // lost, but indented for reading, with the message line lifted above it.
+    val (headline, body) = remember(result) { splitEnvelope(result) }
     val cardModifier =
             Modifier.fillMaxWidth().padding(16.dp).compactDialogHeightWhenShort(dialogMetrics)
     Dialog(
@@ -186,6 +191,15 @@ private fun ToolResultDetailDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // 结果内容
+                headline?.let {
+                    Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 Box(
                         modifier =
                                 Modifier.fillMaxWidth()
@@ -208,7 +222,7 @@ private fun ToolResultDetailDialog(
                                         .padding(12.dp)
                 ) {
                     Text(
-                            text = result,
+                            text = body,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface
                     )

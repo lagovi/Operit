@@ -307,3 +307,18 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   verified by non-ASCII grep. Second trap: constructor param named
   `translate` shadowed the member `fun translate` = infinite recursion;
   renamed to `fetchFresh`.
+
+## T1 acceptance (2026-10-03, CI 37096445114, apk 2026-10-03_04-24-40Z)
+
+- Packages card `楼层限制器` renders as `Floor Limiter` + `Slice the latest N
+  context layers, ...` on the phone; cache `files/translation_cache/v2.json`
+  holds clean entries, no think blocks.
+- Trap log: a `Write` of `\uXXXX` escapes produced literal CJK + stray U+263A
+  (fixed via python, verified by non-ASCII grep); ctor param named
+  `translate` shadowed member `fun translate` = infinite recursion (renamed to
+  `fetchFresh`); `run-as "a; b"` multi-command quoting is unreliable, verify
+  state with single commands; `&&` chains stop on failed `cp` when the disk
+  is full (an install was silently skipped this way — always check
+  `lastUpdateTime` after install); uiautomator regex parsing breaks on
+  quotes/newlines in text, use a real XML parser.
+- Disk: / at 96%, /tmp/opencode/apk* cleaned; keep an eye on it.

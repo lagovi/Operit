@@ -70,6 +70,15 @@ class ModelConfigManager(
 
         // Default API provider type
         private val DEFAULT_API_PROVIDER_TYPE = ApiProviderType.DEEPSEEK
+
+        /**
+         * LAN test gateway, debug builds only. Baked in so the test phone
+         * works with zero setup; never reference these from release code.
+         */
+        private const val DEBUG_PRESET_API_ENDPOINT =
+                "http://192.168.1.55:20128/v1/chat/completions"
+        private const val DEBUG_PRESET_MODEL_NAME = "gemini/gemini-flash-lite-latest"
+        private const val DEBUG_PRESET_API_KEY = "sk-b257ba30bf61b7ce-77e0f5-0b82b3bb"
         private const val OPENAI_CHAT_REASONING_EFFORT_RULE_ID = "openai-chat-reasoning-effort"
         private const val DEEPSEEK_CHAT_REASONING_EFFORT_RULE_ID = "deepseek-reasoning-effort"
         private const val DEEPSEEK_RESPONSES_REASONING_EFFORT_RULE_ID = "deepseek-responses-reasoning-effort"
@@ -110,6 +119,42 @@ class ModelConfigManager(
         }
 
         internal fun createFreshDefaultConfig(context: Context): ModelConfigData {
+            // Fork: debug builds seed a working preset (OpenAI-like test
+            // gateway on the LAN) so the test phone chats and translates out
+            // of the box with no setup. Release builds keep the empty
+            // DeepSeek default: the key below must never ship to users.
+            if (com.ai.assistance.operit.BuildConfig.DEBUG) {
+                return ModelConfigData(
+                        id = DEFAULT_CONFIG_ID,
+                        name = context.getString(R.string.model_config_default_name),
+                        apiKey = DEBUG_PRESET_API_KEY,
+                        apiEndpoint = DEBUG_PRESET_API_ENDPOINT,
+                        modelName = DEBUG_PRESET_MODEL_NAME,
+                        apiProviderType = ApiProviderType.OPENAI_GENERIC,
+                        apiProviderTypeId = ApiProviderType.OPENAI_GENERIC.name,
+                        enableToolCall = ModelConfigDefaults.DEFAULT_ENABLE_TOOL_CALL,
+                        hasCustomParameters = false,
+                        maxTokensEnabled = false,
+                        temperatureEnabled = false,
+                        topPEnabled = false,
+                        topKEnabled = false,
+                        presencePenaltyEnabled = false,
+                        frequencyPenaltyEnabled = false,
+                        repetitionPenaltyEnabled = false,
+                        maxTokens = StandardModelParameters.DEFAULT_MAX_TOKENS,
+                        temperature = StandardModelParameters.DEFAULT_TEMPERATURE,
+                        topP = StandardModelParameters.DEFAULT_TOP_P,
+                        topK = StandardModelParameters.DEFAULT_TOP_K,
+                        presencePenalty = StandardModelParameters.DEFAULT_PRESENCE_PENALTY,
+                        frequencyPenalty = StandardModelParameters.DEFAULT_FREQUENCY_PENALTY,
+                        repetitionPenalty = StandardModelParameters.DEFAULT_REPETITION_PENALTY,
+                        customParameters = "[]",
+                        thinkingConfigurations =
+                                thinkingRulesForProvider(ApiProviderType.OPENAI_GENERIC.name),
+                        thinkingOptionId =
+                                firstThinkingOptionIdForProvider(ApiProviderType.OPENAI_GENERIC.name)
+                )
+            }
             return ModelConfigData(
                     id = DEFAULT_CONFIG_ID,
                     name = context.getString(R.string.model_config_default_name),

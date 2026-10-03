@@ -97,11 +97,21 @@ class HfModelResolverTest {
 
     private fun file(path: String, size: Long, oid: String?): String {
         val lfs = if (oid != null) {
-            """, "lfs": {"oid": "$oid", "size": $size}"""
+            """, "lfs": {"sha256": "$oid", "size": $size}"""
         } else {
             ""
         }
         return """{"rfilename": "$path"$lfs}"""
+    }
+
+    @Test
+    fun legacyOidDigestIsStillAccepted() {
+        val body = hubResponse(
+            """{"rfilename": "legacy.onnx", "lfs": {"oid": "bb", "size": 10}}""",
+        )
+        val siblings = resolver.parseSiblings("o/r", "main", body)
+        assertEquals("bb", siblings.single().sha256)
+        assertEquals(10L, siblings.single().sizeBytes)
     }
 
     private fun hubResponse(vararg files: String): String =

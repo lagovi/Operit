@@ -181,7 +181,9 @@ class HfModelResolver(private val http: OkHttpClient = OkHttpClient()) {
         }
 
     private fun listFiles(repoId: String, revision: String): Result<List<HfModelFile>> {
-        val url = "https://huggingface.co/api/models/$repoId/revision/$revision"
+        // blobs=true is what makes the Hub attach the LFS digests; without
+        // it every file looks unverifiable. Seen live on device.
+        val url = "https://huggingface.co/api/models/$repoId/revision/$revision?blobs=true"
         val request = Request.Builder().url(url).header("Accept", "application/json").build()
         return try {
             http.newCall(request).execute().use { response ->
@@ -209,12 +211,16 @@ class HfModelResolver(private val http: OkHttpClient = OkHttpClient()) {
             val path = entry.optString("rfilename").takeIf { it.isNotEmpty() }
                 ?: return@mapNotNull null
             val lfs = entry.optJSONObject("lfs")
+            // Current Hub shape is {"sha256", "size"}; "oid" is the older
+            // name for the same digest, kept as a fallback.
+            val digest = lfs?.optString("sha256").orEmpty()
+                .ifEmpty { lfs?.optString("oid").orEmpty() }
             HfModelFile(
                 path = path,
                 sizeBytes = lfs?.optLong("size", -1L)?.takeIf { it >= 0 }
                     ?: entry.optLong("size", -1L).takeIf { it >= 0 }
                     ?: -1L,
-                sha256 = lfs?.optString("oid").orEmpty(),
+                sha256 = digest,
                 downloadUrl = "https://huggingface.co/$repoId/resolve/$revision/$path",
             )
         }

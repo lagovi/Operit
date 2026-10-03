@@ -128,4 +128,24 @@ class FileTranslationStore(private val file: File) : TranslationStore {
     }
 }
 
-private const val CACHE_PATH = "translation_cache/v1.json"
+private const val CACHE_PATH = "translation_cache/v2.json"
+
+/**
+ * Removes model thinking blocks from a translation response.
+ *
+ * Reasoning models wrap their work in <think> tags and the translation
+ * caller collects the raw stream, so without this the cached "translation"
+ * is pages of thinking. Complete blocks are cut; a trailing unclosed tag
+ * (cut stream) drops everything from it to the end. Callers keep the raw
+ * text when nothing remains, since a missing answer beats a wrong edit.
+ */
+fun stripThinkBlocks(text: String): String {
+    var out = THINK_BLOCK.replace(text, "")
+    val open = out.lastIndexOf("<think>")
+    if (open >= 0) {
+        out = out.substring(0, open)
+    }
+    return out.trim()
+}
+
+private val THINK_BLOCK = Regex("<think>.*?</think>", RegexOption.DOT_MATCHES_ALL)

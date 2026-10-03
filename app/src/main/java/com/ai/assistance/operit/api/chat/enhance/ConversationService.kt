@@ -1114,8 +1114,14 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
             stream.collect { content ->
                 contentBuilder.append(content)
             }
-            
-            return contentBuilder.toString().trim()
+
+            // Reasoning models wrap their work in <think> tags and this
+            // collects the raw stream, so the thinking must come off before
+            // the text is used as a translation. Nothing else is altered.
+            val raw = contentBuilder.toString().trim()
+            val stripped =
+                    com.ai.assistance.operit.data.translation.stripThinkBlocks(raw)
+            return stripped.ifEmpty { raw }.trim()
         } catch (e: Exception) {
             throw e
         }

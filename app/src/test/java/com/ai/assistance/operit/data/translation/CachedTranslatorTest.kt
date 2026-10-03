@@ -72,4 +72,21 @@ class CachedTranslatorTest {
         val reopened = FileTranslationStore(java.io.File(dir, "cache.json"))
         assertEquals("v1", reopened.get("k1"))
     }
+
+    @Test
+    fun stripsCompleteThinkBlocks() {
+        val out = stripThinkBlocks("<think>reasoning here</think>Floor limiter")
+        assertEquals("Floor limiter", out)
+    }
+
+    @Test
+    fun dropsTrailingUnclosedThink() {
+        val out = stripThinkBlocks("Floor limiter<think>cut off")
+        assertEquals("Floor limiter", out)
+    }
+
+    @Test
+    fun plainTextPassesThroughStrip() {
+        assertEquals("plain", stripThinkBlocks("plain"))
+    }
 }

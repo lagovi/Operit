@@ -1,639 +1,639 @@
 {
-  "schema_version": 1,
-  "fork": "lagovi/Operit",
-  "upstream": "AAswordman/Operit",
-  "upstream_ref": "upstream/dev",
-  "summary": "English-only distribution. The unqualified values/ bucket is English and is the single source of truth for resource keys. Only en is shipped.",
-  "default_locale": "en",
-  "shipped_locales": [
-    "en"
-  ],
-  "entries": [
+ "schema_version": 1,
+ "fork": "lagovi/Operit",
+ "upstream": "AAswordman/Operit",
+ "upstream_ref": "upstream/dev",
+ "summary": "English-only distribution. The unqualified values/ bucket is English and is the single source of truth for resource keys. Only en is shipped.",
+ "default_locale": "en",
+ "shipped_locales": [
+  "en"
+ ],
+ "entries": [
+  {
+   "id": "I18N-001",
+   "area": "localization",
+   "title": "Hardcoded Chinese UI literals extracted into string resources",
+   "commit": "610d9f0b",
+   "rationale": "Chinese string literals written directly in Kotlin bypass the resource system entirely, so they are never translated and always reach the user. Roughly 110 literals across 19 files were moved into values/ + values-en/ (+99 new keys).",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/UnifiedMarketScreen.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/ModelConfigScreen.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/packages/market/MarketBrowseList.kt",
+    "app/src/main/java/com/ai/assistance/operit/data/mcp/MCPLocalServer.kt",
+    "app/src/main/res/values/strings.xml",
+    "app/src/main/res/values-en/strings.xml"
+   ],
+   "anchors": [
     {
-      "id": "I18N-001",
-      "area": "localization",
-      "title": "Hardcoded Chinese UI literals extracted into string resources",
-      "commit": "610d9f0b",
-      "rationale": "Chinese string literals written directly in Kotlin bypass the resource system entirely, so they are never translated and always reach the user. Roughly 110 literals across 19 files were moved into values/ + values-en/ (+99 new keys).",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/UnifiedMarketScreen.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/ModelConfigScreen.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/packages/market/MarketBrowseList.kt",
-        "app/src/main/java/com/ai/assistance/operit/data/mcp/MCPLocalServer.kt",
-        "app/src/main/res/values/strings.xml",
-        "app/src/main/res/values-en/strings.xml"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/UnifiedMarketScreen.kt",
-          "contains": "TextOverflow.Ellipsis",
-          "why": "notification label ellipsis fix from the same commit"
-        }
-      ],
-      "reverify": "python3 ci/script/fork_audit.py",
-      "status": "applied"
-    },
-    {
-      "id": "UI-001",
-      "area": "layout",
-      "title": "Edge-to-edge insets on onboarding screens",
-      "commit": "fdcac81f",
-      "rationale": "The app is edge-to-edge (setDecorFitsSystemWindows(false)). The agreement and permission-guide screens render outside AppContent's inset handling, so their bottom buttons sat under the system gesture bar and were unreachable. Reproduced on SM-A207F.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/ui/features/agreement/screens/AgreementScreen.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/permission/screens/PermissionGuideScreen.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/agreement/screens/AgreementScreen.kt",
-          "contains": "systemBarsPadding()",
-          "why": "inset fix on the agreement screen"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/permission/screens/PermissionGuideScreen.kt",
-          "contains": "systemBarsPadding()",
-          "why": "inset fix on the permission guide screen"
-        }
-      ],
-      "reverify": "adb install + uiautomator dump; the accept/continue button bounds must clear the system nav bar",
-      "status": "applied"
-    },
-    {
-      "id": "TOOL-001",
-      "area": "tooling",
-      "title": "CJK scanner no longer assumes a Windows checkout path",
-      "commit": "610d9f0b",
-      "rationale": "tools/string/count_ui_strings.py built report paths relative to a hardcoded D:\\Code\\prog\\assistance root, so it crashed on every other machine.",
-      "files": [
-        "tools/string/count_ui_strings.py",
-        "tools/string/check_strings.py"
-      ],
-      "anchors": [
-        {
-          "file": "tools/string/count_ui_strings.py",
-          "contains": "relative_to",
-          "why": "path relativization against the repo root"
-        },
-        {
-          "file": "tools/string/check_strings.py",
-          "contains": "SOURCE_LOCALE = \"default\"",
-          "why": "the source is the unqualified bucket, not the zh locale, since values/ now holds English"
-        }
-      ],
-      "reverify": "python3 tools/string/count_ui_strings.py",
-      "status": "applied"
-    },
-    {
-      "id": "TOOL-002",
-      "area": "tooling",
-      "title": "APK deploy helper for device verification",
-      "commit": "7e1f4065",
-      "rationale": "Downloads the newest successful CI build and installs it over adb, so on-device checks do not need a local Android SDK.",
-      "files": [
-        "ci/script/deploy_latest_apk.sh"
-      ],
-      "anchors": [
-        {
-          "file": "ci/script/deploy_latest_apk.sh",
-          "contains": "gh run download",
-          "why": "CI artifact download entry point"
-        }
-      ],
-      "reverify": "ci/script/deploy_latest_apk.sh",
-      "status": "applied"
-    },
-    {
-      "id": "L10N-001",
-      "area": "localization",
-      "title": "Unsupported system locale must not leak through as the app language",
-      "commit": null,
-      "rationale": "resolveSupportedLanguageCode returned an unsupported system locale (e.g. ru-RU) verbatim. Android then found no matching resource bucket and fell back to the unqualified values/ bucket, which was Chinese. A fresh install on a ru-RU phone therefore started in Chinese with no way to predict it.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/util/LocaleUtils.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/util/LocaleUtils.kt",
-          "contains": "return LanguageCodes.ENGLISH",
-          "why": "unsupported locale resolves to English"
-        }
-      ],
-      "reverify": "adb shell pm clear + fresh launch on a ru-RU phone; first screen must be English",
-      "status": "applied"
-    },
-    {
-      "id": "L10N-002",
-      "area": "localization",
-      "title": "Default app language is English, not Follow-system",
-      "commit": null,
-      "rationale": "UserPreferencesManager.DEFAULT_LANGUAGE was AUTO, which resolves to the system locale. Even with L10N-001 a zh-CN phone would still start in Chinese. The fork's default language is English by design.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/data/preferences/UserPreferencesManager.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/data/preferences/UserPreferencesManager.kt",
-          "contains": "const val DEFAULT_LANGUAGE = LanguageCodes.ENGLISH",
-          "why": "English is the default when the key is absent"
-        }
-      ],
-      "reverify": "adb shell pm clear + fresh launch; verify values/strings.xml is the English text",
-      "status": "applied"
-    },
-    {
-      "id": "L10N-003",
-      "area": "localization",
-      "title": "Non-Activity components must read strings through getLocalizedContext",
-      "commit": null,
-      "rationale": "Services such as AIForegroundService resolve strings against the Application context. On API < 33 setAppLanguage only reconfigures the Activity, and the process is not restarted, so the Application context keeps the old locale forever: notification titles, actions and shortcuts stayed in the previous language after a language change. getLocalizedContext rebuilds a ConfigurationContext from the current DataStore language, which is the single source of truth.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/util/LocaleUtils.kt",
-        "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt",
-          "contains": "val localized = LocaleUtils.getLocalizedContext(this)",
-          "why": "notification strings must come from a localized context"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/services/FloatingChatService.kt",
-          "contains": "LocaleUtils.getLocalizedContext(this)\n                                    .getString(R.string.floating_chat_window_title)",
-          "why": "the notification text, as opposed to the immutable channel name, must stay resource-backed"
-        }
-      ],
-      "reverify": "switch the app language, then read the notification text from the shade; it must match the UI language",
-      "status": "applied"
-    },
-    {
-      "id": "L10N-004",
-      "area": "localization",
-      "title": "ToolPkg input-menu hook payload carries useEnglish",
-      "commit": null,
-      "rationale": "Bundled JS plugins choose their UI language from event.eventPayload.useEnglish. The host built the toolpkg_input_menu_toggle payload without that key, so the plugin fell back to zh and rendered 思考引导 inside an otherwise English UI.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/plugins/toolpkg/ToolPkgCommonBridgePlugin.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/plugins/toolpkg/ToolPkgCommonBridgePlugin.kt",
-          "contains": "\"useEnglish\" to !LocaleUtils.usesChineseContent(params.context)",
-          "why": "both input-menu payloads must carry useEnglish"
-        }
-      ],
-      "reverify": "open the model/thinking sheet; plugin-contributed toggles must be English",
-      "status": "applied"
-    },
-    {
-      "id": "L10N-005",
-      "area": "localization",
-      "title": "English promoted to the unqualified values/ bucket",
-      "commit": null,
-      "rationale": "values/ was the Chinese source of truth while values-en held English. An English-only APK must keep the unqualified bucket, because that is the bucket Android falls back to for any unresolved reference and for system-rendered labels. Chinese moved out to be dropped; the tooling that treated values/ as zh was updated in the same change.",
-      "files": [
-        "app/src/main/res/values/strings.xml",
-        "app/src/main/res/xml/locales_config.xml",
-        "ci/script/check_localizations.py",
-        "tools/string/check_strings.py"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/res/values/strings.xml",
-          "contains": "<string name=\"app_name\">Operit AI</string>",
-          "why": "the default bucket is English and starts with the app name"
-        },
-        {
-          "file": "app/src/main/res/xml/locales_config.xml",
-          "contains": "android:name=\"en\"",
-          "why": "en is the only locale registered with the system"
-        }
-      ],
-      "reverify": "python3 ci/script/check_localizations.py --base <ref> --candidate HEAD",
-      "status": "applied"
-    },
-    {
-      "id": "SIZE-001",
-      "area": "size",
-      "title": "Only English resources are packaged",
-      "commit": null,
-      "rationale": "Eight app locales plus AndroidX/Google library translations were shipped: ~5.7 MB of resources.arsc, which is stored uncompressed so it is 1:1 in the APK. localeFilters strips library translations that app-level filtering cannot reach.",
-      "files": [
-        "app/build.gradle.kts"
-      ],
-      "anchors": [
-        {
-          "file": "app/build.gradle.kts",
-          "contains": "localeFilters += listOf(\"en\")",
-          "why": "localeFilters belongs to androidResources; it does not resolve on defaultConfig or on a build type"
-        }
-      ],
-      "reverify": "unzip -l the APK and confirm no non-en values-* bucket survived",
-      "status": "applied"
-    },
-    {
-      "id": "SIZE-002",
-      "area": "size",
-      "title": "Non-Latin ML Kit text recognition removed",
-      "commit": null,
-      "rationale": "The bundled Chinese/Japanese/Korean/Devanagari recognition models are ~2.4 MB of APK assets and cannot recognize Latin text, which is all an English build needs.",
-      "files": [
-        "app/build.gradle.kts",
-        "app/src/main/java/com/ai/assistance/operit/util/OCRUtils.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/build.gradle.kts",
-          "contains": "implementation(libs.mlkit.text.recognition)",
-          "why": "the Latin recognizer, which is the one we keep"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/util/OCRUtils.kt",
-          "contains": "enum class Language {",
-          "why": "Latin is the only recognizer the enum offers"
-        }
-      ],
-      "reverify": "confirm assets/mlkit-google-ocr-models contains only Latn + shared models",
-      "status": "applied"
-    },
-    {
-      "id": "SIZE-003",
-      "area": "size",
-      "title": "Chinese jieba tokenizer replaced",
-      "commit": null,
-      "rationale": "com.huaban:jieba-analysis ships ~2.4 MB of Chinese word-segmentation dictionaries and is used only to score memory-search relevance. Segmenting English with a Chinese dictionary produces character bigrams, so the data was both large and wrong for this build.",
-      "files": [
-        "app/build.gradle.kts",
-        "app/src/main/java/com/ai/assistance/operit/util/TextSegmenter.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/util/TextSegmenter.kt",
-          "contains": "WORD_BOUNDARY",
-          "why": "word-boundary segmentation replaced the Chinese dictionary"
-        }
-      ],
-      "reverify": "unzip -l the APK and confirm dict.txt / prob_emit.txt are gone",
-      "status": "applied"
-    },
-    {
-      "id": "SIZE-004",
-      "area": "size",
-      "title": "Heavy single-feature assets downloaded on demand",
-      "commit": null,
-      "rationale": "The proot rootfs, the sherpa-ncnn STT model, the subpack APKs and apktool.toolpkg are ~252 MB of the 420 MB debug APK and each serves exactly one feature. They are fetched on first use of that feature instead. SherpaMnnSpeechProvider already downloads its model to OperitPaths.sherpaNcnnModelsDir, so the path exists.",
-      "files": [
-        "app/config/stt-model-assets.properties",
-        "app/build.gradle.kts",
-        "app/src/main/java/com/ai/assistance/operit/api/speech/SherpaSpeechProvider.kt",
-        "terminal/build.gradle.kts"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelRepository.kt",
-          "contains": "suspend fun ensureNcnnModel",
-          "why": "the local STT model is fetched on first use"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/util/RemoteAssetFetcher.kt",
-          "contains": "suspend fun ensureAssets",
-          "why": "shared resumable, checksum-verified downloader"
-        },
-        {
-          "file": "app/config/stt-model-assets.properties",
-          "contains": "silero_vad.onnx",
-          "why": "the language-agnostic VAD model stays bundled"
-        }
-      ],
-      "reverify": "install with no network, exercise each feature, confirm a single explicit error rather than a silent empty state",
-      "status": "applied"
-    },
-    {
-      "id": "PROMPT-001",
-      "area": "prompts",
-      "title": "Chinese prompt branches deleted; user-visible prompt text is English",
-      "commit": null,
-      "rationale": "The fork ships no Chinese resources, so every useEnglish=false branch is unreachable. Prompt fragments that the user can read or edit in the UI must be English: the waifu custom prompt field, character card defaults, tag-market preset content, tool category/description subtitles, the summary bubble, generated package descriptions and the one Chinese tool-result error. Prompt text the user never sees stays as it is, because it is model input.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/core/config/FunctionalPrompts.kt",
-        "app/src/main/java/com/ai/assistance/operit/core/config/SystemToolPrompts.kt",
-        "app/src/main/java/com/ai/assistance/operit/core/chat/AIMessageManager.kt",
-        "app/src/main/java/com/ai/assistance/operit/data/preferences/WaifuPreferences.kt",
-        "app/src/main/java/com/ai/assistance/operit/data/preferences/CharacterCardBilingualData.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/TagMarketBilingualData.kt",
-        "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardUITools.kt",
-        "app/src/main/java/com/ai/assistance/operit/data/mcp/McpConfigImportParser.kt",
-        "app/src/main/java/com/ai/assistance/operit/data/mcp/MCPRepository.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/packages/market/MarketEntryInstallController.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/data/preferences/WaifuPreferences.kt",
-          "contains": "DEFAULT_WAIFU_CUSTOM_PROMPT = \"You must follow these rules",
-          "why": "the waifu prompt default is user-visible and therefore English"
-        },
-        {
-          "file": "app/src/main/res/values/strings.xml",
-          "contains": "ui_controller_image_capability_required",
-          "why": "the one Chinese ToolResult.error is now a resource"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/data/mcp/McpConfigImportParser.kt",
-          "contains": "fun parse(context: Context, jsonConfig: String)",
-          "why": "config rejection messages are resources; all three call sites let the exception reach a user-visible error"
-        }
-      ],
-      "reverify": "python3 ci/script/fork_audit.py; then walk the re-audit list in docs/FORK-REGISTRY/re-audit-prompts.md",
-      "status": "applied"
-    },
-    {
-      "id": "LAYOUT-001",
-      "area": "layout",
-      "title": "Localized text overflow fixes",
-      "commit": null,
-      "rationale": "English strings are two to three times wider than the Chinese originals, which exposed containers whose height or width was tuned to the shorter text. English is also the widest supported locale, so fixing for it fixes every future locale.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/ui/features/toolbox/screens/ToolboxScreen.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/main/components/AppContent.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/ModelApiSettingsSection.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/input/agent/AgentChatInputSection.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/PluginTabContent.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/toolbox/screens/ToolboxScreen.kt",
-          "contains": "heightIn(min = 156.dp, max = 200.dp)",
-          "why": "the toolbox card grows instead of clipping its description"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/ModelApiSettingsSection.kt",
-          "contains": "fill = false",
-          "why": "the provider label takes only the width it needs"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/PluginTabContent.kt",
-          "contains": "maxLines = 3",
-          "why": "package descriptions are no longer clamped to one line"
-        }
-      ],
-      "reverify": "on-device at the maximum in-app font scale (1.5), sweep the screens listed in docs/FORK-REGISTRY/re-audit-layout.md",
-      "status": "applied"
-    },
-    {
-      "id": "SIZE-005",
-      "area": "size",
-      "title": "R8 and resource shrinking enabled for release and nightly",
-      "commit": null,
-      "status": "applied",
-      "rationale": "R8 was disabled in every build type, so the dex payload shipped at 72.7 MB in the APK. app/proguard-rules.pro already carried the keep rules this app needs (Shizuku, QuickJS reflection, Room/ObjectBox, AIDL, runtime APK parsing and re-signing), so it was written for R8 and simply was never switched on. Enabling it required 14 -dontwarn rules that could not be predicted without running it: the PDF Box JPX decoder, auto-value's shaded javapoet touching the annotation model at compile time only, Apache SSHD's optional JMX integration, and its optional Ed25519 support. Debug is deliberately left unminified because that is the variant used for on-device verification. VERIFIED: minifyNightlyWithR8 runs clean in CI. The nightly build then fails at signRotatedNightlyApk because the CI runner has no release keystore, which is a credential gap unrelated to minification.",
-      "files": [
-        "app/build.gradle.kts",
-        "app/proguard-rules.pro"
-      ],
-      "anchors": [
-        {
-          "file": "app/build.gradle.kts",
-          "contains": "isMinifyEnabled = true",
-          "why": "release and nightly must be minified; debug must not be"
-        },
-        {
-          "file": "app/proguard-rules.pro",
-          "contains": "-dontwarn com.gemalto.jp2.**",
-          "why": "the -dontwarn set R8 needs to link; removing one fails the release build"
-        }
-      ],
-      "reverify": "CI: gh workflow run android-build.yml -f gradle_task=':app:assembleNightly'. R8 itself passes; the build stops at signing without a release keystore. Then smoke-test the APK reverse-engineering path, ToolPkg package loading and the settings screens — R8 breakage is invisible until a reflective path is exercised."
-    },
-    {
-      "id": "TOOL-003",
-      "area": "tooling",
-      "title": "terminal submodule points at a fork this account can push to",
-      "commit": null,
-      "status": "applied",
-      "rationale": "The terminal module is a git submodule pinned to AAswordman/OperitTerminalCore. The fork's English-only change to it cannot live in a commit the upstream does not have, and CI fails to fetch the submodule otherwise ('upload-pack: not our ref'). The submodule URL is now lagovi/OperitTerminalCore, forked from upstream at the same commit, so the change is pushable. 'upstream' is kept as a remote in the submodule so upstream merges still work: merge inside terminal/ against upstream/master, then push to origin.",
-      "files": [
-        ".gitmodules"
-      ],
-      "anchors": [
-        {
-          "file": ".gitmodules",
-          "contains": "lagovi/OperitTerminalCore",
-          "why": "the submodule must resolve to a repo this fork can push to"
-        }
-      ],
-      "reverify": "git submodule sync && git submodule update --init --recursive, then a CI Android Build"
-    },
-    {
-      "id": "L10N-006",
-      "area": "localization",
-      "title": "Notification channel names are constants, and channel ids are versioned",
-      "commit": null,
-      "status": "applied",
-      "rationale": "A notification channel's name and description are captured by the system the first time the channel is created and cannot be changed afterwards. An install whose first launch was Chinese therefore kept a Chinese channel name in the system settings even after the app switched to English — observed on device as NotificationChannel{mId='AI_SERVICE_CHANNEL', mName=Operit 正在运行}. A string resource cannot fix this: it can only ever apply to a fresh install. The channel name is now a plain English constant and the channel id carries a version suffix, which is the only mechanism that makes the system create a new channel.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt",
-        "app/src/main/java/com/ai/assistance/operit/services/FloatingChatService.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt",
-          "contains": "private const val CHANNEL_ID = \"AI_SERVICE_CHANNEL_V2\"",
-          "why": "bumping this id is what replaces a channel name captured in another language"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/services/FloatingChatService.kt",
-          "contains": "CHANNEL_ID = \"floating_chat_channel_v2\"",
-          "why": "same reason for the floating window channel"
-        }
-      ],
-      "reverify": "adb shell dumpsys notification | grep mName — no CJK in any Operit channel"
-    },
-    {
-      "id": "TOOL-004",
-      "area": "tooling",
-      "title": "Localization CI gate no longer assumes the default bucket is Chinese",
-      "commit": null,
-      "status": "applied",
-      "rationale": "check_localizations.py hardcoded the source locale as 'zh' and treated values/ as the Chinese origin. Once values/ became English the gate silently inverted: every other bucket was compared against English and reported as a 'missing translation' of English. It reported errors=0 only because a single locale ships, so the failure mode was invisible rather than loud. The source is now identified as the unqualified bucket.",
-      "files": [
-        "ci/script/check_localizations.py"
-      ],
-      "anchors": [
-        {
-          "file": "ci/script/check_localizations.py",
-          "contains": "SOURCE_LOCALE = \"default\"",
-          "why": "the source must be identified by qualification, not by language"
-        }
-      ],
-      "reverify": "add a second locale, then run: python3 ci/script/check_localizations.py --base <ref> --candidate HEAD"
-    },
-    {
-      "id": "SIZE-006",
-      "area": "size",
-      "title": "INVESTIGATED, NOT DONE: the two bundled aapt2 copies cannot be de-duplicated",
-      "commit": null,
-      "status": "planned",
-      "rationale": "assets/templates/android/tools/aapt2 and assets/templates/flutter/android/tools/aapt2 are byte-identical 4.7 MB files, 2.16 MB of the APK. The obvious de-duplication is not achievable: WorkspaceUtils.copyTemplateFiles materialises each template into an independent project directory, and each template's setup_android_env.sh resolves aapt2 relative to its own SCRIPT_DIR. Removing one file would break the other template's Android build. Sharing it would require changing the copy mechanism, which risks the on-device build toolchain for 2.16 MB. Recorded so this is a decision rather than an oversight.",
-      "files": [
-        "app/src/main/assets/templates/android/setup_android_env.sh",
-        "app/src/main/assets/templates/flutter/android/setup_android_env.sh"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/assets/templates/android/setup_android_env.sh",
-          "contains": "bundled_aapt2=\"$SCRIPT_DIR/tools/aapt2/aapt2-arm64-v8a\"",
-          "why": "each template resolves aapt2 relative to its own script directory, which is why the copies cannot be shared"
-        }
-      ],
-      "reverify": "do not attempt without first changing copyTemplateFiles"
-    },
-    {
-      "id": "PROMPT-002",
-      "area": "prompts",
-      "title": "DECISION: MiMo voice names stay in Chinese",
-      "commit": null,
-      "status": "applied",
-      "rationale": "MimoVoiceProvider lists voices whose id and name are both Chinese (冰糖, 茉莉, 苏打, 白桦). The id is a wire value sent to the upstream TTS API and must not change. The name is a vendor product name, not UI copy: a user looking for a voice searches the vendor's name for it, so an English alias would make the picker harder to use rather than easier. The same names are already documented in the English string speech_services_mimo_voice_id_hint, so they appear in English context deliberately. Recorded so the decision is explicit.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt",
-          "contains": "Voice(id = \"冰糖\", name = \"冰糖\"",
-          "why": "id and name are the same wire value; changing either would break voice selection"
-        }
-      ],
-      "reverify": "none; this is a deliberate exclusion and belongs on the cjk-allowlist"
-    },
-    {
-      "id": "SIZE-007",
-      "area": "size",
-      "title": "PARTLY MISFRAMED: further size work — 296 MB is the APK, 435 MB is the phone",
-      "commit": null,
-      "status": "planned",
-      "rationale": "Kept for the asset numbers, which are right; the framing was wrong and SIZE-008 corrects it. These figures are compressed APK sizes, measured at HEAD 0200905f: assets 148 MiB overall, of which the terminal rootfs is 61.2, subpack 35.0, packages 26.4, helper APKs 9.1, templates/emoji/js 8.0. lib is 58.5 compressed and 151.5 raw.\n\nTwo conclusions that were missed. First, the app does not just download slowly, it occupies 435 MB installed, because useLegacyPackaging=true makes the native libraries appear twice. Second, ML Kit cannot be trimmed partially: the 1.49 MB of model weights and the 10 MB multi-script engine are only useful together, so it is all or nothing.\n\nWhat can still leave the APK, in order of size: the terminal rootfs, which already extracts to filesDir on first use so only the bundling has to change; subpack, whose archives live in an upstream Google Drive account and would need a download source this fork controls; apktool.toolpkg at 25.7 MiB, whose four jars are already zips and so barely compress, which makes it a candidate for deletion rather than for moving. See SIZE-008 for the shared location mechanism and for the packaging lever.\n\nNothing here should be read as a claim about installed size until a build measures it.",
-      "files": [
-        "app/build.gradle.kts",
-        "out/apk/debug/app-debug.apk"
-      ],
-      "anchors": [
-        {
-          "file": "app/build.gradle.kts",
-          "contains": "useLegacyPackaging = true",
-          "why": "the switch that decides whether native libs are compressed in the APK or extracted at install"
-        }
-      ],
-      "reverify": "measure the APK after each block; see docs/FORK-REGISTRY/HANDOFF.md for the size table"
-    },
-    {
-      "id": "STT-002",
-      "area": "speech",
-      "title": "APPLIED: GigaAM replaces sherpa-ncnn/MNN; STT-003 consent screen left",
-      "commit": null,
-      "status": "applied",
-      "rationale": "The user selected fussraider/GigaAM-Multilingual-sherpa-onnx-ctc (MIT), a character-wise CTC export of ai-sage/GigaAM-Multilingual. Right choice for Russian: FLEURS WER 4.4 versus 9.1 for Whisper large v3, and a character vocabulary covering Cyrillic natively rather than bolting it onto a sentence-piece model. The pipeline is Silero VAD (already implemented in OnnxSileroVad.kt) feeding utterance chunks into GigaAM, not a continuous stream, because the export is offline CTC while the sherpa-ncnn provider it replaces streams partial results. sherpa-onnx JNI is NOT added: both .so files come from an upstream Google Drive archive we cannot modify, and onnxruntime-android is already a dependency and already used by OnnxSileroVad.kt, so the graph is run directly.\n\nTwo repositories publish the same int8 weights. Verified by comparing all 959 ONNX initializers: they are bit-identical, and the 10557 differing bytes are only protobuf serialisation and the 'language' metadata string. i2z1 is the one to use because it ships export-multilingual-ctc.py. Note DmitrySharonov/GigaAM-Multilingual-ONNX is FP32 only (844 MB) and its large_ctc file is truncated at 3.4 MB.\n\nConfig facts that are easy to get wrong and are pinned by unit tests: n_mels is 64 not 80 (the sherpa-onnx examples in the model card print a placeholder 80), n_fft and win_length are 320 not 400, center is false, the graph input is mel-major [batch, 64, frames], and in tokens.txt index 0 is the SPACE while <blk> is index 70.\n\nThe checkpoint has no digits, no uppercase and no punctuation beyond the apostrophe. Dictated numbers will not come out as numbers; this is a property of the model.\n\nDONE: reference NumPy frontend in tools/gigaam/reference_frontend.py, fixture generator, Kotlin extractor and decoder, and 8 JVM tests asserting the port matches the oracle to better than 1e-3. End-to-end check: features produced by the Kotlin code decode to a transcription identical to the Python reference on the official GigaAM test clip.\n\nDONE SINCE: GigaAMRecognizer runs the graph through onnxruntime with the input\nand output names resolved from the session. SttModelStorage lets the user pick\ninternal storage, the app folder on external storage, or a shared folder that\nsurvives reinstall, which is the microSD option the user asked for; switching\nlocation migrates the existing files instead of re-downloading 214 MB.\"\n\n\nSTILL TO DO: the AudioRecord/VAD provider with on-the-fly resampling (the existing sherpa-ncnn path just asks the microphone for 16 kHz and has no resampler), model storage selection including microSD, consented download, and removing sherpa-ncnn.\n\nChunking note: naively overlapping consecutive chunks duplicates text, because the overlapping audio is decoded twice and both copies are emitted. Plain VAD chunks are acceptable. Do not add overlap without trimming the output to the centre span.\n\nM4 (2026-10-01): GigaAMSpeechProvider implements SpeechService. AudioRecord tries 16 kHz then 48/44.1 kHz with PcmResampler (Kaiser-windowed sinc, tested: alias rejection, speech band, streaming==one-shot). The chunking state machine lives in VadUtteranceChunker (pure logic, 8 scripted tests: preroll, endpoint commit, blip gate on voiced samples, 20 s force-commit, flush tail). Decode runs behind a channel so capture never stalls; partials are committed phrases, final on stop. encoded_lengths was verified == ceil(frames/4) on 14 lengths, so the existing heuristic stands. Wired as SpeechServiceType.LOCAL_GIGAAM in factory, settings dropdown, dictation screen cycle, and tool-prompt value lists; sherpa-ncnn untouched for M5.\n\nM5 (2026-10-01): sherpa-ncnn and the MNN speech path are deleted, not deprecated. Removed: SherpaSpeechProvider, SherpaMnnSpeechProvider, the whole com/k2fsa wrapper tree, SttModelRepository (ncnn downloader), the prebuilt libsherpa-mnn-jni.so, the sherpa-ncnn FetchContent block plus its cmake/ helpers from app native build, and the SHERPA_NCNN engine value everywhere (factory, settings dropdown, dictation screen, prefs, tool-prompt value lists, editor JS docs). Default STT is LOCAL_GIGAAM; stored SHERPA_NCNN/SHERPA_MNN prefs resolve to it. LLM-side MNN (MNNProvider, llm/mnn CMake build) is a different feature and stays. Deliberately kept: backup exclusions for legacy model dirs (upgraded devices may still carry 100 MB+ of dead model), and rationale comments naming sherpa-onnx. The sherpa-ncnn-jni .so was never in the repo (built by CMake FetchContent), which means the old provider could not even load here.",
-      "files": [
-        "tools/gigaam/reference_frontend.py",
-        "tools/gigaam/gen_fixture.py",
-        "tools/gigaam/run_port_tests.sh",
-        "tools/gigaam/tokens.txt",
-        "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractor.kt",
-        "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMTokenVocabulary.kt",
-        "app/src/test/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractorTest.kt",
-        "app/src/test/resources/gigaam/",
-        "app/src/main/java/com/ai/assistance/operit/api/speech/OnnxSileroVad.kt",
-        "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMRecognizer.kt",
-        "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelStorage.kt",
-        "app/src/main/java/com/ai/assistance/operit/util/OperitPaths.kt",
-        "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMSpeechProvider.kt",
-        "app/src/main/java/com/ai/assistance/operit/api/speech/VadUtteranceChunker.kt",
-        "app/src/main/java/com/ai/assistance/operit/api/speech/PcmResampler.kt",
-        "app/src/test/java/com/ai/assistance/operit/api/speech/VadUtteranceChunkerTest.kt",
-        "app/src/test/java/com/ai/assistance/operit/api/speech/PcmResamplerTest.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractor.kt",
-          "contains": "const val N_MELS = 64",
-          "why": "the value the sherpa-onnx model card contradicts; 80 is wrong and 80 produces noise"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractor.kt",
-          "contains": "Bluestein",
-          "why": "n_fft 320 is 2^6*5, so radix-2 Cooley-Tukey walks off the end of the array"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMRecognizer.kt",
-          "contains": "flattenLogProbs",
-          "why": "the output is [batch, frames, vocab]; taking only the first timestep yields a one-frame transcript"
-        }
-      ],
-      "reverify": "Russian WER on a real recording on the device; speed must be measured on the phone, never on a 2-core build box. Run tools/gigaam/run_port_tests.sh after touching the extractor or recognizer; GIGAAM_MODEL_DIR enables the four end-to-end tests."
-    },
-    {
-      "id": "STT-003",
-      "area": "speech",
-      "title": "APPLIED: consent before the 225 MB model download; settings offers it after a decline",
-      "commit": null,
-      "status": "applied",
-      "rationale": "The model downloads only after explicit consent, in the dictation screen or in settings. Declining stores no flag: the files stay absent and settings keeps offering the download until they exist, which is the whole change-your-mind mechanism. GigaAMModelDownload is the shared singleton (Unknown/Checking/Absent/Downloading/Ready/Failed); the dictation consent dialog shows size and storage location, downloads with progress, and auto-starts recognition on completion. RemoteAssetFetcher now cancels mid-transfer via chunked ensureActive() instead of blocking copyTo(); partial bytes stay for Range resume. SttModelStorage.isDownloaded() checks sizes only, never hashes 225 MB for a status row.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/data/speech/GigaAMModelDownload.kt",
-        "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelStorage.kt",
-        "app/src/main/java/com/ai/assistance/operit/util/RemoteAssetFetcher.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/GigaAMModelSection.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/toolbox/screens/speechtotext/SpeechToTextScreen.kt"
-      ],
-      "anchors": [
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/util/RemoteAssetFetcher.kt",
-          "contains": "suspend fun ensureAssets",
-          "why": "the existing resumable, checksum-verifying download path the consent gate should sit in front of"
-        }
-      ],
-      "reverify": "no download starts without a recorded user choice; cancelling leaves no partial directory"
-    },
-    {
-      "id": "SIZE-008",
-      "area": "size",
-      "title": "MEASURED: installed footprint is 435 MB, not the 296 MB the APK suggests",
-      "commit": null,
-      "status": "planned",
-      "rationale": "Measured on the device with adb, not inferred from the APK. The installed app is 435 MB: base.apk 297 MB plus lib/arm64 152 MB. The 152 MB exists because useLegacyPackaging=true makes the package manager extract the native libraries, and they are also present inside the APK, so the native code is paid for twice: 58.5 MB compressed in the APK and 151.5 MB raw extracted on disk.\n\nThis corrects the earlier record. The 439 -> 296 MB figure is the APK download size, which is what SIZE-004 through SIZE-007 optimised; the number that matters to the user, who said installed size matters more, is 435 MB.\n\nTwo separate opportunities follow. Assets can be moved off internal storage: the terminal rootfs 61.2 MB, subpack/android.apk 24.2, subpack/windows.zip 10.9, apktool.toolpkg 25.7, helper APKs 9.1, templates/emoji/js 8.0, about 139 MB of compressed assets that are read on demand. AppDataLocation and OfflinePayload are the shared mechanism for that, governed by one setting so switching once moves everything.\n\nNative libraries cannot be moved, and that is a platform limit rather than an oversight: the linker resolves them from the package manager's own libDir under /data/app, which external storage is not. All loads use System.loadLibrary, never System.load with a path, so nothing blocks the packaging change below.\n\nuseLegacyPackaging=false is the other lever and needs a real measurement, not a guess. It should stop the 152 MB extraction, but AGP then stores the libraries uncompressed so they can be mapped straight out of the APK, which grows the APK by roughly 93 MB while removing 152 MB of installed footprint. Net effect on the phone is expected to be a saving near 59 MB, at the cost of a larger download. Do not record the outcome until a build has measured it; the prebuilt jniLibs come from an upstream archive and may not all be page-alignable, which would fail the build outright.\n\nAlso on the list: libsherpa-ncnn-jni.so 5.05 MB and libsherpa-mnn-jni.so 3.76 MB disappear with STT-002, and libMNN.so 22 MB plus libMNNWrapper.so 5.5 MB become unused once the MNN recogniser goes.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/util/AppDataLocation.kt",
-        "app/src/main/java/com/ai/assistance/operit/util/OfflinePayloads.kt",
-        "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelStorage.kt",
-        "app/build.gradle.kts"
-      ],
-      "anchors": [
-        {
-          "file": "app/build.gradle.kts",
-          "contains": "useLegacyPackaging",
-          "why": "decides whether the 151.5 MB of native libraries is also extracted next to the APK"
-        },
-        {
-          "file": "app/src/main/java/com/ai/assistance/operit/util/AppDataLocation.kt",
-          "contains": "val INTERNAL",
-          "why": "one setting now governs the location of every large payload, not just the speech model"
-        }
-      ],
-      "reverify": "adb shell du -sh on the installed package; compare base.apk plus lib/ plus the data directory"
-    },
-    {
-      "id": "SIZE-009",
-      "area": "storage",
-      "title": "APPLIED: memory-card location is the physical removable volume, with a picker",
-      "commit": null,
-      "status": "applied",
-      "rationale": "The old EXTERNAL_APP option never reached a memory card: getExternalFilesDir is the phone's own emulated storage on virtually every device. AppDataLocation gains SDCARD_APP, resolved from getExternalFilesDirs by skipping the primary volume and requiring Environment.isExternalStorageRemovable, so two emulated volumes cannot masquerade as a card. The card entry is offered only while mounted; ejecting it makes the location read unavailable, not corrupt. Settings gains the location picker the storage strings were already waiting for (title/summary/move messages), wired to availableLocations/migrateTo; picking before downloading works because an absent model has nothing to move. The selection rule is pinned by 8 JVM tests. Class doc corrected: EXTERNAL_APP is not the memory card.",
-      "files": [
-        "app/src/main/java/com/ai/assistance/operit/util/AppDataLocation.kt",
-        "app/src/test/java/com/ai/assistance/operit/util/AppDataLocationTest.kt",
-        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/GigaAMModelSection.kt"
-      ],
-      "anchors": [],
-      "reverify": []
+     "file": "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/UnifiedMarketScreen.kt",
+     "contains": "TextOverflow.Ellipsis",
+     "why": "notification label ellipsis fix from the same commit"
     }
-  ]
+   ],
+   "reverify": "python3 ci/script/fork_audit.py",
+   "status": "applied"
+  },
+  {
+   "id": "UI-001",
+   "area": "layout",
+   "title": "Edge-to-edge insets on onboarding screens",
+   "commit": "fdcac81f",
+   "rationale": "The app is edge-to-edge (setDecorFitsSystemWindows(false)). The agreement and permission-guide screens render outside AppContent's inset handling, so their bottom buttons sat under the system gesture bar and were unreachable. Reproduced on SM-A207F.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/ui/features/agreement/screens/AgreementScreen.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/permission/screens/PermissionGuideScreen.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/ui/features/agreement/screens/AgreementScreen.kt",
+     "contains": "systemBarsPadding()",
+     "why": "inset fix on the agreement screen"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/ui/features/permission/screens/PermissionGuideScreen.kt",
+     "contains": "systemBarsPadding()",
+     "why": "inset fix on the permission guide screen"
+    }
+   ],
+   "reverify": "adb install + uiautomator dump; the accept/continue button bounds must clear the system nav bar",
+   "status": "applied"
+  },
+  {
+   "id": "TOOL-001",
+   "area": "tooling",
+   "title": "CJK scanner no longer assumes a Windows checkout path",
+   "commit": "610d9f0b",
+   "rationale": "tools/string/count_ui_strings.py built report paths relative to a hardcoded D:\\Code\\prog\\assistance root, so it crashed on every other machine.",
+   "files": [
+    "tools/string/count_ui_strings.py",
+    "tools/string/check_strings.py"
+   ],
+   "anchors": [
+    {
+     "file": "tools/string/count_ui_strings.py",
+     "contains": "relative_to",
+     "why": "path relativization against the repo root"
+    },
+    {
+     "file": "tools/string/check_strings.py",
+     "contains": "SOURCE_LOCALE = \"default\"",
+     "why": "the source is the unqualified bucket, not the zh locale, since values/ now holds English"
+    }
+   ],
+   "reverify": "python3 tools/string/count_ui_strings.py",
+   "status": "applied"
+  },
+  {
+   "id": "TOOL-002",
+   "area": "tooling",
+   "title": "APK deploy helper for device verification",
+   "commit": "7e1f4065",
+   "rationale": "Downloads the newest successful CI build and installs it over adb, so on-device checks do not need a local Android SDK.",
+   "files": [
+    "ci/script/deploy_latest_apk.sh"
+   ],
+   "anchors": [
+    {
+     "file": "ci/script/deploy_latest_apk.sh",
+     "contains": "gh run download",
+     "why": "CI artifact download entry point"
+    }
+   ],
+   "reverify": "ci/script/deploy_latest_apk.sh",
+   "status": "applied"
+  },
+  {
+   "id": "L10N-001",
+   "area": "localization",
+   "title": "Unsupported system locale must not leak through as the app language",
+   "commit": null,
+   "rationale": "resolveSupportedLanguageCode returned an unsupported system locale (e.g. ru-RU) verbatim. Android then found no matching resource bucket and fell back to the unqualified values/ bucket, which was Chinese. A fresh install on a ru-RU phone therefore started in Chinese with no way to predict it.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/util/LocaleUtils.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/util/LocaleUtils.kt",
+     "contains": "return LanguageCodes.ENGLISH",
+     "why": "unsupported locale resolves to English"
+    }
+   ],
+   "reverify": "adb shell pm clear + fresh launch on a ru-RU phone; first screen must be English",
+   "status": "applied"
+  },
+  {
+   "id": "L10N-002",
+   "area": "localization",
+   "title": "Default app language is English, not Follow-system",
+   "commit": null,
+   "rationale": "UserPreferencesManager.DEFAULT_LANGUAGE was AUTO, which resolves to the system locale. Even with L10N-001 a zh-CN phone would still start in Chinese. The fork's default language is English by design.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/data/preferences/UserPreferencesManager.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/data/preferences/UserPreferencesManager.kt",
+     "contains": "const val DEFAULT_LANGUAGE = LanguageCodes.ENGLISH",
+     "why": "English is the default when the key is absent"
+    }
+   ],
+   "reverify": "adb shell pm clear + fresh launch; verify values/strings.xml is the English text",
+   "status": "applied"
+  },
+  {
+   "id": "L10N-003",
+   "area": "localization",
+   "title": "Non-Activity components must read strings through getLocalizedContext",
+   "commit": null,
+   "rationale": "Services such as AIForegroundService resolve strings against the Application context. On API < 33 setAppLanguage only reconfigures the Activity, and the process is not restarted, so the Application context keeps the old locale forever: notification titles, actions and shortcuts stayed in the previous language after a language change. getLocalizedContext rebuilds a ConfigurationContext from the current DataStore language, which is the single source of truth.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/util/LocaleUtils.kt",
+    "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt",
+     "contains": "val localized = LocaleUtils.getLocalizedContext(this)",
+     "why": "notification strings must come from a localized context"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/services/FloatingChatService.kt",
+     "contains": "LocaleUtils.getLocalizedContext(this)\n                                    .getString(R.string.floating_chat_window_title)",
+     "why": "the notification text, as opposed to the immutable channel name, must stay resource-backed"
+    }
+   ],
+   "reverify": "switch the app language, then read the notification text from the shade; it must match the UI language",
+   "status": "applied"
+  },
+  {
+   "id": "L10N-004",
+   "area": "localization",
+   "title": "ToolPkg input-menu hook payload carries useEnglish",
+   "commit": null,
+   "rationale": "Bundled JS plugins choose their UI language from event.eventPayload.useEnglish. The host built the toolpkg_input_menu_toggle payload without that key, so the plugin fell back to zh and rendered 思考引导 inside an otherwise English UI.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/plugins/toolpkg/ToolPkgCommonBridgePlugin.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/plugins/toolpkg/ToolPkgCommonBridgePlugin.kt",
+     "contains": "\"useEnglish\" to !LocaleUtils.usesChineseContent(params.context)",
+     "why": "both input-menu payloads must carry useEnglish"
+    }
+   ],
+   "reverify": "open the model/thinking sheet; plugin-contributed toggles must be English",
+   "status": "applied"
+  },
+  {
+   "id": "L10N-005",
+   "area": "localization",
+   "title": "English promoted to the unqualified values/ bucket",
+   "commit": null,
+   "rationale": "values/ was the Chinese source of truth while values-en held English. An English-only APK must keep the unqualified bucket, because that is the bucket Android falls back to for any unresolved reference and for system-rendered labels. Chinese moved out to be dropped; the tooling that treated values/ as zh was updated in the same change.",
+   "files": [
+    "app/src/main/res/values/strings.xml",
+    "app/src/main/res/xml/locales_config.xml",
+    "ci/script/check_localizations.py",
+    "tools/string/check_strings.py"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/res/values/strings.xml",
+     "contains": "<string name=\"app_name\">Operit AI</string>",
+     "why": "the default bucket is English and starts with the app name"
+    },
+    {
+     "file": "app/src/main/res/xml/locales_config.xml",
+     "contains": "android:name=\"en\"",
+     "why": "en is the only locale registered with the system"
+    }
+   ],
+   "reverify": "python3 ci/script/check_localizations.py --base <ref> --candidate HEAD",
+   "status": "applied"
+  },
+  {
+   "id": "SIZE-001",
+   "area": "size",
+   "title": "Only English resources are packaged",
+   "commit": null,
+   "rationale": "Eight app locales plus AndroidX/Google library translations were shipped: ~5.7 MB of resources.arsc, which is stored uncompressed so it is 1:1 in the APK. localeFilters strips library translations that app-level filtering cannot reach.",
+   "files": [
+    "app/build.gradle.kts"
+   ],
+   "anchors": [
+    {
+     "file": "app/build.gradle.kts",
+     "contains": "localeFilters += listOf(\"en\")",
+     "why": "localeFilters belongs to androidResources; it does not resolve on defaultConfig or on a build type"
+    }
+   ],
+   "reverify": "unzip -l the APK and confirm no non-en values-* bucket survived",
+   "status": "applied"
+  },
+  {
+   "id": "SIZE-002",
+   "area": "size",
+   "title": "Non-Latin ML Kit text recognition removed",
+   "commit": null,
+   "rationale": "The bundled Chinese/Japanese/Korean/Devanagari recognition models are ~2.4 MB of APK assets and cannot recognize Latin text, which is all an English build needs.",
+   "files": [
+    "app/build.gradle.kts",
+    "app/src/main/java/com/ai/assistance/operit/util/OCRUtils.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/build.gradle.kts",
+     "contains": "implementation(libs.mlkit.text.recognition)",
+     "why": "the Latin recognizer, which is the one we keep"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/util/OCRUtils.kt",
+     "contains": "enum class Language {",
+     "why": "Latin is the only recognizer the enum offers"
+    }
+   ],
+   "reverify": "confirm assets/mlkit-google-ocr-models contains only Latn + shared models",
+   "status": "applied"
+  },
+  {
+   "id": "SIZE-003",
+   "area": "size",
+   "title": "Chinese jieba tokenizer replaced",
+   "commit": null,
+   "rationale": "com.huaban:jieba-analysis ships ~2.4 MB of Chinese word-segmentation dictionaries and is used only to score memory-search relevance. Segmenting English with a Chinese dictionary produces character bigrams, so the data was both large and wrong for this build.",
+   "files": [
+    "app/build.gradle.kts",
+    "app/src/main/java/com/ai/assistance/operit/util/TextSegmenter.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/util/TextSegmenter.kt",
+     "contains": "WORD_BOUNDARY",
+     "why": "word-boundary segmentation replaced the Chinese dictionary"
+    }
+   ],
+   "reverify": "unzip -l the APK and confirm dict.txt / prob_emit.txt are gone",
+   "status": "applied"
+  },
+  {
+   "id": "SIZE-004",
+   "area": "size",
+   "title": "Heavy single-feature assets downloaded on demand",
+   "commit": null,
+   "rationale": "The proot rootfs, the sherpa-ncnn STT model, the subpack APKs and apktool.toolpkg are ~252 MB of the 420 MB debug APK and each serves exactly one feature. They are fetched on first use of that feature instead. SherpaMnnSpeechProvider already downloads its model to OperitPaths.sherpaNcnnModelsDir, so the path exists.",
+   "files": [
+    "app/config/stt-model-assets.properties",
+    "app/build.gradle.kts",
+    "app/src/main/java/com/ai/assistance/operit/api/speech/SherpaSpeechProvider.kt",
+    "terminal/build.gradle.kts"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelRepository.kt",
+     "contains": "suspend fun ensureNcnnModel",
+     "why": "the local STT model is fetched on first use"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/util/RemoteAssetFetcher.kt",
+     "contains": "suspend fun ensureAssets",
+     "why": "shared resumable, checksum-verified downloader"
+    },
+    {
+     "file": "app/config/stt-model-assets.properties",
+     "contains": "silero_vad.onnx",
+     "why": "the language-agnostic VAD model stays bundled"
+    }
+   ],
+   "reverify": "install with no network, exercise each feature, confirm a single explicit error rather than a silent empty state",
+   "status": "applied"
+  },
+  {
+   "id": "PROMPT-001",
+   "area": "prompts",
+   "title": "Chinese prompt branches deleted; user-visible prompt text is English",
+   "commit": null,
+   "rationale": "The fork ships no Chinese resources, so every useEnglish=false branch is unreachable. Prompt fragments that the user can read or edit in the UI must be English: the waifu custom prompt field, character card defaults, tag-market preset content, tool category/description subtitles, the summary bubble, generated package descriptions and the one Chinese tool-result error. Prompt text the user never sees stays as it is, because it is model input.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/core/config/FunctionalPrompts.kt",
+    "app/src/main/java/com/ai/assistance/operit/core/config/SystemToolPrompts.kt",
+    "app/src/main/java/com/ai/assistance/operit/core/chat/AIMessageManager.kt",
+    "app/src/main/java/com/ai/assistance/operit/data/preferences/WaifuPreferences.kt",
+    "app/src/main/java/com/ai/assistance/operit/data/preferences/CharacterCardBilingualData.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/TagMarketBilingualData.kt",
+    "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardUITools.kt",
+    "app/src/main/java/com/ai/assistance/operit/data/mcp/McpConfigImportParser.kt",
+    "app/src/main/java/com/ai/assistance/operit/data/mcp/MCPRepository.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/packages/market/MarketEntryInstallController.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/data/preferences/WaifuPreferences.kt",
+     "contains": "DEFAULT_WAIFU_CUSTOM_PROMPT = \"You must follow these rules",
+     "why": "the waifu prompt default is user-visible and therefore English"
+    },
+    {
+     "file": "app/src/main/res/values/strings.xml",
+     "contains": "ui_controller_image_capability_required",
+     "why": "the one Chinese ToolResult.error is now a resource"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/data/mcp/McpConfigImportParser.kt",
+     "contains": "fun parse(context: Context, jsonConfig: String)",
+     "why": "config rejection messages are resources; all three call sites let the exception reach a user-visible error"
+    }
+   ],
+   "reverify": "python3 ci/script/fork_audit.py; then walk the re-audit list in docs/FORK-REGISTRY/re-audit-prompts.md",
+   "status": "applied"
+  },
+  {
+   "id": "LAYOUT-001",
+   "area": "layout",
+   "title": "Localized text overflow fixes",
+   "commit": null,
+   "rationale": "English strings are two to three times wider than the Chinese originals, which exposed containers whose height or width was tuned to the shorter text. English is also the widest supported locale, so fixing for it fixes every future locale.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/ui/features/toolbox/screens/ToolboxScreen.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/main/components/AppContent.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/ModelApiSettingsSection.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/input/agent/AgentChatInputSection.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/PluginTabContent.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/ui/features/toolbox/screens/ToolboxScreen.kt",
+     "contains": "heightIn(min = 156.dp, max = 200.dp)",
+     "why": "the toolbox card grows instead of clipping its description"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/ModelApiSettingsSection.kt",
+     "contains": "fill = false",
+     "why": "the provider label takes only the width it needs"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/ui/features/packages/screens/PluginTabContent.kt",
+     "contains": "maxLines = 3",
+     "why": "package descriptions are no longer clamped to one line"
+    }
+   ],
+   "reverify": "on-device at the maximum in-app font scale (1.5), sweep the screens listed in docs/FORK-REGISTRY/re-audit-layout.md",
+   "status": "applied"
+  },
+  {
+   "id": "SIZE-005",
+   "area": "size",
+   "title": "R8 and resource shrinking enabled for release and nightly",
+   "commit": null,
+   "status": "applied",
+   "rationale": "R8 was disabled in every build type, so the dex payload shipped at 72.7 MB in the APK. app/proguard-rules.pro already carried the keep rules this app needs (Shizuku, QuickJS reflection, Room/ObjectBox, AIDL, runtime APK parsing and re-signing), so it was written for R8 and simply was never switched on. Enabling it required 14 -dontwarn rules that could not be predicted without running it: the PDF Box JPX decoder, auto-value's shaded javapoet touching the annotation model at compile time only, Apache SSHD's optional JMX integration, and its optional Ed25519 support. Debug is deliberately left unminified because that is the variant used for on-device verification. VERIFIED: minifyNightlyWithR8 runs clean in CI. The nightly build then fails at signRotatedNightlyApk because the CI runner has no release keystore, which is a credential gap unrelated to minification.",
+   "files": [
+    "app/build.gradle.kts",
+    "app/proguard-rules.pro"
+   ],
+   "anchors": [
+    {
+     "file": "app/build.gradle.kts",
+     "contains": "isMinifyEnabled = true",
+     "why": "release and nightly must be minified; debug must not be"
+    },
+    {
+     "file": "app/proguard-rules.pro",
+     "contains": "-dontwarn com.gemalto.jp2.**",
+     "why": "the -dontwarn set R8 needs to link; removing one fails the release build"
+    }
+   ],
+   "reverify": "CI: gh workflow run android-build.yml -f gradle_task=':app:assembleNightly'. R8 itself passes; the build stops at signing without a release keystore. Then smoke-test the APK reverse-engineering path, ToolPkg package loading and the settings screens — R8 breakage is invisible until a reflective path is exercised."
+  },
+  {
+   "id": "TOOL-003",
+   "area": "tooling",
+   "title": "terminal submodule points at a fork this account can push to",
+   "commit": null,
+   "status": "applied",
+   "rationale": "The terminal module is a git submodule pinned to AAswordman/OperitTerminalCore. The fork's English-only change to it cannot live in a commit the upstream does not have, and CI fails to fetch the submodule otherwise ('upload-pack: not our ref'). The submodule URL is now lagovi/OperitTerminalCore, forked from upstream at the same commit, so the change is pushable. 'upstream' is kept as a remote in the submodule so upstream merges still work: merge inside terminal/ against upstream/master, then push to origin.",
+   "files": [
+    ".gitmodules"
+   ],
+   "anchors": [
+    {
+     "file": ".gitmodules",
+     "contains": "lagovi/OperitTerminalCore",
+     "why": "the submodule must resolve to a repo this fork can push to"
+    }
+   ],
+   "reverify": "git submodule sync && git submodule update --init --recursive, then a CI Android Build"
+  },
+  {
+   "id": "L10N-006",
+   "area": "localization",
+   "title": "Notification channel names are constants, and channel ids are versioned",
+   "commit": null,
+   "status": "applied",
+   "rationale": "A notification channel's name and description are captured by the system the first time the channel is created and cannot be changed afterwards. An install whose first launch was Chinese therefore kept a Chinese channel name in the system settings even after the app switched to English — observed on device as NotificationChannel{mId='AI_SERVICE_CHANNEL', mName=Operit 正在运行}. A string resource cannot fix this: it can only ever apply to a fresh install. The channel name is now a plain English constant and the channel id carries a version suffix, which is the only mechanism that makes the system create a new channel.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt",
+    "app/src/main/java/com/ai/assistance/operit/services/FloatingChatService.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/api/chat/AIForegroundService.kt",
+     "contains": "private const val CHANNEL_ID = \"AI_SERVICE_CHANNEL_V2\"",
+     "why": "bumping this id is what replaces a channel name captured in another language"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/services/FloatingChatService.kt",
+     "contains": "CHANNEL_ID = \"floating_chat_channel_v2\"",
+     "why": "same reason for the floating window channel"
+    }
+   ],
+   "reverify": "adb shell dumpsys notification | grep mName — no CJK in any Operit channel"
+  },
+  {
+   "id": "TOOL-004",
+   "area": "tooling",
+   "title": "Localization CI gate no longer assumes the default bucket is Chinese",
+   "commit": null,
+   "status": "applied",
+   "rationale": "check_localizations.py hardcoded the source locale as 'zh' and treated values/ as the Chinese origin. Once values/ became English the gate silently inverted: every other bucket was compared against English and reported as a 'missing translation' of English. It reported errors=0 only because a single locale ships, so the failure mode was invisible rather than loud. The source is now identified as the unqualified bucket.",
+   "files": [
+    "ci/script/check_localizations.py"
+   ],
+   "anchors": [
+    {
+     "file": "ci/script/check_localizations.py",
+     "contains": "SOURCE_LOCALE = \"default\"",
+     "why": "the source must be identified by qualification, not by language"
+    }
+   ],
+   "reverify": "add a second locale, then run: python3 ci/script/check_localizations.py --base <ref> --candidate HEAD"
+  },
+  {
+   "id": "SIZE-006",
+   "area": "size",
+   "title": "DECIDED, NOT DONE: the two bundled aapt2 copies stay duplicated",
+   "commit": null,
+   "status": "applied",
+   "rationale": "assets/templates/android/tools/aapt2 and assets/templates/flutter/android/tools/aapt2 are byte-identical 4.7 MB files, 2.16 MB of the APK. The obvious de-duplication is not achievable: WorkspaceUtils.copyTemplateFiles materialises each template into an independent project directory, and each template's setup_android_env.sh resolves aapt2 relative to its own SCRIPT_DIR. Removing one file would break the other template's Android build. Sharing it would require changing the copy mechanism, which risks the on-device build toolchain for 2.16 MB. Recorded so this is a decision rather than an oversight.",
+   "files": [
+    "app/src/main/assets/templates/android/setup_android_env.sh",
+    "app/src/main/assets/templates/flutter/android/setup_android_env.sh"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/assets/templates/android/setup_android_env.sh",
+     "contains": "bundled_aapt2=\"$SCRIPT_DIR/tools/aapt2/aapt2-arm64-v8a\"",
+     "why": "each template resolves aapt2 relative to its own script directory, which is why the copies cannot be shared"
+    }
+   ],
+   "reverify": "do not attempt without first changing copyTemplateFiles"
+  },
+  {
+   "id": "PROMPT-002",
+   "area": "prompts",
+   "title": "DECISION: MiMo voice names stay in Chinese",
+   "commit": null,
+   "status": "applied",
+   "rationale": "MimoVoiceProvider lists voices whose id and name are both Chinese (冰糖, 茉莉, 苏打, 白桦). The id is a wire value sent to the upstream TTS API and must not change. The name is a vendor product name, not UI copy: a user looking for a voice searches the vendor's name for it, so an English alias would make the picker harder to use rather than easier. The same names are already documented in the English string speech_services_mimo_voice_id_hint, so they appear in English context deliberately. Recorded so the decision is explicit.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt",
+     "contains": "Voice(id = \"冰糖\", name = \"冰糖\"",
+     "why": "id and name are the same wire value; changing either would break voice selection"
+    }
+   ],
+   "reverify": "none; this is a deliberate exclusion and belongs on the cjk-allowlist"
+  },
+  {
+   "id": "SIZE-007",
+   "area": "size",
+   "title": "IN EXPERIMENT: useLegacyPackaging=false to remove the 152 MB .so extraction",
+   "commit": null,
+   "status": "planned",
+   "rationale": "Kept for the asset numbers, which are right; the framing was wrong and SIZE-008 corrects it. These figures are compressed APK sizes, measured at HEAD 0200905f: assets 148 MiB overall, of which the terminal rootfs is 61.2, subpack 35.0, packages 26.4, helper APKs 9.1, templates/emoji/js 8.0. lib is 58.5 compressed and 151.5 raw.\n\nTwo conclusions that were missed. First, the app does not just download slowly, it occupies 435 MB installed, because useLegacyPackaging=true makes the native libraries appear twice. Second, ML Kit cannot be trimmed partially: the 1.49 MB of model weights and the 10 MB multi-script engine are only useful together, so it is all or nothing.\n\nWhat can still leave the APK, in order of size: the terminal rootfs, which already extracts to filesDir on first use so only the bundling has to change; subpack, whose archives live in an upstream Google Drive account and would need a download source this fork controls; apktool.toolpkg at 25.7 MiB, whose four jars are already zips and so barely compress, which makes it a candidate for deletion rather than for moving. See SIZE-008 for the shared location mechanism and for the packaging lever.\n\nNothing here should be read as a claim about installed size until a build measures it.\n\n2026-10-03: the lever is pulled on the branch to measure it. Keep only if the installed saving justifies the fatter APK download.",
+   "files": [
+    "app/build.gradle.kts",
+    "out/apk/debug/app-debug.apk"
+   ],
+   "anchors": [
+    {
+     "file": "app/build.gradle.kts",
+     "contains": "useLegacyPackaging = true",
+     "why": "the switch that decides whether native libs are compressed in the APK or extracted at install"
+    }
+   ],
+   "reverify": "measure the APK after each block; see docs/FORK-REGISTRY/HANDOFF.md for the size table"
+  },
+  {
+   "id": "STT-002",
+   "area": "speech",
+   "title": "APPLIED: GigaAM replaces sherpa-ncnn/MNN; STT-003 consent screen left",
+   "commit": null,
+   "status": "applied",
+   "rationale": "The user selected fussraider/GigaAM-Multilingual-sherpa-onnx-ctc (MIT), a character-wise CTC export of ai-sage/GigaAM-Multilingual. Right choice for Russian: FLEURS WER 4.4 versus 9.1 for Whisper large v3, and a character vocabulary covering Cyrillic natively rather than bolting it onto a sentence-piece model. The pipeline is Silero VAD (already implemented in OnnxSileroVad.kt) feeding utterance chunks into GigaAM, not a continuous stream, because the export is offline CTC while the sherpa-ncnn provider it replaces streams partial results. sherpa-onnx JNI is NOT added: both .so files come from an upstream Google Drive archive we cannot modify, and onnxruntime-android is already a dependency and already used by OnnxSileroVad.kt, so the graph is run directly.\n\nTwo repositories publish the same int8 weights. Verified by comparing all 959 ONNX initializers: they are bit-identical, and the 10557 differing bytes are only protobuf serialisation and the 'language' metadata string. i2z1 is the one to use because it ships export-multilingual-ctc.py. Note DmitrySharonov/GigaAM-Multilingual-ONNX is FP32 only (844 MB) and its large_ctc file is truncated at 3.4 MB.\n\nConfig facts that are easy to get wrong and are pinned by unit tests: n_mels is 64 not 80 (the sherpa-onnx examples in the model card print a placeholder 80), n_fft and win_length are 320 not 400, center is false, the graph input is mel-major [batch, 64, frames], and in tokens.txt index 0 is the SPACE while <blk> is index 70.\n\nThe checkpoint has no digits, no uppercase and no punctuation beyond the apostrophe. Dictated numbers will not come out as numbers; this is a property of the model.\n\nDONE: reference NumPy frontend in tools/gigaam/reference_frontend.py, fixture generator, Kotlin extractor and decoder, and 8 JVM tests asserting the port matches the oracle to better than 1e-3. End-to-end check: features produced by the Kotlin code decode to a transcription identical to the Python reference on the official GigaAM test clip.\n\nDONE SINCE: GigaAMRecognizer runs the graph through onnxruntime with the input\nand output names resolved from the session. SttModelStorage lets the user pick\ninternal storage, the app folder on external storage, or a shared folder that\nsurvives reinstall, which is the microSD option the user asked for; switching\nlocation migrates the existing files instead of re-downloading 214 MB.\"\n\n\nSTILL TO DO: the AudioRecord/VAD provider with on-the-fly resampling (the existing sherpa-ncnn path just asks the microphone for 16 kHz and has no resampler), model storage selection including microSD, consented download, and removing sherpa-ncnn.\n\nChunking note: naively overlapping consecutive chunks duplicates text, because the overlapping audio is decoded twice and both copies are emitted. Plain VAD chunks are acceptable. Do not add overlap without trimming the output to the centre span.\n\nM4 (2026-10-01): GigaAMSpeechProvider implements SpeechService. AudioRecord tries 16 kHz then 48/44.1 kHz with PcmResampler (Kaiser-windowed sinc, tested: alias rejection, speech band, streaming==one-shot). The chunking state machine lives in VadUtteranceChunker (pure logic, 8 scripted tests: preroll, endpoint commit, blip gate on voiced samples, 20 s force-commit, flush tail). Decode runs behind a channel so capture never stalls; partials are committed phrases, final on stop. encoded_lengths was verified == ceil(frames/4) on 14 lengths, so the existing heuristic stands. Wired as SpeechServiceType.LOCAL_GIGAAM in factory, settings dropdown, dictation screen cycle, and tool-prompt value lists; sherpa-ncnn untouched for M5.\n\nM5 (2026-10-01): sherpa-ncnn and the MNN speech path are deleted, not deprecated. Removed: SherpaSpeechProvider, SherpaMnnSpeechProvider, the whole com/k2fsa wrapper tree, SttModelRepository (ncnn downloader), the prebuilt libsherpa-mnn-jni.so, the sherpa-ncnn FetchContent block plus its cmake/ helpers from app native build, and the SHERPA_NCNN engine value everywhere (factory, settings dropdown, dictation screen, prefs, tool-prompt value lists, editor JS docs). Default STT is LOCAL_GIGAAM; stored SHERPA_NCNN/SHERPA_MNN prefs resolve to it. LLM-side MNN (MNNProvider, llm/mnn CMake build) is a different feature and stays. Deliberately kept: backup exclusions for legacy model dirs (upgraded devices may still carry 100 MB+ of dead model), and rationale comments naming sherpa-onnx. The sherpa-ncnn-jni .so was never in the repo (built by CMake FetchContent), which means the old provider could not even load here.",
+   "files": [
+    "tools/gigaam/reference_frontend.py",
+    "tools/gigaam/gen_fixture.py",
+    "tools/gigaam/run_port_tests.sh",
+    "tools/gigaam/tokens.txt",
+    "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractor.kt",
+    "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMTokenVocabulary.kt",
+    "app/src/test/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractorTest.kt",
+    "app/src/test/resources/gigaam/",
+    "app/src/main/java/com/ai/assistance/operit/api/speech/OnnxSileroVad.kt",
+    "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMRecognizer.kt",
+    "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelStorage.kt",
+    "app/src/main/java/com/ai/assistance/operit/util/OperitPaths.kt",
+    "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMSpeechProvider.kt",
+    "app/src/main/java/com/ai/assistance/operit/api/speech/VadUtteranceChunker.kt",
+    "app/src/main/java/com/ai/assistance/operit/api/speech/PcmResampler.kt",
+    "app/src/test/java/com/ai/assistance/operit/api/speech/VadUtteranceChunkerTest.kt",
+    "app/src/test/java/com/ai/assistance/operit/api/speech/PcmResamplerTest.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractor.kt",
+     "contains": "const val N_MELS = 64",
+     "why": "the value the sherpa-onnx model card contradicts; 80 is wrong and 80 produces noise"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMFeatureExtractor.kt",
+     "contains": "Bluestein",
+     "why": "n_fft 320 is 2^6*5, so radix-2 Cooley-Tukey walks off the end of the array"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/api/speech/GigaAMRecognizer.kt",
+     "contains": "flattenLogProbs",
+     "why": "the output is [batch, frames, vocab]; taking only the first timestep yields a one-frame transcript"
+    }
+   ],
+   "reverify": "Russian WER on a real recording on the device; speed must be measured on the phone, never on a 2-core build box. Run tools/gigaam/run_port_tests.sh after touching the extractor or recognizer; GIGAAM_MODEL_DIR enables the four end-to-end tests."
+  },
+  {
+   "id": "STT-003",
+   "area": "speech",
+   "title": "APPLIED: consent before the 225 MB model download; settings offers it after a decline",
+   "commit": null,
+   "status": "applied",
+   "rationale": "The model downloads only after explicit consent, in the dictation screen or in settings. Declining stores no flag: the files stay absent and settings keeps offering the download until they exist, which is the whole change-your-mind mechanism. GigaAMModelDownload is the shared singleton (Unknown/Checking/Absent/Downloading/Ready/Failed); the dictation consent dialog shows size and storage location, downloads with progress, and auto-starts recognition on completion. RemoteAssetFetcher now cancels mid-transfer via chunked ensureActive() instead of blocking copyTo(); partial bytes stay for Range resume. SttModelStorage.isDownloaded() checks sizes only, never hashes 225 MB for a status row.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/data/speech/GigaAMModelDownload.kt",
+    "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelStorage.kt",
+    "app/src/main/java/com/ai/assistance/operit/util/RemoteAssetFetcher.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/GigaAMModelSection.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/toolbox/screens/speechtotext/SpeechToTextScreen.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/util/RemoteAssetFetcher.kt",
+     "contains": "suspend fun ensureAssets",
+     "why": "the existing resumable, checksum-verifying download path the consent gate should sit in front of"
+    }
+   ],
+   "reverify": "no download starts without a recorded user choice; cancelling leaves no partial directory"
+  },
+  {
+   "id": "SIZE-008",
+   "area": "size",
+   "title": "MEASURED: installed footprint is 435 MB, not the 296 MB the APK suggests",
+   "commit": null,
+   "status": "applied",
+   "rationale": "Measured on the device with adb, not inferred from the APK. The installed app is 435 MB: base.apk 297 MB plus lib/arm64 152 MB. The 152 MB exists because useLegacyPackaging=true makes the package manager extract the native libraries, and they are also present inside the APK, so the native code is paid for twice: 58.5 MB compressed in the APK and 151.5 MB raw extracted on disk.\n\nThis corrects the earlier record. The 439 -> 296 MB figure is the APK download size, which is what SIZE-004 through SIZE-007 optimised; the number that matters to the user, who said installed size matters more, is 435 MB.\n\nTwo separate opportunities follow. Assets can be moved off internal storage: the terminal rootfs 61.2 MB, subpack/android.apk 24.2, subpack/windows.zip 10.9, apktool.toolpkg 25.7, helper APKs 9.1, templates/emoji/js 8.0, about 139 MB of compressed assets that are read on demand. AppDataLocation and OfflinePayload are the shared mechanism for that, governed by one setting so switching once moves everything.\n\nNative libraries cannot be moved, and that is a platform limit rather than an oversight: the linker resolves them from the package manager's own libDir under /data/app, which external storage is not. All loads use System.loadLibrary, never System.load with a path, so nothing blocks the packaging change below.\n\nuseLegacyPackaging=false is the other lever and needs a real measurement, not a guess. It should stop the 152 MB extraction, but AGP then stores the libraries uncompressed so they can be mapped straight out of the APK, which grows the APK by roughly 93 MB while removing 152 MB of installed footprint. Net effect on the phone is expected to be a saving near 59 MB, at the cost of a larger download. Do not record the outcome until a build has measured it; the prebuilt jniLibs come from an upstream archive and may not all be page-alignable, which would fail the build outright.\n\nAlso on the list: libsherpa-ncnn-jni.so 5.05 MB and libsherpa-mnn-jni.so 3.76 MB disappear with STT-002, and libMNN.so 22 MB plus libMNNWrapper.so 5.5 MB become unused once the MNN recogniser goes.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/util/AppDataLocation.kt",
+    "app/src/main/java/com/ai/assistance/operit/util/OfflinePayloads.kt",
+    "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelStorage.kt",
+    "app/build.gradle.kts"
+   ],
+   "anchors": [
+    {
+     "file": "app/build.gradle.kts",
+     "contains": "useLegacyPackaging",
+     "why": "decides whether the 151.5 MB of native libraries is also extracted next to the APK"
+    },
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/util/AppDataLocation.kt",
+     "contains": "val INTERNAL",
+     "why": "one setting now governs the location of every large payload, not just the speech model"
+    }
+   ],
+   "reverify": "adb shell du -sh on the installed package; compare base.apk plus lib/ plus the data directory"
+  },
+  {
+   "id": "SIZE-009",
+   "area": "storage",
+   "title": "APPLIED: memory-card location is the physical removable volume, with a picker",
+   "commit": null,
+   "status": "applied",
+   "rationale": "The old EXTERNAL_APP option never reached a memory card: getExternalFilesDir is the phone's own emulated storage on virtually every device. AppDataLocation gains SDCARD_APP, resolved from getExternalFilesDirs by skipping the primary volume and requiring Environment.isExternalStorageRemovable, so two emulated volumes cannot masquerade as a card. The card entry is offered only while mounted; ejecting it makes the location read unavailable, not corrupt. Settings gains the location picker the storage strings were already waiting for (title/summary/move messages), wired to availableLocations/migrateTo; picking before downloading works because an absent model has nothing to move. The selection rule is pinned by 8 JVM tests. Class doc corrected: EXTERNAL_APP is not the memory card.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/util/AppDataLocation.kt",
+    "app/src/test/java/com/ai/assistance/operit/util/AppDataLocationTest.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/GigaAMModelSection.kt"
+   ],
+   "anchors": [],
+   "reverify": []
+  }
+ ]
 }

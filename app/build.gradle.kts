@@ -503,9 +503,16 @@ android {
         buildConfig = true
     }
     packaging {
-        
+
         jniLibs {
-            useLegacyPackaging = true
+            // SIZE-007 experiment, 2026-10-03: false stops the package manager
+            // from extracting a second copy of every .so next to the APK
+            // (that was 152 MB of installed footprint). The price is paid in
+            // the APK instead: AGP stores the libraries uncompressed and
+            // page-aligned so they map straight out of the file. Revert to
+            // true if the installed saving does not justify the fatter
+            // download, or if any prebuilt lib refuses to align.
+            useLegacyPackaging = false
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

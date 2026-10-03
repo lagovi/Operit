@@ -228,3 +228,53 @@ acceptance. Do not ask for confirmation for device operations on this phone.
   level, Confirm, wait out the 公告 countdown. Keyguard: swipe alone does not
   unlock, use KEYCODE_WAKEUP + `wm dismiss-keyguard`; dreaming re-locks, and
   `settings put secure screensaver_enabled 0` stops it.
+
+## Deferred item decoder (2026-10-03, from /home/uzzzver/operit-fork/screenshots2/)
+
+Screenshots 1-8 reviewed frame by frame. Internal labels T1/U1/D12 exist in
+no artifact (registry, HANDOFF, user notes, git log); what follows is
+reconstructed from the screenshots, with unknowns marked as unknowns.
+
+- RAW TOOL JSON (fixed `0add89c4`): AI Chat renders a tool call as a row;
+  tapping it opens `ToolResultDetailDialog` in
+  `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/part/ToolResultDisplay.kt`,
+  which showed the result string verbatim. Screenshot
+  `Screenshot_20261001-015352_Operit Debug.jpg` shows
+  `daily_life:device_status Execution Successful` with a single-line
+  `{"success":true,"message":"获取设备状态成功",...}` dump. Fixed by
+  `splitEnvelope()` in the new `ToolResultFormat.kt` (same package): the
+  message line heads the dialog, the same JSON follows indented, non-JSON
+  passes through untouched. Unit-tested (`ToolResultFormatTest`, 4 tests).
+- T1 NETWORK CHINESE (open): Chinese strings arriving from outside the app
+  resources, so English-only packaging cannot catch them. Seen in three
+  places: (1) Packages screen, plugin `楼层限制器` with a Chinese description
+  (`Screenshot_20261001-013322`, plugin metadata comes from bundled
+  examples or the market API); (2) tool error prefix `工具执行时发生意外错误:`
+  before the English body (`Screenshot_20261001-015338`, emitted by the tool
+  framework, find the literal to locate the source file); (3) `"message"` inside
+  tool result JSON (`..._015352...`, produced by the tool implementation
+  itself). Surfaces where auto-translation could trigger: the tool result
+  dialog (`ToolResultDisplay.kt`), the Packages/Market lists
+  (`app/src/main/java/com/ai/assistance/operit/ui/features/packages/`), and
+  tool error toasts. No translation engine exists in the app; any fix needs
+  one (on-device dictionary for fixed prefixes vs polluting every result
+  with a network translation call). Scope decision left to the user.
+- DRAWER OVERLAP (already fixed, not U1): screenshot `..._012728...` shows the
+  `Not Running` badge landing on the `Permissions` label in the drawer. Fixed
+  earlier: `DrawerContent.kt` (~line 81 comment) replaced the word badge with
+  a dot. If the overlap is still visible on a new build, reopen with a fresh
+  screenshot; otherwise closed.
+- MARKET NO-RETRY (suspect for the dead-network-button report): screenshot
+  `..._013521...` (Market screen, `UnifiedMarket*` under
+  `ui/features/packages/market/`) shows `No scripts or packages available /
+  Refresh or try again later` with a connection-failure toast, and the only
+  recovery is pull-to-refresh (`PullToRefreshBox` in `MarketBrowseList.kt`
+  ~line 262) — no retry button, and the top-right search icon's behaviour on
+  this screen is unverified. NOT confirmed as dead; needs a device re-check:
+  open Market with network, tap the search icon, confirm it opens search.
+- U1 / D12 (unknown): no referent found in any file, screenshot, or note.
+  Do not treat the drawer overlap or the market screen as U1/D12 without
+  user confirmation. Ask the user with the screenshot filenames above.
+- Announcement 公告 (`..._011954...`): first-run dialog text comes from the
+  network (upstream notice), not from app resources; out of scope for the
+  English-only work unless the user says otherwise.

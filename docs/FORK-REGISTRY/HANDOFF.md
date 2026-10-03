@@ -209,3 +209,22 @@ Device `R9TN601D6GJ` (adb) is a dedicated test phone, fully managed by the
 LLM agent. Anything may be done with it without asking the user first:
 uninstall (wiping data), install, change settings, download models, run
 acceptance. Do not ask for confirmation for device operations on this phone.
+
+## Custom CTC checkpoint acceptance (2026-10-03, device R9TN601D6GJ)
+
+- Feature commits: `a5d60d76` (CtcModelConfig core) + `b1312e43` (HF add flow)
+  + fixes `9676e3d5` (prefs brace), `dfc4c873` (Hub ?blobs=true + sha256 field).
+  CI `37081015984` green, APK ~293 MB reinstalled (uninstall first: every CI
+  build signs with a fresh debug key).
+- Accepted on device: picker renders, add-dialog resolves
+  `i2z1/gigaam-multilingual-ctc-onnx-int8` (failed before the blobs fix with
+  "no content digest", which is how the bug was found), full pipeline
+  (tokens pin, 225 MB verified download, graph-vocab handshake on the
+  phone's ORT), auto-select "In use", delete with fallback to built-in,
+  registry back to `[]` with no leftover files.
+- Wizard replay cheat-sheet: agreement tap, tour next x3, welcome next, grant
+  perms via adb (READ_MEDIA_AUDIO + SYSTEM_ALERT_WINDOW appop + battery
+  whitelist matter), Check status, Continue through Incomplete, Standard
+  level, Confirm, wait out the 公告 countdown. Keyguard: swipe alone does not
+  unlock, use KEYCODE_WAKEUP + `wm dismiss-keyguard`; dreaming re-locks, and
+  `settings put secure screensaver_enabled 0` stops it.

@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.data.translation.CachedTranslator
@@ -117,6 +118,20 @@ fun ToolResultDisplay(
     )
 }
 
+/**
+ * One cached translation of runtime text, shared by the dialog above.
+ * Untranslatable input yields null and the caller shows the source.
+ */
+suspend fun translateRuntimeText(context: Context, source: String): String? {
+    val cached = CachedTranslator(
+        cacheDir = context.filesDir,
+        fetchFresh = { text ->
+            EnhancedAIService.getInstance(context).translateText(text)
+        },
+    )
+    return runCatching { cached.translate(source) }.getOrNull()
+}
+
 /** 工具结果详情弹窗 美观的弹窗显示完整的工具执行结果 */
 @Composable
 private fun ToolResultDetailDialog(
@@ -140,18 +155,28 @@ private fun ToolResultDetailDialog(
     // (no model configured, offline) shows the source line, which is a
     // property of this feature, not a silent fallback: there is nothing
     // else this dialog could honestly show.
+    //
+    // The same applies to failure bodies: when the tool failed there is no
+    // envelope, the body itself is the message (often a Chinese prefix from
+    // the tool framework plus English detail), so it translates in place
+    // while copy keeps the original bytes.
+    val translatableBody = !isSuccess && headline == null
     var translatedHeadline by remember(headline) { mutableStateOf<String?>(null) }
-    LaunchedEffect(headline) {
+    var translatedBody by remember(body, translatableBody) { mutableStateOf<String?>(null) }
+    LaunchedEffect(headline, body) {
         translatedHeadline = null
-        val line = headline ?: return@LaunchedEffect
-        if (!CachedTranslator.containsCjk(line)) return@LaunchedEffect
-        val cached = CachedTranslator(
-            cacheDir = context.filesDir,
-            fetchFresh = { source ->
-                EnhancedAIService.getInstance(context).translateText(source)
-            },
-        )
-        translatedHeadline = runCatching { cached.translate(line) }.getOrNull()
+        translatedBody = null
+        val line = headline
+        if (line != null) {
+            if (!CachedTranslator.containsCjk(line)) return@LaunchedEffect
+            translatedHeadline = translateRuntimeText(context, line)
+        } else if (translatableBody && CachedTranslator.containsCjk(body)) {
+            // A translated-away body must still differ from the source to be
+            // worth swapping: identical output means the model echoed, and
+            // the source stands.
+            val translated = translateRuntimeText(context, body)
+            translatedBody = translated?.takeIf { it.trim() != body.trim() }
+        }
     }
     val cardModifier =
             Modifier.fillMaxWidth().padding(16.dp).compactDialogHeightWhenShort(dialogMetrics)
@@ -221,6 +246,14 @@ private fun ToolResultDetailDialog(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
+                // Placeholder while the failure text translates; the success
+                // path never waits because its body is data, not prose.
+                if (translatableBody && translatedBody == null &&
+                    CachedTranslator.containsCjk(body)
+                ) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 Box(
                         modifier =
                                 Modifier.fillMaxWidth()
@@ -243,7 +276,7 @@ private fun ToolResultDetailDialog(
                                         .padding(12.dp)
                 ) {
                     Text(
-                            text = body,
+                            text = translatedBody ?: body,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface
                     )

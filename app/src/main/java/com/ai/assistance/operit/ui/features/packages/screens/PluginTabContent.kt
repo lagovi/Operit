@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.ai.assistance.operit.ui.common.displays.TranslatedText
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
@@ -220,17 +221,17 @@ fun PluginTabContent(
                                             .weight(1f)
                                             .padding(end = 8.dp)
                                     ) {
-                                        Text(
+                                        TranslatedText(
                                             text = details.displayName,
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Medium,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
-                                        Text(
+                                        TranslatedText(
                                             text = details.description,
-                                            style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodySmall,
                                             maxLines = 3,
                                             overflow = TextOverflow.Ellipsis
                                         )

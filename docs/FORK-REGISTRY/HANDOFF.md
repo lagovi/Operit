@@ -7,36 +7,118 @@
 **От:** агент, который делал англоязычный форк Operit
 **Кому:** мне же, чистый контекст, та же задача
 **Дата:** 2026-09-30, коммит `930f2543`, ветка `feat/english-only-build`
-**Статус на 2026-10-03, коммит `d248fe88` (читать первым, остальное ниже —
-история; разделы с пометкой SUPERSEDED устарели, но оставлены как контекст):**
+**Статус на 2026-10-04, коммит `45f9f5e8` (читать первым, остальное ниже —
+история; разделы с пометкой SUPERSEDED/CLOSED устарели, но оставлены как
+контекст):**
 
 - STT = GigaAM (sherpa удалён полностью, см. M5 `e763e8ef`); движок тюнится,
   кастомные CTC-модели добавляются по HF-ссылке, модель живёт на SD.
+- Перевод рантайм-китайского готов полностью: T1 (кэш + поверхности),
+  T1-Market (`ca511255`), T2 batch-prefetch (`03d51d5f`), T3 Google-фалбэк
+  (`5a76aa4d`, одобрен пользователем). Карта слоя: батч
+  `ConversationService.translateTexts` + `EnhancedAIService.translateTexts`,
+  промпт `FunctionalPrompts.translationBatchUserPrompt`, кэш/парсинг
+  `data/translation/CachedTranslator.kt` (+ `TranslationPrefetch.kt`,
+  `GoogleTranslateFallback.kt`), UI `TranslatedText.kt` /
+  `TranslatedMarkdown.kt` + `prefetchRuntimeTranslations` в
+  `ToolResultDisplay.kt`, триггеры в `UnifiedMarketScreen.kt`,
+  `UnifiedMarketDetailEntryScreen.kt`, `PluginTabContent.kt`, `OperitApp.kt`,
+  диалог `RemoteAnnouncementDialog.kt`. Аватар-инициалы, бейджи, юзернеймы —
+  осознанно не переводятся (идентификаторы).
+- Shizuku v13.6.0 стоит на телефоне, Operit авторизован, уровень Debugger
+  активен (рецепт рестарта после ребута — в разделе Shizuku ниже).
 - Актуальные числа размера: `docs/FORK-REGISTRY/research-size.md`
   (installed 369 МБ после `useLegacyPackaging=false`, APK 373 МБ после
   удаления tflite/mediapipe). Таблица блоков от 30.09 ниже — SUPERSEDED.
 - План работ по размеру: `docs/TODO/offline-assets-move/` (очередь 1:
   rootfs → subpack → apktool на SD-first-run; очередь 2: on-demand при
   появлении хостинга). Релизного хостинга payload до сих пор нет.
-- Открытое на следующую сессию (подробности — в конце файла, свежие разделы):
+- Открытое на следующую сессию:
   1. M6-приёмка речи: диктовка через custom-модель с реальным аудио, замер
      скорости декода на телефоне, переезд SD туда-обратно, поле языка, фразы
      аудиокниги. Требует пользователя (ночь/речь), не агента в одиночку.
-  2. T1-остаток: Market-листинги (`ui/features/packages/market/`) тем же
-     паттерном (`TranslatedText`); префикс ошибок тулов уже покрыт диалогом.
-  3. R8-эксперимент на debug (оценка −25–35 МБ dex): один CI-билд с
-     минификацией, замер `AppStorageUsage` на телефоне, откат если плохо.
-  4. Инфра, не код: workflow `android-tests` падает на setup SDK; нет keystore
-     для release/nightly; нет Releases hosting для payload.
-  5. Ручное тестирование пользователем: dead button / U1 / D12 вычеркнуты без
-     референта — если всплывут, заводить с именем скриншота и путём экрана.
+  2. R8-замер на debug: nightly минифицируется успешно (доказано run
+     `37166977076`, упал только `signRotatedNightlyApk` — нет keystore в CI).
+     Как делать: временно `isMinifyEnabled=true` + `isShrinkResources=true`
+     в `debug` (те же proguard-файлы, что у nightly), commit, dispatch
+     `assembleDebug`, замер `AppStorageUsage`/About на телефоне, commit
+     revert (возвращает дерево в принятое состояние — повторная приёмка
+     не нужна). Если плохо — просто не включать.
+  3. Очередь 1 offline-assets-move по `docs/TODO/offline-assets-move/`.
+  4. Live-fire при случае (код готов, верифицирован конструкцией, не огнём):
+     префетч Market-списка/детайла когда поднимется `static.operit.app`
+     (таймаутил с сети телефона 04.10); Google-фалбэк при сценарии без
+     модели; R8-сборка на устройстве после п.2.
+  5. Инфра, не код: workflow `android-tests` падает на setup SDK; нет
+     keystore для release/nightly; нет Releases hosting для payload.
+  6. Ручное тестирование пользователем: dead button / U1 / D12 вычеркнуты
+     без референта — если всплывут, заводить с именем скриншота и путём
+     экрана. Market search icon проверен (открывает поиск) — закрыт.
 - APK каждой проверенной сборки: `/home/uzzzver/operit-fork/apk/<UTC-дата-старт-CI>/`
-  + `CHANGES.md` (разница с предыдущей). Правило уже в `AGENTS.md`.
+  + `CHANGES.md` (разница с предыдущей). Сейчас там 3 папки (окт-03
+  удалены): `2026-10-04_00-08-59Z`, `2026-10-04_02-02-07Z`,
+  `2026-10-04_12-08-20Z`. Правило уже в `AGENTS.md`.
 - Телефон `R9TN601D6GJ` полностью под управлением агента (policy ниже в
-  силе); USB нестабилен, adb только по WiFi `192.168.1.63:45687`.
+  силе); USB мёртв, adb только по WiFi; порт МЕНЯЕТСЯ (был 45687, 41599,
+  сейчас `192.168.1.63:36201`), при обрыве — переспаривание (рецепт в
+  чит-шите ниже, пользователя просить только порт+код). Пакеты:
+  `com.ai.assistance.operit.debug` (Operit), `moe.shizuku.privileged.api`.
 - LAN gateway для тестов (модель, перевод): `http://192.168.1.55:20128/v1`,
   ключ и модель зашиты пресетом ТОЛЬКО в debug (`ModelConfigManager`,
   `BuildConfig.DEBUG`-ветка). В релиз не тащить.
+- Диск `/` 92% (было 96%) — следить; `/tmp/opencode` чистить после сборок.
+
+---
+
+## Чит-шит устройства и CI (читать перед любой приёмкой)
+
+**adb.** USB мёртв (`lsusb` пуст), только WiFi. Порт меняется сам
+(45687 → 41599 → 36201) и отладка гаснет в простое — никогда не хардкодить
+порт. Обрыв: попросить у пользователя pairing-порт + код с экрана телефона,
+`echo CODE | adb pair 192.168.1.63:PAIRPORT`, затем скан adb-порта
+(python+socket, `37000-45200` + `5555`) и `adb connect IP:PORT`. Скан пустой
+= отладка выключена, только пользователь может включить.
+**CI.** Push в feature-ветку workflow НЕ стартует — только ручной dispatch:
+`gh workflow run "Android Build" --ref feat/english-only-build`
+(для nightly-минификации добавить `-f gradle_task=":app:assembleNightly"`).
+Ждать: `gh run watch <id> --exit-status --interval 60`. Артефакт:
+`gh run download <id> --dir ...`, имя каталога внутри меняется
+(`operit-android-31/33/34`) — искать `find -name "*.apk"`. Папка APK =
+UTC `createdAt` рана + `CHANGES.md` (3–6 строк дельты).
+**Установка.** Каждый CI-билд с новым debug-ключом — сначала `uninstall`,
+потом `install`, проверить `dumpsys package ... | grep lastUpdateTime`.
+`&&`-цепочки скрывают пропущенный install — проверять время.
+**Визард** (координаты 720x1560): WAKEUP + dismiss-keyguard, `monkey -p
+com.ai.assistance.operit.debug -c android.intent.category.LAUNCHER 1`,
+согласие (360,1371) после countdown, тур/приветствие next (650,1378),
+гранты по adb (см. ниже), Check (360,950), next (650,1378), Incomplete
+Continue (~500,905), Standard (100,465 или 360,461), Confirm (360,1206),
+ждать countdown объявления. Тач-таргет нижней стрелки — y~1378, НЕ глиф
+(~1416). Гранты: `pm grant READ_EXTERNAL_STORAGE + RECORD_AUDIO`,
+`appops set SYSTEM_ALERT_WINDOW + MANAGE_EXTERNAL_STORAGE allow`,
+`dumpsys deviceidle whitelist +PKG`, `pm grant FINE/COARSE_LOCATION`,
+`settings put secure location_mode 3` (иначе Location ✗), `screensaver_enabled 0`.
+**Экран.** `uiautomator dump` дохнет с SIGKILL (exit 137, 0-байт xml) —
+не чинится. Только `screencap -p` + чтение PNG через Read (агент ВИДИТ
+скриншоты). Экран спит — кадры протухают (часы стоят): WAKEUP первым делом
+и сравнивать md5. `run-as` — только одиночные команды (кавычки с `;`
+ненадёжны). `logcat` — только `logcat -t N`, полный `-d` вешает shell.
+**Тесты без Gradle** (SDK нет): `/tmp/opencode/kotlinc/bin/kotlinc` +
+`JAVA_HOME=/tmp/opencode/jdk`, cp: `json.jar junit.jar hamcrest.jar
+kotlinx-coroutines-core-jvm.jar kotlin-stdlib.jar (+ okhttp.jar okio.jar
+для translation-файлов)`, стабы из `/tmp/opencode/stubs`
+(`AppLogger.kt`; .java-стабы компилировать javac отдельно — kotlinc не
+даёт .class для .java). Запуск: `java -cp <out:jars> org.junit.runner.JUnitCore
+<TestClass>`. Тестовые Kotlin-файлы — только ASCII: `grep -nP '[^\x00-\x7F]'`
+обязан быть пуст (иначе CJK-NEW в аудите). `\uXXXX` в моих Edit-командах
+РАСКРЫВАЮТСЯ в литералы — писать тесты с CJK только через python-конвертер,
+в команде не должно быть подстроки backslash+u+hex (строить через
+`'\\u%04x' % ord`, проверять grep до и после).
+**Аудит** — ворота только `python3 ci/script/fork_audit.py` REAL exit code
+(не `$?` grep). CJK-NEW обязан быть 0 (китай даже в KDoc/тестах — на
+ревью); конкатенация `stringResource()+...` запрещена (LABEL-CONCAT) —
+только формат-ресурсы `%1$s`; якоря registry.json обязаны существовать
+(править вместе с кодом: ANCHOR-LOST).
 
 ---
 
@@ -48,14 +130,14 @@
 
 | # | Файл | Зачем именно он |
 |---|---|---|
-| 1 | **этот файл** | состояние, решения и два открытых вопроса |
+| 1 | **этот файл** | состояние, решения, чит-шит устройства/CI, открытые пункты |
 | 2 | `docs/FORK-REGISTRY/index.md` | что запускать и что означает каждый код проверки |
 | 3 | `docs/FORK-REGISTRY/registry.json` | ~26 правок форка, у каждой `rationale` и `anchors` (счёт от 30.09 устарел) |
 | 4 | `docs/FORK-REGISTRY/re-audit-l10n.md` | **исправленный диагноз.** Главный документ, если что-то снова по-китайски |
 | 5 | `docs/FORK-REGISTRY/re-audit-prompts.md` | какие промпты видит пользователь, а какие нет |
 | 6 | `docs/FORK-REGISTRY/re-audit-layout.md` | почему английский ломает вёрстку и что ещё не починено |
 | 7 | `docs/TODO/fork-l10n-runbook.md` | механика CI и устройства. **Диагноз в нём неверен**, помечено в шапке |
-| 8 | `docs/TODO/remote_content_translation/index.md` | план про серверный китайский, **реализован как T1 2026-10-03** (`CachedTranslator` + surfaces; остаток: Market-листинги) |
+| 8 | `docs/TODO/remote_content_translation/index.md` | план про серверный китайский, **реализован полностью** (T1 + Market + T2 batch + T3 fallback, включая announcement) |
 
 Файлы, которые будешь править, когда дойдёшь до задач:
 
@@ -298,33 +380,30 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   `splitEnvelope()` in the new `ToolResultFormat.kt` (same package): the
   message line heads the dialog, the same JSON follows indented, non-JSON
   passes through untouched. Unit-tested (`ToolResultFormatTest`, 4 tests).
-- T1 NETWORK CHINESE (решено пользователем 2026-10-03, реализовано, остаток:
-  Market-листинги): перевод дефолтной LLM + кэш по SHA-256 источника
-  (`data/translation/CachedTranslator.kt`). Закрыты: диалог результатов
-  (message + failure bodies, `ToolResultDisplay.kt`), имена и описания
-  плагинов (`TranslatedText`, `PluginTabContent.kt`). Префикс
-  `工具执行时发生意外错误` живёт в `examples/*.ts|*.js` (рантайм тулов, не
-  код приложения) — покрыт переводом failure body, править examples не надо.
-  Остаток: `ui/features/packages/market/` тем же `TranslatedText`.
+- T1 NETWORK CHINESE (CLOSED 2026-10-04, см. T1/T2/T3 разделы ниже): перевод
+  дефолтной LLM + кэш по SHA-256 источника + batch-prefetch +
+  Google-фалбэк. Префикс `工具执行时发生意外错误` живёт в
+  `examples/*.ts|*.js` (рантайм тулов, не код приложения) — покрыт
+  переводом failure body, править examples не надо.
 - DRAWER OVERLAP (already fixed, not U1): screenshot `..._012728...` shows the
   `Not Running` badge landing on the `Permissions` label in the drawer. Fixed
   earlier: `DrawerContent.kt` (~line 81 comment) replaced the word badge with
   a dot. If the overlap is still visible on a new build, reopen with a fresh
   screenshot; otherwise closed.
-- MARKET NO-RETRY (suspect for the dead-network-button report): screenshot
-  `..._013521...` (Market screen, `UnifiedMarket*` under
-  `ui/features/packages/market/`) shows `No scripts or packages available /
-  Refresh or try again later` with a connection-failure toast, and the only
-  recovery is pull-to-refresh (`PullToRefreshBox` in `MarketBrowseList.kt`
-  ~line 262) — no retry button, and the top-right search icon's behaviour on
-  this screen is unverified. NOT confirmed as dead; needs a device re-check:
-  open Market with network, tap the search icon, confirm it opens search.
+- MARKET NO-RETRY (CLOSED 2026-10-04): the top-right search icon was tapped
+  on device and opens plugin search ("Search plugins"). Pull-to-refresh
+  remains the only list recovery, which matches the empty-state copy — not
+  a dead button. The same empty state seen 04.10 with a real
+  `SocketTimeoutException` to `static.operit.app:443` (phone-network side,
+  transient).
 - U1 / D12 (unknown): no referent found in any file, screenshot, or note.
   Do not treat the drawer overlap or the market screen as U1/D12 without
   user confirmation. Ask the user with the screenshot filenames above.
 - Announcement 公告 (`..._011954...`): first-run dialog text comes from the
-  network (upstream notice), not from app resources; out of scope for the
-  English-only work unless the user says otherwise.
+  network (upstream notice), not from app resources; was out of scope,
+  TRANSLATED 2026-10-04 (T2: prefetch in `OperitApp.kt` + `TranslatedText`
+  in `RemoteAnnouncementDialog.kt`, countdown split). Accepted on device
+  twice, fully English.
 
 ## Dropped 2026-10-03 (user directive: strike, revisit in manual testing)
 
@@ -401,7 +480,7 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
 
 - Commit `03d51d5f`: `translateTexts` batch (JSON in/out, ~6000-char chunks),
   `prefetchRuntimeTranslations` triggers (Market page, detail + all comments,
-  installed plugins, announcement), ` TranslationPrefetch` marks so batch and
+  installed plugins, announcement),   `TranslationPrefetch` marks so batch and
   per-item never duplicate, sync cache peek in TranslatedText/Markdown (no
   Chinese flash on hit), announcement dialog translated (countdown split so
   no request fires per second). Tests 16/16 standalone, `fork_audit` exit 0.

@@ -428,6 +428,26 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   failed only at `signRotatedNightlyApk` (no RELEASE_STORE_FILE in CI =
   known keystore gap). Minified-debug measurement still open, runs after T2.
 
+## Shizuku on the test phone (2026-10-04, user suggestion)
+
+- Installed `moe.shizuku.privileged.api` v13.6.0 (APK from
+  `rikkaapps/Shizuku` releases via `gh release download`). Dhizuku was
+  skipped: it needs device-owner, which fails on a provisioned phone with
+  accounts; Operit expects the Shizuku API anyway.
+- Started WITHOUT in-app pairing: Shizuku app shows the exact starter under
+  "View command" — `adb shell <apk-dir>/lib/arm64/libshizuku.so`, apk dir
+  from `pm path moe.shizuku.privileged.api`. Result: "Shizuku is running,
+  Version 13.5, adb".
+- Authorized Operit: drawer Permissions tile (= ShizukuDemoScreen) ->
+  DEBUGGER tab -> "Grant Shizuku Permission" -> system dialog "Allow Operit
+  Debug to access Shizuku?" -> "Allow all the time". Status now "Shizuku
+  Service Granted", Debugger level "Currently in Use".
+- After a reboot Shizuku dies; restart = re-run the same libshizuku.so
+  command over adb (no pairing needed). Re-check "Shizuku is running" in
+  the Shizuku app afterwards.
+- Remaining red on that screen: "Operit Terminal Not Granted" (separate
+  terminal-env setup, not Shizuku).
+
 ## Size work acceptance (2026-10-03)
 
 - Model to SD: location preset to card before download, 225 MB downloaded to

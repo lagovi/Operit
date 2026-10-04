@@ -596,6 +596,7 @@
     <string name="about_storage_internal">Internal storage (app + data)</string>
     <string name="about_storage_sdcard">Memory card (this app)</string>
     <string name="about_storage_total">Total</string>
+    <string name="about_storage_total_summary">%1$s · %2$s</string>
     <string name="about_storage_value">%1$s used · %2$s free</string>
     <string name="about_storage_no_card">No memory card</string>
     <string name="about_storage_calculating">Calculating…</string>
@@ -7138,6 +7139,7 @@
     <string name="stt_custom_add_failed">Could not add: %1$s</string>
     <string name="stt_custom_builtin_name">Built-in GigaAM</string>
     <string name="stt_custom_selected">In use</string>
+    <string name="stt_custom_selected_status">%1$s · %2$s</string>
     <string name="stt_custom_not_downloaded">Not downloaded</string>
     <string name="stt_custom_ready">Ready · %1$s</string>
     <string name="stt_custom_delete">Delete</string>

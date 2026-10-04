@@ -289,9 +289,9 @@
    ],
    "anchors": [
     {
-     "file": "app/src/main/java/com/ai/assistance/operit/data/speech/SttModelRepository.kt",
-     "contains": "suspend fun ensureNcnnModel",
-     "why": "the local STT model is fetched on first use"
+     "file": "app/src/main/java/com/ai/assistance/operit/data/speech/CustomSttModels.kt",
+     "contains": "suspend fun ensureAcoustic",
+     "why": "the local STT model (built-in GigaAM or custom CTC) is fetched on first use"
     },
     {
      "file": "app/src/main/java/com/ai/assistance/operit/util/RemoteAssetFetcher.kt",
@@ -614,7 +614,7 @@
     },
     {
      "file": "app/src/main/java/com/ai/assistance/operit/util/AppDataLocation.kt",
-     "contains": "val INTERNAL",
+     "contains": "enum class Location { INTERNAL, EXTERNAL_APP, SDCARD_APP",
      "why": "one setting now governs the location of every large payload, not just the speech model"
     }
    ],

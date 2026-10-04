@@ -211,7 +211,11 @@ private fun CheckpointRow(
             )
             val line = when {
                 selected && status != null ->
-                    "${stringResource(R.string.stt_custom_selected)} · $status"
+                    stringResource(
+                        R.string.stt_custom_selected_status,
+                        stringResource(R.string.stt_custom_selected),
+                        status
+                    )
                 selected -> stringResource(R.string.stt_custom_selected)
                 status != null -> status
                 else -> null

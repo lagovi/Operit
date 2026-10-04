@@ -422,8 +422,11 @@ private fun AppStorageCard() {
             iconTint = MaterialTheme.colorScheme.primary,
             title = stringResource(id = R.string.about_storage_title),
             subtitleText = breakdown?.let {
-                "${stringResource(id = R.string.about_storage_total)} · " +
+                stringResource(
+                    id = R.string.about_storage_total_summary,
+                    stringResource(id = R.string.about_storage_total),
                     megabytes(it.totalBytes)
+                )
             } ?: stringResource(id = R.string.about_storage_calculating),
         )
         HorizontalDivider(modifier = Modifier.padding(start = 66.dp))

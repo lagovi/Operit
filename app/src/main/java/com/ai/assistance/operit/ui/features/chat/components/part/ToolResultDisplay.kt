@@ -28,6 +28,7 @@ import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.data.translation.CachedTranslator
+import com.ai.assistance.operit.data.translation.TranslationPrefetch
 import com.ai.assistance.operit.ui.features.chat.components.compactDialogHeightWhenShort
 import com.ai.assistance.operit.ui.features.chat.components.rememberCompactDialogMetrics
 
@@ -131,6 +132,107 @@ suspend fun translateRuntimeText(context: Context, source: String): String? {
     )
     return runCatching { cached.translate(source) }.getOrNull()
 }
+
+/**
+ * Synchronous cache read for composables: a hit shows on the first frame
+ * instead of flashing the source until the lookup coroutine runs.
+ */
+fun peekRuntimeTranslation(context: Context, source: String): String? {
+    val cached =
+        CachedTranslator(
+            cacheDir = context.filesDir,
+            // Peek never fetches; the lambda only satisfies the constructor.
+            fetchFresh = { it },
+        )
+    return runCatching { cached.peek(source) }.getOrNull()
+}
+
+/**
+ * Full resolution for one runtime string, shared by TranslatedText and
+ * TranslatedMarkdown: synchronous cache hit first, then — only when a
+ * screen-level prefetch already carries this string — a bounded wait for the
+ * batch, and finally the individual request on a true miss.
+ */
+suspend fun resolveRuntimeTranslation(context: Context, source: String): String? {
+    peekRuntimeTranslation(context, source)?.let { return it }
+    if (!CachedTranslator.containsCjk(source)) return null
+    val key = CachedTranslator.keyFor(source)
+    if (TranslationPrefetch.isActive(key)) {
+        kotlinx.coroutines.withTimeoutOrNull(PREFETCH_SETTLE_MS) {
+            while (
+                peekRuntimeTranslation(context, source) == null &&
+                    TranslationPrefetch.isActive(key)
+            ) {
+                kotlinx.coroutines.delay(PREFETCH_POLL_MS)
+            }
+        }
+        peekRuntimeTranslation(context, source)?.let { return it }
+    }
+    return translateRuntimeText(context, source)
+}
+
+internal const val PREFETCH_SETTLE_MS = 30_000L
+private const val PREFETCH_POLL_MS = 300L
+
+/**
+ * Warms the translation cache for a whole screen in one or a few model
+ * requests instead of one per string. Only CJK cache misses go over the
+ * wire, in [PREFETCH_CHUNK_CHARS]-sized chunks; a failed chunk simply leaves
+ * its strings uncached and they translate individually when composed.
+ * Pure warm-up: it never changes what any composable displays.
+ */
+suspend fun prefetchRuntimeTranslations(context: Context, texts: List<String>) {
+    val pending =
+        texts
+            .filter { CachedTranslator.containsCjk(it) }
+            .distinct()
+    if (pending.isEmpty()) return
+    val service = EnhancedAIService.getInstance(context)
+    val cached =
+        CachedTranslator(
+            cacheDir = context.filesDir,
+            fetchFresh = { text -> service.translateText(text) },
+        )
+    val misses = pending.filter { cached.peek(it) == null }
+    if (misses.isEmpty()) return
+    TranslationPrefetch.mark(misses)
+    try {
+        for (chunk in chunkForPrefetch(misses)) {
+            val fresh =
+                runCatching { service.translateTexts(chunk) }.getOrNull()
+                    ?: continue
+            for ((index, source) in chunk.withIndex()) {
+                fresh[index]?.let { cached.putTranslation(source, it) }
+            }
+        }
+    } finally {
+        TranslationPrefetch.unmark(misses)
+    }
+}
+
+/**
+ * Splits pending sources so no batch request exceeds [PREFETCH_CHUNK_CHARS]
+ * characters of source text. One oversized source travels alone rather than
+ * blocking the rest of the screen behind it.
+ */
+internal fun chunkForPrefetch(texts: List<String>): List<List<String>> {
+    val chunks = mutableListOf<List<String>>()
+    var current = mutableListOf<String>()
+    var currentChars = 0
+    for (text in texts) {
+        if (current.isNotEmpty() && currentChars + text.length > PREFETCH_CHUNK_CHARS) {
+            chunks.add(current)
+            current = mutableListOf()
+            currentChars = 0
+        }
+        current.add(text)
+        currentChars += text.length
+    }
+    if (current.isNotEmpty()) chunks.add(current)
+    return chunks
+}
+
+internal const val PREFETCH_CHUNK_CHARS = 6000
 
 /** 工具结果详情弹窗 美观的弹窗显示完整的工具执行结果 */
 @Composable

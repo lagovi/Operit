@@ -422,6 +422,25 @@ $text
         """.trim()
     }
 
+    /**
+     * Batch translation: several texts in one request, so a screen of
+     * listings prefetches with one call instead of one per card. Input and
+     * output are JSON objects keyed by 1-based index; the model returns the
+     * same shape, nothing else.
+     */
+    fun translationBatchUserPrompt(targetLanguage: String, texts: List<String>): String {
+        val input = org.json.JSONObject()
+        texts.forEachIndexed { index, text -> input.put((index + 1).toString(), text) }
+        return """
+请将以下每条文本翻译为$targetLanguage，保持原文的语气和风格：
+
+$input
+
+只返回一个JSON对象，键与输入相同，值为翻译结果，不要添加任何解释或额外内容。
+例如输入 {"1":"你好","2":"谢谢"} 应返回 {"1":"Hello","2":"Thank you"}。
+        """.trim()
+    }
+
     fun packageDescriptionSystemPrompt(useEnglish: Boolean): String {
         return if (useEnglish) {
             "You are a professional technical writer who excels at crafting concise and clear descriptions for software toolkits."

@@ -3156,6 +3156,15 @@ class EnhancedAIService private constructor(private val context: Context) {
     }
 
     /**
+     * Batch translation: several texts in one model request.
+     * @return 0-based index into [texts] to translation; mangled or dropped
+     *   entries are absent and the caller shows those sources untranslated.
+     */
+    suspend fun translateTexts(texts: List<String>, recordTokenUsage: Boolean = true): Map<Int, String> {
+        return conversationService.translateTexts(texts, multiServiceManager, recordTokenUsage)
+    }
+
+    /**
      * 自动生成工具包描述
      * @param pluginName 工具包名称
      * @param toolDescriptions 工具描述列表

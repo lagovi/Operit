@@ -29,6 +29,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -38,9 +39,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.ai.assistance.operit.ui.common.displays.TranslatedText
+import com.ai.assistance.operit.ui.features.chat.components.part.prefetchRuntimeTranslations
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
@@ -77,6 +80,20 @@ fun PluginTabContent(
 
     var orderedItems by remember(orderedPluginList) {
         mutableStateOf(orderedPluginList)
+    }
+
+    // T2: one batch warms every installed plugin name + description, so the
+    // list arrives translated instead of flashing Chinese per card.
+    val prefetchContext = LocalContext.current
+    LaunchedEffect(orderedItems) {
+        if (orderedItems.isNotEmpty()) {
+            prefetchRuntimeTranslations(
+                prefetchContext,
+                orderedItems.flatMap { (_, details) ->
+                    listOf(details.displayName, details.description)
+                }
+            )
+        }
     }
 
     val lazyListState = androidx.compose.foundation.lazy.rememberLazyListState()

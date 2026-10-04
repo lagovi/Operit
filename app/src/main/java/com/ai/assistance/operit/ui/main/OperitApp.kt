@@ -33,6 +33,7 @@ import com.ai.assistance.operit.data.preferences.RemoteAnnouncementPreferences
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.common.NavItem
 import com.ai.assistance.operit.ui.features.announcement.RemoteAnnouncementDialog
+import com.ai.assistance.operit.ui.features.chat.components.part.prefetchRuntimeTranslations
 import com.ai.assistance.operit.ui.main.layout.PhoneLayout
 import com.ai.assistance.operit.ui.main.layout.TabletLayout
 import com.ai.assistance.operit.ui.main.navigation.AppNavigationModel
@@ -408,6 +409,12 @@ fun OperitApp(
 
         val announcement = remoteAnnouncementRepository.fetchDisplayableAnnouncement()
         if (announcement != null && remoteAnnouncementPreferences.shouldShow(announcement.version)) {
+            // T2: the notice is upstream runtime text — warm its translation
+            // before the dialog shows, so no Chinese window after onboarding.
+            prefetchRuntimeTranslations(
+                context,
+                listOf(announcement.title, announcement.body, announcement.acknowledgeText)
+            )
             remoteAnnouncement = announcement
         }
     }

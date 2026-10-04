@@ -9,8 +9,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import com.ai.assistance.operit.data.translation.CachedTranslator
-import com.ai.assistance.operit.ui.features.chat.components.part.translateRuntimeText
+import com.ai.assistance.operit.ui.features.chat.components.part.peekRuntimeTranslation
+import com.ai.assistance.operit.ui.features.chat.components.part.resolveRuntimeTranslation
 
 /**
  * Markdown that translates itself when it arrives in Chinese.
@@ -27,11 +27,10 @@ fun TranslatedMarkdown(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    var translated by remember(text) { mutableStateOf<String?>(null) }
+    var translated by remember(text) { mutableStateOf(peekRuntimeTranslation(context, text)) }
     LaunchedEffect(text) {
-        translated = null
-        if (CachedTranslator.containsCjk(text)) {
-            translateRuntimeText(context, text)?.let { translated = it }
+        if (translated == null) {
+            translated = resolveRuntimeTranslation(context, text)
         }
     }
     MarkdownTextComposable(

@@ -1128,6 +1128,58 @@ ${FunctionalPrompts.translationUserPrompt(targetLanguage, text)}
     }
 
     /**
+     * Batch translation: several texts in one model request, for prefetching
+     * a whole screen of listings. The response is an index-keyed JSON object;
+     * entries the model mangled or dropped are absent from the result and the
+     * caller shows those sources untranslated.
+     *
+     * @return 0-based index into [texts] to translation.
+     */
+    suspend fun translateTexts(
+        texts: List<String>,
+        multiServiceManager: MultiServiceManager,
+        recordTokenUsage: Boolean = true,
+    ): Map<Int, String> {
+        // Fork: English is the only shipped language, so English is the translation
+        // target. The former default sent unmatched locales to Chinese.
+        val targetLanguage = "English"
+
+        val translationPrompt = """
+${FunctionalPrompts.translationBatchUserPrompt(targetLanguage, texts)}
+        """.trim()
+
+        val chatHistory = listOf(
+            PromptTurn(
+                kind = PromptTurnKind.SYSTEM,
+                content = FunctionalPrompts.translationSystemPrompt()
+            )
+        )
+
+        try {
+            val translationService = multiServiceManager.getServiceForFunction(FunctionType.TRANSLATION)
+            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.TRANSLATION)
+
+            val stream = translationService.sendMessage(
+                context = context,
+                chatHistory = chatHistory + PromptTurn(kind = PromptTurnKind.USER, content = translationPrompt),
+                modelParameters = modelParameters,
+                recordTokenUsage = recordTokenUsage,
+            )
+
+            val contentBuilder = StringBuilder()
+            stream.collect { content ->
+                contentBuilder.append(content)
+            }
+
+            return com.ai.assistance.operit.data.translation.parseBatchTranslations(
+                contentBuilder.toString()
+            )
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    /**
      * 自动生成工具包描述
      * @param pluginName 工具包名称
      * @param toolDescriptions 工具描述列表

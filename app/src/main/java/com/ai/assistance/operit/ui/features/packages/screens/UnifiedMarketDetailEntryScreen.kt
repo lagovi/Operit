@@ -62,6 +62,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.data.api.MarketV2Version
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
+import com.ai.assistance.operit.ui.features.chat.components.part.prefetchRuntimeTranslations
 import com.ai.assistance.operit.ui.features.packages.market.MarketReviewState
 import com.ai.assistance.operit.ui.features.packages.market.MarketInstallProgress
 import com.ai.assistance.operit.ui.features.packages.market.MarketInstallStage
@@ -158,6 +159,16 @@ fun UnifiedMarketDetailEntryScreen(
             viewModel.loadEntryReactions(entry)
         }
         if (sourceUrl.isNotBlank()) viewModel.fetchRepositoryInfo(sourceUrl)
+    }
+
+    // T2: one batch warms the title, the About body and every comment, so
+    // the detail and its Comments tab arrive translated without waiting for
+    // the user to open them.
+    LaunchedEffect(entry, currentComments) {
+        val texts =
+            mutableListOf(entry.title, entry.detail.ifBlank { entry.description })
+        for (comment in currentComments) texts.add(comment.body)
+        prefetchRuntimeTranslations(context, texts)
     }
 
     val isPostingCurrentComment = entryId in isPostingComment

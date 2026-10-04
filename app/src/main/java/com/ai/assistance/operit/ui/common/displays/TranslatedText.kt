@@ -15,17 +15,19 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import com.ai.assistance.operit.data.translation.CachedTranslator
-import com.ai.assistance.operit.ui.features.chat.components.part.translateRuntimeText
+import com.ai.assistance.operit.ui.features.chat.components.part.peekRuntimeTranslation
+import com.ai.assistance.operit.ui.features.chat.components.part.resolveRuntimeTranslation
 
 /**
  * Text that translates itself when it arrives in Chinese.
  *
  * Runtime strings — plugin names and descriptions, market listings — come
  * from outside the app resources, so English-only packaging cannot touch
- * them. When the text holds no CJK this is exactly Text(); otherwise one
- * cached LLM translation runs and the result sticks for every later frame.
- * Untranslatable shows the source.
+ * them. When the text holds no CJK this is exactly Text(). A cached
+ * translation shows on the first frame; otherwise one resolution runs
+ * (batch prefetch first when a screen warmed it, individual request
+ * otherwise) and the result sticks for every later frame. Untranslatable
+ * shows the source.
  */
 @Composable
 fun TranslatedText(
@@ -39,11 +41,11 @@ fun TranslatedText(
     onTextLayout: ((TextLayoutResult) -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    var translated by remember(text) { mutableStateOf<String?>(null) }
+    // Synchronous cache read: a warmed screen never flashes the source.
+    var translated by remember(text) { mutableStateOf(peekRuntimeTranslation(context, text)) }
     LaunchedEffect(text) {
-        translated = null
-        if (CachedTranslator.containsCjk(text)) {
-            translateRuntimeText(context, text)?.let { translated = it }
+        if (translated == null) {
+            translated = resolveRuntimeTranslation(context, text)
         }
     }
     Text(

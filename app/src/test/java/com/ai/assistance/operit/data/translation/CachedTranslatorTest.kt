@@ -89,4 +89,60 @@ class CachedTranslatorTest {
     fun plainTextPassesThroughStrip() {
         assertEquals("plain", stripThinkBlocks("plain"))
     }
+
+    @Test
+    fun peekSeesStoredTranslationsWithoutFetching() {
+        val (t, calls) = translator()
+        val source = "\u697c\u5c42\u9650\u5236\u5668"
+        assertEquals(null, t.peek(source))
+        t.putTranslation(source, "Floor Limiter")
+        assertEquals("Floor Limiter", t.peek(source))
+        assertTrue(calls.isEmpty())
+    }
+
+    @Test
+    fun peekIgnoresNonCjk() {
+        val (t, _) = translator()
+        assertEquals(null, t.peek("plain english"))
+    }
+
+    @Test
+    fun putTranslationDropsEchoAndEmpty() {
+        val (t, _) = translator()
+        val source = "\u83b7\u53d6\u8bbe\u5907\u72b6\u6001\u6210\u529f"
+        t.putTranslation(source, source)
+        t.putTranslation(source, "   ")
+        assertEquals(null, t.peek(source))
+    }
+
+    @Test
+    fun parseBatchReadsIndexKeyedJson() {
+        val out = parseBatchTranslations("{\"1\":\"Hello\",\"2\":\"Thank you\"}")
+        assertEquals(mapOf(0 to "Hello", 1 to "Thank you"), out)
+    }
+
+    @Test
+    fun parseBatchSkipsThinkBlocksAndProse() {
+        val out = parseBatchTranslations(
+            "<think>translating two items</think>Here you go: {\"1\":\"Floor Limiter\"} done"
+        )
+        assertEquals(mapOf(0 to "Floor Limiter"), out)
+    }
+
+    @Test
+    fun parseBatchDropsGarbage() {
+        assertTrue(parseBatchTranslations("no braces here").isEmpty())
+        assertTrue(parseBatchTranslations("{\"a\":\"b\"}").isEmpty())
+        assertTrue(parseBatchTranslations("{\"1\":\"\"}").isEmpty())
+    }
+
+    @Test
+    fun prefetchMarkRoundTrip() {
+        val key = CachedTranslator.keyFor("warmup probe")
+        assertFalse(TranslationPrefetch.isActive(key))
+        TranslationPrefetch.mark(listOf("warmup probe"))
+        assertTrue(TranslationPrefetch.isActive(key))
+        TranslationPrefetch.unmark(listOf("warmup probe"))
+        assertFalse(TranslationPrefetch.isActive(key))
+    }
 }

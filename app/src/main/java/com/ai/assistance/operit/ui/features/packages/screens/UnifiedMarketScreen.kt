@@ -80,6 +80,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import com.ai.assistance.operit.ui.features.chat.components.part.prefetchRuntimeTranslations
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -328,6 +329,17 @@ private fun UnifiedMarketListPane(
 
     LaunchedEffect(viewModelKey) {
         viewModel.loadEntriesIfNeeded()
+    }
+
+    // T2: one batch warms the whole page (titles + descriptions) so cards
+    // arrive translated instead of each firing its own model request.
+    LaunchedEffect(entries) {
+        if (entries.isNotEmpty()) {
+            prefetchRuntimeTranslations(
+                context,
+                entries.flatMap { listOf(it.title, it.description) }
+            )
+        }
     }
 
     errorMessage?.let { error ->

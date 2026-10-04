@@ -33,13 +33,31 @@ class CachedTranslator(
      */
     suspend fun translate(text: String): String {
         if (!containsCjk(text)) return text
-        val key = keyFor(text)
-        store.get(key)?.let { return it }
+        peek(text)?.let { return it }
         val fresh = fetchFresh(text).trim()
-        if (fresh.isNotEmpty() && fresh != text) {
-            store.put(key, fresh)
-        }
+        putTranslation(text, fresh)
         return fresh.ifEmpty { text }
+    }
+
+    /**
+     * Synchronous cache read: null on non-CJK or a miss. Composables use it
+     * as the initial value so a cached translation shows on the first frame
+     * instead of flashing the source until the lookup coroutine runs.
+     */
+    fun peek(text: String): String? {
+        if (!containsCjk(text)) return null
+        return store.get(keyFor(text))
+    }
+
+    /**
+     * Stores one translation under the source-hash key. Empty results and
+     * echo answers are dropped: the caller shows the source instead.
+     */
+    fun putTranslation(source: String, translation: String) {
+        val fresh = translation.trim()
+        if (fresh.isNotEmpty() && fresh != source) {
+            store.put(keyFor(source), fresh)
+        }
     }
 
     companion object {
@@ -129,6 +147,38 @@ class FileTranslationStore(private val file: File) : TranslationStore {
 }
 
 private const val CACHE_PATH = "translation_cache/v2.json"
+
+/**
+ * Parses a batch translation response: a JSON object keyed by 1-based index,
+ * as requested by FunctionalPrompts.translationBatchUserPrompt. The raw
+ * stream may carry <think> blocks or prose around the object; the outermost
+ * braces are extracted first. Unparseable or empty entries are dropped, the
+ * caller shows those sources untranslated.
+ *
+ * @return 0-based index to translation.
+ */
+fun parseBatchTranslations(raw: String): Map<Int, String> {
+    val stripped = stripThinkBlocks(raw)
+    val start = stripped.indexOf('{')
+    val end = stripped.lastIndexOf('}')
+    if (start < 0 || end <= start) return emptyMap()
+    val out = LinkedHashMap<Int, String>()
+    try {
+        val json = org.json.JSONObject(stripped.substring(start, end + 1))
+        for (key in json.keys()) {
+            val index = key.toIntOrNull()?.minus(1) ?: continue
+            if (index < 0) continue
+            json.optString(key).trim().takeIf { it.isNotEmpty() }?.let {
+                out[index] = it
+            }
+        }
+    } catch (e: Exception) {
+        AppLogger.e(TAG_BATCH, "Cannot parse batch translation", e)
+    }
+    return out
+}
+
+private const val TAG_BATCH = "BatchTranslations"
 
 /**
  * Removes model thinking blocks from a translation response.

@@ -397,6 +397,37 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   adb reconnect did NOT help; fallback that works: `screencap -p` + visual
   read of the PNG (the agent CAN see screenshots via the Read tool).
 
+## T2 batch acceptance (2026-10-04, CI 37169808187, apk 2026-10-04_02-02-07Z)
+
+- Commit `03d51d5f`: `translateTexts` batch (JSON in/out, ~6000-char chunks),
+  `prefetchRuntimeTranslations` triggers (Market page, detail + all comments,
+  installed plugins, announcement), ` TranslationPrefetch` marks so batch and
+  per-item never duplicate, sync cache peek in TranslatedText/Markdown (no
+  Chinese flash on hit), announcement dialog translated (countdown split so
+  no request fires per second). Tests 16/16 standalone, `fork_audit` exit 0.
+- Accepted on device (fresh install): post-onboarding notice fully English
+  ("Announcement ... Got it", batch visible in logcat thinking), Packages
+  `楼层限制器` flipped to Floor Limiter with zero taps after the batch
+  landed, `v2.json` written (1.2 KB), 0 FATAL in last 300 logcat lines.
+- Gap: upstream `static.operit.app:443` timed out from the phone network
+  (`SocketTimeoutException`, VM log), so Market listings were empty and the
+  list/detail prefetch did not fire live. Same helper as the proven
+  Packages/announcement prefetches; live-fire when the CDN is reachable.
+- Device traps new: screen sleep freezes screencap (status-bar clock stands
+  still — always WAKEUP first and compare md5); wizard bottom-arrow touch
+  target is at y~1378, not on the glyph (~1416); location check needs the
+  master switch (`settings put secure location_mode 3`), grants alone show
+  ✗; `logcat -d` unfiltered hangs the shell — always `logcat -t N`.
+- Audit lesson: `fork_audit.py` exit code is the gate, not grep output —
+  earlier "green" claims read grep's `$?`. Also fixed while here: two
+  LABEL-CONCAT violations (About storage subtitle, custom-STT status line,
+  both mine) and two ANCHOR-LOST registry anchors (SIZE-004 now points at
+  `CustomSttModels.ensureAcoustic`, SIZE-008 anchor updated to the Location
+  enum). CJK-NEW stays 0 — new Chinese prompt text goes through review.
+- R8 experiment: `:app:assembleNightly` compiles + minifies fine; the run
+  failed only at `signRotatedNightlyApk` (no RELEASE_STORE_FILE in CI =
+  known keystore gap). Minified-debug measurement still open, runs after T2.
+
 ## Size work acceptance (2026-10-03)
 
 - Model to SD: location preset to card before download, 225 MB downloaded to

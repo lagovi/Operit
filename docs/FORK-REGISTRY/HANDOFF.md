@@ -428,6 +428,20 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   failed only at `signRotatedNightlyApk` (no RELEASE_STORE_FILE in CI =
   known keystore gap). Minified-debug measurement still open, runs after T2.
 
+## T3 fallback acceptance (2026-10-04, CI 37201078764, apk 2026-10-04_12-08-20Z)
+
+- Commit `5a76aa4d` (user explicitly approved the fallback, lifting the
+  no-fallback rule for this): `GoogleTranslateFallback` (keyless gtx
+  endpoint, JSON sentence parser) + `fetchWithFallback` wiring in single
+  and batch paths (primary error rethrown when both fail, nothing masked).
+  Tests 19/19 standalone, `fork_audit` exit 0.
+- Accepted on device (fresh install): announcement again fully English with
+  split countdown, Packages batch flip with zero taps ("Turn Limiter"),
+  0 FATAL. Fallback branch did NOT fire (primary healthy) — verified by
+  construction: gtx reachable from the phone and returns exactly the parsed
+  shape (`[[["test","测试",...]],null,"zh-CN",...]` via phone curl),
+  parser unit-tested. Live-fire pending a no-model scenario.
+
 ## Shizuku on the test phone (2026-10-04, user suggestion)
 
 - Installed `moe.shizuku.privileged.api` v13.6.0 (APK from

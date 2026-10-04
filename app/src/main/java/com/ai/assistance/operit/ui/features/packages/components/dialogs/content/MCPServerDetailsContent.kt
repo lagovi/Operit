@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.TextUnit
@@ -15,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.mcp.MCPLocalServer
+import com.ai.assistance.operit.ui.common.displays.TranslatedText
 import androidx.compose.ui.res.stringResource
 
 /**
@@ -43,7 +43,7 @@ fun MCPServerDetailsContent(
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
             ) {
-                Text(
+                TranslatedText(
                     text = server.description.takeIf { it.isNotBlank() } ?: stringResource(R.string.mcp_no_description),
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = mdFontSize),
                     modifier = Modifier.padding(12.dp)

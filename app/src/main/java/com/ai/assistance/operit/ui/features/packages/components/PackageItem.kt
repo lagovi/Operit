@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ai.assistance.operit.ui.common.displays.TranslatedText
 
 @Composable
 fun PackageItem(
@@ -47,12 +48,12 @@ fun PackageItem(
                     .weight(1f)
                     .padding(end = 8.dp)
                         ) {
-                                Text(
+                                TranslatedText(
                                         text = name,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium
                                 )
-                                Text(
+                                TranslatedText(
                                         text = description,
                                         style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

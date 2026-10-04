@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,6 +36,7 @@ fun TranslatedText(
     fontWeight: FontWeight? = null,
     maxLines: Int = Int.MAX_VALUE,
     overflow: TextOverflow = TextOverflow.Clip,
+    onTextLayout: ((TextLayoutResult) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var translated by remember(text) { mutableStateOf<String?>(null) }
@@ -52,5 +54,6 @@ fun TranslatedText(
         fontWeight = fontWeight,
         maxLines = maxLines,
         overflow = overflow,
+        onTextLayout = onTextLayout,
     )
 }

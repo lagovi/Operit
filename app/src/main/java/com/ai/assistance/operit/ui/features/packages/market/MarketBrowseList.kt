@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.common.displays.TranslatedText
 import com.ai.assistance.operit.ui.common.icons.rememberRemoteLogoPainter
 import java.time.Instant
 import java.time.LocalDate
@@ -376,7 +377,7 @@ fun MarketBrowseCard(
             )
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
+                TranslatedText(
                     text = model.title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
@@ -396,7 +397,7 @@ fun MarketBrowseCard(
 
                 if (model.description.isNotBlank()) {
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text(
+                    TranslatedText(
                         text = model.description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

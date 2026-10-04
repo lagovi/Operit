@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.common.displays.TranslatedText
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.features.packages.market.MarketReviewReason
 import com.ai.assistance.operit.ui.features.packages.market.MarketReviewState
@@ -167,7 +168,7 @@ fun MarketManageItemCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
+                TranslatedText(
                     text = title,
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleSmall,
@@ -186,7 +187,7 @@ fun MarketManageItemCard(
 
             if (description.isNotBlank()) {
                 Spacer(modifier = Modifier.height(6.dp))
-                Text(
+                TranslatedText(
                     text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

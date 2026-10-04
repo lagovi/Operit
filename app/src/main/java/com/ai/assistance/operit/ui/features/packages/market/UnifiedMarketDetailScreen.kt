@@ -80,7 +80,8 @@ import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.api.MarketV2Comment
 import com.ai.assistance.operit.ui.common.icons.rememberRemoteLogoPainter
-import com.ai.assistance.operit.ui.common.displays.MarkdownTextComposable
+import com.ai.assistance.operit.ui.common.displays.TranslatedMarkdown
+import com.ai.assistance.operit.ui.common.displays.TranslatedText
 import com.ai.assistance.operit.ui.main.LocalTopBarTitleContent
 import com.ai.assistance.operit.ui.main.TopBarTitleContent
 import com.ai.assistance.operit.ui.main.components.LocalAppBarContentColor
@@ -411,7 +412,7 @@ internal fun UnifiedMarketDetailHeaderCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
+                TranslatedText(
                     text = header.title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
@@ -921,7 +922,7 @@ private fun UnifiedMarketDetailSectionCard(
                 )
             }
         } else {
-            MarkdownTextComposable(
+            TranslatedMarkdown(
                 text = section.body,
                 textColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxWidth()
@@ -1263,7 +1264,7 @@ private fun UnifiedMarketDetailCommentCard(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
+                            TranslatedText(
                                 text = body,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

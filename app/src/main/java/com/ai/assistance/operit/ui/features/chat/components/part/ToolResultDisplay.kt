@@ -28,7 +28,10 @@ import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.data.translation.CachedTranslator
+import com.ai.assistance.operit.data.translation.GoogleTranslateFallback
 import com.ai.assistance.operit.data.translation.TranslationPrefetch
+import com.ai.assistance.operit.util.AppLogger
+import okhttp3.OkHttpClient
 import com.ai.assistance.operit.ui.features.chat.components.compactDialogHeightWhenShort
 import com.ai.assistance.operit.ui.features.chat.components.rememberCompactDialogMetrics
 
@@ -122,16 +125,46 @@ fun ToolResultDisplay(
 /**
  * One cached translation of runtime text, shared by the dialog above.
  * Untranslatable input yields null and the caller shows the source.
+ *
+ * The fetch is primary-model-first with the user-approved Google fallback:
+ * when the default model is missing or unreachable the free gtx endpoint
+ * keeps runtime text readable; when both fail the source shows, same as
+ * before.
  */
 suspend fun translateRuntimeText(context: Context, source: String): String? {
+    val service = EnhancedAIService.getInstance(context)
     val cached = CachedTranslator(
         cacheDir = context.filesDir,
-        fetchFresh = { text ->
-            EnhancedAIService.getInstance(context).translateText(text)
-        },
+        fetchFresh = { text -> fetchWithFallback(service, text) },
     )
     return runCatching { cached.translate(source) }.getOrNull()
 }
+
+/**
+ * Primary model first, free Google endpoint second. Throws the primary
+ * error when both fail so the caller still sees a real failure, not a
+ * masked one.
+ */
+internal suspend fun fetchWithFallback(
+    service: EnhancedAIService,
+    text: String,
+): String {
+    try {
+        return service.translateText(text)
+    } catch (primary: Exception) {
+        AppLogger.w(TAG_TRANSLATION, "Primary translation failed, trying Google fallback", primary)
+    }
+    return GoogleTranslateFallback.translate(fallbackHttpClient, text)
+        ?: throw TranslationFailedException()
+}
+
+internal val fallbackHttpClient: OkHttpClient by lazy {
+    OkHttpClient.Builder().retryOnConnectionFailure(true).build()
+}
+
+class TranslationFailedException : Exception("Translation failed on every path")
+
+private const val TAG_TRANSLATION = "RuntimeTranslation"
 
 /**
  * Synchronous cache read for composables: a hit shows on the first frame
@@ -177,9 +210,9 @@ private const val PREFETCH_POLL_MS = 300L
 /**
  * Warms the translation cache for a whole screen in one or a few model
  * requests instead of one per string. Only CJK cache misses go over the
- * wire, in [PREFETCH_CHUNK_CHARS]-sized chunks; a failed chunk simply leaves
- * its strings uncached and they translate individually when composed.
- * Pure warm-up: it never changes what any composable displays.
+ * wire, in [PREFETCH_CHUNK_CHARS]-sized chunks; a dead batch path falls
+ * back to the free Google endpoint per string. Pure warm-up: it never
+ * changes what any composable displays.
  */
 suspend fun prefetchRuntimeTranslations(context: Context, texts: List<String>) {
     val pending =
@@ -191,18 +224,25 @@ suspend fun prefetchRuntimeTranslations(context: Context, texts: List<String>) {
     val cached =
         CachedTranslator(
             cacheDir = context.filesDir,
-            fetchFresh = { text -> service.translateText(text) },
+            fetchFresh = { text -> fetchWithFallback(service, text) },
         )
     val misses = pending.filter { cached.peek(it) == null }
     if (misses.isEmpty()) return
     TranslationPrefetch.mark(misses)
     try {
         for (chunk in chunkForPrefetch(misses)) {
-            val fresh =
-                runCatching { service.translateTexts(chunk) }.getOrNull()
-                    ?: continue
-            for ((index, source) in chunk.withIndex()) {
-                fresh[index]?.let { cached.putTranslation(source, it) }
+            val fresh = runCatching { service.translateTexts(chunk) }.getOrNull()
+            if (fresh != null) {
+                for ((index, source) in chunk.withIndex()) {
+                    fresh[index]?.let { cached.putTranslation(source, it) }
+                }
+            } else {
+                // Batch path dead: fall back per string, same free endpoint.
+                for (source in chunk) {
+                    GoogleTranslateFallback.translate(fallbackHttpClient, source)?.let {
+                        cached.putTranslation(source, it)
+                    }
+                }
             }
         }
     } finally {

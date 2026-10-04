@@ -145,4 +145,28 @@ class CachedTranslatorTest {
         TranslationPrefetch.unmark(listOf("warmup probe"))
         assertFalse(TranslationPrefetch.isActive(key))
     }
+
+    @Test
+    fun googleFallbackParsesSentences() {
+        val raw = "[[[\"Hola\",\"Hello\",null,null,1],[\", \",\", \",null,null,1],[\"mundo\",\"world\",null,null,1]],null,\"es\"]"
+        assertEquals("Hola, mundo", GoogleTranslateFallback.parseResponse(raw))
+    }
+
+    @Test
+    fun googleFallbackDropsBadShapes() {
+        assertEquals(null, GoogleTranslateFallback.parseResponse("oops"))
+        assertEquals(null, GoogleTranslateFallback.parseResponse("[]"))
+        assertEquals(null, GoogleTranslateFallback.parseResponse("[[]]"))
+        assertEquals(null, GoogleTranslateFallback.parseResponse("{\"1\":\"x\"}"))
+        assertEquals(null, GoogleTranslateFallback.parseResponse("[[[\"\",\"\",null,null,1]]]"))
+    }
+
+    @Test
+    fun googleFallbackBuildsKeylessUrl() {
+        val url = GoogleTranslateFallback.requestUrl("test query", "en")
+        assertTrue(url.startsWith("https://translate.googleapis.com/translate_a/single?"))
+        assertTrue(url.contains("client=gtx"))
+        assertTrue(url.contains("tl=en"))
+        assertTrue(url.contains("q=test+query"))
+    }
 }

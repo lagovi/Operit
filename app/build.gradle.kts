@@ -454,6 +454,14 @@ android {
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("debug")
             resValue("string", "app_name", "Operit Debug")
+            // TEMP R8 experiment (revert after measurement): same minification
+            // as nightly, to measure the real dex/APK win on device.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
         create("clone") {
             initWith(getByName("debug"))

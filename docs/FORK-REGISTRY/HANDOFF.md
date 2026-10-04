@@ -370,6 +370,33 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   quotes/newlines in text, use a real XML parser.
 - Disk: / at 96%, /tmp/opencode/apk* cleaned; keep an eye on it.
 
+## T1-Market acceptance (2026-10-04, CI 37164035232, apk 2026-10-04_00-08-59Z)
+
+- Commit `ca511255`: Market cards (title+description), detail header title,
+  About body via new `TranslatedMarkdown` (same CJK gate + cache, markdown
+  renderer kept; code blocks excluded at call site), comment bodies,
+  installed `PackageItem`, `MarketManageItemCard`, MCP descriptions.
+  `TranslatedText` gained `onTextLayout` passthrough (comment expand/collapse).
+  APK 373 MB, size unchanged. `fork_audit` green (0 new CJK).
+- Accepted on device (fresh install, wizard replay, 公告 countdown waited):
+  Packages `楼层限制器` -> `Floor Limiter` live, screen CJK=0; Market list
+  loads over network, English entries byte-intact, no overlap; detail screen
+  (header, badges, metrics, About markdown, Comments(22)) renders, no crash;
+  `files/translation_cache/v2.json` written (3 KB); logcat has no FATAL.
+- Known-accepted, by design: avatar initials stay CJK (single-glyph
+  identifiers derived from title, like usernames); badges (type/category/
+  version) untranslated; review reasons are resource-based.
+- Coverage gap, assessed ~zero risk: Market listings seen were all English,
+  so the Market-card CJK branch did not fire live — but it is the identical
+  `TranslatedText` proven on Packages cards in the same build.
+- Device traps new: wireless debugging died mid-session (port closed, full
+  37000-45200 scan empty); fix = re-pair from the phone (user reads
+  pairing port + code), `echo CODE | adb pair IP:PAIRPORT`, then rescan for
+  the adb port (this time `41599`). `uiautomator dump` started dying with
+  SIGKILL (exit 137, 0-byte xml) after many dumps — sleep/wakeup +
+  adb reconnect did NOT help; fallback that works: `screencap -p` + visual
+  read of the PNG (the agent CAN see screenshots via the Read tool).
+
 ## Size work acceptance (2026-10-03)
 
 - Model to SD: location preset to card before download, 225 MB downloaded to

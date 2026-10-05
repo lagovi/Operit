@@ -1,5 +1,55 @@
 # Size research: measured numbers and hard limits
 
+## 2026-10-05 ledger: what changed and what is DEAD (read this first)
+
+Two levers from the 10-03 table below are now CLOSED by device evidence.
+Do not re-propose them without new facts.
+
+1. **`useLegacyPackaging=false` — REVERTED (`cddb9906`).**
+   Measured 10-03 (`bf48f418`, CI `37086798853`): APK 293 -> 386 MB (+93),
+   installed 435 -> 369 MB (−66). Looked like a pure win for installed size
+   (the user's priority) and was kept. On 10-05 it killed the terminal:
+   with no extraction, `lib/arm64/` on the phone is EMPTY, so
+   `TerminalManager.linkNativeLibs()` (submodule `:terminal`,
+   `applicationInfo.nativeLibraryDir` only) created zero `bash/proot/busybox`
+   links and every session died instantly
+   (`execve(.../files/usr/bin/bash) failed: No such file or directory`,
+   exit 1, black screen, 30 s `Session initialization timeout`).
+   Repair attempt B1 (submodule `26d4964`, `resolveNativeLibSource`:
+   extract the 5 terminal .so from our own APK into `files/usr/bin`) got the
+   links created and then hit the next wall: `execve bash: Permission denied`.
+   Same files execute fine under `run-as` (domain `runas_app`, EXIT=0) but not
+   from the app domain (`untrusted_app`); both files are `app_data_file`
+   (`ls -Z`), `/data` has no `noexec`, no avc in logcat (dontaudit). Verdict:
+   Samsung A20s forbids `untrusted_app` from executing `app_data_file`, so
+   terminal binaries MUST come from PM-extracted `lib/` with the system label.
+   Revert A-build (CI `37299257049`): APK 373 -> 287 MB, terminal accepted on
+   device 10-05 15:12 (live `$`, 358 MB tree, `.operit_installed_ok`).
+   Installed footprint of the A-build was NOT remeasured — re-run
+   `adb shell du -sh` on the package dir before quoting a number
+   (pre-revert eras: 435 MB with `true`, 369 MB with `false`).
+   Consequence for future size work: native libs are untouchable as long as
+   the terminal execs prebuilts. Any new `false`-style attempt must first prove
+   exec works from its target location on the Samsung test phone.
+2. **Rootfs to external storage — FAILED (Q1 verdict 10-05, protocol in
+   `docs/TODO/offline-assets-move/2_WorkQueue.md` item 1).** 358 MB unpacked
+   tree copied with `busybox cp -a` (app uid, via `run-as`) to EXTERNAL_APP
+   (`/storage/emulated/0/...`, FUSE): files copy, symlinks do not — hundreds
+   of `can't create symlink ... Operation not permitted` (`etc/ssl/certs`,
+   `etc/alternatives`, merged-/usr `bin/lib/sbin`, `dev/std*`). SDCARD_APP
+   (`/storage/5982-1724/...`): `ln -s` fails immediately (`Permission
+   denied`). A proot Ubuntu needs its symlinks; dereferencing (`-L`) would
+   double the tree (~700 MB, no fit on the 980 MB card) and still break
+   dangling links (`dev/std*`, `mtab`). So: rootfs stays internal, the
+   61 MB tarball stays in the APK until Q2 hosting exists. Still movable
+   (pure data, no symlinks, `AppDataLocation` infra already in the app):
+   subpack (~59 MB), apktool (~26 MB) — queue items 2–3.
+3. **Still open, unchanged:** subpack/apktool/desktop SD-first-run (Q1 items
+   2–4, need code + acceptance, no hosting); Q2 on-demand removals from the
+   APK (need Releases hosting this fork controls — upstream Google Drive
+   archives are immutable); R8 (blocked on the QuickJS keep-fix, HANDOFF
+   item 5); GigaAM 225 MB to SD (done, operational, M6).
+
 ## 2026-10-03: internal-storage prospects, ranked (APK anatomy at e9c7e0e1)
 
 Stored sizes = bytes on internal flash inside `base.apk` (369 MB total).
@@ -116,9 +166,13 @@ installed size, paid for with a larger download.
 | delta | +93 MB | −66 MB |
 
 Measured with `adb shell du -sh` on the package dir after a clean install.
-All prebuilt `jniLibs` aligned without a build failure. The flag stays `false`
-on the branch: the user values installed size over download size. Revert is one
-line in `app/build.gradle.kts` (`useLegacyPackaging = true`) if that ever flips.
+All prebuilt `jniLibs` aligned without a build failure.
+
+> SUPERSEDED 2026-10-05: the flag did NOT stay `false`. It was reverted to
+> `true` (`cddb9906`) because the terminal cannot start without PM-extracted
+> native libs (Samsung blocks app-domain exec of `app_data_file`; see the
+> 2026-10-05 ledger at the top of this file). Numbers above are the 10-03
+> `false` era — do not quote them as current.
 
 ## Provenance of the build inputs
 

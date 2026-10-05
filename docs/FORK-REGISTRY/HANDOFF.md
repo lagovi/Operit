@@ -41,12 +41,15 @@
   раньше неё):
   1. Очередь 1, rootfs-эксперимент — **ЗАБЛОКИРОВАН 2026-10-05: терминал
      мёртв во всех сборках форка** (диагноз в `docs/TODO/offline-assets-move/
-     2_WorkQueue.md` п.1): наш `useLegacyPackaging=false` (`bf48f418`)
-     перестал извлекать .so в `lib/arm64/`, `TerminalManager.linkNativeLibs()`
-     не создаёт ссылки `bash/proot/busybox`, сессия умирает мгновенно
-     (`execve bash failed`, exit 1, чёрный экран). В APK все 5 .so на месте.
-     Сначала починить старт терминала (развилка B1/C/A там же), затем сам
-     эксперимент: скопировать дерево в EXTERNAL_APP, затем SDCARD_APP,
+     2_WorkQueue.md` п.1). Стадия 1 (нет файлов): наш
+     `useLegacyPackaging=false` (`bf48f418`) перестал извлекать .so в
+     `lib/arm64/`. Стадия 2 (B1-фикс `26d4964` извлечения из APK принят,
+     CI `37259656106` зелёный, ссылки созданы — но `execve bash: Permission
+     denied`): Samsung запрещает `untrusted_app` исполнять `app_data_file`
+     (`ls -Z`, `run-as` исполняет, приложение — нет). Остались A (revert
+     флага: APK ~373→~283 МБ, installed +~66 МБ) или Drop (хороним
+     терминал+Q1). C бессмыслен (хуже A по обоим размерам). После решения —
+     сам эксперимент: скопировать дерево в EXTERNAL_APP, затем SDCARD_APP,
      поднять proot с подменённым `UBUNTU_PATH`. Успех — писать
      `TerminalRootfsStorage` + миграцию + пикер; провал — rootfs
      остаётся internal, SD-механика уходит subpack/apktool (п.2–4 очереди).

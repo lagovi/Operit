@@ -23,14 +23,25 @@
       affected (у них `true`). Сломано с `bf48f418`, терминал в форке не
       открывался ни разу — acceptance T1/T2/T3 его не покрывали.
     - Развилка (размер vs терминал; приоритет пользователя — installed):
-      B1 (рекомендуется) — фалбэк в `linkNativeLibs`: недостающие .so
-      извлекать из собственного APK (`sourceDir`, `lib/arm64-v8a/*.so`) в
-      binDir; цена ~+3.2 МБ installed, выигрыш SIZE цел; правится сабмодуль
-      + bump gitlink + CI + приёмка. C — `extractNativeLibs=true` в
-      манифесте: одна строка, но installed +~60 МБ (все 41 .so), выигрыш
-      SIZE убит. A — revert флага: APK −~90 МБ, но installed +~66 МБ, тоже
-      убивает выигрыш. Без решения пользователя — не чинить, эксперимент
-      стоит.
+      B1 (выбран пользователем, реализован `26d4964`, CI `37259656106` зелёный,
+      приёмка ПРОВАЛЕНА в стадии 2): `resolveNativeLibSource` в
+      `linkNativeLibs` извлекает 5 .so из APK в `files/usr/bin`, все ссылки
+      `bash/proot/busybox/loader/sudo` созданы (проверено `ls -la` 06:49).
+      Но сессия всё равно умирает: `execve(.../files/usr/bin/bash) failed:
+      Permission denied`, exit 1. Файлы `-rwx--x--x`, `run-as` (домен
+      `runas_app`) исполняет их нормально (EXIT=0); падает только exec из
+      домена приложения (`untrusted_app`). Оба файла `app_data_file`
+      (`ls -Z`), `/data` без `noexec`, avc в logcat подавлены (dontaudit).
+      Вывод: Samsung A20s запрещает `untrusted_app` исполнять
+      `app_data_file` (апстрим с `useLegacyPackaging=true` не affected —
+      PM кладёт .so в `lib/` с исполняемой меткой). B1 на этом (и, вероятно,
+      всех Samsung) недостаточен в принципе: из `files/` исполнять нельзя.
+      Остались: A — revert `useLegacyPackaging=true` (`app/build.gradle.kts`):
+      APK ~373→~283 МБ, installed +~66 МБ, терминал работает (конфигурация
+      апстрима, риск минимален). C (`extractNativeLibs=true` при `false`)
+      бессмыслен: проигрывает A и по APK, и равен по installed. Drop —
+      терминал+Q1 хороним, размеры сохраняем (не рекомендуется — мёртвая
+      фича в форке). Без решения пользователя — эксперимент стоит.
     - Тарболл лежит в АССЕТЕ САБМОДУЛЯ:
       `terminal/src/main/assets/ubuntu-noble-aarch64-pd-v4.18.0.tar.xz`
       (61.2 MiB в APK). Вынос из APK = правка сабмодуля

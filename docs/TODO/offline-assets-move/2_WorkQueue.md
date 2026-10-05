@@ -2,11 +2,35 @@
 
 ## Очередь 1: SD-first-run (без хостинга, только код + механика мест)
 
-1. **rootfs**: СНАЧАЛА эксперимент на устройстве, потом код (разведка
-    2026-10-04, см. ниже). При первом запуске копировать/распаковывать не в
-    `files/`, а в `AppDataLocation`-leaf (`terminal_rootfs`), по умолчанию
-    INTERNAL, с возможностью переезда на SD тем же пикером, что у STT-модели.
-    Чтение — через `File`, не `assets.open`. Выигрыш: до 125 МБ.
+ 1. **rootfs**: СНАЧАЛА эксперимент на устройстве, потом код (разведка
+    2026-10-04, см. ниже). **ЗАБЛОКИРОВАНО 2026-10-05: терминал мёртв во всех
+    сборках форка — см. диагноз ниже.** При первом запуске
+    копировать/распаковывать не в `files/`, а в `AppDataLocation`-leaf
+    (`terminal_rootfs`), по умолчанию INTERNAL, с возможностью переезда на
+    SD тем же пикером, что у STT-модели. Чтение — через `File`, не
+    `assets.open`. Выигрыш: до 125 МБ.
+    - ДИАГНОЗ 2026-10-05 (T3-сборка на R9TN601D6GJ, лог `TerminalManager`):
+      любая сессия умирает мгновенно —
+      `execve(.../files/usr/bin/bash) failed: No such file or directory`,
+      exit 1, чёрный экран, затем `Session initialization timeout` (30 с).
+      Причина: наш SIZE-флип `useLegacyPackaging=false` (`bf48f418`)
+      перестал извлекать .so в `lib/arm64/` (на телефоне пусто, проверено),
+      а `TerminalManager.linkNativeLibs()` ищет `libbash/libbusybox/
+      liboperit_proot/liboperit_loader/libsudo.so` ТОЛЬКО в
+      `applicationInfo.nativeLibraryDir` — ссылок ноль, сессия не стартует.
+      В APK все 5 .so НА МЕСТЕ (T3: `unzip -l`, `stored`, bash 1696448,
+      busybox 1498688, proot 256864, loader 1632, sudo 2). Апстрим не
+      affected (у них `true`). Сломано с `bf48f418`, терминал в форке не
+      открывался ни разу — acceptance T1/T2/T3 его не покрывали.
+    - Развилка (размер vs терминал; приоритет пользователя — installed):
+      B1 (рекомендуется) — фалбэк в `linkNativeLibs`: недостающие .so
+      извлекать из собственного APK (`sourceDir`, `lib/arm64-v8a/*.so`) в
+      binDir; цена ~+3.2 МБ installed, выигрыш SIZE цел; правится сабмодуль
+      + bump gitlink + CI + приёмка. C — `extractNativeLibs=true` в
+      манифесте: одна строка, но installed +~60 МБ (все 41 .so), выигрыш
+      SIZE убит. A — revert флага: APK −~90 МБ, но installed +~66 МБ, тоже
+      убивает выигрыш. Без решения пользователя — не чинить, эксперимент
+      стоит.
     - Тарболл лежит в АССЕТЕ САБМОДУЛЯ:
       `terminal/src/main/assets/ubuntu-noble-aarch64-pd-v4.18.0.tar.xz`
       (61.2 MiB в APK). Вынос из APK = правка сабмодуля

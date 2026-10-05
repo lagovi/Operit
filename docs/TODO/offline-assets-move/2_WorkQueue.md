@@ -23,25 +23,26 @@
       affected (у них `true`). Сломано с `bf48f418`, терминал в форке не
       открывался ни разу — acceptance T1/T2/T3 его не покрывали.
     - Развилка (размер vs терминал; приоритет пользователя — installed):
-      B1 (выбран пользователем, реализован `26d4964`, CI `37259656106` зелёный,
-      приёмка ПРОВАЛЕНА в стадии 2): `resolveNativeLibSource` в
-      `linkNativeLibs` извлекает 5 .so из APK в `files/usr/bin`, все ссылки
-      `bash/proot/busybox/loader/sudo` созданы (проверено `ls -la` 06:49).
-      Но сессия всё равно умирает: `execve(.../files/usr/bin/bash) failed:
-      Permission denied`, exit 1. Файлы `-rwx--x--x`, `run-as` (домен
-      `runas_app`) исполняет их нормально (EXIT=0); падает только exec из
-      домена приложения (`untrusted_app`). Оба файла `app_data_file`
-      (`ls -Z`), `/data` без `noexec`, avc в logcat подавлены (dontaudit).
-      Вывод: Samsung A20s запрещает `untrusted_app` исполнять
-      `app_data_file` (апстрим с `useLegacyPackaging=true` не affected —
-      PM кладёт .so в `lib/` с исполняемой меткой). B1 на этом (и, вероятно,
-      всех Samsung) недостаточен в принципе: из `files/` исполнять нельзя.
-      Остались: A — revert `useLegacyPackaging=true` (`app/build.gradle.kts`):
-      APK ~373→~283 МБ, installed +~66 МБ, терминал работает (конфигурация
-      апстрима, риск минимален). C (`extractNativeLibs=true` при `false`)
-      бессмыслен: проигрывает A и по APK, и равен по installed. Drop —
-      терминал+Q1 хороним, размеры сохраняем (не рекомендуется — мёртвая
-      фича в форке). Без решения пользователя — эксперимент стоит.
+      РЕШЕНО пользователем 2026-10-05: вариант A. Revert
+      `useLegacyPackaging=true` (`cddb9906`, CI `37299257049` зелёный, APK
+      287318168 байт) — PM извлёк 41 .so в `lib/arm64/` (проверено на
+      телефоне), ссылки `bash/proot` ведут в `lib/arm64` (путь A, фалбэк B1
+      спит). Приёмка 15:12: сессия `setup-check` жива, баннер Ubuntu, промпт
+      `~ $`, дерево 358 МБ, `.operit_installed_ok` на месте. B1-коммит
+      `26d4964` в сабмодуле оставлен (безвреден, страхует будущие флипы).
+    - ВЕРДИКТ ЭКСПЕРИМЕНТА 2026-10-05: FAIL, обе внешние локации.
+      EXTERNAL_APP (`/storage/emulated/0/...`, FUSE): файлы копируются,
+      симлинки — нет (сотни `can't create symlink ... Operation not
+      permitted`: `etc/ssl/certs`, `etc/alternatives`, критичные
+      merged-/usr `bin/lib/sbin`, `dev/std*`). SDCARD_APP
+      (`/storage/5982-1724/...`): `ln -s` запрещён сразу (`Permission
+      denied`, каталог остался пуст). Без симлинков дерево не загрузится;
+      обход `-L` (разыменование) удваивает размер (~700 МБ, не влезет в
+      980 МБ карты) и всё равно ломает висячие ссылки (`dev/std*`, `mtab`).
+      Итог честно: rootfs остаётся internal; тарболл 61 МБ остаётся в APK
+      до Q2/хостинга; SD-механика (`AppDataLocation` уже есть) достаётся
+      subpack/apktool — чистым данным симлинки не нужны. Мусор эксперимента
+      вычищен (`q1_ubuntu_ext`, `qtest` удалены).
     - Тарболл лежит в АССЕТЕ САБМОДУЛЯ:
       `terminal/src/main/assets/ubuntu-noble-aarch64-pd-v4.18.0.tar.xz`
       (61.2 MiB в APK). Вынос из APK = правка сабмодуля

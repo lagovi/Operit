@@ -37,13 +37,9 @@
 - Открытое на следующую сессию:
   1. M6-приёмка речи: DONE 2026-10-05 (раздел M6 ниже). Остаток-ноль.
      Дальше только если пользователь пожалуется на качество дальнего поля.
-  2. R8-замер на debug: nightly минифицируется успешно (доказано run
-     `37166977076`, упал только `signRotatedNightlyApk` — нет keystore в CI).
-     Как делать: временно `isMinifyEnabled=true` + `isShrinkResources=true`
-     в `debug` (те же proguard-файлы, что у nightly), commit, dispatch
-     `assembleDebug`, замер `AppStorageUsage`/About на телефоне, commit
-     revert (возвращает дерево в принятое состояние — повторная приёмка
-     не нужна). Если плохо — просто не включать.
+  2. R8-замер: ОТКЛОНЁН 2026-10-05 (раздел R8 ниже). Минифицированный debug
+     падает на старте, revert уже влит (`ce29250f`). Не включать без починки
+     keep-правил; отдельной задачей можно починить и перемерить.
   3. Очередь 1 offline-assets-move по `docs/TODO/offline-assets-move/`.
   4. Live-fire при случае (код готов, верифицирован конструкцией, не огнём):
      префетч Market-списка/детайла когда поднимется `static.operit.app`
@@ -586,6 +582,31 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
 - Бонус-находка (не UI, только logcat, pre-existing): `E/AnrMonitor: Main
   thread not responding: 1230ms - 可能发生ANR!` — хардкод-китай в логе
   апстрима. На UI не влияет; кандидат в отдельный follow-up, не M6.
+
+## R8 experiment verdict: REJECTED (2026-10-05, CI 37206856650)
+
+- Эксперимент: `isMinifyEnabled + isShrinkResources` в `debug` (`f37ff8a1`),
+  сборка зелёная, APK 373487996 -> 333371794 байт (−40.1 МБ, −10.7%).
+- На телефоне минифицированный debug ПАДАЕТ НА СТАРТЕ: `Application Error`,
+  `java.lang.NoSuchMethodError: no non-static method
+  "Lcom/ai/assistance/operit/core/tools/javascript/
+  QuickJsNativeHostDispatcher;.onCall(Ljava/lang/String;Ljava/lang/String;)
+  Ljava/lang/String;"` из `QuickJsNativeBridge.nativeCreate` <-
+  `QuickJsNativeRuntime$Companion.create (QuickJsNativeRuntime.kt:55)` <-
+  `OperitQuickJsEngine.runtime$lambda$0 (OperitQuickJsEngine.kt:29)`. R8
+  вычистил/переименовал метод, который зовёт нативный код через JNI;
+  keep-правил для QuickJS в `app/proguard-rules.pro` НЕДОСТАТОЧНО
+  (комментарий в build.gradle про «уже есть keep rules» — неверен).
+- Хуже: `release {}` и `create("nightly")` в том же файле используют ТУ ЖЕ
+  минификацию — релизные и nightly-сборки, видимо, сломаны так же (на
+  устройстве минифицированное не гонялось НИ РАЗУ). Отдельной задачей:
+  дописать keep для QuickJS JNI (класс + сигнатура onCall), затем повторить
+  эксперимент; до этого минификацию не включать нигде.
+- Revert влит (`ce29250f`, дерево = принятое T3), на телефон возвращён T3
+  (скачан заново с CI 37201078764 — папку `apk/2026-10-04_12-08-20Z`
+  пользователь удалил с диска; установлен 04:04:38, визард пройден,
+  стартует без ошибок). В `apk/` осталась только R8-папка (остальные удалил
+  пользователь).
 
 ## Size work acceptance (2026-10-03)
 

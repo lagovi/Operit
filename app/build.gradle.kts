@@ -506,13 +506,15 @@ android {
 
         jniLibs {
             // SIZE-007 experiment, 2026-10-03: false stops the package manager
-            // from extracting a second copy of every .so next to the APK
-            // (that was 152 MB of installed footprint). The price is paid in
-            // the APK instead: AGP stores the libraries uncompressed and
-            // page-aligned so they map straight out of the file. Revert to
-            // true if the installed saving does not justify the fatter
-            // download, or if any prebuilt lib refuses to align.
-            useLegacyPackaging = false
+            // from extracting a second copy of every .so next to the APK.
+            // REVERTED to true 2026-10-05 (Q1 diagnosis): the terminal runs
+            // prebuilt bash/proot/busybox binaries via exec, and Samsung
+            // policy forbids untrusted_app from executing app_data_file, so
+            // the libs must be extracted by the package manager into lib/
+            // with an executable label. APK gets smaller (compressed .so),
+            // installed grows back (~+66 MB). See
+            // docs/TODO/offline-assets-move/2_WorkQueue.md item 1.
+            useLegacyPackaging = true
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"

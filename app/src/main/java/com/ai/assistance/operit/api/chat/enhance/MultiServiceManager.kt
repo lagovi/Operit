@@ -14,6 +14,7 @@ import com.ai.assistance.operit.data.model.getModelByIndex
 import com.ai.assistance.operit.data.model.getValidModelIndex
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
+import com.ai.assistance.operit.data.stats.LlmIoLogRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -133,7 +134,8 @@ class MultiServiceManager(private val context: Context) {
         val configMapping = functionalConfigManager.getConfigMappingForFunction(functionType)
         val config = modelConfigManager.getModelConfigFlow(configMapping.configId).first()
 
-        val service = createServiceFromConfig(config, configMapping.modelIndex)
+        val service =
+            createServiceFromConfig(config, configMapping.modelIndex, functionTag = functionType.name)
         val managedService = ManagedService(
             service = service,
             modelConfig = config
@@ -154,7 +156,12 @@ class MultiServiceManager(private val context: Context) {
         customServiceInstances[cacheKey]?.let { return it }
 
         val config = modelConfigManager.getModelConfigFlow(configId).first()
-        val service = createServiceFromConfig(config, normalizedIndex)
+        val service =
+            createServiceFromConfig(
+                config,
+                normalizedIndex,
+                functionTag = LlmIoLogRepository.FUNCTION_AD_HOC
+            )
         val managedService = ManagedService(
             service = service,
             modelConfig = config
@@ -295,7 +302,11 @@ class MultiServiceManager(private val context: Context) {
     }
 
     /** 根据配置创建AIService实例 */
-    private suspend fun createServiceFromConfig(config: ModelConfigData, modelIndex: Int): AIService {
+    private suspend fun createServiceFromConfig(
+        config: ModelConfigData,
+        modelIndex: Int,
+        functionTag: String? = null
+    ): AIService {
         // 使用公共函数计算有效索引
         val actualIndex = getValidModelIndex(config.modelName, modelIndex)
         
@@ -316,7 +327,8 @@ class MultiServiceManager(private val context: Context) {
         val rawService = AIServiceFactory.createService(
             config = configWithSelectedModel,
             modelConfigManager = modelConfigManager,
-            context = context
+            context = context,
+            functionTag = functionTag
         )
 
         val requestLimitPerMinute = config.requestLimitPerMinute.coerceAtLeast(0)

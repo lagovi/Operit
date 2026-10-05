@@ -6,6 +6,8 @@ import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
 import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.model.LlmIoLogEntity
+import com.ai.assistance.operit.data.stats.LlmIoLogRepository
 import com.ai.assistance.operit.data.stats.ProviderUsageSnapshot
 import com.ai.assistance.operit.data.stats.TokenUsageRepository
 import com.ai.assistance.operit.util.AppLogger
@@ -24,13 +26,24 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-/** Records successful formal-inference requests with provider-confirmed usage. */
+/**
+ * Records successful formal-inference requests with provider-confirmed usage.
+ *
+ * @param functionTag labels every request in the LLM I/O log: a FunctionType
+ * name for functional services, CHAT for the chat service, AD_HOC for ad-hoc
+ * custom-config services. Each managed service instance serves exactly one
+ * function (MultiServiceManager caches per FunctionType), so a
+ * construction-time tag stays accurate without touching call sites.
+ */
 class TokenTrackingAIService(
     private val delegate: AIService,
     context: Context,
     private val configId: String,
+    private val functionTag: String? = null,
 ) : AIService {
-    private val repository = TokenUsageRepository.getInstance(context.applicationContext)
+    private val appContext = context.applicationContext
+    private val repository = TokenUsageRepository.getInstance(appContext)
+    private val logRepository = LlmIoLogRepository.getInstance(appContext)
     private val activeRequests = ConcurrentHashMap.newKeySet<RequestTracker>()
     private val cancellationLock = Any()
     private var cancellationEpoch = 0L
@@ -130,11 +143,30 @@ class TokenTrackingAIService(
                     },
                 )
             }
+        val logSession =
+            if (recordTokenUsage && logRepository.isEnabled()) {
+                IoLogSession(
+                    function = functionTag ?: LlmIoLogRepository.FUNCTION_CHAT,
+                    modelId = providerModel,
+                    configId = configId,
+                    requestJson =
+                        LlmIoLogRepository.formatRequest(
+                            turns = chatHistory,
+                            parameters = modelParameters,
+                            enableThinking = enableThinking,
+                            stream = stream,
+                        ),
+                    startedAtMs = System.currentTimeMillis(),
+                )
+            } else {
+                null
+            }
         return wrapStream(
             inner = inner,
             request = request,
             onStarted = onStarted,
             onFinished = onFinished,
+            logSession = logSession,
         )
     }
 
@@ -175,19 +207,39 @@ class TokenTrackingAIService(
         request: RequestTracker,
         onStarted: () -> Unit,
         onFinished: () -> Unit,
+        logSession: IoLogSession?,
     ): Stream<String> =
         if (inner is TextStreamEventCarrier) {
-            TrackingRevisableStream(inner, inner.eventChannel, request, repository, onStarted, onFinished)
+            TrackingRevisableStream(
+                inner,
+                inner.eventChannel,
+                request,
+                repository,
+                logRepository,
+                onStarted,
+                onFinished,
+                logSession
+            )
         } else {
-            TrackingStream(inner, request, repository, onStarted, onFinished)
+            TrackingStream(
+                inner,
+                request,
+                repository,
+                logRepository,
+                onStarted,
+                onFinished,
+                logSession
+            )
         }
 
     private class TrackingStream(
         private val inner: Stream<String>,
         private val request: RequestTracker,
         private val repository: TokenUsageRepository,
+        private val logRepository: LlmIoLogRepository,
         private val onStarted: () -> Unit,
         private val onFinished: () -> Unit,
+        private val logSession: IoLogSession?,
     ) : Stream<String> {
         override val isLocked: Boolean get() = inner.isLocked
         override val bufferedCount: Int get() = inner.bufferedCount
@@ -196,15 +248,18 @@ class TokenTrackingAIService(
         override fun clearBuffer() = inner.clearBuffer()
 
         override suspend fun collect(collector: StreamCollector<String>) {
-            try {
-                onStarted()
-                request.throwIfCancelled()
-                inner.collect { value -> collector.emit(value) }
-                currentCoroutineContext().ensureActive()
-                persist(repository, request, request.finish())
-            } finally {
-                onFinished()
-            }
+            // runTrackedCollect is an outer member, unreachable from a nested
+            // class; route through the companion bridge instead.
+            runCollectBridge(
+                inner = inner,
+                collector = collector,
+                request = request,
+                repository = repository,
+                logRepository = logRepository,
+                logSession = logSession,
+                onStarted = onStarted,
+                onFinished = onFinished,
+            )
         }
     }
 
@@ -213,8 +268,10 @@ class TokenTrackingAIService(
         override val eventChannel: SharedStream<TextStreamEvent>,
         private val request: RequestTracker,
         private val repository: TokenUsageRepository,
+        private val logRepository: LlmIoLogRepository,
         private val onStarted: () -> Unit,
         private val onFinished: () -> Unit,
+        private val logSession: IoLogSession?,
     ) : RevisableTextStream {
         override val isLocked: Boolean get() = inner.isLocked
         override val bufferedCount: Int get() = inner.bufferedCount
@@ -223,15 +280,98 @@ class TokenTrackingAIService(
         override fun clearBuffer() = inner.clearBuffer()
 
         override suspend fun collect(collector: StreamCollector<String>) {
-            try {
-                onStarted()
-                request.throwIfCancelled()
-                inner.collect { value -> collector.emit(value) }
-                currentCoroutineContext().ensureActive()
-                persist(repository, request, request.finish())
-            } finally {
-                onFinished()
+            runCollectBridge(
+                inner = inner,
+                collector = collector,
+                request = request,
+                repository = repository,
+                logRepository = logRepository,
+                logSession = logSession,
+                onStarted = onStarted,
+                onFinished = onFinished,
+            )
+        }
+    }
+
+    /**
+     * Accumulates one request/response pair for the I/O log. Chunk appends
+     * are capped; failures record a short reason with the partial response.
+     */
+    private class IoLogSession(
+        private val function: String,
+        private val modelId: String,
+        private val configId: String,
+        private val requestJson: String,
+        private val startedAtMs: Long,
+    ) {
+        private val responseBuilder = StringBuilder()
+        private var truncated = false
+        private var failed = false
+        private var failureReason: String? = null
+        private var persisted = false
+        private val lock = Any()
+
+        fun appendResponse(chunk: String) {
+            synchronized(lock) {
+                val room = LlmIoLogRepository.MAX_RESPONSE_CHARS - responseBuilder.length
+                if (room <= 0) {
+                    truncated = true
+                    return
+                }
+                if (chunk.length > room) {
+                    responseBuilder.append(chunk, 0, room)
+                    truncated = true
+                } else {
+                    responseBuilder.append(chunk)
+                }
             }
+        }
+
+        fun fail(reason: String) {
+            synchronized(lock) {
+                failed = true
+                if (failureReason == null) failureReason = reason
+            }
+        }
+
+        /** Builds the row exactly once; concurrent/double completion is dropped. */
+        fun toEntity(usage: TokenUsageRecordEntity?): LlmIoLogEntity? {
+            synchronized(lock) {
+                if (persisted) return null
+                persisted = true
+            }
+            val responseSnapshot: String
+            val failedSnapshot: Boolean
+            val reasonSnapshot: String?
+            synchronized(lock) {
+                responseSnapshot =
+                    buildString {
+                        append(responseBuilder)
+                        if (truncated) append(LlmIoLogRepository.TRUNCATION_MARKER)
+                    }
+                failedSnapshot = failed
+                reasonSnapshot = failureReason
+            }
+            return LlmIoLogEntity(
+                timestampMs = startedAtMs,
+                function = function,
+                modelId = modelId,
+                configId = configId,
+                requestJson = requestJson,
+                responseText = responseSnapshot,
+                promptTokens =
+                    usage?.let {
+                        LlmIoLogRepository.promptTokensOf(
+                            uncachedInputTokens = it.uncachedInputTokens,
+                            cachedInputTokens = it.cachedInputTokens,
+                            cacheWriteTokens = it.cacheWriteTokens,
+                            totalInputTokens = it.totalInputTokens,
+                        )
+                    },
+                completionTokens = usage?.outputTokens,
+                latencyMs = System.currentTimeMillis() - startedAtMs,
+                error = if (failedSnapshot) reasonSnapshot ?: "failed" else null,
+            )
         }
     }
 
@@ -332,6 +472,84 @@ class TokenTrackingAIService(
 
     companion object {
         private const val TAG = "TokenTrackingAIService"
+
+        /**
+         * Shared collect path for both stream wrappers (nested classes cannot
+         * reach outer members). Delivers chunks untouched, then persists token
+         * usage and the I/O log row; the writes run after the last chunk was
+         * emitted, so logging never delays the visible stream.
+         */
+        private suspend fun runCollectBridge(
+            inner: Stream<String>,
+            collector: StreamCollector<String>,
+            request: RequestTracker,
+            repository: TokenUsageRepository,
+            logRepository: LlmIoLogRepository,
+            logSession: IoLogSession?,
+            onStarted: () -> Unit,
+            onFinished: () -> Unit,
+        ) {
+            try {
+                onStarted()
+                try {
+                    request.throwIfCancelled()
+                } catch (e: CancellationException) {
+                    // Cancelled before the first chunk: log the attempt, then propagate.
+                    logSession?.fail("cancelled")
+                    logSession?.let { persistIoLog(logRepository, it, null) }
+                    throw e
+                }
+                try {
+                    inner.collect { value ->
+                        logSession?.appendResponse(value)
+                        collector.emit(value)
+                    }
+                } catch (e: Throwable) {
+                    // Stream failed mid-flight: keep the partial response, then propagate.
+                    logSession?.fail(
+                        if (e is CancellationException) {
+                            "cancelled"
+                        } else {
+                            e.message?.take(512) ?: e.javaClass.simpleName
+                        }
+                    )
+                    // finish() must not mask the in-flight failure with its own.
+                    val usage = runCatching { request.finish() }.getOrNull()
+                    logSession?.let { persistIoLog(logRepository, it, usage) }
+                    throw e
+                }
+                try {
+                    currentCoroutineContext().ensureActive()
+                } catch (e: CancellationException) {
+                    // Cancel raced a completed stream: the response was fully
+                    // delivered, still log it before propagating.
+                    logSession?.fail("cancelled")
+                    val usage = runCatching { request.finish() }.getOrNull()
+                    logSession?.let { persistIoLog(logRepository, it, usage) }
+                    throw e
+                }
+                val usage = request.finish()
+                persist(repository, request, usage)
+                logSession?.let { persistIoLog(logRepository, it, usage) }
+            } finally {
+                onFinished()
+            }
+        }
+
+        /** Bodies stay in Room only; logcat gets the outcome, never content. */
+        private suspend fun persistIoLog(
+            logRepository: LlmIoLogRepository,
+            session: IoLogSession,
+            usage: TokenUsageRecordEntity?,
+        ) {
+            withContext(Dispatchers.IO + NonCancellable) {
+                try {
+                    session.toEntity(usage)?.let { logRepository.record(it) }
+                } catch (e: Exception) {
+                    AppLogger.e(TAG, "llm io log insert failed", e)
+                }
+            }
+        }
 
         private suspend fun persist(
             repository: TokenUsageRepository,

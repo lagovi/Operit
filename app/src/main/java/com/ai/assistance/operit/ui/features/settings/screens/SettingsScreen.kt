@@ -53,6 +53,7 @@ fun SettingsScreen(
         navigateToPersonaCardGeneration: () -> Unit,
         navigateToWaifuModeSettings: () -> Unit,
         navigateToTokenUsageStatistics: () -> Unit,
+        navigateToLlmIoLog: () -> Unit,
         navigateToContextSummarySettings: () -> Unit,
         navigateToLayoutAdjustmentSettings: () -> Unit
 ) {
@@ -276,6 +277,13 @@ fun SettingsScreen(
                                 subtitle = stringResource(id = R.string.settings_token_usage_subtitle),
                                 icon = Icons.Default.Analytics,
                                 onClick = navigateToTokenUsageStatistics
+                        )
+
+                        CompactSettingsItem(
+                                title = stringResource(id = R.string.settings_llm_io_log),
+                                subtitle = stringResource(id = R.string.settings_llm_io_log_subtitle),
+                                icon = Icons.Default.ReceiptLong,
+                                onClick = navigateToLlmIoLog
                         )
                 }
 

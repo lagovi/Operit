@@ -264,18 +264,22 @@ object AIServiceFactory {
      * @param config 模型配置数据
      * @param modelConfigManager 模型配置管理器，用于多API Key模式
      * @param context Android上下文，用于MNN等需要访问本地资源的提供商
+     * @param functionTag метка функции для LLM I/O лога (CHAT/TRANSLATION/...,
+     * null для ad-hoc вызовов без функции)
      * @return 对应的AIService实现
      */
     fun createService(
         config: ModelConfigData,
         modelConfigManager: ModelConfigManager,
-        context: Context
+        context: Context,
+        functionTag: String? = null
     ): AIService {
         val rawService = buildService(config, modelConfigManager, context)
         return TokenTrackingAIService(
             delegate = rawService,
             context = context,
             configId = config.id,
+            functionTag = functionTag,
         )
     }
     private fun buildService(

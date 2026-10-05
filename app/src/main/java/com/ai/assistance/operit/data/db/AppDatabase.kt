@@ -11,7 +11,9 @@ import com.ai.assistance.operit.data.dao.ChatDao
 import com.ai.assistance.operit.data.dao.MessageDao
 import com.ai.assistance.operit.data.dao.MessageVariantDao
 import com.ai.assistance.operit.data.dao.TokenUsageDao
+import com.ai.assistance.operit.data.dao.LlmIoLogDao
 import com.ai.assistance.operit.data.model.ChatEntity
+import com.ai.assistance.operit.data.model.LlmIoLogEntity
 import com.ai.assistance.operit.data.model.MessageEntity
 import com.ai.assistance.operit.data.model.MessageVariantEntity
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
@@ -24,8 +26,9 @@ import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
         MessageVariantEntity::class,
         TokenUsageRecordEntity::class,
         TokenStatsModelEntity::class,
+        LlmIoLogEntity::class,
     ],
-    version = 21,
+    version = 22,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +40,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun messageVariantDao(): MessageVariantDao
     abstract fun chatContentDao(): ChatContentDao
     abstract fun tokenUsageDao(): TokenUsageDao
+    abstract fun llmIoLogDao(): LlmIoLogDao
 
     companion object {
         @Volatile
@@ -342,6 +346,57 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+        /** v21 -> v22: LLM I/O log table (request/response bodies per call). */
+        internal val MIGRATION_21_22 =
+            object : Migration(21, 22) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    runSql { db.execSQL(it) }
+                }
+
+                override fun migrate(connection: androidx.sqlite.SQLiteConnection) {
+                    runSql { sql ->
+                        val stmt = connection.prepare(sql)
+                        try {
+                            stmt.step()
+                        } finally {
+                            stmt.close()
+                        }
+                    }
+                }
+
+                private fun runSql(exec: (String) -> Unit) {
+                    exec(
+                        """
+                        CREATE TABLE IF NOT EXISTS `llm_io_log` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            `timestampMs` INTEGER NOT NULL,
+                            `function` TEXT NOT NULL,
+                            `modelId` TEXT NOT NULL,
+                            `configId` TEXT NOT NULL,
+                            `requestJson` TEXT NOT NULL,
+                            `responseText` TEXT NOT NULL,
+                            `promptTokens` INTEGER,
+                            `completionTokens` INTEGER,
+                            `latencyMs` INTEGER,
+                            `error` TEXT
+                        )
+                        """.trimIndent()
+                    )
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS `index_llm_io_log_timestampMs` " +
+                            "ON `llm_io_log` (`timestampMs`)"
+                    )
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS `index_llm_io_log_modelId_timestampMs` " +
+                            "ON `llm_io_log` (`modelId`, `timestampMs`)"
+                    )
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS `index_llm_io_log_function_timestampMs` " +
+                            "ON `llm_io_log` (`function`, `timestampMs`)"
+                    )
+                }
+            }
+
         // 定义从版本2到3的迁移
         private val MIGRATION_2_3 =
             object : Migration(2, 3) {
@@ -459,7 +514,8 @@ abstract class AppDatabase : RoomDatabase() {
                                 MIGRATION_17_18,
                                 MIGRATION_18_19,
                                 MIGRATION_19_20,
-                                MIGRATION_20_21
+                                MIGRATION_20_21,
+                                MIGRATION_21_22
                             ) // 添加新的迁移
                             .build()
                     INSTANCE = instance

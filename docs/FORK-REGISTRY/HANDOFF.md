@@ -6,8 +6,9 @@
 
 **От:** агент, который делал англоязычный форк Operit
 **Кому:** мне же, чистый контекст, та же задача
-**Дата:** 2026-10-06, HEAD `1c0ed81d`, ветка `feat/english-only-build`
-(код включает `cddb9906` revert + сабмодуль `terminal@26d4964`)
+**Дата:** 2026-10-06, HEAD `21325169`, ветка `feat/english-only-build`
+(код `1c0ed81d`: включает `cddb9906` revert + сабмодуль
+`terminal@26d4964`; сверх него только docs-коммиты)
 **Как читать:** статус ниже — правда на сейчас, читать первым. Разделы
 с пометкой SUPERSEDED/CLOSED — история, не трогать. Хеш кодового коммита
 сверять с `git log` — docs-коммиты поведение не меняют.
@@ -34,9 +35,18 @@
   воскрешён 05.10): PM извлекает 41 .so (`useLegacyPackaging=true`,
   `cddb9906`) + спящий фалбэк извлечения из APK в сабмодуле (`26d4964`,
   не срабатывает при `true`, безвреден). Приёмка 15:12 — живой шелл,
-  дерево 358 МБ, `.operit_installed_ok`. Сборка:
+  дерево 358 МБ, `.operit_installed_ok`; повторная проверка 06.10 на
+  llm-io-сборке — снова живой `~ $`. Сборка:
   `/home/uzzzver/operit-fork/apk/2026-10-05_10-51-45Z/` (CI `37299257049`,
   APK 287 МБ).
+- LLM I/O Log ГОТОВ (`1c0ed81d`, CI `37351728353`, приёмка 06.10,
+  APK-папка `2026-10-05_17-52-47Z`): таблица `llm_io_log` (миграция
+  v21→v22), хук в `TokenTrackingAIService.sendMessage` пишет запрос
+  (JSON) + сырой ответ + токены + latency + ошибку; экран в Settings
+  после Token Usage Statistics (список + фильтр по модели + диалог
+  деталей + Copy/Share + Clear + тумблер); крышка 500 строк / 8 МБ.
+  Живое доказательство: 2 TRANSLATION-строки от T2-префетча
+  (in=108/out=1235 @ 6387 мс), статистика токенов сошлась (2 запроса).
 - Shizuku v13.6.0 стоит на телефоне, Operit авторизован, уровень Debugger
   активен (рецепт рестарта после ребута — в разделе Shizuku ниже).
 - Размеры честно: APK A-сборки 287 МБ (мерено). Installed для неё НЕ
@@ -68,22 +78,43 @@
    Наблюдение приёмки: лог пишет СЫРОЙ ответ с `<think>`-блоками
    (translateTexts режет их ниже по течению для показа, в лог идёт
    сырьё — так и задумано для дебага).
-2. `supervision-mode` (план `docs/TODO/supervision-mode/index.md` — годный,
-   НЕ реализован, СТРОГО ПОСЛЕ лога). DoD: `FunctionType.SUPERVISION` +
-   привязка + промпт, fire-and-forget хук мимо turn-loop (рекурсия =
-   провал), строгий JSON `{comment, corrected_call}`, коммент во всплывашку,
-   трейсы+JSONL в лог, `corrected_call` никогда не исполняется.
-3. Live-fire при случае (код готов, верифицирован конструкцией, не огнём):
+ 2. `supervision-mode` (план `docs/TODO/supervision-mode/index.md` —
+   детальный и сверенный, НЕ реализован, СТРОГО ПОСЛЕ лога; таблица
+   «Файлы» в плане — якоря, не искать заново). DoD: `FunctionType.
+   SUPERVISION` + привязка в `FunctionalConfigManager` + выбор модели в
+   `FunctionalConfigScreen` + промпт в `FunctionalPrompts`;
+   fire-and-forget хук на границах хода в `services/core/
+   MessageProcessingDelegate.kt` (`onToolInvocation`,
+   `finalizeMessageAndNotify`, `onTurnComplete`) — вызов СТРОГО напрямую
+   через `AIService.sendMessage` с `ServiceLease` от
+   `MultiServiceManager.getServiceForFunction(SUPERVISION)` (шаблон —
+   `ConversationService.translateText`, `ConversationService.kt:1102`),
+   НЕ через `EnhancedAIService`/turn-loop; запрет рекурсии — флагом в
+   контексте вызова (наблюдатель не наблюдает сам себя); строгий JSON
+   `{comment, corrected_call}` (срыв fences, не распарсилось — запись
+   с ошибкой парсинга, во всплывашку ничего); во всплывашку
+   (`toastEvent` → `ChatToastHost`) — только `comment`; записи — в
+   таблицу `llm_io_log` с `function=SUPERVISION` (хук уже пишет туда всё,
+   добавить поля comment/corrected_call — формат зафиксировать в плане
+   при реализации); JSONL-экспорт (digest, driver_call, corrected_call,
+   comment, model_ids) — формат тоже зафиксировать в плане;
+   `corrected_call` НИКОГДА не исполняется; лимиты N/ход + cooldown;
+   тумблер в `SettingsScreen` + DataStore; приёмка на телефоне
+   (всплывашка + строка в логе), аудит 0.
+ 3. Live-fire при случае (код готов, верифицирован конструкцией, не огнём):
    (a) префетч Market-списка/детайла — когда `static.operit.app` поднимется
    (таймаутил с сети телефона 04.10; проверять с телефона:
    `run-as ... files/usr/bin/busybox wget -O - https://static.operit.app`
-   или открыть Market и смотреть пусто/не пусто);
+   или открыть Market и смотреть пусто/не пусто). Частично доказан
+   живьём 06.10: T2-батч для Packages дал 2 строки в `llm_io_log`
+   (TRANSLATION) — механика та же, не доказан только CDN-путь;
    (b) Google-фалбэк без модели — снять/не назначать дефолтную модель и
    открыть Packages (осторожно: debug-пресет назначает модель автоматически —
    сначала найти в коде, где её снять: `ModelConfigManager`; если снять
    нельзя без ломания пресета — зафиксировать и отложить).
-4. QuickJS keep-fix (вытек из R8-вердикта ниже). В `app/proguard-rules.pro`
-   сейчас есть keep ТОЛЬКО для `JsEngine$JsToolCallInterface` (:46–47) —
+ 4. QuickJS keep-fix (вытек из R8-вердикта ниже). В `app/proguard-rules.pro`
+   сейчас есть keep ТОЛЬКО для `JsEngine$JsToolCallInterface` (:47,
+   сверено 06.10) —
    для JNI-класса НЕТ НИЧЕГО, вот и `NoSuchMethodError ...onCall`. Добавить:
    `-keep class com.ai.assistance.operit.core.tools.javascript.QuickJsNativeHostDispatcher { *; }`
    (сигнатура жертвы: `onCall(method: String, argsJson: String?): String?`,
@@ -116,10 +147,22 @@
    `RELEASE_STORE_FILE`); нет Releases-хостинга под Q2 (агент МОЖЕТ создать
    `gh release` сам, но только с добра пользователя — какой репозиторий
    и какие ассеты).
-8. Ручное тестирование пользователем: dead button / U1 / D12 вычеркнуты
+ 8. Ручное тестирование пользователем: dead button / U1 / D12 вычеркнуты
    без референта — если всплывут, заводить с именем скриншота и путём
    экрана. Market search icon проверен (открывает поиск) — закрыт.
    Дальнее поле STT — только если пользователь пожалуется (M6 закрыта).
+ 9. НОВОЕ — разобраться с workspace-чатом (блокирует будущие ручные
+   приёмки чата, приоритет низкий, пока хватает функциональных вызовов).
+   Факты 06.10: пустое состояние чата + send = тост «Please create a new
+   chat»; счётчик «0» создаёт беседу; новая беседа требует workspace
+   (Create Default) и дальше показывает ТОЛЬКО WebView-превью без поля
+   ввода; таб «Operit» задизейблен; стрелки стрипа, свайпы, FAB-Unbind,
+   BACK из превью не выводят; SHARE-intent с текстом уходит в
+   аттачменты (`SharedFileHandler`), а не в новый чат. Неизвестно:
+   это поведение апстрима или регрессия форка; есть ли выход из
+   workspace-режима; можно ли чат вообще без workspace. DoD: ответ на
+   эти три вопроса + минимальный рецепт «как вручную отправить сообщение
+   в чат» в чит-шит выше (или задача на фикс, если регрессия).
 
 ## Статус: окружение
 
@@ -201,11 +244,14 @@ Continue (~500,905), Standard (100,465 или 360,461), Confirm (360,1206),
 `settings put secure location_mode 3` (иначе Location ✗), `screensaver_enabled 0`.
 **Экран.** `uiautomator dump` дохнет с SIGKILL (exit 137, 0-байт xml) —
 не чинится. Только `screencap -p` + чтение PNG через Read (агент ВИДИТ
-скриншоты). Экран спит — кадры протухают (часы стоят): WAKEUP первым делом
-и сравнивать md5. `run-as` — только одиночные команды (кавычки с `;`
+скриншоты). Чёрный кадр = поймал переход анимации, не смерть: подождать
+3 с и переснять. Экран спит — кадры протухают (часы стоят): WAKEUP первым
+делом и сравнивать md5. `run-as` — только одиночные команды (кавычки с `;`
 ненадёжны); НЕ забывать `adb shell` — голый `ls /storage/...` идёт на
 ноутбук, а не на телефон (дало ложную «потерю данных» в M6). `logcat` —
-только `logcat -t N`, полный `-d` вешает shell.
+только `logcat -t N`, полный `-d` вешает shell. `adb pull` БЕЗ `-q`
+(такого флага нет — команда падает). `input text`: пробел — ТОЛЬКО `%s`;
+`%20` НЕ раскодируется и уходит литералом в поле ввода.
 **Тапы.** В скролленных списках настроек и дропдаун-меню точка касания
 садится на ~75–100px ВЫШЕ запрошенного Y (доказано `settings put system
 pointer_location 1`: запрос (182,700) дал точку (182,625)). Симптомы: промах
@@ -307,7 +353,7 @@ app/src/main/java/com/ai/assistance/operit/
   api/speech/SpeechService.kt             ← контракт, который надо соблюсти
   ui/features/settings/screens/SpeechToTextScreen.kt   ← UI настроек распознавания
 app/src/main/res/values/strings.xml      ← единственный строковый бакет, здесь английский
-app/build.gradle.kts                      ← localeFilters, useLegacyPackaging=false, зависимости
+app/build.gradle.kts                      ← localeFilters, useLegacyPackaging=true (:517, cddb9906; см. E2 — НЕ флипать вслепую), зависимости
 terminal/                                 ← САБМОДУЛЬ, форк lagovi/OperitTerminalCore
 ```
 

@@ -52,17 +52,32 @@ Do not re-propose them without new facts.
 
 ## 2026-10-03: internal-storage prospects, ranked (APK anatomy at e9c7e0e1)
 
-Stored sizes = bytes on internal flash inside `base.apk` (369 MB total).
-`lib` is now uncompressed (useLegacyPackaging=false), so stored == raw there.
+Status update 2026-10-06: two rows below are DONE, two are DEAD, two are
+OPEN. Do not re-investigate DONE rows; do not re-propose DEAD ones
+(details in the ledger above and in HANDOFF E1–E3).
 
-| # | lever | internal saving | cost |
-|---|-------|----------------:|------|
-| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work |
-| 2 | GigaAM model (225 MB) to SD via the existing picker | 225 MB | zero code; operational, needs the SD present |
-| 3 | Drop `tensorflow.lite` + `mediapipe.tasks.text` (comment says "if needed", zero code references) | ~11.5 MB | two dependency lines; CI-verifiable |
-| 4 | R8/minify for debug builds too (dex stored ~75 MB over 43 files, no minification today) | est. 25–35 MB | slower CI builds; measure like the packaging lever |
-| 5 | oat/dexopt | follows 4 | — |
-| — | res/arsc, aapt2 dupes | negligible / wontfix | — |
+| # | lever | internal saving | cost | status 2026-10-06 |
+|---|-------|----------------:|------|-------------------|
+| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | PART: rootfs DEAD on device (E3, stays internal); subpack/apktool OPEN (Q1 items 2–3, pure data, no symlinks) |
+| 2 | GigaAM model (225 MB) to SD via the existing picker | 225 MB | zero code; operational, needs the SD present | DONE (M6 2026-10-05: SD round-trip byte-identical, engine inits from card) |
+| 3 | Drop `tensorflow.lite` + `mediapipe.tasks.text` (comment says "if needed", zero code references) | ~11.5 MB | two dependency lines; CI-verifiable | DONE (CI `37127299796`: APK 386 -> 373 MB, both .so gone from APK) |
+| 4 | R8/minify for debug builds too (dex stored ~75 MB over 43 files, no minification today) | est. 25–35 MB | slower CI builds; measure like the packaging lever | BLOCKED on QuickJS keep-fix (HANDOFF task 4; E1 rejected the blind attempt) |
+| 5 | oat/dexopt | follows 4 | — | follows 4 |
+| — | res/arsc, aapt2 dupes | negligible / wontfix | — | — |
+
+Before quoting ANY installed-size number for the current build, re-measure
+(the A-build footprint was never remeasured after the revert):
+
+```
+adb shell du -sh /data/app/~~*/com.ai.assistance.operit.debug*   # exact path via: pm path <pkg>
+```
+
+Reference eras (do not quote as current): 435 MB with `true`, 369 MB with
+`false`, APK 287 MB after revert (CI `37299257049`).
+
+Note on the anatomy below: it was measured under `useLegacyPackaging=false`
+(stored == raw in `lib`); after the revert to `true`, APK-side numbers for
+`lib` changed, device-side extraction returned. Re-measure before trusting.
 
 Breakdown of `assets` stored: rootfs 64 MB, `subpack/android.apk` 48 MB,
 `apktool.toolpkg` 27 MB, `subpack/windows.zip` 11 MB, `desktop.apk` 6.5 MB,

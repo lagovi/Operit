@@ -803,6 +803,11 @@ class MessageProcessingDelegate(
         val sendJob =
             coroutineScope.launch(Dispatchers.IO) {
             val sendUserMessageStartTime = messageTimingNow()
+            // Snapshots for the supervision hook: the hook runs in the
+            // finally block, where try-scoped vals are not visible.
+            var supervisionUserText = ""
+            var supervisionDriverProvider = ""
+            var supervisionDriverModel = ""
             val effectivePersistTurn = turnOptions.persistTurn
             val effectiveHideUserMessage = effectivePersistTurn && turnOptions.hideUserMessage
             // 检查这是否是聊天中的第一条用户消息（忽略AI的开场白）
@@ -1096,6 +1101,7 @@ class MessageProcessingDelegate(
                     } else {
                         finalMessageContent
                     }
+                supervisionUserText = requestMessageContent
 
                 val loadProviderModelStartTime = messageTimingNow()
                 val (provider, modelName) = try {
@@ -1108,6 +1114,8 @@ class MessageProcessingDelegate(
                     AppLogger.e(TAG, "获取provider和model信息失败: ${e.message}", e)
                     Pair("", "")
                 }
+                supervisionDriverProvider = provider
+                supervisionDriverModel = modelName
                 logMessageTiming(
                     stage = "delegate.loadProviderModel",
                     startTimeMs = loadProviderModelStartTime,
@@ -1588,10 +1596,10 @@ class MessageProcessingDelegate(
                             superviseCompletedTurn(
                                 chatId = chatId,
                                 turnId = turnId,
-                                userText = requestMessageContent,
+                                userText = supervisionUserText,
                                 finalAnswer = finalAnswer,
-                                driverProvider = provider,
-                                driverModel = modelName,
+                                driverProvider = supervisionDriverProvider,
+                                driverModel = supervisionDriverModel,
                             )
                         }
                         finalized

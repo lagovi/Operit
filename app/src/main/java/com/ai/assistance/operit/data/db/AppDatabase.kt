@@ -424,7 +424,8 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
-        // 定义从版本2到3的迁移        private val MIGRATION_2_3 =
+        // 定义从版本2到3的迁移
+        private val MIGRATION_2_3 =
             object : Migration(2, 3) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     // 向chats表添加group列

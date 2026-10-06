@@ -464,6 +464,7 @@ private fun CompactSettingsItem(
         }
 }
 
+@Composable
 private fun CompactSettingsSwitch(
         title: String,
         subtitle: String,

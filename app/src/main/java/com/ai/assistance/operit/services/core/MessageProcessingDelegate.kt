@@ -1572,7 +1572,7 @@ class MessageProcessingDelegate(
                         )
                         false
                     } else if (cancellationToPropagate == null) {
-                        finalizeMessageAndNotify(
+                        val finalized = finalizeMessageAndNotify(
                             chatId = chatId,
                             activeChatId = activeChatId,
                             aiMessageProvider = { aiMessage },
@@ -1584,16 +1584,17 @@ class MessageProcessingDelegate(
                             calculateNextWindowSize = calculateNextWindowSize,
                             turnOptions = turnOptions
                         )
-                        if (::aiMessage.isInitialized) {
+                        runCatching { aiMessage.content }.getOrNull()?.let { finalAnswer ->
                             superviseCompletedTurn(
                                 chatId = chatId,
                                 turnId = turnId,
                                 userText = requestMessageContent,
-                                finalAnswer = aiMessage.content,
+                                finalAnswer = finalAnswer,
                                 driverProvider = provider,
                                 driverModel = modelName,
                             )
                         }
+                        finalized
                     } else {
                         AppLogger.d(TAG, "取消回合不执行消息收尾: chatId=$activeChatId")
                         false

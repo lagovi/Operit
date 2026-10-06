@@ -49,6 +49,8 @@
   (in=108/out=1235 @ 6387 мс), статистика токенов сошлась (2 запроса).
 - Shizuku v13.6.0 стоит на телефоне, Operit авторизован, уровень Debugger
   активен (рецепт рестарта после ребута — в разделе Shizuku ниже).
+- Supervision Mode: КОД ГОТОВ (`63dadf6e`, аудит 0), приёмка открыта
+  (CI `37443922062` + телефон недоступен — см. задачу 2).
 - Размеры честно: APK A-сборки 287 МБ (мерено). Installed для неё НЕ
   перемерен (эпохи до реверта: 435 МБ при `true`, 369 МБ при `false`) —
   перемерить `du` при случае, не гадать. Леждер «что закрыто и почему»:
@@ -78,29 +80,27 @@
    Наблюдение приёмки: лог пишет СЫРОЙ ответ с `<think>`-блоками
    (translateTexts режет их ниже по течению для показа, в лог идёт
    сырьё — так и задумано для дебага).
- 2. `supervision-mode` (план `docs/TODO/supervision-mode/index.md` —
-   детальный и сверенный, НЕ реализован, СТРОГО ПОСЛЕ лога; таблица
-   «Файлы» в плане — якоря, не искать заново). DoD: `FunctionType.
-   SUPERVISION` + привязка в `FunctionalConfigManager` + выбор модели в
-   `FunctionalConfigScreen` + промпт в `FunctionalPrompts`;
-   fire-and-forget хук на границах хода в `services/core/
-   MessageProcessingDelegate.kt` (`onToolInvocation`,
-   `finalizeMessageAndNotify`, `onTurnComplete`) — вызов СТРОГО напрямую
-   через `AIService.sendMessage` с `ServiceLease` от
-   `MultiServiceManager.getServiceForFunction(SUPERVISION)` (шаблон —
-   `ConversationService.translateText`, `ConversationService.kt:1102`),
-   НЕ через `EnhancedAIService`/turn-loop; запрет рекурсии — флагом в
-   контексте вызова (наблюдатель не наблюдает сам себя); строгий JSON
-   `{comment, corrected_call}` (срыв fences, не распарсилось — запись
-   с ошибкой парсинга, во всплывашку ничего); во всплывашку
-   (`toastEvent` → `ChatToastHost`) — только `comment`; записи — в
-   таблицу `llm_io_log` с `function=SUPERVISION` (хук уже пишет туда всё,
-   добавить поля comment/corrected_call — формат зафиксировать в плане
-   при реализации); JSONL-экспорт (digest, driver_call, corrected_call,
-   comment, model_ids) — формат тоже зафиксировать в плане;
-   `corrected_call` НИКОГДА не исполняется; лимиты N/ход + cooldown;
-   тумблер в `SettingsScreen` + DataStore; приёмка на телефоне
-   (всплывашка + строка в логе), аудит 0.
+ 2. `supervision-mode` — КОД ГОТОВ 2026-10-06 (`63dadf6e`, аудит 0;
+   детали и зафиксированный JSONL-формат — в шапке
+   `docs/TODO/supervision-mode/index.md`). Что внутри:
+   `FunctionType.SUPERVISION` (маппинг/строка FunctionalConfig авто через
+   `values()`, + ветка connection-test + имя/описание + 4 строки);
+   промпт в `FunctionalPrompts` (EN-only, строгий JSON); новый
+   `services/core/SupervisionObserver.kt` (дайджест user+tools+final,
+   вызов напрямую `AIService.sendMessage` с `ServiceLease` от
+   `acquireServiceForFunction`, `recordTokenUsage=false`, одна обогащённая
+   строка в `llm_io_log`, тост только непустого comment, cooldown 30 с);
+   хук в `MessageProcessingDelegate` (конец main-flow после finalize,
+   имена тулов копятся рядом со счётчиком, cap 50); тост через новый
+   колбэк `showToastMessage` (прокинут из `ChatServiceCore` в
+   `UiStateDelegate.showToast`); тумблер `SupervisionPreferences`
+   (default OFF) + свитч в SettingsScreen; Room v22→v23 (5 nullable колонок
+   вердикта); `supervisionJsonl(limit)` API + вердикт в Share-тексте.
+   ОТКРЫТО: CI `37443922062` (диспатч 09:34Z) + приёмка на телефоне
+   (всплывашка + строка `function=SUPERVISION`). Телефон на 09:3xZ
+   НЕДОСТУПЕН (скан портов пуст — отладка выключена, нужен пользователь).
+   Известное ограничение v1: в дайджесте имена тулов БЕЗ аргументов
+   и результатов (нужны хуки глубже, отдельная задача).
  3. Live-fire при случае (код готов, верифицирован конструкцией, не огнём):
    (a) префетч Market-списка/детайла — когда `static.operit.app` поднимется
    (таймаутил с сети телефона 04.10; проверять с телефона:
@@ -201,8 +201,11 @@
   (2 TRANSLATION-строки + диалог). Висит workspace-беседа «New
   Conversati...» (см. лабиринт выше) — для чистых тестов чата удалять
   через Chat History Management.
-  Умирал на 1% посреди работы 14:23 — тяжёлые операции (распаковка, копии
-  сотен МБ) только с запасом заряда.
+   Умирал на 1% посреди работы 14:23 — тяжёлые операции (распаковка, копии
+   сотен МБ) только с запасом заряда.
+   2026-10-06 ~09:35Z: телефон НЕДОСТУПЕН — `adb connect` refused, скан
+   `192.168.1.63` `37000-45200`+`5555` пуст = wireless debugging выключена.
+   Только пользователь может включить (или дать новый IP).
 - LAN gateway для тестов (модель, перевод): `http://192.168.1.55:20128/v1`,
   ключ и модель зашиты пресетом ТОЛЬКО в debug (`ModelConfigManager`,
   `BuildConfig.DEBUG`-ветка). В релиз не тащить.

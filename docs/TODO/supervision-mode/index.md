@@ -1,6 +1,51 @@
 ---
-For_Agent: рабочая задача из очереди, не реализована. Режим надзора: дешёвая модель ведёт чат, умная комментирует во всплывашках.
+For_Agent: РЕАЛИЗОВАНО 2026-10-06, коммит `63dadf6e` (аудит 0). Приёмка НЕ
+закрыта: CI `37443922062` + телефон (всплывашка + строка в логе). Ниже —
+исходный план + зафиксированные при реализации решения.
 ---
+
+# Режим надзора (supervision mode)
+
+## Implementation notes (2026-10-06, коммит `63dadf6e`)
+
+Что сделано сверх/вместо плана:
+
+- Хук — только на конце хода (main-flow после `finalizeMessageAndNotify`,
+  до очистки счётчиков), а не на каждом `onToolInvocation`: колбэк несёт
+  только имя тула (без аргументов/результата), поэтому per-tool дайджесты
+  были бы пустыми. Имена тулов копятся в `currentTurnToolNamesByChatId`
+  (cap 50) и уходят в дайджест списком.
+- Известное ограничение v1: в дайджесте/JSONL есть имена тулов, но НЕТ
+  аргументов вызовов и результатов. Захват аргументов требует хуков глубже
+  (`AIToolHandler`), это отдельная задача, не часть приёмки v1.
+- Вызов наблюдателя — `recordTokenUsage=false` (как пробы): сырая строка НЕ
+  дублируется автологом, токены не пачкают статистику. Вместо этого хук
+  пишет ОДНУ обогащённую строку сам (сырой ответ + вердикт + комментарий).
+- Запрет рекурсии — структурный, не флагом: вызывается напрямую
+  `AIService.sendMessage` арендованного сервиса, turn-loop и
+  `EnhancedAIService` в пути нет, наблюдатель не может наблюдать сам себя.
+  Флаг не нужен, это зафиксировано здесь чтобы не «чинили».
+- Отдельный `MultiServiceManager` внутри `SupervisionObserver` (менеджер
+  чата приватный). Свежесть привязки: перед каждым наблюдением сверяется
+  `getConfigMappingForFunction(SUPERVISION)`, при смене —
+  `refreshServiceForFunction`. Тумблер — `SupervisionPreferences`
+  (SharedPreferences + StateFlow, default OFF), свитч в SettingsScreen
+  рядом с Functional Model (план говорил туда).
+- JSONL-экспорт — `LlmIoLogRepository.supervisionJsonl(limit)` (готовое API,
+  UI-экрана пока нет — follow-up). Формат строки (фиксирован):
+  `{"digest": {"driver_model", "user", "tools", "tool_count", "final"},
+  "driver_call": {"tool_names"}, "corrected_call": {...}|null,
+  "comment": string, "model_ids": {"supervisor", "driver"},
+  "verdict": "ok|corrected|parse_error|observer_error",
+  "latency_ms": n|null, "timestamp_ms": n}`.
+  Строки без дайджеста пропускаются, не фабрикуются.
+- Миграция Room v22→v23 (`MIGRATION_22_23`): 5 nullable колонок
+  (`supervisionComment/CorrectedCall/Verdict/Digest/DriverModel`).
+- Тост — только непустой `comment` (сырьё при parse_error пользователю не
+  показывается), cooldown 30 с на чат, cap коммента 500 символов.
+- Приёмка (открыта): включить тумблер, отправить чат-ход, увидеть всплывашку
+  (если наблюдателю есть что сказать) + строку `function=SUPERVISION` в
+  LLM I/O Log с вердиктом; аудит 0 (уже зелёный на коммите).
 
 # Режим надзора (supervision mode)
 

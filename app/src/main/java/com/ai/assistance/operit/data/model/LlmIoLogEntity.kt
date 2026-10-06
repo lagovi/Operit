@@ -34,4 +34,14 @@ data class LlmIoLogEntity(
     val latencyMs: Long? = null,
     /** Null on success; otherwise a short failure reason (never a stack trace). */
     val error: String? = null,
+    /** Supervision verdict comment shown to the user (function=SUPERVISION only). */
+    val supervisionComment: String? = null,
+    /** Supervision corrected_call object as JSON, null when the driver was right. */
+    val supervisionCorrectedCall: String? = null,
+    /** ok | corrected | parse_error | observer_error (function=SUPERVISION only). */
+    val supervisionVerdict: String? = null,
+    /** Compact turn digest JSON the observer judged (user, tools, final). */
+    val supervisionDigest: String? = null,
+    /** "provider:model" of the observed driver turn. */
+    val supervisionDriverModel: String? = null,
 )

@@ -206,6 +206,9 @@ class ChatServiceCore(
             getIsAutoReadEnabled = {
                 apiConfigDelegate.enableAutoRead.value
             },
+            showToastMessage = { message ->
+                uiStateDelegate.showToast(message)
+            },
             speakMessageHandler = { text, _ ->
                 AppLogger.d(TAG, "朗读消息: $text")
             },

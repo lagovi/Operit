@@ -440,8 +440,35 @@ $input
         """.trim()
     }
 
-    fun packageDescriptionSystemPrompt(useEnglish: Boolean): String {
-        return if (useEnglish) {
+    /**
+     * System prompt for the supervision observer: a smart model that watches
+     * one driver turn and answers with strict JSON. English-only: the fork
+     * ships no other locale, so the observer contract stays in one language.
+     */
+    const val SUPERVISION_SYSTEM_PROMPT = """
+        You are a read-only observer watching one turn of another AI agent (the driver).
+        You receive a digest: the user request, the tools the driver invoked, and the
+        driver final answer. You cannot act, call tools, or ask questions.
+
+        Reply with exactly one raw JSON object, no markdown fences, no extra text:
+        {"comment": string, "corrected_call": object|null}
+
+        - "comment": one short sentence for the user, describing what the driver did
+          or what looks wrong. Empty string when there is nothing worth saying.
+        - "corrected_call": null when the driver tool calls were correct. Otherwise
+          an object {"tool": name, "arguments": object} showing how the call should
+          have been made. Never invent tool results, only the corrected call shape.
+    """
+
+    fun supervisionUserPrompt(digestJson: String): String {
+        return """
+        Observe this driver turn and reply with the JSON object only:
+
+        $digestJson
+        """.trim()
+    }
+
+    fun packageDescriptionSystemPrompt(useEnglish: Boolean): String {        return if (useEnglish) {
             "You are a professional technical writer who excels at crafting concise and clear descriptions for software toolkits."
         } else {
             "你是一个专业的技术文档撰写助手，擅长为软件工具包编写简洁清晰的功能描述。"

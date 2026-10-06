@@ -704,6 +704,32 @@ fun FunctionConfigCard(
                                                         .collect { chunk -> buffer.append(chunk) }
                                                     buffer.toString()
                                                 }
+                                                FunctionType.SUPERVISION -> {
+                                                    val parameters =
+                                                        modelConfigManager.getModelParametersForConfig(configWithSelectedModel.id)
+                                                    val buffer = StringBuilder()
+                                                    service.sendMessage(
+                                                        context,
+                                                        listOf(
+                                                            PromptTurn(
+                                                                kind = PromptTurnKind.SYSTEM,
+                                                                content = FunctionalPrompts.SUPERVISION_SYSTEM_PROMPT.trimIndent()
+                                                            ),
+                                                            PromptTurn(
+                                                                kind = PromptTurnKind.USER,
+                                                                content = FunctionalPrompts.supervisionUserPrompt(
+                                                                    "{\"driver_model\":\"test\",\"user\":\"Connection test.\",\"tools\":[],\"tool_count\":0,\"final\":\"Connection test.\"}"
+                                                                )
+                                                            )
+                                                        ),
+                                                        parameters,
+                                                        stream = false,
+                                                        enableRetry = false,
+                                                        recordTokenUsage = false,
+                                                    )
+                                                        .collect { chunk -> buffer.append(chunk) }
+                                                    buffer.toString()
+                                                }
                                             }
                                             testResult = Result.success(result)
                                         } catch (e: Exception) {
@@ -947,6 +973,7 @@ fun getFunctionDisplayName(functionType: FunctionType): String {
         FunctionType.IMAGE_RECOGNITION -> stringResource(id = R.string.function_type_image_recognition)
         FunctionType.AUDIO_RECOGNITION -> stringResource(id = R.string.function_type_audio_recognition)
         FunctionType.VIDEO_RECOGNITION -> stringResource(id = R.string.function_type_video_recognition)
+        FunctionType.SUPERVISION -> stringResource(id = R.string.function_type_supervision)
     }
 }
 
@@ -965,5 +992,6 @@ fun getFunctionDescription(functionType: FunctionType): String {
         FunctionType.IMAGE_RECOGNITION -> stringResource(id = R.string.function_desc_image_recognition)
         FunctionType.AUDIO_RECOGNITION -> stringResource(id = R.string.function_desc_audio_recognition)
         FunctionType.VIDEO_RECOGNITION -> stringResource(id = R.string.function_desc_video_recognition)
+        FunctionType.SUPERVISION -> stringResource(id = R.string.function_desc_supervision)
     }
 }

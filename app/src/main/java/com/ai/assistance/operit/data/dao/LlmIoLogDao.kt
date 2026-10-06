@@ -31,6 +31,16 @@ abstract class LlmIoLogDao {
     @Query("SELECT * FROM llm_io_log WHERE id = :id")
     abstract suspend fun get(id: Long): LlmIoLogEntity?
 
+    @Query(
+        """
+        SELECT * FROM llm_io_log
+        WHERE function = 'SUPERVISION'
+        ORDER BY timestampMs DESC, id DESC
+        LIMIT :limit
+        """
+    )
+    abstract suspend fun supervisionRows(limit: Int): List<LlmIoLogEntity>
+
     @Query("SELECT COUNT(*) FROM llm_io_log")
     abstract suspend fun count(): Long
 

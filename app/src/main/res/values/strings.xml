@@ -3672,6 +3672,8 @@
     <string name="settings_token_usage_stats">Token Usage Statistics</string>
     <string name="settings_llm_io_log">LLM I/O Log</string>
     <string name="settings_llm_io_log_subtitle">Inspect full LLM requests and responses per model</string>
+    <string name="settings_supervision_mode">Supervision Mode</string>
+    <string name="settings_supervision_mode_subtitle">A smart model watches the driver and comments in popups</string>
     <string name="llm_io_log_records">%1$d records</string>
     <string name="llm_io_log_enabled">Logging enabled</string>
     <string name="llm_io_log_all_models">All models</string>
@@ -4541,12 +4543,14 @@
     <string name="function_type_image_recognition">Image Recognition</string>
     <string name="function_type_audio_recognition">Audio Recognition</string>
     <string name="function_type_video_recognition">Video Recognition</string>
+    <string name="function_type_supervision">Supervision Observer</string>
 
     <!-- Function Descriptions -->
     <string name="function_desc_translation">Provides multi-language translation functionality, supporting language conversion of text content. It is recommended to use models that support multiple languages.</string>
     <string name="function_desc_image_recognition">Used for image content recognition and analysis, supports intent parameter when calling read_file tool for deep understanding. Recommend using multimodal models with vision capabilities.</string>
     <string name="function_desc_audio_recognition">Used for audio content recognition and analysis. When calling read_file for audio, you can pass an intent for deeper understanding (e.g., transcription, summarization, speaker content). Recommend using models that support audio input or high-quality transcription.</string>
     <string name="function_desc_video_recognition">Used for video content recognition and analysis. When calling read_file for video, you can pass an intent for deeper understanding (e.g., frame-based understanding, scene description, dialogue summary). Recommend using multimodal models that support video/image input.</string>
+    <string name="function_desc_supervision">A second model watches each driver turn and comments in a popup when something looks off. Read-only: it never acts. Traces land in the LLM I/O log.</string>
 
     <!-- Model Configuration -->
     <string name="overseas_provider_warning">Detected that you are in mainland China but selected an overseas service provider. Please confirm whether you have enabled proxy tools</string>

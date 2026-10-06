@@ -73,7 +73,9 @@ class MessageProcessingDelegate(
         ) -> Unit,
         // 添加自动朗读相关的回调
         private val getIsAutoReadEnabled: () -> Boolean,
-        private var speakMessageHandler: (String, Boolean) -> Unit
+        private var speakMessageHandler: (String, Boolean) -> Unit,
+        // Supervision observer comments; empty default keeps the observer silent.
+        private val showToastMessage: (String) -> Unit = {},
 ) {
     companion object {
         private const val TAG = "MessageProcessingDelegate"
@@ -664,6 +666,7 @@ class MessageProcessingDelegate(
         val updated = _currentTurnToolInvocationCountByChatId.value.toMutableMap()
         updated[chatId] = 0
         _currentTurnToolInvocationCountByChatId.value = updated
+        currentTurnToolNamesByChatId.remove(chatId)
     }
 
     private fun incrementCurrentTurnToolInvocationCount(chatId: String) {
@@ -672,10 +675,71 @@ class MessageProcessingDelegate(
         _currentTurnToolInvocationCountByChatId.value = updated
     }
 
+    private val currentTurnToolNamesByChatId = ConcurrentHashMap<String, MutableList<String>>()
+
+    /**
+     * Records one tool invocation for the supervision digest: the count above
+     * plus the tool name (the onToolInvocation callback carries the name
+     * only, no arguments). Names are capped per turn.
+     */
+    private fun recordCurrentTurnToolInvocation(chatId: String, toolName: String) {
+        incrementCurrentTurnToolInvocationCount(chatId)
+        val names = currentTurnToolNamesByChatId.getOrPut(chatId) { mutableListOf() }
+        synchronized(names) {
+            if (names.size < SupervisionObserver.MAX_TOOL_NAMES) {
+                names.add(toolName)
+            }
+        }
+    }
+
+    private fun takeCurrentTurnToolNames(chatId: String): List<String> {
+        val names = currentTurnToolNamesByChatId.remove(chatId) ?: return emptyList()
+        synchronized(names) {
+            return names.toList()
+        }
+    }
+
+    private val supervisionObserver by lazy {
+        SupervisionObserver(
+            context = context,
+            scope = coroutineScope,
+            showToast = showToastMessage,
+        )
+    }
+
+    /**
+     * Supervision hook: fires once per completed main-flow turn, after the
+     * final text is resolved and before runtime cleanup drops the tool
+     * counters. Fire-and-forget; never throws into the chat path.
+     */
+    private fun superviseCompletedTurn(
+        chatId: String?,
+        turnId: Long,
+        userText: String,
+        finalAnswer: String,
+        driverProvider: String,
+        driverModel: String,
+    ) {
+        if (chatId == null || userText.isBlank()) return
+        val toolNames = takeCurrentTurnToolNames(chatId)
+        runCatching {
+            supervisionObserver.observeTurn(
+                chatId = chatId,
+                turnId = turnId,
+                userText = userText,
+                toolNames = toolNames,
+                finalAnswer = finalAnswer,
+                driverProvider = driverProvider,
+                driverModel = driverModel,
+            )
+        }
+    }
+
     private fun clearCurrentTurnToolInvocationCount(chatId: String) {
         val updated = _currentTurnToolInvocationCountByChatId.value.toMutableMap()
         updated.remove(chatId)
         _currentTurnToolInvocationCountByChatId.value = updated
+        currentTurnToolNamesByChatId.remove(chatId)
     }
 
     fun sendUserMessage(
@@ -1099,8 +1163,8 @@ class MessageProcessingDelegate(
                     groupOrchestrationMode = isGroupOrchestrationTurn,
                     groupParticipantNamesText = groupParticipantNamesText,
                     proxySenderName = proxySenderNameOverride,
-                    onToolInvocation = {
-                        incrementCurrentTurnToolInvocationCount(chatId)
+                    onToolInvocation = { toolName ->
+                        recordCurrentTurnToolInvocation(chatId, toolName)
                     },
                     notifyReplyOverride = turnOptions.notifyReply,
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
@@ -1520,6 +1584,16 @@ class MessageProcessingDelegate(
                             calculateNextWindowSize = calculateNextWindowSize,
                             turnOptions = turnOptions
                         )
+                        if (::aiMessage.isInitialized) {
+                            superviseCompletedTurn(
+                                chatId = chatId,
+                                turnId = turnId,
+                                userText = requestMessageContent,
+                                finalAnswer = aiMessage.content,
+                                driverProvider = provider,
+                                driverModel = modelName,
+                            )
+                        }
                     } else {
                         AppLogger.d(TAG, "取消回合不执行消息收尾: chatId=$activeChatId")
                         false
@@ -1697,7 +1771,9 @@ class MessageProcessingDelegate(
                     splitHistoryByRole = true,
                     groupOrchestrationMode = groupOrchestrationMode,
                     groupParticipantNamesText = groupParticipantNamesText,
-                    onToolInvocation = { incrementCurrentTurnToolInvocationCount(chatId) },
+                    onToolInvocation = { toolName ->
+                        recordCurrentTurnToolInvocation(chatId, toolName)
+                    },
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
                     chatModelIndexOverride = chatModelIndexOverride,
                     memorySpaceIdOverride = memorySpaceIdOverride,

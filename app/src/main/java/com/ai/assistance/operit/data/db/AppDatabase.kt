@@ -28,7 +28,7 @@ import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
         TokenStatsModelEntity::class,
         LlmIoLogEntity::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -397,8 +397,34 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
-        // 定义从版本2到3的迁移
-        private val MIGRATION_2_3 =
+        /** v22 -> v23: supervision verdict columns on the LLM I/O log. */
+        internal val MIGRATION_22_23 =
+            object : Migration(22, 23) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    runSql { db.execSQL(it) }
+                }
+
+                override fun migrate(connection: androidx.sqlite.SQLiteConnection) {
+                    runSql { sql ->
+                        val stmt = connection.prepare(sql)
+                        try {
+                            stmt.step()
+                        } finally {
+                            stmt.close()
+                        }
+                    }
+                }
+
+                private fun runSql(exec: (String) -> Unit) {
+                    exec("ALTER TABLE `llm_io_log` ADD COLUMN `supervisionComment` TEXT")
+                    exec("ALTER TABLE `llm_io_log` ADD COLUMN `supervisionCorrectedCall` TEXT")
+                    exec("ALTER TABLE `llm_io_log` ADD COLUMN `supervisionVerdict` TEXT")
+                    exec("ALTER TABLE `llm_io_log` ADD COLUMN `supervisionDigest` TEXT")
+                    exec("ALTER TABLE `llm_io_log` ADD COLUMN `supervisionDriverModel` TEXT")
+                }
+            }
+
+        // 定义从版本2到3的迁移        private val MIGRATION_2_3 =
             object : Migration(2, 3) {
                 override fun migrate(db: SupportSQLiteDatabase) {
                     // 向chats表添加group列
@@ -515,7 +541,8 @@ abstract class AppDatabase : RoomDatabase() {
                                 MIGRATION_18_19,
                                 MIGRATION_19_20,
                                 MIGRATION_20_21,
-                                MIGRATION_21_22
+                                MIGRATION_21_22,
+                                MIGRATION_22_23
                             ) // 添加新的迁移
                             .build()
                     INSTANCE = instance

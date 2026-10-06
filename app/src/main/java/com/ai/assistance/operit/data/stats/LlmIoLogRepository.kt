@@ -35,6 +35,9 @@ class LlmIoLogRepository private constructor(context: Context) {
         /** Function label for ad-hoc custom-config services. */
         const val FUNCTION_AD_HOC = "AD_HOC"
 
+        /** Function label for supervision observer verdict rows. */
+        const val FUNCTION_SUPERVISION = "SUPERVISION"
+
         /** Row cap: newest entries are kept, older ones pruned on insert. */
         const val MAX_ENTRIES = 500
 
@@ -182,6 +185,67 @@ class LlmIoLogRepository private constructor(context: Context) {
     suspend fun models(): List<String> = withDao { dao -> dao.distinctModels() }
 
     suspend fun get(id: Long): LlmIoLogEntity? = withDao { dao -> dao.get(id) }
+
+    suspend fun supervisionRows(limit: Int): List<LlmIoLogEntity> =
+        withDao { dao -> dao.supervisionRows(limit) }
+
+    /**
+     * Supervision trace export, one JSON object per line. Line shape (fixed):
+     * {"digest": {...}, "driver_call": {"tool_names": [...]},
+     * "corrected_call": {...}|null, "comment": string,
+     * "model_ids": {"supervisor": string, "driver": string},
+     * "verdict": string, "latency_ms": number|null, "timestamp_ms": number}.
+     * Rows without a digest (older schema) are skipped, never fabricated.
+     */
+    suspend fun supervisionJsonl(limit: Int): String =
+        withDao { dao ->
+            dao.supervisionRows(limit).mapNotNull { row ->
+                val digestText = row.supervisionDigest ?: return@mapNotNull null
+                val digest =
+                    try {
+                        JSONObject(digestText)
+                    } catch (e: Exception) {
+                        return@mapNotNull null
+                    }
+                val driverCall = JSONObject()
+                val toolNames = JSONArray()
+                val tools = digest.optJSONArray("tools")
+                if (tools != null) {
+                    for (index in 0 until tools.length()) {
+                        toolNames.put(tools.optString(index))
+                    }
+                }
+                driverCall.put("tool_names", toolNames)
+                val modelIds = JSONObject()
+                modelIds.put("supervisor", row.modelId)
+                modelIds.put("driver", row.supervisionDriverModel ?: JSONObject.NULL)
+                val line = JSONObject()
+                line.put("digest", digest)
+                line.put("driver_call", driverCall)
+                val corrected = row.supervisionCorrectedCall
+                line.put(
+                    "corrected_call",
+                    if (corrected.isNullOrBlank()) {
+                        JSONObject.NULL
+                    } else {
+                        try {
+                            JSONObject(corrected)
+                        } catch (e: Exception) {
+                            corrected
+                        }
+                    },
+                )
+                line.put("comment", row.supervisionComment ?: "")
+                line.put("model_ids", modelIds)
+                line.put("verdict", row.supervisionVerdict ?: "")
+                line.put(
+                    "latency_ms",
+                    if (row.latencyMs != null) row.latencyMs else JSONObject.NULL,
+                )
+                line.put("timestamp_ms", row.timestampMs)
+                line.toString()
+            }.joinToString("\n")
+        }
 
     suspend fun delete(id: Long): Int = withDao { dao -> dao.delete(id) }
 

@@ -24,6 +24,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.defaultTool.standard.CookiePrivacyManager
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
+import com.ai.assistance.operit.data.preferences.SupervisionPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.ui.features.github.GitHubLoginDialog
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
@@ -59,6 +60,8 @@ fun SettingsScreen(
 ) {
         val context = LocalContext.current
         val githubAuth = remember { GitHubAuthPreferences.getInstance(context) }
+        val supervisionPreferences = remember { SupervisionPreferences(context) }
+        val supervisionEnabled by supervisionPreferences.enabledFlow.collectAsState()
         val scope = rememberCoroutineScope()
         var showGitHubLogin by remember { mutableStateOf(false) }
         var showClearCookieConfirm by remember { mutableStateOf(false) }
@@ -190,6 +193,16 @@ fun SettingsScreen(
                                 subtitle = stringResource(id = R.string.settings_functional_model_subtitle),
                                 icon = Icons.Default.Tune,
                                 onClick = navigateToFunctionalConfig
+                        )
+
+                        CompactSettingsSwitch(
+                                title = stringResource(id = R.string.settings_supervision_mode),
+                                subtitle = stringResource(id = R.string.settings_supervision_mode_subtitle),
+                                icon = Icons.Default.Visibility,
+                                checked = supervisionEnabled,
+                                onCheckedChange = { enabled ->
+                                        supervisionPreferences.setEnabled(enabled)
+                                }
                         )
                         
                         CompactSettingsItem(
@@ -447,6 +460,53 @@ private fun CompactSettingsItem(
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(16.dp)
+                )
+        }
+}
+
+private fun CompactSettingsSwitch(
+        title: String,
+        subtitle: String,
+        icon: ImageVector,
+        checked: Boolean,
+        onCheckedChange: (Boolean) -> Unit
+) {
+        Row(
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+        ) {
+                Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                                text = title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                        )
+                }
+
+                Switch(
+                        checked = checked,
+                        onCheckedChange = onCheckedChange
                 )
         }
 }

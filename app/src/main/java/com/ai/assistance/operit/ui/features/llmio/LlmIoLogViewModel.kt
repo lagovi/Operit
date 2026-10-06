@@ -150,6 +150,11 @@ class LlmIoLogViewModel(context: Context) : ViewModel() {
             )
             appendLine("latency: ${entry.latencyMs?.let { "${it}ms" } ?: "?"}")
             entry.error?.let { appendLine("error: $it") }
+            if (entry.function == LlmIoLogRepository.FUNCTION_SUPERVISION) {
+                appendLine("verdict: ${entry.supervisionVerdict ?: "?"}")
+                entry.supervisionComment?.let { appendLine("comment: $it") }
+                entry.supervisionCorrectedCall?.let { appendLine("corrected_call: $it") }
+            }
             appendLine()
             appendLine("--- request ---")
             appendLine(entry.requestJson)

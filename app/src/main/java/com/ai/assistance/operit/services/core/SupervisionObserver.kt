@@ -11,6 +11,7 @@ import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.SupervisionPreferences
 import com.ai.assistance.operit.data.stats.LlmIoLogRepository
 import com.ai.assistance.operit.data.stats.ProviderUsageSnapshot
+import com.ai.assistance.operit.data.translation.stripThinkBlocks
 import com.ai.assistance.operit.util.AppLogger
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException
@@ -285,7 +286,9 @@ class SupervisionObserver(
     )
 
     private fun parseVerdict(rawReply: String): Verdict {
-        val stripped = stripJsonFences(rawReply).trim()
+        // Reasoning models wrap their work in <think> tags (same as the
+        // translation pipeline); the JSON contract lives outside them.
+        val stripped = stripJsonFences(stripThinkBlocks(rawReply)).trim()
         if (stripped.isEmpty()) {
             return Verdict("", null, VERDICT_PARSE_ERROR)
         }

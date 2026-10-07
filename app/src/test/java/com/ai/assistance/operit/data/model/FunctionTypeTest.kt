@@ -23,9 +23,9 @@ class FunctionTypeTest {
             FunctionType.MEMORY, FunctionType.UI_CONTROLLER, FunctionType.TRANSLATION,
             FunctionType.GREP, FunctionType.ROLE_RESPONSE_PLANNER,
             FunctionType.IMAGE_RECOGNITION, FunctionType.AUDIO_RECOGNITION,
-            FunctionType.VIDEO_RECOGNITION,
+            FunctionType.VIDEO_RECOGNITION, FunctionType.SUPERVISION,
         )
-        assertEquals(11, FunctionType.values().size)
+        assertEquals(12, FunctionType.values().size)
         for (type in expected) {
             assertTrue("Missing $type", FunctionType.values().contains(type))
         }

@@ -6,16 +6,35 @@ import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.data.stats.ProviderUsageSnapshot
+import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.stream.Stream
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.fail
+import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
 class ColdStreamCancellationTest {
+    private var previousSystemLogEnabled = true
+    private var previousFileLogEnabled = true
+
+    @Before
+    fun disableAndroidLogging() {
+        previousSystemLogEnabled = AppLogger.enableSystemLog
+        previousFileLogEnabled = AppLogger.enableFileLogging
+        AppLogger.enableSystemLog = false
+        AppLogger.enableFileLogging = false
+    }
+
+    @After
+    fun restoreAndroidLogging() {
+        AppLogger.enableSystemLog = previousSystemLogEnabled
+        AppLogger.enableFileLogging = previousFileLogEnabled
+    }
     @Test
     fun `token tracking cancellation before collection prevents delegate execution`() = runBlocking {
         val context = mock<Context>()

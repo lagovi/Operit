@@ -1,11 +1,30 @@
 package com.ai.assistance.operit.data.translation
 
+import com.ai.assistance.operit.util.AppLogger
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 class CachedTranslatorTest {
+    private var previousSystemLogEnabled = true
+    private var previousFileLogEnabled = true
+
+    @Before
+    fun disableAndroidLogging() {
+        previousSystemLogEnabled = AppLogger.enableSystemLog
+        previousFileLogEnabled = AppLogger.enableFileLogging
+        AppLogger.enableSystemLog = false
+        AppLogger.enableFileLogging = false
+    }
+
+    @After
+    fun restoreAndroidLogging() {
+        AppLogger.enableSystemLog = previousSystemLogEnabled
+        AppLogger.enableFileLogging = previousFileLogEnabled
+    }
 
     private fun translator(
         store: TranslationStore = MemoryTranslationStore(),

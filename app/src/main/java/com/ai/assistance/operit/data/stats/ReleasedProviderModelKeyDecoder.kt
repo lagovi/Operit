@@ -28,7 +28,15 @@ internal object ReleasedProviderModelKeyDecoder {
         }
         val known = aliases.keys.sortedByDescending(String::length)
             .firstOrNull { encoded == it || encoded.startsWith("${it}_") }
-        val separator = known?.length ?: encoded.indexOf('_')
+        // Legacy pre-provider keys (bare function names like CHAT, SUMMARY,
+        // FILE_BINDING) carry no provider identity: structurally splitting
+        // "FILE_BINDING" into provider FILE / model BINDING would import
+        // garbage. The migration caller intentionally skips nulls, so fail
+        // here instead of guessing.
+        require(known != null) {
+            "released token key has no known provider alias: $encoded"
+        }
+        val separator = known.length
         require(separator > 0 && separator < encoded.lastIndex) {
             "released token key does not contain a provider and model: $encoded"
         }

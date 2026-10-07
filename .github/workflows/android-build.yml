@@ -240,3 +240,14 @@ jobs:
             app/build/outputs/bundle/**/*.aab
           if-no-files-found: error
           retention-days: 14
+
+      # Fork: every shipped variant is minified, so logcat stack traces are
+      # obfuscated. The mapping file is the only way back (retrace locally).
+      - name: Upload R8 mapping
+        if: success()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: operit-android-mapping-${{ github.run_number }}
+          path: app/build/outputs/mapping/**/mapping.txt
+          if-no-files-found: warn
+          retention-days: 14

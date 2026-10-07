@@ -258,7 +258,28 @@ R8-mapping + `f3ce47f1`/`5cb753fe` задача 10 + `cddb9906` revert +
     починено exposed-сабклассом) + `XaiProviderReasoningTest` (ссылает
     удалённые `XaiReasoningMapper/xaiModelSupportsReasoningEffort` —
     3 мёртвых метода вырезаны, валидный тест дефолтов оставлен);
-    коммит `a112091f`, ран `37678790496`. Правило: дальше каждый новый
+    `a112091f`, ран `37678790496`. Тот ран скомпилировался, но уронил
+    6 тестов из 1310 — все шесть разобраны по стектрейсам из артефакта
+    `operit-android-test-reports-9` (HTML `<pre>`, качать
+    `gh run download <run> -n operit-android-test-reports-9`):
+    (i) ТРИ — одна болезнь «Method X in android.util.Log not mocked»:
+    ColdStream (наш `persistIoLog:549` → `AppLogger.e` маскирует
+    CancellationException), CachedTranslator-наш (`parseResponse:43`),
+    Xai-defaults (`getModelsListUrl:63` → `AppLogger.d`) — лечение везде
+    тест-стороной штатным паттерном (как `OpenAiToolCallHistoryTest`:
+    `@Before disable both flags / @After restore`), прод-код НЕ трогать
+    (в проде Log.e работает, семантика cancel-пути верна);
+    (ii) FunctionType — НАШЕ (`63dadf6e` добавил 12-й SUPERVISION, тест
+    ждал 11) — обновить счётчик+список тест-стороной;
+    (iii) ReleasedDecoder — upstream-тест документирует НЕреализованное
+    намерение (`1_migration_paths.md`: legacy без провайдера скипать):
+    `decode("FILE_BINDING")` давал provider FILE — прод-фикс
+    `require(known != null)` (прямых звателей `decode(` кроме
+    `decodeOrNull` нет; миграция `ApiPreferences.kt:513` скипает null
+    штатно с варнингом); (iv) JsToolPkg:62 — тест ждал старый стиль
+    `ToolPkg.registerX`, мост ушёл на method-table
+    (`registerX: toolPkgApi.method().since(`) — ассёрты за реальностью.
+    Коммит `55e18396`, ран `37682838742`. Правило: дальше каждый новый
     `e: file` в `--log-failed` — смотреть `git log` файла: наше → чинить
     код, апстрим → чинить минимально тест, НЕ продакшн. DoD: зелёный ран
     `Android Tests` (тесты могут падать сами — тогда это уже задача про тесты, не про инфру).

@@ -46,6 +46,12 @@
 # 保留 QuickJS 反射绑定对象
 -keep class com.ai.assistance.operit.core.tools.javascript.JsEngine$JsToolCallInterface { *; }
 
+# Fork: the QuickJS host callback is resolved BY NAME from C++
+# (quickjs/src/main/cpp/quickjs_jni.cpp GetMethodID "onCall"), which R8
+# cannot see. Without this keep, any minified build dies at startup with
+# NoSuchMethodError QuickJsNativeHostDispatcher.onCall (E1, 2026-10-05).
+-keep class com.ai.assistance.operit.core.tools.javascript.QuickJsNativeHostDispatcher { *; }
+
 # Fork: R8 is now enabled for release and nightly. The rules below cover the
 # places this app reaches types reflectively, which R8 cannot see.
 

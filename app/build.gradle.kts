@@ -436,10 +436,12 @@ android {
 
         release {
             // Fork: R8 is enabled for the shipped builds. app/proguard-rules.pro
-            // already carries the keep rules this app needs (Shizuku, QuickJS
-            // reflection, Room/ObjectBox, AIDL, and the runtime APK parser and
-            // re-packer), so it was written for R8 and simply was never switched
-            // on. See docs/FORK-REGISTRY/registry.json SIZE-005.
+            // carries keep rules for Shizuku, QuickJS (JsToolCallInterface +
+            // QuickJsNativeHostDispatcher JNI callback, see E1), Room/ObjectBox,
+            // AIDL, and the runtime APK parser and re-packer. Debug carries the
+            // same config as a guarded experiment (task 4) — do not assume a
+            // green CI means a working device; minified builds must cold-start
+            // on the test phone. See docs/FORK-REGISTRY/registry.json SIZE-005.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -454,6 +456,15 @@ android {
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("debug")
             resValue("string", "app_name", "Operit Debug")
+            // Fork EXPERIMENT (task 4): retry debug minification now that the
+            // QuickJS JNI keep-fix is in. Revert this block (not the keep rule)
+            // if the device cold start still shows Application Error. See E1.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
         create("clone") {
             initWith(getByName("debug"))

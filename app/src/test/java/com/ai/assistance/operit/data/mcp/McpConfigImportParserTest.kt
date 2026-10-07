@@ -1,11 +1,22 @@
 package com.ai.assistance.operit.data.mcp
 
+import android.content.Context
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
 
 class McpConfigImportParserTest {
+
+    // The parser needs a Context only to resolve rejection strings; the test
+    // asserts structure, not message text, so a stub returning "" is enough.
+    private val context: Context = mock {
+        on { getString(any()) } doReturn ""
+        on { getString(any(), any()) } doReturn ""
+    }
 
     @Test
     fun parse_classifiesStdioAndRemoteTransports() {
@@ -33,7 +44,7 @@ class McpConfigImportParserTest {
             }
             """.trimIndent()
 
-        val parsed = McpConfigImportParser.parse(config)
+        val parsed = McpConfigImportParser.parse(context, config)
 
         val stdio = parsed.servers.filterIsInstance<StdioMcpImportedServer>().single()
         assertEquals("filesystem", stdio.id)
@@ -85,7 +96,7 @@ class McpConfigImportParserTest {
 
     private fun assertParseFails(config: String) {
         try {
-            McpConfigImportParser.parse(config)
+            McpConfigImportParser.parse(context, config)
         } catch (_: IllegalArgumentException) {
             return
         }

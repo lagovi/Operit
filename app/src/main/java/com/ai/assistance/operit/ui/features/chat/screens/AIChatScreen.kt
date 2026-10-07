@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CodeOff
 import androidx.compose.material.icons.filled.Terminal
@@ -1082,6 +1083,32 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 }
                                 .graphicsLayer { translationY = -inputBarTranslationYPx }
                     ) {
+                        // Fork: sending is impossible without a conversation (both
+                        // send paths toast chat_please_create_new_chat), so showing
+                        // the input field and model row would be a dead control.
+                        // Show a New Chat button opening the same history menu
+                        // instead. The send guards stay as safety nets.
+                        if (currentChatId.isNullOrBlank()) {
+                            Button(
+                                    onClick = {
+                                        actualViewModel.toggleChatHistorySelector()
+                                    },
+                                    modifier =
+                                            Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(
+                                                            horizontal = 24.dp,
+                                                            vertical = 12.dp
+                                                    )
+                            ) {
+                                Icon(
+                                        imageVector = Icons.Filled.Add,
+                                        contentDescription = null
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = stringResource(R.string.new_chat))
+                            }
+                        } else {
                         ChatInputBottomBar(
                                 actualViewModel = actualViewModel,
                                 inputStyle = inputStyle,
@@ -1126,6 +1153,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 },
                                 onRequestAutoScrollToBottom = requestAutoScrollToBottom,
                         )
+                        }
                     }
 
                     CharacterSelectorPanel(

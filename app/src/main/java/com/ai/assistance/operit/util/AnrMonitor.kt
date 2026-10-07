@@ -205,7 +205,7 @@ class AnrMonitor(
             
             if (timeSinceLastResponse > ANR_THRESHOLD_MS) {
                 // 已超过ANR阈值
-                AppLogger.e(tag, "$message - 可能发生ANR!")
+                AppLogger.e(tag, "$message - possible ANR!")
                 anrCount.incrementAndGet()
                 
                 // 记录堆栈跟踪 - 使用增强的堆栈捕获
@@ -216,7 +216,7 @@ class AnrMonitor(
                 }
             } else {
                 // 超过警告阈值但未到ANR阈值
-                AppLogger.w(tag, "$message - 警告")
+                AppLogger.w(tag, "$message - warning")
                 warningCount.incrementAndGet()
             }
         }

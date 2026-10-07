@@ -231,17 +231,37 @@ class DeepseekProviderMediaRoleTest {
         history: List<PromptTurn>,
         availableTools: List<ToolPrompt>
     ): JSONObject {
+        // createRequestBody is protected (upstream split it into an internal
+        // override in 2ef5a013); expose it through a test-only subclass.
         val provider =
-            OpenAIResponsesProvider(
+            object : OpenAIResponsesProvider(
                 responsesApiEndpoint = "https://example.test/v1/responses",
                 apiKeyProvider = SingleApiKeyProvider("test-key"),
                 modelName = "openai-responses-test",
                 client = OkHttpClient(),
                 supportsVision = true,
                 enableToolCall = true
-            )
+            ) {
+                fun exposedRequestBody(
+                    context: Context,
+                    chatHistory: List<PromptTurn>,
+                    modelParameters: List<ModelParameter<*>>,
+                    enableThinking: Boolean,
+                    stream: Boolean,
+                    availableTools: List<ToolPrompt>?,
+                    preserveThinkInHistory: Boolean
+                ) = createRequestBody(
+                    context = context,
+                    chatHistory = chatHistory,
+                    modelParameters = modelParameters,
+                    enableThinking = enableThinking,
+                    stream = stream,
+                    availableTools = availableTools,
+                    preserveThinkInHistory = preserveThinkInHistory
+                )
+            }
         val body =
-            provider.createRequestBody(
+            provider.exposedRequestBody(
                 context = mock<Context>(),
                 chatHistory = history,
                 modelParameters = emptyList<ModelParameter<*>>(),

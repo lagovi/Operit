@@ -1086,12 +1086,15 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                         // Fork: sending is impossible without a conversation (both
                         // send paths toast chat_please_create_new_chat), so showing
                         // the input field and model row would be a dead control.
-                        // Show a New Chat button opening the same history menu
-                        // instead. The send guards stay as safety nets.
+                        // Show a New Chat button instead: one tap creates the
+                        // conversation and switches to it (setAsCurrentChat),
+                        // revealing the input field. The history menu stays
+                        // reachable via the clock button; the send guards stay
+                        // as safety nets.
                         if (currentChatId.isNullOrBlank()) {
                             Button(
                                     onClick = {
-                                        actualViewModel.toggleChatHistorySelector()
+                                        actualViewModel.createNewChat()
                                     },
                                     modifier =
                                             Modifier

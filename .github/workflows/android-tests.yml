@@ -87,6 +87,12 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          # The action's default is "tools platform-tools", but the obsolete
+          # `tools` package has been removed from the SDK repository, which makes
+          # the step fail before the job starts. platform-tools is what the next
+          # step actually needs and installs.
+          packages: platform-tools
 
       - name: Install required Android toolchain
         shell: bash

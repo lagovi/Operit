@@ -163,6 +163,11 @@ class AppDataLocation(private val context: Context) {
                 return false
             }
             present.forEach { it.delete() }
+            // Drop the emptied source dir so no hollow stt_model-style folders
+            // linger. delete() on a non-empty dir returns false, no throw.
+            if (source.listFiles()?.isEmpty() == true) {
+                source.delete()
+            }
         }
 
         write(target)

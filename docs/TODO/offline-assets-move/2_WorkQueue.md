@@ -72,10 +72,19 @@
       `TerminalRootfsStorage` + миграцию + пикер. При провале итог честно:
       rootfs остаётся internal, выигрыш только из Q2 (минус из APK), а
       SD-механика достаётся subpack/apktool (чистые данные).
-2. **subpack (android.apk, windows.zip)**: то же самое, leaf `subpack`.
-   Источник сейчас — upstream Google Drive через
-   `ci/script/prepare_android_dependencies.py`; архивы при сборке остаются,
-   меняется только место распаковки. Выигрыш: ~59 МБ.
+ 2. **subpack (android.apk, windows.zip)**: В РАБОТЕ 08.10 (коммит
+    `a4fddb40`, CI `37709173132`): новый `core/subpack/SubpackStorage.kt`
+    (leaf `subpack`, stage из assets с overwrite, `migrateTo`), стейджинг
+    `ApkEditor.fromAsset`/`ExeEditor.fromAsset` переведён с cacheDir на leaf
+    (фалбэк cacheDir сохранён), в Settings → Data & Permissions добавлен
+    `SubpackStorageSection` (тот же move-механизм, что у STT-модели, без
+    речевой специфики; 5 новых строк в default-бакете). Временный
+    windows-экспорт (`cacheDir/windows_export_temp`) не тронут — transient.
+    Файлы в APK ПОКА ОСТАЮТСЯ (это Q1-механика; вынос — Q2 с хостингом).
+    Источник файлов — upstream Google Drive через
+    `ci/script/prepare_android_dependencies.py` (в дереве только `.keep`).
+    Потенциал: ~59 МБ (через переезд на SD сейчас, из APK — в Q2).
+    Осталось: приёмка на телефоне (пикер, переезд на SD, файлы в leaf).
 3. **apktool.toolpkg**: кандидат на удаление, а не на переезд: собирается
    скриптом `tools/example_packages/sync_example_packages.py` из
    `examples/apktool/`, jar уже zip и почти не жмутся. Проверить, что

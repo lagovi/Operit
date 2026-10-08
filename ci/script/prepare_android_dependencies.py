@@ -12,11 +12,10 @@ from pathlib import Path, PurePosixPath
 
 PROFILE_ARCHIVES = {
     "jvm": ("libs.zip",),
-    "full": ("libs.zip", "subpack.zip", "jniLibs.zip"),
+    "full": ("libs.zip", "jniLibs.zip"),
 }
 ARCHIVE_ROOTS = {
     "libs.zip": "app/libs",
-    "subpack.zip": "app/src/main/assets/subpack",
     "jniLibs.zip": "app/src/main/jniLibs",
 }
 EXCLUDED_ARCHIVE_MEMBERS = {
@@ -182,10 +181,7 @@ def verify_outputs(profile: str, repository: Path, extracted_files: set[Path]) -
     if not libraries:
         raise ValueError("libs.zip did not provide an AAR or JAR in app/libs")
     if profile == "full":
-        for relative_path in (
-            "app/src/main/assets/subpack",
-            "app/src/main/jniLibs",
-        ):
+        for relative_path in ("app/src/main/jniLibs",):
             output_root = repository / relative_path
             if not output_root.is_dir():
                 raise ValueError(f"Android dependency output is missing: {relative_path}")

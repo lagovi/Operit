@@ -14,25 +14,17 @@ import java.io.File
  * | payload | in APK | movable | note |
  * |---|---:|---|---|
  * | terminal rootfs | 61.2 MiB | yes | already extracted to filesDir on first terminal use |
- * | subpack/android.apk | 24.2 MiB | yes | APK editor, read via `ApkEditor.fromAsset` |
- * | subpack/windows.zip | 10.9 MiB | yes | EXE editor, read via `AssetManager` |
- * | helper APKs | 9.1 MiB | yes | desktop, accessibility, shizuku |
+ * | helper APKs | 5.2 MiB | yes | accessibility + shizuku (desktop.apk deleted, HANDOFF 12b) |
  * | templates, emoji, js | 8.0 MiB | yes | project gallery and KaTeX |
  *
- * `apktool.toolpkg` (25.7 MiB) is intentionally absent from this table: it was
- * removed from the APK on 2026-10-08 (HANDOFF task 12) by dropping `apktool`
- * from `tools/example_packages/packages_whitelist.txt`, so the CI sync no
- * longer packs `examples/apktool/` into `assets/packages/`. The feature was
- * disabled by default, nothing in the code references the bundled copy, the
- * `.toolpkg` import path (`PackageManagerScreen` + `scanExternalPackages`)
- * still works, and `reconcileToolPkgCaches` deletes the stale asset cache on
- * existing installs. Expected saving: ~27 MB of APK.
- *
- * None of these are listed as objects yet, because each needs its own
- * investigation before it can be removed from the APK: the terminal rootfs has
- * to lose its `context.assets.open` call and the subpackages need a download
- * source the fork controls. Adding an entry before that work is done would make
- * the registry lie about what the build contains.
+ * Gone from the table because Q2 removed them from the APK (see the objects
+ * below): `subpack/android.apk`, `subpack/windows.zip` (release `v1.12.1+4`,
+ * 2026-10-08), `apktool.toolpkg` (dropped from the whitelist, HANDOFF 12a),
+ * `desktop.apk` (deleted, HANDOFF 12b).
+ * The terminal rootfs is not listed as an object yet: it has to lose its
+ * `context.assets.open` call first, and the proot tree may not start from an
+ * external leaf at all (E3). Adding an entry before that work is done would
+ * make the registry lie about what the build contains.
  *
  * Not listed, because nothing can be done about them: `lib/arm64-v8a` and the dex
  * files. The linker resolves native libraries from the package manager's own
@@ -65,6 +57,52 @@ class OfflinePayload(
             unpackedBytes = GigaAMModelFiles.TOTAL_BYTES
         )
 
-        val all: List<OfflinePayload> = listOf(GIGAAM)
+        /**
+         * APK export template, provisioned from the fork's own release into the
+         * `subpack` leaf on first export. The staged file keeps the Q1 name
+         * (`apk_editor_android.apk`), so copies staged by earlier builds are
+         * recognised by size+sha and never downloaded again.
+         *
+         * Bytes are the `assets/subpack/android.apk` entry of the last APK
+         * that still bundled it (CI `37726800230`).
+         */
+        val SUBPACK_ANDROID = OfflinePayload(
+            id = "subpack-android",
+            title = "APK export template",
+            leaf = "subpack",
+            assets = listOf(
+                RemoteAsset(
+                    name = "apk_editor_android.apk",
+                    url = "$RELEASE_BASE/v1.12.1+4/subpack-android.apk",
+                    sizeBytes = 48139093L,
+                    sha256 = "c56b23a841a736e028aeec8bee6b48a086b668143ce103095042e622750b86b4"
+                )
+            ),
+            unpackedBytes = 48139093L
+        )
+
+        /**
+         * Windows export template, same mechanics as [SUBPACK_ANDROID].
+         * Bytes are the `assets/subpack/windows.zip` entry of CI `37726800230`.
+         */
+        val SUBPACK_WINDOWS = OfflinePayload(
+            id = "subpack-windows",
+            title = "Windows export template",
+            leaf = "subpack",
+            assets = listOf(
+                RemoteAsset(
+                    name = "exe_editor_windows.zip",
+                    url = "$RELEASE_BASE/v1.12.1+4/subpack-windows.zip",
+                    sizeBytes = 11412717L,
+                    sha256 = "9c2d3e3b5e862334e24f4008572f239c380a73f23c5940054bf3a5142ca46888"
+                )
+            ),
+            unpackedBytes = 11412717L
+        )
+
+        val all: List<OfflinePayload> = listOf(GIGAAM, SUBPACK_ANDROID, SUBPACK_WINDOWS)
+
+        /** One download base for every payload: no per-file host to mistype. */
+        private const val RELEASE_BASE = "https://github.com/lagovi/Operit/releases/download"
     }
 }

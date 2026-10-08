@@ -468,6 +468,15 @@ subpack Q1-механика).
     `lib/` и dex (неприкосновенны — E2), rootfs (FAIL — E3, только Q2),
     aapt2-дубли (wontfix — ломает `setup_android_env.sh`, SIZE-006),
     js/ assets (горячий рантайм, см. выше).
+    Вскрытие desktop.apk 08.10 (из архива `2026-10-08_03-29-43Z`,
+    распакован в `/tmp`, в репо не возвращался): 161 entry, 6.5 МБ;
+    classes.dex 13.5 МБ + classes2.dex 4 МБ (некомпакт), обфусцированные
+    res-имена (`Qr.xml`, `-6.webp` — R8), Kotlin+Compose, из нативного
+    только `libandroidx.graphics.path.so` (4 ABI); dex-строки:
+    `com.ai.assistance.operit.desktop` (`DesktopScreen`, `AppIconCard`,
+    `OperitDesktopTheme`) — апстримный companion-лаунчер, ни к чему
+    не пришитый: ни инсталлера, ни интента, ни документации.
+    Удаление подтверждено повторно — не восстанавливать.
   13. Q2 on-demand: убрать payload из APK совсем (ОТКРЫТА, после 12;
     хостинг РЕШЁН 08.10 — GitHub Releases в ТОМ ЖЕ репозитории, см. 7c).
     Образец: `OfflinePayload.GIGAAM` (`util/OfflinePayloads.kt`) +

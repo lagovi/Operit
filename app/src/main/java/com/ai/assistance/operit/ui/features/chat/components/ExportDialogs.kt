@@ -42,7 +42,10 @@ import androidx.compose.ui.window.DialogProperties
 import com.ai.assistance.operit.core.subpack.ApkEditor
 import com.ai.assistance.operit.core.subpack.ExeEditor
 import com.ai.assistance.operit.core.subpack.KeyStoreHelper
+import com.ai.assistance.operit.core.subpack.SubpackStorage
 import com.ai.assistance.operit.ui.common.rememberLocal
+import com.ai.assistance.operit.util.OfflinePayload
+import com.ai.assistance.operit.util.RemoteAssetFetcher
 import com.ai.assistance.operit.util.UriSerializer
 import java.io.File
 import java.io.FileInputStream
@@ -778,8 +781,42 @@ suspend fun exportAndroidApp(
         withContext(Dispatchers.IO) {
             onProgress(0.1f, context.getString(R.string.export_prepare_base_apk))
 
-            // 1. 初始化APK编辑器
-            val apkEditor = ApkEditor.fromAsset(context, "subpack/android.apk")
+            // 1. Provision the base APK: intact leaf copy is reused, otherwise
+            // it downloads once from the fork's release. No asset fallback —
+            // the templates left the APK in Q2, so a failure here is the true
+            // cause and goes straight to the error surface.
+            val templateAsset = OfflinePayload.SUBPACK_ANDROID.assets.single()
+            val templateFile =
+                SubpackStorage(context)
+                    .ensureTemplate(
+                        templateAsset,
+                        progress = RemoteAssetFetcher.ProgressListener {
+                            downloadedBytes,
+                            totalBytes,
+                            _ ->
+                            if (totalBytes > 0) {
+                                onProgress(
+                                    0.05f +
+                                        0.25f * downloadedBytes.toFloat() /
+                                            totalBytes.toFloat(),
+                                    context.getString(R.string.export_prepare_base_apk)
+                                )
+                            }
+                        }
+                    )
+                    .getOrElse { error ->
+                        onComplete(
+                            false,
+                            null,
+                            error.message
+                                ?: context.getString(
+                                    R.string.download_failed,
+                                    templateAsset.name
+                                )
+                        )
+                        return@withContext
+                    }
+            val apkEditor = ApkEditor.fromFile(context, templateFile)
 
             // 2. 修改包名和应用名
             onProgress(0.3f, context.getString(R.string.export_modify_app_info))
@@ -887,12 +924,42 @@ suspend fun exportWindowsApp(
             tempDir.mkdirs()
 
             try {
-                // 1. 从assets复制windows.zip模板到临时目录
+                // 1. Provision the windows template into the temp dir: intact
+                // leaf copy is reused, otherwise it downloads once from the
+                // fork's release. Same no-fallback rule as the Android flow.
                 onProgress(0.2f, context.getString(R.string.export_copy_template))
+                val templateAsset = OfflinePayload.SUBPACK_WINDOWS.assets.single()
                 val templateZip = File(tempDir, "windows.zip")
-                context.assets.open("subpack/windows.zip").use { input ->
-                    FileOutputStream(templateZip).use { output -> input.copyTo(output) }
-                }
+                SubpackStorage(context)
+                    .ensureTemplate(
+                        templateAsset,
+                        progress = RemoteAssetFetcher.ProgressListener {
+                            downloadedBytes,
+                            totalBytes,
+                            _ ->
+                            if (totalBytes > 0) {
+                                onProgress(
+                                    0.1f +
+                                        0.2f * downloadedBytes.toFloat() /
+                                            totalBytes.toFloat(),
+                                    context.getString(R.string.export_copy_template)
+                                )
+                            }
+                        }
+                    )
+                    .onSuccess { staged -> staged.copyTo(templateZip, overwrite = true) }
+                    .onFailure { error ->
+                        onComplete(
+                            false,
+                            null,
+                            error.message
+                                ?: context.getString(
+                                    R.string.download_failed,
+                                    templateAsset.name
+                                )
+                        )
+                        return@withContext
+                    }
 
                 // 2. 解压windows.zip
                 onProgress(0.3f, context.getString(R.string.export_extract_template))

@@ -44,24 +44,41 @@ Do not re-propose them without new facts.
    61 MB tarball stays in the APK until Q2 hosting exists. Still movable
    (pure data, no symlinks, `AppDataLocation` infra already in the app):
    subpack (~59 MB), apktool (~26 MB) — queue items 2–3.
-3. **Still open, unchanged:** subpack/apktool/desktop SD-first-run (Q1 items
-   2–4, need code + acceptance, no hosting); Q2 on-demand removals from the
-   APK (need Releases hosting this fork controls — upstream Google Drive
-   archives are immutable); R8 (blocked on the QuickJS keep-fix, HANDOFF
-   item 5); GigaAM 225 MB to SD (done, operational, M6).
+3. **Update 2026-10-08 — что изменилось:**
+   - subpack Q1 п.2: МЕХАНИКА ГОТОВА (`a4fddb40`, CI `37709173132`,
+     APK 247299182 Б, дельта +10 КБ к задаче 10). `SubpackStorage`
+     (leaf `subpack`), стейджинг из cacheDir переведён на leaf
+     (фалбэк сохранён), пикер в Settings → Data & Permissions.
+     Принято на телефоне: переезд internal → external → SD
+     (`/storage/5982-1724/.../files/subpack/` создан), ошибок нет.
+     Файлы из APK НЕ УБРАНЫ (это Q2); выигрыш installed — только через
+     переезд на SD, выигрыш APK — ноль. E2E «файлы в leaf после экспорта»
+     отложено в совместное ручное тестирование.
+   - R8: DONE (не blocked). Keep-fix `b4ff4a30`, minify debug ON навсегда
+     (решение пользователя), mapping-артефакты каждого зелёного CI.
+   - ДРЕЙФ РАЗМЕРОВ на Drive (замерено 08.10 в APK CI `37709173132`):
+     `assets/subpack/android.apk` — 48 МБ против 24.2 МБ в таблице ниже.
+     Архив апстрима ВЫРОС вдвое; цифры таблицы 03.10 для subpack
+     протухли — перед Q2 перемерить все payload байт-в-байт
+     (`python zipfile`, не `unzip -l` — тот молча врёт нулём).
+   - Still open, unchanged: apktool Q1 п.3 (сначала решение
+     «удалить/переехать», HANDOFF задача 12), desktop Q1 п.4,
+     Q2 on-demand (хостинг РЕШЁН: GitHub Releases в том же репо,
+     HANDOFF задача 13), GigaAM на SD (done, M6).
 
 ## 2026-10-03: internal-storage prospects, ranked (APK anatomy at e9c7e0e1)
 
-Status update 2026-10-06: two rows below are DONE, two are DEAD, two are
-OPEN. Do not re-investigate DONE rows; do not re-propose DEAD ones
-(details in the ledger above and in HANDOFF E1–E3).
+Status update 2026-10-08: rows 2, 3, 4 DONE; packaging lever and rootfs
+DEAD (details in the ledger above and in HANDOFF E1–E3); row 1 PART
+(subpack mechanics done, apktool/desktop + Q2 open — HANDOFF 12/13).
+Do not re-investigate DONE rows; do not re-propose DEAD ones.
 
 | # | lever | internal saving | cost | status 2026-10-06 |
 |---|-------|----------------:|------|-------------------|
-| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | PART: rootfs DEAD on device (E3, stays internal); subpack/apktool OPEN (Q1 items 2–3, pure data, no symlinks) |
+| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | PART: rootfs DEAD on device (E3, stays internal); subpack MECHANICS DONE 08.10 (`a4fddb40`, leaf+picker accepted, files still in APK — payoff only via SD move until Q2); apktool/desktop OPEN (HANDOFF 12); Q2 OPEN (HANDOFF 13, hosting decided) |
 | 2 | GigaAM model (225 MB) to SD via the existing picker | 225 MB | zero code; operational, needs the SD present | DONE (M6 2026-10-05: SD round-trip byte-identical, engine inits from card) |
 | 3 | Drop `tensorflow.lite` + `mediapipe.tasks.text` (comment says "if needed", zero code references) | ~11.5 MB | two dependency lines; CI-verifiable | DONE (CI `37127299796`: APK 386 -> 373 MB, both .so gone from APK) |
-| 4 | R8/minify for debug builds too (dex stored ~75 MB over 43 files, no minification today) | est. 25–35 MB | slower CI builds; measure like the packaging lever | BLOCKED on QuickJS keep-fix (HANDOFF task 4; E1 rejected the blind attempt) |
+| 4 | R8/minify for debug builds too (dex stored ~75 MB over 43 files, no minification today) | est. 25–35 MB | slower CI builds; measure like the packaging lever | DONE 08.10 (keep-fix `b4ff4a30`, minify debug ON forever, −40.1 MB measured: 287428400 -> 247288710; mapping artifacts per green CI) |
 | 5 | oat/dexopt | follows 4 | — | follows 4 |
 | — | res/arsc, aapt2 dupes | negligible / wontfix | — | — |
 

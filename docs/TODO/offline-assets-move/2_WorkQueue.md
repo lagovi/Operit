@@ -122,10 +122,18 @@
 
 ## Очередь 2: on-demand download (нужен хостинг)
 
-5. Создать GitHub Releases hosting для payload (сейчас не создан).
+5. Создать GitHub Releases hosting для payload — СДЕЛАНО 08.10:
+   релиз `v1.12.1+4` в том же репо (`gh release create` с файлами,
+   пустых нет; записка что внутри — на месте).
 6. Описать каждый payload как `OfflinePayload` (образец: `GIGAAM`) с
    URL/size/sha, качать через `RemoteAssetFetcher` в `AppDataLocation`-leaf.
+   SUBPACK СДЕЛАНО 08.10 (`SUBPACK_ANDROID/WINDOWS`, `ensureTemplate`,
+   оба flow `ExportDialogs`; Q1-копии узнаются без докачки).
+   Остались: helper APK, templates/emoji (лекало в HANDOFF 13).
 7. Удалить файлы из `app/src/main/assets`, убрав их из APK полностью.
+   SUBPACK СДЕЛАНО 08.10: CI не тянет `subpack.zip` (оба скрипта),
+   APK 214210621 → 177474049 Б (−36736572, CI `37772193743`,
+   папка `2026-10-08_11-45-43Z/`). Приёмка закачки — ждёт телефон.
 
 ## Не делать
 

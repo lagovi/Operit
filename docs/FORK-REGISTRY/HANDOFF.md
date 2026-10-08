@@ -26,7 +26,9 @@ install; леджер research-size п.3 и таблица обновлены (s
 включая E2E экспорта в leaf), 12 ЧАСТИЧНО ((a) apktool удалён И замерен 08.10 — ЗАКРЫТА;
 (b) desktop удалён И замерен 08.10 — ЗАКРЫТА; живые helper APK,
 templates/emoji — в Q2 с картой читателей),
-13 (Q2). ЗАКРЫТО: всё остальное (1–5a/5b, 7a, 9, 10, 11, 3a/3b, 4,
+13 ЧАСТИЧНО (subpack ГОТОВ: код+релиз+замер 08.10; DoD-приёмка
+закачки на чистой установке ЖДЁТ ТЕЛЕФОН — порты закрыты).
+ЗАКРЫТО: всё остальное (1–5a/5b, 7a, 9, 10, 11, 3a/3b, 4,
 subpack Q1-механика).
  Решения пользователя 08.10: keystore НЕ делаем (жизнь на гитхабе,
  debug-сборок достаточно); хостинг Q2 — GitHub Releases в том же репо,
@@ -479,6 +481,44 @@ subpack Q1-механика).
     Удаление подтверждено повторно — не восстанавливать.
   13. Q2 on-demand: убрать payload из APK совсем (ОТКРЫТА, после 12;
     хостинг РЕШЁН 08.10 — GitHub Releases в ТОМ ЖЕ репозитории, см. 7c).
+    SUBPACK ГОТОВ 08.10 (коммит `a8d61d75`, CI `37772193743` success):
+    `OfflinePayload.SUBPACK_ANDROID/WINDOWS` (`util/OfflinePayloads.kt`,
+    URL `.../releases/download/v1.12.1+4/...`, size+sha с APK
+    CI `37726800230`), `SubpackStorage.ensureTemplate` (leaf,
+    `RemoteAssetFetcher`, Q1-копии узнаются по size+sha — докачки нет,
+    отказ возвращается в `onComplete`, фалбэка на assets НЕТ);
+    `ExportDialogs` оба flow переведены на provision-then-use
+    (android: `fromAsset`→`fromFile`, прогресс 0.05–0.30;
+    windows: staged-копия в `windows_export_temp`, остальной flow
+    не тронут); CI больше не тянет `subpack.zip` с Drive
+    (`download_android_dependencies.sh` + `prepare_android_dependencies.py`
+    вычищены, кэш-ключи хешируют скрипты — пересоберутся сами);
+    релиз `v1.12.1+4` создан ВМЕСТЕ с кодом (оба файла залиты,
+    sha сошлись с зашитыми); APK 214210621 → 177474049 Б (−36736572,
+    `assets/subpack` пуст — проверено `zipfile`), папка
+    `2026-10-08_11-45-43Z/` + `CHANGES.md`. НЕ ЗАКРЫТ DoD: чистая
+    установка + экспорт до конца (телефон 08.10 днём НЕДОСТУПЕН:
+    порты 36255/38571/5555/37000–45200 закрыты — нужен свежий порт
+    от пользователя). Остаток Q2: helper APK (карта в 12b),
+    templates/emoji — отдельными заходами по тому же лекалу
+    (payload-объект → ensure → caller → релиз → замер);
+    `apktool.toolpkg` из APK уже удалён (12a) — хостить его как
+    скачиваемый опционально, для размера не нужно. Rootfs — последним
+    и только если proot с внешнего leaf стартует (E3 против;
+    отдельный эксперимент с откатом). Лекало для остальных payload
+    (отработано на subpack, повторять буквально): (а) объект
+    `OfflinePayload` (имя файла В leaf = имя staged-копии, если была, —
+    тогда миграция бесплатна; size+sha снять `python3 zipfile`+sha256
+    с последнего APK где файл ещё был); (б) `ensureX` suspend
+    в Storage-классе через `RemoteAssetFetcher` (отказ — наружу,
+    фалбэка нет); (в) caller на provision-then-use (прогресс
+    прокинуть, вызывать внутри уже-suspend контекста); (г) убрать
+    источник из CI/prepare (кэш-ключи сами пересоберутся);
+    (д) `gh release create` — ТОЛЬКО с файлами, пустых не делать
+    (7c: тег версии `vX.Y.Z`, по файлу на payload, короткая записка);
+    (е) CI → замер `zipfile` → папка+`CHANGES.md` → приёмка закачки
+    на чистой установке (телефон+порт). Порядок: helper APK →
+    templates/emoji (карта читателей в 12b).
     Образец: `OfflinePayload.GIGAAM` (`util/OfflinePayloads.kt`) +
     качалка `util/RemoteAssetFetcher.kt` (докачка, Range, SHA-256) +
     регистрация в `OfflinePayload.all`. Шаги: (а) описать каждый payload

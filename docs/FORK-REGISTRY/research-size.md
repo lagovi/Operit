@@ -79,6 +79,12 @@ Do not re-propose them without new facts.
      9.8 МБ (`WorkspaceUtils.copyTemplateFiles:682`), emoji 3.6 МБ
      (`CustomEmojiRepository:298`); js/ 1.4 МБ — горячий рантайм,
      НЕ ТРОГАТЬ. Desktop Q1 п.4 ЗАКРЫТ,
+   - Q2-SUBPACK ГОТОВ 08.10 (HANDOFF 13): `SUBPACK_ANDROID/WINDOWS` +
+     `ensureTemplate`, оба flow `ExportDialogs`, CI без `subpack.zip`,
+     релиз `v1.12.1+4` (2 файла, sha сошлись), CI `37772193743`:
+     APK 214210621 → 177474049 Б (−36736572), папка
+     `2026-10-08_11-45-43Z`. DoD-приёмка закачки ЖДЁТ ТЕЛЕФОН
+     (порты 08.10 днём закрыты). Итог ночи: 247 → 177 МБ (−70 МБ).
      (HANDOFF 12b), Q2 on-demand открыт (хостинг РЕШЁН: GitHub Releases
      в том же репо, HANDOFF задача 13), GigaAM на SD (done, M6).
 

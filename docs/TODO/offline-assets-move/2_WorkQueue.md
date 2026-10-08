@@ -111,7 +111,14 @@
    220307769 Б (−26991413 Б — сошлось с 26985716 Б тулкита),
    `assets/packages/` — 1429723 Б чистого .js, `apktool`-вхождений
    в APK ноль. Папка `2026-10-08_03-29-43Z/` + `CHANGES.md`.
-4. **desktop.apk, helper APKs, templates/emoji/js**: третья очередь, ~20 МБ.
+4. **desktop.apk, helper APKs, templates/emoji/js**: РАЗОБРАНО 08.10.
+   `desktop.apk`+`desktop_version.txt` — ЗАКРЫТО УДАЛЕНИЕМ (ноль ссылок
+   в репозитории; `git rm`; CI `37726800230`: 220307769 → 214210621 Б,
+   −6097148; папка `2026-10-08_04-17-45Z/`). Остальное — НЕ удаление:
+   shizuku/accessibility APK — живые ондеманд-установки → Q2;
+   templates (сид, `WorkspaceUtils.copyTemplateFiles:682`) → Q2;
+   emoji (`CustomEmojiRepository:298`) → Q2; js/ — горячий рантайм,
+   НЕ ТРОГАТЬ вообще.
 
 ## Очередь 2: on-demand download (нужен хостинг)
 

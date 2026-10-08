@@ -70,7 +70,15 @@ Do not re-propose them without new facts.
      ссылок/тестов ноль. DoD ЗАКРЫТ: CI `37722980127` success,
      APK 247299182 → 220307769 Б (−26991413, сошлось с 26985716 Б
      тулкита), `assets/packages/` — 1429723 Б чистого .js, папка
-     `2026-10-08_03-29-43Z`. Desktop Q1 п.4 открыт
+     `2026-10-08_03-29-43Z`. `desktop.apk`+`desktop_version.txt`
+     УДАЛЕНЫ 08.10 тем же заходом (HANDOFF 12b: ноль ссылок,
+     `git rm`; CI `37726800230`: 220307769 → 214210621 Б, −6097148;
+     папка `2026-10-08_04-17-45Z`). Живые остатки для Q2 с картой
+     читателей: helper APK shizuku/accessibility 5.4 МБ
+     (`ShizukuInstaller:37`, `UIHierarchyManager:89-91`), templates
+     9.8 МБ (`WorkspaceUtils.copyTemplateFiles:682`), emoji 3.6 МБ
+     (`CustomEmojiRepository:298`); js/ 1.4 МБ — горячий рантайм,
+     НЕ ТРОГАТЬ. Desktop Q1 п.4 ЗАКРЫТ,
      (HANDOFF 12b), Q2 on-demand открыт (хостинг РЕШЁН: GitHub Releases
      в том же репо, HANDOFF задача 13), GigaAM на SD (done, M6).
 
@@ -83,7 +91,7 @@ Do not re-investigate DONE rows; do not re-propose DEAD ones.
 
 | # | lever | internal saving | cost | status 2026-10-06 |
 |---|-------|----------------:|------|-------------------|
-| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | PART: rootfs DEAD on device (E3, stays internal); subpack MECHANICS DONE 08.10 (`a4fddb40`, leaf+picker accepted, files still in APK — payoff only via SD move until Q2); apktool REMOVED+MEASURED 08.10 (CI `37722980127`: 247299182 → 220307769 Б); desktop OPEN (HANDOFF 12b); Q2 OPEN (HANDOFF 13, hosting decided) |
+| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | PART: rootfs DEAD on device (E3, stays internal); subpack MECHANICS DONE 08.10 (`a4fddb40`, leaf+picker accepted, files still in APK — payoff only via SD move until Q2); apktool REMOVED+MEASURED 08.10 (CI `37722980127`: 247299182 → 220307769 Б); desktop.apk REMOVED+MEASURED 08.10 (CI `37726800230`: → 214210621 Б); живые остатки (helper APK/templates/emoji) → Q2; Q2 OPEN (HANDOFF 13, hosting decided) |
 | 2 | GigaAM model (225 MB) to SD via the existing picker | 225 MB | zero code; operational, needs the SD present | DONE (M6 2026-10-05: SD round-trip byte-identical, engine inits from card) |
 | 3 | Drop `tensorflow.lite` + `mediapipe.tasks.text` (comment says "if needed", zero code references) | ~11.5 MB | two dependency lines; CI-verifiable | DONE (CI `37127299796`: APK 386 -> 373 MB, both .so gone from APK) |
 | 4 | R8/minify for debug builds too (dex stored ~75 MB over 43 files, no minification today) | est. 25–35 MB | slower CI builds; measure like the packaging lever | DONE 08.10 (keep-fix `b4ff4a30`, minify debug ON forever, −40.1 MB measured: 287428400 -> 247288710; mapping artifacts per green CI) |

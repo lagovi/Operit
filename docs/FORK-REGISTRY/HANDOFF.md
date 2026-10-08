@@ -24,7 +24,8 @@ install; леджер research-size п.3 и таблица обновлены (s
 готова, R8 — done, дрейф размера android.apk на Drive).
 ОТКРЫТО: 6 (terminal-env setup, нужны батарея+сеть), 8 (совместное ручное,
 включая E2E экспорта в leaf), 12 ЧАСТИЧНО ((a) apktool удалён И замерен 08.10 — ЗАКРЫТА;
-(b) desktop открыт),
+(b) desktop удалён И замерен 08.10 — ЗАКРЫТА; живые helper APK,
+templates/emoji — в Q2 с картой читателей),
 13 (Q2). ЗАКРЫТО: всё остальное (1–5a/5b, 7a, 9, 10, 11, 3a/3b, 4,
 subpack Q1-механика).
  Решения пользователя 08.10: keystore НЕ делаем (жизнь на гитхабе,
@@ -104,10 +105,13 @@ subpack Q1-механика).
   «что закрыто и почему»: `docs/FORK-REGISTRY/research-size.md` (леджер
   2026-10-05 + обновление 08.10 — читать ПЕРЕД любой новой работой
   по размеру, иначе повторишь закрытые круги).
-  ЧТО ОТКРЫТО (не лезть в закрытое выше): desktop.apk/helper
-  APKs/templates (~20 МБ) — задача 12(b); apktool.toolpkg УДАЛЁН из APK
-  08.10 и замерен (220307769 Б, −26991413; папка `2026-10-08_03-29-43Z`) —
-  задача 12(a) ЗАКРЫТА;
+  ЧТО ОТКРЫТО (не лезть в закрытое выше): Q2 on-demand — задача 13
+  (хостинг РЕШЁН: GitHub Releases в том же репо; кандидаты: subpack
+  59.5 МБ, helper APK shizuku/accessibility 5.4 МБ, templates 9.8 МБ,
+  emoji 3.6 МБ — карта читателей в задаче 12(b)). Детали:
+  `docs/TODO/offline-assets-move/2_WorkQueue.md` (Q1: п.1 rootfs FAIL,
+  п.2 subpack МЕХАНИКА ГОТОВА, п.3 apktool УДАЛЁН+ЗАМЕРЕН,
+  п.4 desktop УДАЛЁН+ЗАМЕРЕН; очередь 2 — пп.5–7).
   затем Q2 on-demand — задача 13 (хостинг РЕШЁН: GitHub Releases в том
   же репо). Детали: `docs/TODO/offline-assets-move/2_WorkQueue.md`
   (Q1: п.1 rootfs FAIL, п.2 subpack МЕХАНИКА ГОТОВА, п.3 apktool УДАЛЁН,
@@ -438,11 +442,32 @@ subpack Q1-механика).
     кодовых ссылок ноль, приёмка отсутствия — опционально при
     следующем install).
     (b) desktop.apk (6.5 МБ) + helper APKs (shizuku/accessibility ~3–5 МБ)
-    + templates/emoji/js (~14 МБ): то же лекало (leaf + пикер), но ТРЕТЬЕЙ
-    очередью — выигрыш меньше, поверхностей больше. Сначала (a).
-    (c) НЕ трогать в этой задаче: OCR/движки (решение отдельно),
+    + templates/emoji/js (~14 МБ): РАЗОБРАНО 08.10, решения разные.
+    `desktop.apk`+`desktop_version.txt` — МЁРТВЫЙ ВЕС (ноль ссылок
+    во всём репозитории кроме таблиц размеров; `assets/README.md`
+    документирует только shizuku): удалены `git rm`, DoD ЗАКРЫТ —
+    CI `37726800230` success, APK 220307769 → 214210621 Б (−6097148),
+    `desktop*`-вхождений остался один виджет-xml (не оно). Папка
+    `2026-10-08_04-17-45Z/` + `CHANGES.md`.
+    shizuku.apk/accessibility.apk — ЖИВЫЕ (читаются по требованию:
+    `ShizukuInstaller.extractApkFromAssets:37` → cacheDir → install
+    intent; `UIHierarchyManager:89-91` так же; версии из
+    `*_version.txt`): в Q1 не выносятся (без хостинга APK не похудеет,
+    код под 5 МБ несоразмерен) — идут в Q2 on-demand (задача 13),
+    карта читателей уже здесь. templates (9.8 МБ, 187 файлов) —
+    сид проектов: `WorkspaceUtils.copyTemplateFiles:682` копирует
+    `templates/$name` из assets в workspaceDir при создании (рантайм
+    читает файлы, не assets) — тоже Q2 (скачать сид вместо бандла).
+    emoji (3.6 МБ) — `CustomEmojiRepository:298` (`emoji`-каталог
+    assets) — Q2. js/ (1.4 МБ: pako/CryptoJS/Jimp/UINode/OkHttp3/
+    katex/terser — `JsAssetLoader`, `JsEmbeddedLibraryLoader`,
+    `LatexMathMlConverter:10`, `ToolPkgJsAstMinifier:50`) — ГОРЯЧИЙ
+    рантайм JS-движка, offline: НЕ ТРОГАТЬ вообще (ни Q1, ни Q2).
+    ЗАПРЕТ исполнен: `examples/apktool/` не тронут (это было (a)).
+    (c) НЕ трогать (действует дальше): OCR/движки (решение отдельно),
     `lib/` и dex (неприкосновенны — E2), rootfs (FAIL — E3, только Q2),
-    aapt2-дубли (wontfix — ломает `setup_android_env.sh`, SIZE-006).
+    aapt2-дубли (wontfix — ломает `setup_android_env.sh`, SIZE-006),
+    js/ assets (горячий рантайм, см. выше).
   13. Q2 on-demand: убрать payload из APK совсем (ОТКРЫТА, после 12;
     хостинг РЕШЁН 08.10 — GitHub Releases в ТОМ ЖЕ репозитории, см. 7c).
     Образец: `OfflinePayload.GIGAAM` (`util/OfflinePayloads.kt`) +

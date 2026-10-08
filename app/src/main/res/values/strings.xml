@@ -7149,6 +7149,11 @@
     <string name="stt_storage_move_failed">Could not move the speech model. The model stays where it was.</string>
     <string name="stt_storage_moving">Moving…</string>
     <string name="stt_storage_change">Change</string>
+    <string name="subpack_storage_title">Export templates storage</string>
+    <string name="subpack_storage_summary">Where the APK/EXE export templates (~35 MB) are staged after first use. Putting them on a memory card keeps them out of the phone\'s internal storage.</string>
+    <string name="subpack_storage_change">Change</string>
+    <string name="subpack_storage_moving">Moving…</string>
+    <string name="subpack_storage_move_failed">Could not move the templates. They stay where they were.</string>
     <string name="stt_storage_not_enough_space">Not enough free space in the new location</string>
     <string name="stt_custom_title">Additional speech models</string>
     <string name="stt_custom_summary">Other compatible checkpoints from a Hugging Face link, decoded by the same on-device engine. Only add repos you trust: a model runs code-shaped math on your microphone.</string>

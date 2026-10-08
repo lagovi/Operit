@@ -27,6 +27,7 @@ import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
 import com.ai.assistance.operit.data.preferences.SupervisionPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.ui.features.github.GitHubLoginDialog
+import com.ai.assistance.operit.ui.features.settings.sections.SubpackStorageSection
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.launch
@@ -298,6 +299,8 @@ fun SettingsScreen(
                                 icon = Icons.Default.ReceiptLong,
                                 onClick = navigateToLlmIoLog
                         )
+
+                        SubpackStorageSection()
                 }
 
                 // ======= 隐私与数据清理 =======

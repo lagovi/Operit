@@ -28,8 +28,16 @@ private constructor(
         @JvmStatic
         fun fromAsset(context: Context, assetPath: String): ApkEditor {
             val fileName = assetPath.substringAfterLast('/')
-            val outputFile = File(context.cacheDir, "apk_editor_$fileName")
-            val apkFile = AssetCopyUtils.copyAssetToFile(context, assetPath, outputFile, overwrite = true)
+            // Stage into the movable subpack leaf so the ~24 MB template can
+            // live on the memory card; cacheDir is the fallback, as before.
+            val apkFile = SubpackStorage(context)
+                .stageAsset(assetPath, "apk_editor_$fileName")
+                ?: AssetCopyUtils.copyAssetToFile(
+                    context,
+                    assetPath,
+                    File(context.cacheDir, "apk_editor_$fileName"),
+                    overwrite = true
+                )
             val apkReverseEngineer = ApkReverseEngineer(context)
             return ApkEditor(context, apkFile, apkReverseEngineer)
         }

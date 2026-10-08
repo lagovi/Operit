@@ -27,8 +27,15 @@ private constructor(
         @JvmStatic
         fun fromAsset(context: Context, assetPath: String): ExeEditor {
             val fileName = assetPath.substringAfterLast('/')
-            val outputFile = File(context.cacheDir, "exe_editor_$fileName")
-            val exeFile = AssetCopyUtils.copyAssetToFile(context, assetPath, outputFile, overwrite = true)
+            // Same movable-leaf staging as ApkEditor; cacheDir on failure.
+            val exeFile = SubpackStorage(context)
+                .stageAsset(assetPath, "exe_editor_$fileName")
+                ?: AssetCopyUtils.copyAssetToFile(
+                    context,
+                    assetPath,
+                    File(context.cacheDir, "exe_editor_$fileName"),
+                    overwrite = true
+                )
             val exeIconChanger = ExeIconChanger(context)
             return ExeEditor(context, exeFile, exeIconChanger)
         }

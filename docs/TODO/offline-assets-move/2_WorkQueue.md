@@ -96,10 +96,20 @@
     на экране Settings тапы садятся ~на 100px ниже (как низ drawer) —
     маленькую кнопку Change взял только прицелом на 100 выше; меню-попап
     при этом 1:1. Записано в чит-шит.
-3. **apktool.toolpkg**: кандидат на удаление, а не на переезд: собирается
-   скриптом `tools/example_packages/sync_example_packages.py` из
-   `examples/apktool/`, jar уже zip и почти не жмутся. Проверить, что
-   реверс работает из внешнего leaf, иначе удалить из APK. Выигрыш: ~26 МБ.
+3. **apktool.toolpkg**: ЗАКРЫТО УДАЛЕНИЕМ 08.10 (решение «удалить», не
+   переезд — фича `enabled_by_default: false`, ниша; чтение шло только из
+   assets через `scanAssetPackages`+`loadToolPkgFromAsset` с распаковкой
+   всего архива в кэш, т.е. ~27 МБ в APK + ~27 МБ кэша; внешний импорт
+   `.toolpkg` уже есть — `PackageManagerScreen:320` +
+   `scanExternalPackages`, `reconcileToolPkgCaches:902-944` сам трёт
+   stale-кэш, кодовых ссылок и тестов — ноль). Ход: строка `apktool`
+   вычеркнута из `tools/example_packages/packages_whitelist.txt`
+   (CI sync в `normal`-режиме больше не пакует; stale-выходы скрипт
+   удаляет сам; `test`-режим pr-check пакует всё по построению —
+   не ломается). `examples/apktool/` НЕ тронут (рантайм тулов).
+   Ожидаемо: минус ~27 МБ в APK следующей сборки. DoD: замерить
+   `python3 zipfile` на APK следующей CI-сборки + `assets/packages/`
+   без `apktool.toolpkg`.
 4. **desktop.apk, helper APKs, templates/emoji/js**: третья очередь, ~20 МБ.
 
 ## Очередь 2: on-demand download (нужен хостинг)

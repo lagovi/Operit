@@ -16,16 +16,23 @@ import java.io.File
  * | terminal rootfs | 61.2 MiB | yes | already extracted to filesDir on first terminal use |
  * | subpack/android.apk | 24.2 MiB | yes | APK editor, read via `ApkEditor.fromAsset` |
  * | subpack/windows.zip | 10.9 MiB | yes | EXE editor, read via `AssetManager` |
- * | apktool.toolpkg | 25.7 MiB | yes | the jars inside are already zips, so it barely compresses |
  * | helper APKs | 9.1 MiB | yes | desktop, accessibility, shizuku |
  * | templates, emoji, js | 8.0 MiB | yes | project gallery and KaTeX |
  *
+ * `apktool.toolpkg` (25.7 MiB) is intentionally absent from this table: it was
+ * removed from the APK on 2026-10-08 (HANDOFF task 12) by dropping `apktool`
+ * from `tools/example_packages/packages_whitelist.txt`, so the CI sync no
+ * longer packs `examples/apktool/` into `assets/packages/`. The feature was
+ * disabled by default, nothing in the code references the bundled copy, the
+ * `.toolpkg` import path (`PackageManagerScreen` + `scanExternalPackages`)
+ * still works, and `reconcileToolPkgCaches` deletes the stale asset cache on
+ * existing installs. Expected saving: ~27 MB of APK.
+ *
  * None of these are listed as objects yet, because each needs its own
  * investigation before it can be removed from the APK: the terminal rootfs has
- * to lose its `context.assets.open` call, the subpackages need a download source
- * the fork controls, and the toolpkg needs a decision on whether the feature is
- * wanted at all. Adding an entry before that work is done would make the
- * registry lie about what the build contains.
+ * to lose its `context.assets.open` call and the subpackages need a download
+ * source the fork controls. Adding an entry before that work is done would make
+ * the registry lie about what the build contains.
  *
  * Not listed, because nothing can be done about them: `lib/arm64-v8a` and the dex
  * files. The linker resolves native libraries from the package manager's own

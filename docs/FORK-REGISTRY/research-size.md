@@ -61,10 +61,16 @@ Do not re-propose them without new facts.
      Архив апстрима ВЫРОС вдвое; цифры таблицы 03.10 для subpack
      протухли — перед Q2 перемерить все payload байт-в-байт
      (`python zipfile`, не `unzip -l` — тот молча врёт нулём).
-   - Still open, unchanged: apktool Q1 п.3 (сначала решение
-     «удалить/переехать», HANDOFF задача 12), desktop Q1 п.4,
-     Q2 on-demand (хостинг РЕШЁН: GitHub Releases в том же репо,
-     HANDOFF задача 13), GigaAM на SD (done, M6).
+   - apktool Q1 п.3 ЗАКРЫТ УДАЛЕНИЕМ 08.10 (HANDOFF 12a): `apktool`
+     вычеркнут из `tools/example_packages/packages_whitelist.txt`,
+     CI sync больше не пакует `examples/apktool/` в `assets/packages/`.
+     Основания: `enabled_by_default: false`, чтение только из assets
+     с распаковкой в кэш (~27 МБ × 2 installed), импорт `.toolpkg`
+     извне уже работает, stale-кэш чистит `reconcileToolPkgCaches`,
+     ссылок/тестов ноль. Ожидаемо минус ~27 МБ APK; DoD — замер
+     следующей CI-сборки (`python3 zipfile`). Desktop Q1 п.4 открыт
+     (HANDOFF 12b), Q2 on-demand открыт (хостинг РЕШЁН: GitHub Releases
+     в том же репо, HANDOFF задача 13), GigaAM на SD (done, M6).
 
 ## 2026-10-03: internal-storage prospects, ranked (APK anatomy at e9c7e0e1)
 
@@ -75,7 +81,7 @@ Do not re-investigate DONE rows; do not re-propose DEAD ones.
 
 | # | lever | internal saving | cost | status 2026-10-06 |
 |---|-------|----------------:|------|-------------------|
-| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | PART: rootfs DEAD on device (E3, stays internal); subpack MECHANICS DONE 08.10 (`a4fddb40`, leaf+picker accepted, files still in APK — payoff only via SD move until Q2); apktool/desktop OPEN (HANDOFF 12); Q2 OPEN (HANDOFF 13, hosting decided) |
+| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | PART: rootfs DEAD on device (E3, stays internal); subpack MECHANICS DONE 08.10 (`a4fddb40`, leaf+picker accepted, files still in APK — payoff only via SD move until Q2); apktool REMOVED 08.10 (whitelist, pending next-CI measure); desktop OPEN (HANDOFF 12b); Q2 OPEN (HANDOFF 13, hosting decided) |
 | 2 | GigaAM model (225 MB) to SD via the existing picker | 225 MB | zero code; operational, needs the SD present | DONE (M6 2026-10-05: SD round-trip byte-identical, engine inits from card) |
 | 3 | Drop `tensorflow.lite` + `mediapipe.tasks.text` (comment says "if needed", zero code references) | ~11.5 MB | two dependency lines; CI-verifiable | DONE (CI `37127299796`: APK 386 -> 373 MB, both .so gone from APK) |
 | 4 | R8/minify for debug builds too (dex stored ~75 MB over 43 files, no minification today) | est. 25–35 MB | slower CI builds; measure like the packaging lever | DONE 08.10 (keep-fix `b4ff4a30`, minify debug ON forever, −40.1 MB measured: 287428400 -> 247288710; mapping artifacts per green CI) |

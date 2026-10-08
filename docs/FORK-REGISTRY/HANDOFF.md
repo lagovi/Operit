@@ -23,8 +23,10 @@ R8-mapping + `f3ce47f1`/`5cb753fe` задача 10 + `cddb9906` revert +
 install; леджер research-size п.3 и таблица обновлены (subpack-механика
 готова, R8 — done, дрейф размера android.apk на Drive).
 ОТКРЫТО: 6 (terminal-env setup, нужны батарея+сеть), 8 (совместное ручное,
-включая E2E экспорта в leaf), 12 (Q1 пп.3–4), 13 (Q2). ЗАКРЫТО: всё
-остальное (1–5a/5b, 7a, 9, 10, 11, 3a/3b, 4, subpack Q1-механика).
+включая E2E экспорта в leaf), 12 ЧАСТИЧНО ((a) apktool удалён из whitelist
+08.10 — остался замер APK следующей CI-сборки; (b) desktop открыт),
+13 (Q2). ЗАКРЫТО: всё остальное (1–5a/5b, 7a, 9, 10, 11, 3a/3b, 4,
+subpack Q1-механика).
  Решения пользователя 08.10: keystore НЕ делаем (жизнь на гитхабе,
  debug-сборок достаточно); хостинг Q2 — GitHub Releases в том же репо,
  первый релиз вместе с Q2-кодом; ручное тестирование — позже, когда
@@ -102,12 +104,13 @@ install; леджер research-size п.3 и таблица обновлены (s
   «что закрыто и почему»: `docs/FORK-REGISTRY/research-size.md` (леджер
   2026-10-05 + обновление 08.10 — читать ПЕРЕД любой новой работой
   по размеру, иначе повторишь закрытые круги).
-  ЧТО ОТКРЫТО (не лезть в закрытое выше): apktool.toolpkg (~26 МБ) —
-  задача 12 (сначала решение «удалить или переехать»); desktop.apk/helper
-  APKs/templates (~20 МБ) — задача 12 следом; затем Q2 on-demand —
-  задача 13 (хостинг РЕШЁН: GitHub Releases в том же репо). Детали:
-  `docs/TODO/offline-assets-move/2_WorkQueue.md` (Q1: п.1 rootfs FAIL,
-  п.2 subpack МЕХАНИКА ГОТОВА, пп.3–4 OPEN; очередь 2 — пп.5–7).
+  ЧТО ОТКРЫТО (не лезть в закрытое выше): desktop.apk/helper
+  APKs/templates (~20 МБ) — задача 12(b); apktool.toolpkg УДАЛЁН из APK
+  08.10 (whitelist, ждёт замера следующей CI-сборки — задача 12(a));
+  затем Q2 on-demand — задача 13 (хостинг РЕШЁН: GitHub Releases в том
+  же репо). Детали: `docs/TODO/offline-assets-move/2_WorkQueue.md`
+  (Q1: п.1 rootfs FAIL, п.2 subpack МЕХАНИКА ГОТОВА, п.3 apktool УДАЛЁН,
+  п.4 OPEN; очередь 2 — пп.5–7).
 
 ## Статус: что делать (порядок — решение пользователя; зависимость одна:
 супервизия пишется В лог, поэтому лог раньше неё; у каждой задачи — DoD)
@@ -409,24 +412,24 @@ install; леджер research-size п.3 и таблица обновлены (s
   12. Q1 п.3–4: apktool.toolpkg и desktop/helper/templates (ОТКРЫТА;
     порядок внутри: сначала п.3(a), потом п.4(b);
     CI ~25 мин на круг, приёмка — телефон с зарядом).
-    (a) apktool.toolpkg (~26 МБ): СНАЧАЛА РЕШЕНИЕ «удалить или переехать»
-    (очередь прямо называет его кандидатом на удаление). Разведка:
-    где байты toolpkg читаются в рантайме (кандидаты: `JsToolManager.kt`,
-    `ToolPkgArtifactMinifier.kt`, `ToolPkgWasmRuntime.kt` — греп
-    `toolpkg` по `app/src/main`, читать, не гадать); откуда берётся файл
-    (в `assets/packages/` его НЕТ — только .js; собирается ли он
-    `sync_example_packages.py` в билд или тоже едет с Drive —
-    проверить `tools/example_packages/` + CI-лог prepare-шага).
-    Если реверс реально ходит во внешний leaf (как subpack): делать
-    `ApktoolStorage` по образцу `SubpackStorage` (leaf `apktool`,
-    stage, migrateTo) + строку в тот же Settings-раздел
-    (новый `ApktoolStorageSection`, строки в default-бакет, аудит 0).
-    Если фича мёртвая/не чинится извне: удалить из APK (где исключается —
-    смотреть `prepare_android_dependencies.py` + `build.gradle.kts`
-    assets-исключения) и зафиксировать удаление в очереди. DoD: либо
-    пикер + переезд на SD с файлами в leaf (скрин + `run-as ls`),
-    либо минус ~26 МБ в APK следующей сборки + запись что выпилено.
-    ЗАПРЕТ: не трогать `examples/apktool/` (рантайм тулов, не код).
+    (a) apktool.toolpkg (~26 МБ): РЕШЕНИЕ ПРИНЯТО 08.10 — УДАЛИТЬ
+    (не переезжать). Разведка показала: чтение только из assets
+    (`PackageManager.scanAssetPackages:1261` →
+    `loadToolPkgFromAsset:2029` с распаковкой ВСЕГО архива в кэш
+    `prepareToolPkgAssetCache:1993` — т.е. ~27 МБ в APK + ~27 МБ кэша
+    за фичу `enabled_by_default: false`); внешний `.toolpkg`-импорт
+    уже работает (`PackageManagerScreen:320` +
+    `scanExternalPackages:1276`); `reconcileToolPkgCaches:902-944`
+    сам удаляет stale-кэш старых установок; кодовых ссылок на
+    бандл — ноль (`OfflinePayloads.kt:19` был единственной),
+    тестов — ноль. Ход: `apktool` вычеркнут из
+    `tools/example_packages/packages_whitelist.txt` (CI sync
+    `normal`-режим больше не пакует; stale-выходы скрипт удаляет сам;
+    `test`-режим pr-check пакует всё по построению — не ломается;
+    `npm run build:examples:github` трогает только пример github).
+    `examples/apktool/` НЕ тронут. Остаток DoD: замерить APK следующей
+    CI-сборки (`python3 zipfile`: `assets/packages/` без
+    `apktool.toolpkg`, минус ~27 МБ) — без этого пункт не закрывать.
     (b) desktop.apk (6.5 МБ) + helper APKs (shizuku/accessibility ~3–5 МБ)
     + templates/emoji/js (~14 МБ): то же лекало (leaf + пикер), но ТРЕТЬЕЙ
     очередью — выигрыш меньше, поверхностей больше. Сначала (a).

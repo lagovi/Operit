@@ -23,8 +23,8 @@ R8-mapping + `f3ce47f1`/`5cb753fe` задача 10 + `cddb9906` revert +
 install; леджер research-size п.3 и таблица обновлены (subpack-механика
 готова, R8 — done, дрейф размера android.apk на Drive).
 ОТКРЫТО: 6 (terminal-env setup, нужны батарея+сеть), 8 (совместное ручное,
-включая E2E экспорта в leaf), 12 ЧАСТИЧНО ((a) apktool удалён из whitelist
-08.10 — остался замер APK следующей CI-сборки; (b) desktop открыт),
+включая E2E экспорта в leaf), 12 ЧАСТИЧНО ((a) apktool удалён И замерен 08.10 — ЗАКРЫТА;
+(b) desktop открыт),
 13 (Q2). ЗАКРЫТО: всё остальное (1–5a/5b, 7a, 9, 10, 11, 3a/3b, 4,
 subpack Q1-механика).
  Решения пользователя 08.10: keystore НЕ делаем (жизнь на гитхабе,
@@ -106,7 +106,8 @@ subpack Q1-механика).
   по размеру, иначе повторишь закрытые круги).
   ЧТО ОТКРЫТО (не лезть в закрытое выше): desktop.apk/helper
   APKs/templates (~20 МБ) — задача 12(b); apktool.toolpkg УДАЛЁН из APK
-  08.10 (whitelist, ждёт замера следующей CI-сборки — задача 12(a));
+  08.10 и замерен (220307769 Б, −26991413; папка `2026-10-08_03-29-43Z`) —
+  задача 12(a) ЗАКРЫТА;
   затем Q2 on-demand — задача 13 (хостинг РЕШЁН: GitHub Releases в том
   же репо). Детали: `docs/TODO/offline-assets-move/2_WorkQueue.md`
   (Q1: п.1 rootfs FAIL, п.2 subpack МЕХАНИКА ГОТОВА, п.3 apktool УДАЛЁН,
@@ -427,9 +428,15 @@ subpack Q1-механика).
     `normal`-режим больше не пакует; stale-выходы скрипт удаляет сам;
     `test`-режим pr-check пакует всё по построению — не ломается;
     `npm run build:examples:github` трогает только пример github).
-    `examples/apktool/` НЕ тронут. Остаток DoD: замерить APK следующей
-    CI-сборки (`python3 zipfile`: `assets/packages/` без
-    `apktool.toolpkg`, минус ~27 МБ) — без этого пункт не закрывать.
+    `examples/apktool/` НЕ тронут. DoD ЗАКРЫТ 08.10: CI `37722980127`
+    success, APK 247299182 → 220307769 Б (−26991413 Б — сошлось с
+    26985716 Б `apktool.toolpkg` до байта точности), `assets/packages/`
+    теперь только .js (1429723 Б), `apktool`-вхождений в APK ноль
+    (`python3 zipfile`). Папка:
+    `/home/uzzzver/operit-fork/apk/2026-10-08_03-29-43Z/` + `CHANGES.md`.
+    На телефоне не ставилась (удаление из APK ломать нечему:
+    кодовых ссылок ноль, приёмка отсутствия — опционально при
+    следующем install).
     (b) desktop.apk (6.5 МБ) + helper APKs (shizuku/accessibility ~3–5 МБ)
     + templates/emoji/js (~14 МБ): то же лекало (leaf + пикер), но ТРЕТЬЕЙ
     очередью — выигрыш меньше, поверхностей больше. Сначала (a).

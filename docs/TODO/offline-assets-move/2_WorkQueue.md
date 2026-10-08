@@ -107,9 +107,10 @@
    (CI sync в `normal`-режиме больше не пакует; stale-выходы скрипт
    удаляет сам; `test`-режим pr-check пакует всё по построению —
    не ломается). `examples/apktool/` НЕ тронут (рантайм тулов).
-   Ожидаемо: минус ~27 МБ в APK следующей сборки. DoD: замерить
-   `python3 zipfile` на APK следующей CI-сборки + `assets/packages/`
-   без `apktool.toolpkg`.
+   DoD ЗАКРЫТ 08.10: CI `37722980127` success, APK 247299182 →
+   220307769 Б (−26991413 Б — сошлось с 26985716 Б тулкита),
+   `assets/packages/` — 1429723 Б чистого .js, `apktool`-вхождений
+   в APK ноль. Папка `2026-10-08_03-29-43Z/` + `CHANGES.md`.
 4. **desktop.apk, helper APKs, templates/emoji/js**: третья очередь, ~20 МБ.
 
 ## Очередь 2: on-demand download (нужен хостинг)

@@ -61,6 +61,14 @@
 -keep class net.dongliu.apkparser.** { *; }
 -keep class net.lingala.zip4j.** { *; }
 
+# Fork: commons-compress ExtraFieldUtils registers its ZipExtraField
+# implementations reflectively (Class.newInstance in <clinit>), which R8
+# cannot see. Minified builds die in ApkReverseEngineer.copyZipEntry
+# (ZipArchiveEntry.setTime) with NoSuchMethodException
+# AsiExtraField.<init> (live-fire 2026-10-09, task 13). Keep the
+# constructors; methods are still shrinking/optimizing candidates.
+-keep class org.apache.commons.compress.archivers.zip.** { <init>(...); }
+
 # ToolPkg packages are JS bundles loaded from assets and from the market, and they
 # call back into the host by name.
 -keep class com.ai.assistance.operit.core.tools.packTool.** { *; }

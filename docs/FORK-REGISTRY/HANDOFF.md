@@ -541,7 +541,8 @@ subpack Q1-механика).
      дерева; тарболл≠дерево — pre-seed в internal может и пройти, но это
      отдельный эксперимент с откатом).
     LIVE-FIRE 09.10 (сборка `2026-10-08_11-45-43Z`, чистая установка;
-    телефон после разблокировки bootloader, `192.168.1.69:42323`,
+    телефон после разблокировки bootloader, `192.168.1.69:42323`
+    (далее связь — постоянный `192.168.1.69:5555`, root, см. чит-шит),
     батарея 61–67%): ЗАКАЧКА ДОКАЗАНА — `files/subpack/
     apk_editor_android.apk` 48139093 Б + sha256 `c56b23a8...` сошлись
     с зашитыми (`SUBPACK_ANDROID`); телефон дотянулся до GitHub
@@ -651,6 +652,17 @@ subpack Q1-механика).
 `echo CODE | adb pair 192.168.1.63:PAIRPORT`, затем скан adb-порта
 (python+socket, `37000-45200` + `5555`) и `adb connect IP:PORT`. Скан пустой
 = отладка выключена, только пользователь может включить.
+09.10: root через Magisk ЕСТЬ (`su -c id` uid=0, полные capabilities).
+Включён классический ПОСТОЯННЫЙ ADB: `su -c 'setprop service.adb.tcp.port
+5555'` + `stop adbd; start adbd` → `adb connect 192.168.1.69:5555`
+(TLS-порт после этого отвалился сам — так и надо, лишний). Порт держится
+до ПЕРЕЗАГРУЗКИ телефона. Автозагрузка НЕВОЗМОЖНА: `/data/adb/service.d`
+не пишется даже root (оба неймспейса, даже в Permissive — режет прошивка).
+После ребута — одна строка в Termux на телефоне:
+`su -c 'setprop service.adb.tcp.port 5555; stop adbd; start adbd'`,
+затем с ноутбука `adb connect 192.168.1.69:5555`. Локальный трюк 09.10:
+порт открыт и пингуется, а `adb connect` висит — лечится
+`adb kill-server; adb start-server` (stale server).
 **CI.** Push в feature-ветку workflow НЕ стартует — только ручной dispatch:
 `gh workflow run "Android Build" --ref feat/english-only-build`
 (для nightly-минификации добавить `-f gradle_task=":app:assembleNightly"`).

@@ -775,7 +775,8 @@ Settings/API против 422 Actions — не работают, только к
   `saveInitialConfiguration`; `enableDeepSeekWebSearch` удалён по всей
   цепочке; строки provider_*/speech_services_cn_*/enable_deepseek_* стёрты;
   тесты поправлены (ThinkingQuality — CN-кейсы удалены, third-party теперь
-  UNSUPPORTED; остальные фикстуры DEEPSEEK→OPENAI); PROMPT-002 и 5 его
+  UNSUPPORTED; остальные фикстуры DEEPSEEK→OPENAI); логотипы провайдеров
+  `assets/model_logos/` −16 CN-папок; PROMPT-002 и 5 его
   allowlist-записей удалены (файл мёртв); 3 укороченные CN-строки промптов
   до-allowlistены. НЕ тронуто: комментарии про wire-протоколы, model-name
   триггер free-модели в чате, minimax-ветка роутинга OpenCode (машинерия

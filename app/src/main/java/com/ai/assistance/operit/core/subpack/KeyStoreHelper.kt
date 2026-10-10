@@ -72,7 +72,7 @@ class KeyStoreHelper {
                 AppLogger.d(TAG, "Old-style $type failed: ${e.message}")
             }
             try {
-                val sf = java.security.SecretKeyFactory.getInstance("1.2.840.113549.1.5.12")
+                val sf = javax.crypto.SecretKeyFactory.getInstance("1.2.840.113549.1.5.12")
                 AppLogger.d(TAG, "PBES2 SecretKeyFactory offered by ${sf.provider.name}")
             } catch (e: Exception) {
                 AppLogger.d(TAG, "PBES2 SecretKeyFactory unavailable: ${e.message}")

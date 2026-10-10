@@ -24,7 +24,11 @@ PKG="${PKG:-com.ai.assistance.operit.debug}"
 PLAB_TOUCH_DEV="${PLAB_TOUCH_DEV:-}"
 PLAB_TRACK_ID=20
 
-_adb() { adb -s "$PHONE" "$@"; }
+_adb() {
+    # Hard timeout: a stalled ADB transport must fail fast, never hang
+    # the caller forever (10.10: accept run hung with zero output).
+    timeout 90 adb -s "$PHONE" "$@"
+}
 
 # Detect the touchscreen event node once (ILITEK_TDDI here; match by ABS_X range).
 plab_touch_dev() {

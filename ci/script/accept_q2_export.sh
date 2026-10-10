@@ -21,17 +21,21 @@ APK="${1:?usage: accept_q2_export.sh <local-apk>}"
 pass=0; failed=0
 ok()   { echo "  ok    $1"; pass=$((pass+1)); }
 bad()  { echo "  FAIL  $1"; failed=$((failed+1)); }
+step() { echo "== $1"; }
 
 # 0. transport + root
+step "transport+root"
 adb -s "$PHONE" shell echo alive >/dev/null || { echo "FAIL phone unreachable"; exit 2; }
 adb -s "$PHONE" shell "su -c id" | grep -q "uid=0" && ok "root" || { bad "root"; exit 2; }
 
 # 1. clean install
+step "clean install"
 adb -s "$PHONE" uninstall "$PKG" >/dev/null 2>&1
 adb -s "$PHONE" install "$APK" >/dev/null || { bad "install"; exit 2; }
 ok "clean install"
 
 # 2. grants (shell set; wizard still taps through, grants make it pass)
+step "grants (shell set; wizard still taps through, grants make it pass)"
 for p in READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE ACCESS_FINE_LOCATION ACCESS_COARSE_LOCATION RECORD_AUDIO; do
     adb -s "$PHONE" shell pm grant "$PKG" "android.permission.$p"
 done
@@ -41,6 +45,7 @@ adb -s "$PHONE" shell dumpsys deviceidle whitelist +"$PKG" >/dev/null
 ok "grants"
 
 # 3. first launch: single onboarding screen (liability + permissions +
+step "first launch: single onboarding screen (liability + permissions +"
 # level on one scroll) -> Continue -> chat. Continue sits at the bottom,
 # so swipe up until it is visible; grants from step 2 make the rows pass.
 adb -s "$PHONE" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
@@ -82,6 +87,7 @@ if plab_texts | grep -q "РАЗРЕШИТЬ"; then plab_tap_text "РАЗРЕШИ
 plab_wait_text "Selected: q2html" 20 && ok "folder picked" || { bad "folder picked"; exit 2; }
 
 # 5. online export: download + repack + sign, output exists
+step "online export: download + repack + sign, output exists"
 adb -s "$PHONE" logcat -c
 plab_tap_text "Generate Package"; sleep 2
 plab_tap 258 784; sleep 2
@@ -95,10 +101,12 @@ SZ=$(adb -s "$PHONE" shell "stat -c %s /storage/emulated/0/Download/Operit/expor
 [ "$SZ" -gt 40000000 ] && ok "output size $SZ" || { bad "output size $SZ"; exit 2; }
 
 # 6. template leaf intact (size+sha of the release payload)
+step "template leaf intact (size+sha of the release payload)"
 plab_assert_leaf_file files/subpack/apk_editor_android.apk 48139093 c56b23a8 \
     && ok "leaf intact" || { bad "leaf intact"; exit 2; }
 
 # 7. offline reuse: block ONLY the app uid via iptables (never svc wifi — it kills ADB).
+step "offline reuse: block ONLY the app uid via iptables (never svc wifi — it kills ADB)."
 AID=$(adb -s "$PHONE" shell dumpsys package "$PKG" 2>/dev/null | grep -m1 userId | grep -o "[0-9]*")
 adb -s "$PHONE" shell "su -c 'iptables -A OUTPUT -m owner --uid-owner $AID -j REJECT'"
 adb -s "$PHONE" logcat -c

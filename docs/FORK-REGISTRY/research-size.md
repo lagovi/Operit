@@ -89,6 +89,11 @@ Do not re-propose them without new facts.
       (`AsiExtraField.<init>`, `copyZipEntry:339`), фикс keep
       конструкторов запушен (`b54dffbe`); CI не стартует (422 Actions
       disabled — нужен владелец). Итог ночи: 247 → 177 МБ (−70 МБ).
+      CLOSE-OUT 10.10: сборка `2026-10-10_00-41-11Z` (CI `38010108122`,
+      APK 179691879 Б, +2.1 МБ за целый BouncyCastle): чистый install →
+      закачка → репак → подпись (фикс `a2764e9c`: BC keep + платформе
+      больше не удаляется) → выходной APK 48094313 Б ставится;
+      offline-повтор без докачки, размер тот же. DoD ЗАКРЫТ.
      (HANDOFF 12b), Q2 on-demand открыт (хостинг РЕШЁН: GitHub Releases
      в том же репо, HANDOFF задача 13), GigaAM на SD (done, M6).
 

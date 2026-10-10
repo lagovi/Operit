@@ -69,6 +69,13 @@
 # constructors; methods are still shrinking/optimizing candidates.
 -keep class org.apache.commons.compress.archivers.zip.** { <init>(...); }
 
+# Fork: the bundled BouncyCastle provider serves its JCA implementations
+# by name from the provider table, which R8 cannot see. Minified builds
+# lose every KeyStore type once KeyStoreHelper removes the platform BC
+# ("PKCS12/JKS KeyStore not available", live-fire 2026-10-10, task 13).
+# Keep the whole provider; it is only reachable through JCA anyway.
+-keep class org.bouncycastle.** { *; }
+
 # ToolPkg packages are JS bundles loaded from assets and from the market, and they
 # call back into the host by name.
 -keep class com.ai.assistance.operit.core.tools.packTool.** { *; }

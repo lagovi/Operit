@@ -24,8 +24,21 @@ class KeyStoreHelper {
         @JvmStatic
         fun registerBouncyCastleProvider(): Boolean {
             try {
-                // 先移除再添加，避免重复添加导致的问题
-                Security.removeProvider("BC")
+                // Fork: NEVER Security.removeProvider("BC") here. That call
+                // deletes the PLATFORM BouncyCastle — the only guaranteed
+                // PKCS12 KeyStore on Android. R8 shrinks the bundled
+                // provider's service classes (see the bouncycastle keep in
+                // proguard-rules.pro), so after removal NO provider offers
+                // the KeyStore and every load fails with
+                // "PKCS12/JKS KeyStore not available" (live-fire 10.10,
+                // task 13). Inserting ours first WITHOUT removing keeps the
+                // platform as a working second entry; JCA skips providers
+                // that lack the requested service.
+                val existing = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)
+                if (existing is BouncyCastleProvider) {
+                    bcProvider = existing
+                    return true
+                }
 
                 // 创建新的BouncyCastle提供者实例
                 val provider = BouncyCastleProvider()

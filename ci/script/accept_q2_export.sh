@@ -31,8 +31,13 @@ adb -s "$PHONE" shell "su -c id" | grep -q "uid=0" && ok "root" || { bad "root";
 # 1. clean install
 step "clean install"
 adb -s "$PHONE" uninstall "$PKG" >/dev/null 2>&1
-adb -s "$PHONE" install "$APK" >/dev/null || { bad "install"; exit 2; }
-ok "clean install"
+install_out=$(timeout 600 adb -s "$PHONE" install "$APK" 2>&1) || true
+echo "$install_out" | grep -q "Success" || {
+    echo "install attempt 1: $install_out" >&2
+    sleep 5
+    install_out=$(timeout 600 adb -s "$PHONE" install "$APK" 2>&1) || true
+}
+echo "$install_out" | grep -q "Success" && ok "clean install" || { bad "install: $install_out"; exit 2; }
 
 # 2. grants (shell set; wizard still taps through, grants make it pass)
 step "grants (shell set; wizard still taps through, grants make it pass)"

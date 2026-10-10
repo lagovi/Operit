@@ -423,5 +423,6 @@ object ScrapedModelPricingRowsCollect {
         MISTRAL|Dolphin3.0-R1-Mistral-24B|TOKEN|1.457|2.914|0|USD
         MISTRAL|mistral-large-latest|TOKEN|2|6|0|USD
         MISTRAL|mistral-small-latest|TOKEN|2|6|0|USD
+        """.trimIndent(),
     ).joinToString("\n")
 }

@@ -43,8 +43,7 @@ import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.data.updates.UpdateManager
 import com.ai.assistance.operit.data.updates.UpdateStatus
 import com.ai.assistance.operit.ui.common.NavItem
-import com.ai.assistance.operit.ui.features.agreement.screens.AgreementScreen
-import com.ai.assistance.operit.ui.features.permission.screens.PermissionGuideScreen
+import com.ai.assistance.operit.ui.features.permission.screens.OnboardingScreen
 import com.ai.assistance.operit.ui.features.startup.screens.PluginLoadingScreenWithState
 import com.ai.assistance.operit.ui.features.startup.screens.PluginLoadingState
 import com.ai.assistance.operit.ui.features.startup.screens.LocalPluginLoadingState
@@ -596,33 +595,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             OperitTheme {
                 Box {
-                    // 检查是否需要显示用户协议
-                        if (!agreementPreferences.isAgreementAccepted()) {
-                            AgreementScreen(
-                                    onAgreementAccepted = {
+                    // Fork: single-screen onboarding — liability notice +
+                    // basic permissions + permission level on one screen.
+                    // Shown until the agreement is accepted AND a level is set.
+                        if (!agreementPreferences.isAgreementAccepted() || showPermissionGuide) {
+                            OnboardingScreen(
+                                    onComplete = {
                                         agreementPreferences.acceptCurrentAgreement()
-                                        // 协议接受后，检查权限级别设置
                                         lifecycleScope.launch {
-                                            // 确保使用非阻塞方式更新UI
-                                            delay(300) // 短暂延迟确保UI状态更新
+                                            delay(300)
                                             checkPermissionLevelSet()
                                             if (!showPermissionGuide) {
                                                 startPluginLoading()
                                             }
-                                            // 重新设置应用内容
                                             setAppContent()
                                         }
-                                    }
-                            )
-                        }
-                        // 检查是否需要显示权限引导界面
-                        else if (showPermissionGuide) {
-                            PermissionGuideScreen(
-                                    onComplete = {
-                                        showPermissionGuide = false
-                                        // 权限设置完成后，启动插件加载并更新内容
-                                        startPluginLoading()
-                                        setAppContent()
                                     }
                             )
                         }

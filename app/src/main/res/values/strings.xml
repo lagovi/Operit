@@ -1224,15 +1224,6 @@
     <!-- Permission Guide Screen -->
     <string name="permission_guide_previous">Previous</string>
     <string name="permission_guide_next">Next</string>
-    <string name="permission_guide_complete">Complete</string>
-    <string name="permission_guide_welcome">Welcome</string>
-    <string name="permission_guide_basic_permissions">Basic Permissions</string>
-    <string name="permission_guide_permission_level">Permission Level</string>
-    
-    <string name="permission_guide_welcome_title">Welcome</string>
-    <string name="permission_guide_welcome_desc">Before using the app, we need to set up some basic permissions and select your preferred permission level.</string>
-    <string name="permission_guide_welcome_hint">This process takes just a few minutes and will help the app serve you better.</string>
-    <string name="permission_guide_welcome_start">Click the button in the lower right corner to start setup</string>
     
     <string name="permission_guide_basic_title">Basic Permissions</string>
     <string name="permission_guide_basic_desc">Please grant the following basic permissions to ensure the app functions properly</string>
@@ -1247,11 +1238,6 @@
     <string name="permission_guide_check_permissions">Check Permission Status</string>
     <string name="permission_guide_all_granted">All basic permissions granted, you can continue to the next step</string>
     
-    <string name="permission_guide_warning_title">Incomplete Permissions</string>
-    <string name="permission_guide_warning_message">You have not granted all necessary permissions, which may result in incomplete functionality or abnormal app behavior. Are you sure you want to continue?</string>
-    <string name="permission_guide_warning_continue">Continue</string>
-    <string name="permission_guide_warning_return">Return to Permissions</string>
-    
     <string name="permission_guide_level_title">Select Permission Level</string>
     <string name="permission_guide_level_desc">Please select your preferred permission level, which will determine the range of features the app can use</string>
     <string name="permission_guide_standard_title">Standard Permissions</string>
@@ -1262,8 +1248,15 @@
     <string name="permission_guide_debugger_desc">Provides ADB-level system access through Shizuku</string>
     <string name="permission_guide_root_title">Root Permissions</string>
     <string name="permission_guide_root_desc">Superuser permissions, can perform any system operations</string>
-    <string name="permission_guide_confirm">Confirm Selection</string>
     <string name="permission_guide_change_anytime">You can change the permission level in settings at any time</string>
+    
+    <!-- Single-screen onboarding (fork: agreement + permissions + level on one screen) -->
+    <string name="onboarding_liability_title">Your responsibility</string>
+    <string name="onboarding_liability_text">Everything this app does on your device — good or bad — is your responsibility alone. The developer takes no responsibility for anything.</string>
+    <string name="onboarding_tour_button">What can it do?</string>
+    <string name="onboarding_tour_close">Close</string>
+    <string name="onboarding_level_default_hint">Nothing selected? Standard stays.</string>
+    <string name="onboarding_continue">Continue</string>
     
     <!-- Permission Guide Toast Messages -->
     <string name="permission_guide_storage_setting_failed">Cannot open storage permission settings, please authorize manually</string>

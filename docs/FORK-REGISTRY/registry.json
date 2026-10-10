@@ -50,9 +50,9 @@
      "why": "inset fix on the agreement screen"
     },
     {
-     "file": "app/src/main/java/com/ai/assistance/operit/ui/features/permission/screens/PermissionGuideScreen.kt",
+     "file": "app/src/main/java/com/ai/assistance/operit/ui/features/permission/screens/OnboardingScreen.kt",
      "contains": "systemBarsPadding()",
-     "why": "inset fix on the permission guide screen"
+     "why": "inset fix carried into the single-screen onboarding (replaced PermissionGuideScreen 10.10)"
     }
    ],
    "reverify": "adb install + uiautomator dump; the accept/continue button bounds must clear the system nav bar",

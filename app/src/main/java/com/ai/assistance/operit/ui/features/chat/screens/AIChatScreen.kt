@@ -359,7 +359,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                         actualViewModel.updateApiKey("")
                         actualViewModel.updateApiEndpoint(ApiPreferences.DEFAULT_API_ENDPOINT)
                         actualViewModel.updateModelName(ApiPreferences.DEFAULT_MODEL_NAME)
-                        actualViewModel.updateApiProviderType(ApiProviderType.DEEPSEEK)
+                        actualViewModel.updateApiProviderType(ApiProviderType.OPENAI)
                         actualViewModel.saveApiSettings()
 
                     }) {
@@ -890,7 +890,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                     isSavingInitialConfiguration = true
                                     initialConfigurationSaveFailed = false
                                     try {
-                                        actualViewModel.saveDeepSeekConfiguration(
+                                        actualViewModel.saveInitialConfiguration(
                                             activeChatConfigId,
                                             normalizedApiKey
                                         )

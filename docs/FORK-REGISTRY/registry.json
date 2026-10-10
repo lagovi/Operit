@@ -487,25 +487,6 @@
    "reverify": "do not attempt without first changing copyTemplateFiles"
   },
   {
-   "id": "PROMPT-002",
-   "area": "prompts",
-   "title": "DECISION: MiMo voice names stay in Chinese",
-   "commit": null,
-   "status": "applied",
-   "rationale": "MimoVoiceProvider lists voices whose id and name are both Chinese (冰糖, 茉莉, 苏打, 白桦). The id is a wire value sent to the upstream TTS API and must not change. The name is a vendor product name, not UI copy: a user looking for a voice searches the vendor's name for it, so an English alias would make the picker harder to use rather than easier. The same names are already documented in the English string speech_services_mimo_voice_id_hint, so they appear in English context deliberately. Recorded so the decision is explicit.",
-   "files": [
-    "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt"
-   ],
-   "anchors": [
-    {
-     "file": "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt",
-     "contains": "Voice(id = \"冰糖\", name = \"冰糖\"",
-     "why": "id and name are the same wire value; changing either would break voice selection"
-    }
-   ],
-   "reverify": "none; this is a deliberate exclusion and belongs on the cjk-allowlist"
-  },
-  {
    "id": "SIZE-007",
    "area": "size",
    "title": "IN EXPERIMENT: useLegacyPackaging=false to remove the 152 MB .so extraction",

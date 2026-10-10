@@ -739,6 +739,38 @@ Settings/API против 422 Actions — не работают, только к
   вместе с фичей MNN-LLM (решение пользователя, НЕ free win;
   мёртвого MNN-STT в коде не осталось — проверено grep 10.10);
   push-SDK (Huawei/Xiaomi/Oppo/Vivo/JPush) в зависимостях НЕТ.
+  РЕАЛИЗАЦИЯ 10.10 (код, в отдельном CI-билде после приёмки 14):
+  enum `ApiProviderType` −16 (BAIDU/ALIYUN/XUNFEI/ZHIPU/BAICHUAN/MOONSHOT/
+  MIMO/DEEPSEEK/SILICONFLOW/IFLOW/INFINIAI/ALIPAY_BAILING/DOUBAO/PPINFRA/
+  NOVITA/MINIMAX); удалены файлы Deepseek/Kimi/Mimo/Qwen/Doubao-провайдеров
+  + их TTS-четвёрка (SiliconFlow/MiniMax/Mimo/DoubaoVoiceProvider) и типы
+  SILICONFLOW_TTS/MINIMAX_TTS/MIMO_TTS/DOUBAO_TTS; фабрики (`AIServiceFactory`,
+  `VoiceServiceFactory`, `ModelListFetcher`) — ветки вырезаны (там где был
+  else — тихо, где exhaustive — правилось по компилятору); коллекты:
+  `ApiProviderConfigCollect` −16 пресетов, `ModelPricingDefaultsCollect`
+  (set+map), `ScrapedModelPricingRowsCollect` −142 строки + пустые блоки,
+  `ModelThinkingConfigDefaultsCollect` −CN-правила (DEEPSEEK/MOONSHOT/MIMO/
+  DOUBAO/ALIYUN/SILICONFLOW/ZHIPU/opencode-zhipu) + minimax-хвосты;
+  QQBot: строка whitelist + `examples/qqbot/`; `AutoGlmOneClickToolScreen`
+  (Zhipu one-click) + роут + Toolbox-пункт + строки; DeepSeek token-webview
+  кластер (`DeepseekApiConstants/JsScripts/DeepseekJsInterface`, мёртвый);
+  alipay:/weixin:-схемы в обоих webview-клиентах; baidu-URL и desc в
+  ToolTester; карта CN-приложений в `StandardUITools` (весь CN-блок + QQ/
+  WeChat/TikTok/Temu/bilibili/keep); зеркала aliyun/huaweicloud/tuna/bfsu/
+  tencent из шаблонов экспорта (gradle + setup-скрипты, остался официальный
+  upstream); дефолты → OpenAI (`ApiPreferences`, `ModelConfigManager`,
+  `ApiConfigDelegate`, `UrlConfig`, `ModelConfigData`); старые конфиги
+  мигрируются в OPENAI_GENERIC персистентно (`migratePreferencesFromVersionFour`,
+  версия стора 4→5, ключи/эндпоинты сохраняются); TTS-тип читается через
+  runCatching→SIMPLE_TTS; `saveDeepSeekConfiguration` обобщена в
+  `saveInitialConfiguration`; `enableDeepSeekWebSearch` удалён по всей
+  цепочке; строки provider_*/speech_services_cn_*/enable_deepseek_* стёрты;
+  тесты поправлены (ThinkingQuality — CN-кейсы удалены, third-party теперь
+  UNSUPPORTED; остальные фикстуры DEEPSEEK→OPENAI); PROMPT-002 и 5 его
+  allowlist-записей удалены (файл мёртв); 3 укороченные CN-строки промптов
+  до-allowlistены. НЕ тронуто: комментарии про wire-протоколы, model-name
+  триггер free-модели в чате, minimax-ветка роутинга OpenCode (машинерия
+  агрегатора), не-whitelist примеры в `examples/` (в APK не пакуются).
   16. Install-size раунд 2 — ЗАКРЫТА решением пользователя 10.10
   (не трогаем); инвентарь ниже оставлен как справка, не план. База: APK 179.7 МБ, installed_linux: assets ~155 МБ stored
   + копии в `files/` (rootfs 61 МБ тарболл + распаковка ~358 МБ,

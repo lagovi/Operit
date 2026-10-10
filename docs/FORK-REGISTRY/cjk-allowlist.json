@@ -2586,26 +2586,6 @@
       "\"用户失落、难过、受挫、哭诉或道歉后低落时使用。\""
     ],
     [
-      "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt",
-      "\"冰糖\""
-    ],
-    [
-      "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt",
-      "\"茉莉\""
-    ],
-    [
-      "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt",
-      "\"苏打\""
-    ],
-    [
-      "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt",
-      "\"白桦\""
-    ],
-    [
-      "app/src/main/java/com/ai/assistance/operit/api/voice/MimoVoiceProvider.kt",
-      "\"请自然朗读。语速设置：{rate}x，音高设置：{pitch}x。\""
-    ],
-    [
       "app/src/main/java/com/ai/assistance/operit/api/chat/llmprovider/GeminiProvider.kt",
       "\"Gemini thoughtSignature meta base64 无法解码，已忽略\""
     ],
@@ -3280,6 +3260,18 @@
     [
       "app/src/main/java/com/ai/assistance/operit/core/config/SystemToolPromptsInternal.kt",
       "\"可选，LOCAL_GIGAAM/OPENAI_STT/DEEPGRAM_STT\""
+    ],
+    [
+      "app/src/main/java/com/ai/assistance/operit/core/config/SystemToolPromptsInternal.kt",
+      "\"可选，SIMPLE_TTS/HTTP_TTS/OPENAI_WS_TTS/OPENAI_TTS/VITS_TTS\""
+    ],
+    [
+      "app/src/main/java/com/ai/assistance/operit/core/config/SystemToolPromptsInternal.kt",
+      "\"可选，TTS 音色 ID。\""
+    ],
+    [
+      "app/src/main/java/com/ai/assistance/operit/core/config/SystemToolPromptsInternal.kt",
+      "\"可选，提供商枚举名（如 OPENAI_GENERIC/OPENAI_LOCAL/OPENAI_RESPONSES_GENERIC/GEMINI_GENERIC/LMSTUDIO/OLLAMA/MNN/LLAMA_CPP）\""
     ]
   ]
 }

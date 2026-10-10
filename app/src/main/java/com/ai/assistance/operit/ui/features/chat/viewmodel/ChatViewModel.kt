@@ -25,6 +25,7 @@ import com.ai.assistance.operit.core.tools.FileOperationData
 import com.ai.assistance.operit.data.collects.ApiProviderConfigs
 import com.ai.assistance.operit.data.model.ApiKeyFormatValidator
 import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ChatHistory
@@ -437,13 +438,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                     config.id == activeConfigId &&
                     effectiveConfigTarget.isResolved &&
                     effectiveConfigTarget.configId == activeConfigId &&
-                    ApiProviderType.fromProviderTypeId(config.apiProviderTypeId) ==
-                        ApiProviderType.DEEPSEEK &&
-                    ApiProviderConfigs.requiresApiKey(
-                        ApiProviderType.DEEPSEEK,
-                        config.apiEndpoint
-                    ) &&
-                    !ApiKeyFormatValidator.hasUsableKey(config)
+                    shouldPromptForApiKey(config)
             }.collect { shouldShow ->
                 _shouldShowConfigDialog.value = shouldShow
             }
@@ -572,8 +567,17 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     fun updateApiProviderType(providerType: ApiProviderType) = apiConfigDelegate.updateApiProviderType(providerType)
     fun saveApiSettings() = apiConfigDelegate.saveApiSettings()
-    suspend fun saveDeepSeekConfiguration(configId: String, apiKey: String) {
-        apiConfigDelegate.saveDeepSeekConfiguration(configId, apiKey)
+    suspend fun saveInitialConfiguration(configId: String, apiKey: String) {
+        apiConfigDelegate.saveInitialConfiguration(configId, apiKey)
+    }
+
+    // First-run key prompt for whichever provider the active config uses
+    // (previously hardcoded to DeepSeek).
+    private fun shouldPromptForApiKey(config: ModelConfigData): Boolean {
+        val providerType = ApiProviderType.fromProviderTypeId(config.apiProviderTypeId)
+            ?: return false
+        return ApiProviderConfigs.requiresApiKey(providerType, config.apiEndpoint) &&
+            !ApiKeyFormatValidator.hasUsableKey(config)
     }
     fun useDefaultConfig() {
         if (apiConfigDelegate.useDefaultConfig()) {

@@ -2651,10 +2651,6 @@
     <string name="speech_services_simple_tts_voice_clear">Clear system voice</string>
     <string name="speech_services_simple_tts_loading">Loading system TTS voices…</string>
     <string name="speech_services_tts_type_http">HTTP API (Remote)</string>
-    <string name="speech_services_tts_type_siliconflow">SiliconFlow TTS</string>
-    <string name="speech_services_tts_type_minimax">MiniMax TTS</string>
-    <string name="speech_services_tts_type_mimo">MiMo TTS</string>
-    <string name="speech_services_tts_type_doubao">Doubao TTS</string>
     <string name="speech_services_tts_type_openai_ws">OpenAI Realtime (WebSocket)</string>
     <string name="speech_services_tts_type_openai">OpenAI Voice (HTTP)</string>
     
@@ -2720,63 +2716,8 @@
     <string name="speech_services_http_request_body_placeholder">{\"text\": \"{text}\"}</string>
     
     <!-- SiliconFlow TTS Configuration -->
-    <string name="speech_services_siliconflow_config">SiliconFlow TTS Configuration</string>
-    <string name="speech_services_siliconflow_api_key">API Key</string>
-    <string name="speech_services_siliconflow_api_key_placeholder">Enter your SiliconFlow API key</string>
-    <string name="speech_services_siliconflow_model_settings">Model Settings</string>
-    <string name="speech_services_siliconflow_model_name">TTS Model</string>
-    <string name="speech_services_siliconflow_model_name_placeholder">e.g.: FunAudioLLM/CosyVoice2-0.5B</string>
-    <string name="speech_services_siliconflow_model_name_hint">Leave blank to use default model FunAudioLLM/CosyVoice2-0.5B, supports fishaudio/fish-speech-1.4 and more</string>
-    <string name="speech_services_siliconflow_voice_settings">Voice Settings</string>
-    <string name="speech_services_siliconflow_voice_select">Select preset voice</string>
-    <string name="speech_services_siliconflow_voice_select_icon">Select voice</string>
-    <string name="speech_services_siliconflow_voice_custom">Custom Voice</string>
-    <string name="speech_services_siliconflow_voice_id">Voice ID</string>
-    <string name="speech_services_siliconflow_voice_id_placeholder">e.g.: charles or speech:kll:32w2b3aj5b:orvmnmpjkqchqalegwvi</string>
-    <string name="speech_services_siliconflow_voice_id_hint">Enter voice name (e.g. charles) or full voice ID (e.g. custom voice starting with speech:)</string>
 
-    <string name="speech_services_minimax_config">MiniMax TTS Configuration</string>
-    <string name="speech_services_minimax_url">URL</string>
-    <string name="speech_services_minimax_url_placeholder">e.g.: https://api.minimaxi.com/v1/t2a_v2</string>
-    <string name="speech_services_minimax_url_hint">Leave blank to use the official MiniMax TTS endpoint. This provider always requests output_format=url and automatically resolves data.audio.</string>
-    <string name="speech_services_minimax_api_key">API Key</string>
-    <string name="speech_services_minimax_api_key_placeholder">Enter your MiniMax API key</string>
-    <string name="speech_services_minimax_model_name">model</string>
-    <string name="speech_services_minimax_model_name_placeholder">e.g.: speech-2.8-hd</string>
-    <string name="speech_services_minimax_model_name_hint">Leave blank to use speech-2.8-hd.</string>
-    <string name="speech_services_minimax_voice_id">voice_id</string>
-    <string name="speech_services_minimax_voice_id_placeholder">e.g.: male-qn-qingse</string>
-    <string name="speech_services_minimax_voice_id_hint">Leave blank to use male-qn-qingse. It is sent as voice_setting.voice_id.</string>
 
-    <string name="speech_services_mimo_config">MiMo TTS Configuration</string>
-    <string name="speech_services_mimo_url">URL</string>
-    <string name="speech_services_mimo_url_placeholder">e.g.: https://api.xiaomimimo.com/v1/chat/completions</string>
-    <string name="speech_services_mimo_url_hint">Leave blank to use the MiMo Chat Completions speech synthesis endpoint. This provider reads choices[0].message.audio.data and decodes Base64 audio.</string>
-    <string name="speech_services_mimo_api_key">API Key</string>
-    <string name="speech_services_mimo_api_key_placeholder">Enter your MiMo API key</string>
-    <string name="speech_services_mimo_model_name">model</string>
-    <string name="speech_services_mimo_model_name_placeholder">e.g.: mimo-v2.5-tts</string>
-    <string name="speech_services_mimo_model_name_hint">Leave blank to use mimo-v2.5-tts. Use mimo-v2.5-tts for preset voices, or mimo-v2.5-tts-voiceclone for voice cloning.</string>
-    <string name="speech_services_mimo_voice_select">Select preset voice</string>
-    <string name="speech_services_mimo_voice_select_icon">Select voice</string>
-    <string name="speech_services_mimo_voice_custom">Custom voice</string>
-    <string name="speech_services_mimo_voice_id">voice</string>
-    <string name="speech_services_mimo_voice_id_placeholder">e.g.: mimo_default, 冰糖, or data:audio/mpeg;base64,...</string>
-    <string name="speech_services_mimo_voice_id_hint">Preset voices: mimo_default, 冰糖, 茉莉, 苏打, 白桦, Mia, Chloe, Milo, Dean. For voiceclone, enter the full Base64 audio sample.</string>
-    <string name="speech_services_doubao_config">Doubao TTS Configuration</string>
-    <string name="speech_services_doubao_url">URL</string>
-    <string name="speech_services_doubao_url_placeholder">https://openspeech.bytedance.com/api/v1/tts</string>
-    <string name="speech_services_doubao_url_hint">Doubao speech synthesis HTTP endpoint.</string>
-    <string name="speech_services_doubao_appid">App ID</string>
-    <string name="speech_services_doubao_appid_placeholder">Enter the Doubao speech App ID</string>
-    <string name="speech_services_doubao_token">Token</string>
-    <string name="speech_services_doubao_token_placeholder">Enter the Doubao speech token</string>
-    <string name="speech_services_doubao_voice_select">Select voice</string>
-    <string name="speech_services_doubao_voice_select_icon">Select voice</string>
-    <string name="speech_services_doubao_voice_custom">Custom voice</string>
-    <string name="speech_services_doubao_voice_id">voice_type</string>
-    <string name="speech_services_doubao_voice_id_placeholder">e.g.: BV700_V2_streaming</string>
-    <string name="speech_services_doubao_voice_id_hint">Use the voice_type from the Doubao speech console.</string>
 
     <string name="speech_services_openai_ws_config">OpenAI Realtime Configuration</string>
     <string name="speech_services_openai_ws_url">Realtime WebSocket URL</string>
@@ -3032,7 +2973,7 @@
     <string name="http_get_test_desc">Test GET request</string>
     <string name="file_upload_test_desc">Test file upload to httpbin</string>
     <string name="manage_cookies_test_desc">Get google.com cookies</string>
-    <string name="visit_web_test_desc">Visit Baidu and extract content</string>
+    <string name="visit_web_test_desc">Visit a web page and extract content</string>
     <string name="use_package_test_desc">Test activating a non-existent package</string>
     <string name="list_files_test_desc">List files in test directory</string>
     <string name="file_exists_test_desc">Check if test file exists</string>
@@ -3233,9 +3174,6 @@
     <string name="emoticon_shyness">Shyness</string>
     <string name="emoticon_blush">Blush</string>
     <string name="emoticon_embarrassed">Embarrassed</string>
-    <string name="autoglm_task_complete">✅ Task completed: %1$s</string>
-    <string name="autoglm_thinking_process">💭 Thinking Process:</string>
-    <string name="autoglm_execute_action">🎯 Execute Action:</string>
     <string name="version_update">Version Update</string>
     <string name="mcp_no_zip_selected">No ZIP file selected</string>
     <string name="mcp_uninstall_failed">Uninstall failed</string>
@@ -4089,16 +4027,12 @@
     <string name="enable_direct_video_processing_desc">When enabled, video will be sent directly to the AI for processing instead of tool-based frame extraction/analysis</string>
     <string name="enable_google_search">Enable Google Search</string>
     <string name="enable_google_search_desc">When enabled, Gemini will use Google Search to enhance responses (may incur additional charges)</string>
-    <string name="enable_deepseek_web_search">Enable DeepSeek web search</string>
-    <string name="enable_deepseek_web_search_desc">When using a DeepSeek Responses endpoint, allow the model to use server-side web search.</string>
     <string name="enable_codex_web_search">Enable Codex web search</string>
     <string name="enable_codex_web_search_desc">When signed in to Codex, allow the model to use server-side web search.</string>
     <string name="enable_claude_1h_prompt_cache">Enable Claude 1-hour prompt cache</string>
     <string name="enable_claude_1h_prompt_cache_desc">When enabled, Claude and Claude-compatible providers use a 1-hour prompt cache TTL</string>
     <string name="enable_tool_call">Model supports ToolCall</string>
     <string name="enable_tool_call_desc">When disabled, uses the built-in tool invocation mechanism which also supports tool calls. When enabled, uses the API\'s dedicated native interface (requires model support)</string>
-    <string name="enable_deepseek_reasoning">Enable DeepSeek Reasoning Mode</string>
-    <string name="enable_deepseek_reasoning_desc">When enabled, content within &lt;think&gt; tags will be sent as reasoning_content to DeepSeek models, supporting tool invocation for reasoning models like DeepSeek-R1</string>
     <string name="search_sources">Search Sources</string>
     <string name="search_query_label">Query</string>
     <string name="search_action_label">Action</string>
@@ -4125,32 +4059,16 @@
     <string name="provider_anthropic_generic">Anthropic (Generic)</string>
     <string name="provider_google">Google (Gemini Series)</string>
     <string name="provider_gemini_generic">Gemini (Generic)</string>
-    <string name="provider_baidu">Baidu (ERNIE Series)</string>
-    <string name="provider_aliyun">Alibaba Cloud (Qwen Series)</string>
-    <string name="provider_xunfei">iFLYTEK (Spark Series)</string>
-    <string name="provider_zhipu">Zhipu AI (ChatGLM Series)</string>
-    <string name="provider_baichuan">Baichuan Models</string>
-    <string name="provider_moonshot">Moonshot AI</string>
-    <string name="provider_mimo">Xiaomi MiMo</string>
-    <string name="provider_deepseek">Deepseek Models</string>
     <string name="provider_mistral">Mistral AI (Codestral)</string>
-    <string name="provider_siliconflow">SiliconFlow</string>
-    <string name="provider_iflow">iFlow</string>
     <string name="provider_openrouter">OpenRouter (Multi-model Hub)</string>
     <string name="provider_opencode">OpenCode</string>
     <string name="provider_4router">4Router</string>
     <string name="provider_nous_portal">Nous Portal</string>
-    <string name="provider_infiniai">InfiniAI</string>
-    <string name="provider_alipay_bailing">Alipay Bailing Model</string>
     <string name="provider_lmstudio">LM Studio (Local Model)</string>
     <string name="provider_ollama">Ollama (Local Model)</string>
     <string name="provider_openai_local">OpenAI-Compatible (Local Model)</string>
-    <string name="provider_ppinfra">PPInfra Cloud</string>
-    <string name="provider_novita">Novita AI</string>
-    <string name="provider_minimax">MiniMax</string>
     <string name="provider_openai_generic">OpenAI (Generic)</string>
     <string name="provider_other">Other Providers</string>
-    <string name="provider_doubao">Doubao</string>
     <string name="provider_nvidia">NVIDIA (API Catalog)</string>
     <string name="provider_llama_cpp">llama.cpp Local Inference</string>
     <string name="provider_mnn">MNN Local Inference</string>
@@ -5797,17 +5715,6 @@
     <string name="toolreg_ffmpeg_convert_desc">Convert video: %1$s → %2$s</string>
 
     <!-- AutoGLM One-Click Configuration -->
-    <string name="autoglm_config_name">AutoGLM Configuration</string>
-    <string name="autoglm_one_click_title">AutoGLM One-Click Config</string>
-    <string name="autoglm_one_click_subtitle">Automatically create Zhipu autoglm-phone model configuration for UI controller and switch to AutoGLM toolkit.</string>
-    <string name="autoglm_open_apikey_center">Go to Zhipu API Key Page</string>
-    <string name="autoglm_open_apikey_tip">After logging in, create and copy your API Key on the Zhipu platform</string>
-    <string name="autoglm_api_key_placeholder">Paste your Zhipu API Key here</string>
-    <string name="autoglm_one_click_button">One-Click AutoGLM Config</string>
-    <string name="autoglm_status_running">Running one-click configuration, please wait...</string>
-    <string name="autoglm_status_success">AutoGLM one-click configuration completed:\nModel: %1$s\nAPI Key: %2$s\nToolkit: AutoGLM\n\nYou can now use AutoGLM mode in the chat interface.</string>
-    <string name="autoglm_status_error">One-click configuration failed: %1$s</string>
-    <string name="autoglm_error_empty_api_key">Please fill in the Zhipu API Key first.</string>
 
     <!-- Skill Market -->
     <string name="available_skills_market">Available Skills</string>
@@ -5867,7 +5774,6 @@
     <string name="patch_install_confirm_message">New patch version detected: %1$s\n\nInstall now?</string>
     <string name="prepare_patch_update">Preparing patch update...</string>
     <string name="publish_new_skill">Publish New Skill</string>
-    <string name="screen_title_autoglm_one_click">AutoGLM One-Click Config</string>
     <string name="screen_title_autoglm_tool">AutoGLM Execution</string>
     <string name="screen_title_skill_detail">Skill Detail</string>
     <string name="screen_title_skill_manage">Manage My Skills</string>
@@ -5882,8 +5788,6 @@
     <string name="skill_repo_address_required">GitHub Repository Address *</string>
     <string name="skill_update_success_message">Your Skill information has been successfully updated.</string>
     <string name="skill_zip_package">Skill ZIP Package</string>
-    <string name="tool_autoglm_one_click">AutoGLM One-Click Config</string>
-    <string name="tool_autoglm_one_click_desc">One-click configure autoglm-phone model for UI controller and switch to AutoGLM toolkit</string>
     <string name="tool_autoglm_tool">AutoGLM Execution</string>
     <string name="tool_autoglm_tool_desc">Use autoglm-phone agent to execute mobile automation tasks step by step</string>
     <string name="ui_accessibility_mode">Accessibility Mode</string>
@@ -6266,20 +6170,6 @@
     <string name="document_block_label">Block %1$d</string>
 
     <!-- Auto GLM One Click Tool Screen -->
-    <string name="autoglm_go_to_model_config">Go to Model Config</string>
-    <string name="autoglm_custom_endpoint">Custom Endpoint (OpenAI Compatible)</string>
-    <string name="autoglm_model_name">Model Name</string>
-    <string name="autoglm_restore_original">Restore Original Automation Logic</string>
-    <string name="autoglm_step1_title">step1 Configure Basic Conversation Model</string>
-    <string name="autoglm_step1_warning">Do not use the autoglm model as the main conversation model</string>
-    <string name="autoglm_step1_note">Note: If you have already configured it, you don\'t need to worry about it here. Do not change it to autoglm or other small models.</string>
-    <string name="autoglm_step2_title">step2 Visit Zhipu Official Website to Get API Key</string>
-    <string name="autoglm_step3_title">step3 Enter API Key and Click One-Click Configuration</string>
-    <string name="autoglm_hide_advanced">Hide Advanced Settings</string>
-    <string name="autoglm_show_advanced">Show Advanced Settings (Custom Endpoint / Model Name)</string>
-    <string name="autoglm_step4_title">step4 Restore Non-AutoGLM Automation (Optional)</string>
-    <string name="autoglm_step4_description">If you find automation operations difficult after using AutoGLM one-click configuration, you can click the button below to restore the software\'s original automation logic (enable base package, disable subagent package, other settings remain unchanged). If you want to enable AutoGLM again, just follow step3 to enter the key and click one-click configuration again.</string>
-    <string name="autoglm_restore_success">Restored to the software\'s original automation logic</string>
 
     <!-- UI Debugger Components -->
     <string name="uidebugger_create_new_package">Create New Config Package</string>

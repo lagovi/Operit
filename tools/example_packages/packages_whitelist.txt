@@ -37,6 +37,5 @@ message_insert
 message_translation
 remote_operit
 worldbook
-qqbot
 thinking_guidance
 plan_mode

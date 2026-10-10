@@ -40,9 +40,6 @@ object ModelListFetcher {
                     "secret",
                     "client_secret"
             )
-    private val KIMI_CODING_MODELS =
-            listOf("kimi-for-coding")
-
     // 使用更长的超时时间
     private val client =
             UnsafeModelSsl.apply(
@@ -103,24 +100,13 @@ object ModelListFetcher {
                             "https://generativelanguage.googleapis.com/v1beta/models"
                         }
                     }
-                    ApiProviderType.ZHIPU -> "${extractBaseUrl(apiEndpoint)}/v4/models"
-                    ApiProviderType.DEEPSEEK -> "${extractBaseUrl(apiEndpoint)}/v1/models"
                     ApiProviderType.OPENROUTER -> "${extractBaseUrl(apiEndpoint)}/v1/models"
                     ApiProviderType.OPENCODE -> OpenCodeRouting.modelsEndpoint(apiEndpoint)
                     ApiProviderType.FOUR_ROUTER -> "${extractBaseUrl(apiEndpoint)}/v1/models"
                     ApiProviderType.NOUS_PORTAL -> "${extractBaseUrl(apiEndpoint)}/v1/models"
-                    ApiProviderType.MOONSHOT -> "${extractBaseUrl(apiEndpoint)}/v1/models"
-                    ApiProviderType.MIMO -> "${extractBaseUrl(apiEndpoint)}/v1/models"
-                    ApiProviderType.SILICONFLOW -> "${extractBaseUrl(apiEndpoint)}/v1/models"
-                    ApiProviderType.IFLOW -> "${extractBaseUrl(apiEndpoint)}/v1/models"
-                    ApiProviderType.DOUBAO -> "${extractBaseUrl(apiEndpoint)}/v3/models"
                     ApiProviderType.NVIDIA -> "${extractBaseUrl(apiEndpoint)}/v1/models"
-                    ApiProviderType.BAICHUAN -> "${extractBaseUrl(apiEndpoint)}/v1/models"
-                    ApiProviderType.INFINIAI -> "${extractBaseUrl(apiEndpoint)}/maas/v1/models"
-                    ApiProviderType.ALIPAY_BAILING -> "${extractBaseUrl(apiEndpoint)}/llm/v1/models"
                     ApiProviderType.LMSTUDIO -> "${extractBaseUrl(apiEndpoint)}/v1/models"
                     ApiProviderType.OLLAMA -> "${extractBaseUrl(apiEndpoint)}/v1/models"
-                    ApiProviderType.PPINFRA -> "${extractBaseUrl(apiEndpoint)}/v1/models"
                     // 其他API提供商可能需要特殊处理
                     else -> "${extractBaseUrl(apiEndpoint)}/v1/models" // 默认尝试OpenAI兼容格式
                 }
@@ -142,16 +128,6 @@ object ModelListFetcher {
                             }
         }
         return sanitizedUrl
-    }
-
-    private fun isKimiCodingEndpoint(apiEndpoint: String): Boolean {
-        return apiEndpoint.contains("api.kimi.com/coding/v1", ignoreCase = true)
-    }
-
-    private fun getKimiCodingModels(): List<ModelOption> {
-        return KIMI_CODING_MODELS.map { modelId ->
-            ModelOption(id = modelId, name = modelId)
-        }
     }
 
     /** 从完整URL提取基本URL 例如: https://api.openai.com/v1/chat/completions -> https://api.openai.com */
@@ -209,14 +185,6 @@ object ModelListFetcher {
                     val completedEndpoint =
                             EndpointCompleter.completeEndpoint(apiEndpoint, apiProviderType)
 
-                    if (
-                            apiProviderType == ApiProviderType.MOONSHOT &&
-                                    isKimiCodingEndpoint(completedEndpoint)
-                    ) {
-                        AppLogger.d(TAG, "检测到 Kimi Code 端点，返回官方配置中的固定模型列表")
-                        return@withContext Result.success(getKimiCodingModels())
-                    }
-
                     // 根据提供商类型获取模型列表URL
                     val modelsUrl = getModelsListUrl(completedEndpoint, apiProviderType)
                     val providerRequiresApiKey =
@@ -259,13 +227,6 @@ object ModelListFetcher {
                             requestBuilder.addHeader("HTTP-Referer", "ai.assistance.operit")
                             requestBuilder.addHeader("X-Title", "Assistance App")
                         }
-                        ApiProviderType.MIMO -> {
-                            AppLogger.d(TAG, "使用MiMo官方兼容认证头")
-                            if (apiKey.isNotBlank()) {
-                                requestBuilder.addHeader("Authorization", "Bearer $apiKey")
-                                requestBuilder.addHeader("api-key", apiKey)
-                            }
-                        }
                         ApiProviderType.ANTHROPIC,
                         ApiProviderType.ANTHROPIC_GENERIC -> {
                             AppLogger.d(TAG, "使用Anthropic x-api-key认证方式")
@@ -295,7 +256,7 @@ object ModelListFetcher {
                         val errorBody = response.body?.string() ?: context.getString(R.string.model_fetch_no_error_details)
                         val responseCode = response.code
                         response.close()
-                        if ((apiProviderType == ApiProviderType.OPENAI || apiProviderType == ApiProviderType.XAI || apiProviderType == ApiProviderType.OPENAI_RESPONSES || apiProviderType == ApiProviderType.OPENAI_RESPONSES_GENERIC || apiProviderType == ApiProviderType.OPENAI_GENERIC || apiProviderType == ApiProviderType.OPENAI_LOCAL || apiProviderType == ApiProviderType.IFLOW || apiProviderType == ApiProviderType.NVIDIA || apiProviderType == ApiProviderType.LMSTUDIO || apiProviderType == ApiProviderType.OLLAMA || apiProviderType == ApiProviderType.FOUR_ROUTER || apiProviderType == ApiProviderType.NOUS_PORTAL || apiProviderType == ApiProviderType.MIMO) &&
+                        if ((apiProviderType == ApiProviderType.OPENAI || apiProviderType == ApiProviderType.XAI || apiProviderType == ApiProviderType.OPENAI_RESPONSES || apiProviderType == ApiProviderType.OPENAI_RESPONSES_GENERIC || apiProviderType == ApiProviderType.OPENAI_GENERIC || apiProviderType == ApiProviderType.OPENAI_LOCAL || apiProviderType == ApiProviderType.NVIDIA || apiProviderType == ApiProviderType.LMSTUDIO || apiProviderType == ApiProviderType.OLLAMA || apiProviderType == ApiProviderType.FOUR_ROUTER || apiProviderType == ApiProviderType.NOUS_PORTAL) &&
                                         modelsUrl.endsWith("/v1/models")) {
                             val fallbackUrl = modelsUrl.removeSuffix("/v1/models") + "/models"
                             AppLogger.w(TAG, "API请求失败，尝试兼容路径: $fallbackUrl")
@@ -352,24 +313,13 @@ object ModelListFetcher {
                                     ApiProviderType.OPENAI_RESPONSES_GENERIC,
                                     ApiProviderType.OPENAI_GENERIC,
                                     ApiProviderType.OPENAI_LOCAL,
-                                    ApiProviderType.DEEPSEEK,
-                                    ApiProviderType.MOONSHOT,
-                                    ApiProviderType.MIMO,
-                                    ApiProviderType.SILICONFLOW,
-                                    ApiProviderType.IFLOW,
-                                    ApiProviderType.DOUBAO,
                                     ApiProviderType.NVIDIA,
-                                    ApiProviderType.BAICHUAN,
-                                     ApiProviderType.OPENROUTER,
+                                    ApiProviderType.OPENROUTER,
                                      ApiProviderType.OPENCODE,
                                      ApiProviderType.FOUR_ROUTER,
                                     ApiProviderType.NOUS_PORTAL,
-                                    ApiProviderType.INFINIAI,
-                                    ApiProviderType.ALIPAY_BAILING,
-                                    ApiProviderType.ZHIPU,
                                     ApiProviderType.LMSTUDIO,
-                                    ApiProviderType.OLLAMA,
-                                    ApiProviderType.PPINFRA -> parseOpenAIModelResponse(context, responseBody)
+                                    ApiProviderType.OLLAMA -> parseOpenAIModelResponse(context, responseBody)
                                     ApiProviderType.ANTHROPIC,
                                     ApiProviderType.ANTHROPIC_GENERIC -> parseAnthropicModelResponse(context, responseBody)
                                     ApiProviderType.GOOGLE,

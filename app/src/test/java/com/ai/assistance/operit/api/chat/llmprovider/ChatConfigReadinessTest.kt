@@ -10,15 +10,15 @@ import org.junit.Test
 
 class ChatConfigReadinessTest {
     @Test
-    fun deepSeekWithValidKey_isReady() {
-        assertReady(remoteConfig(ApiProviderType.DEEPSEEK, apiKey = "sk-valid"))
+    fun namedProviderWithValidKey_isReady() {
+        assertReady(remoteConfig(ApiProviderType.OPENAI, apiKey = "sk-valid"))
     }
 
     @Test
-    fun deepSeekWithChineseKey_isRejected() {
+    fun namedProviderWithInvalidKey_isRejected() {
         assertIssue(
             ChatConfigReadinessIssue.API_KEY_INVALID,
-            remoteConfig(ApiProviderType.DEEPSEEK, apiKey = "中文")
+            remoteConfig(ApiProviderType.OPENAI, apiKey = "中文")
         )
     }
 
@@ -111,14 +111,14 @@ class ChatConfigReadinessTest {
     fun invalidEndpoint_isRejected() {
         assertIssue(
             ChatConfigReadinessIssue.ENDPOINT_INVALID,
-            remoteConfig(ApiProviderType.DEEPSEEK, endpoint = "not a url")
+            remoteConfig(ApiProviderType.OPENAI, endpoint = "not a url")
         )
     }
 
     @Test
     fun availableKeyPool_satisfiesNamedCloudProvider() {
         val config =
-            remoteConfig(ApiProviderType.DEEPSEEK, apiKey = "").copy(
+            remoteConfig(ApiProviderType.OPENAI, apiKey = "").copy(
                 useMultipleApiKeys = true,
                 apiKeyPool =
                     listOf(

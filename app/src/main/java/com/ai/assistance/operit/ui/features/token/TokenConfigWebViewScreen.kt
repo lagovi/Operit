@@ -103,25 +103,7 @@ fun TokenConfigWebViewScreen(onNavigateBack: () -> Unit) {
             ): Boolean {
                 request?.url?.let { uri ->
                     val url = uri.toString()
-                    
-                    // 只拦截明确需要外部应用处理的协议
-                    if (url.startsWith("alipays:") || 
-                        url.startsWith("alipay:") || 
-                        url.startsWith("weixin:") ||
-                        url.startsWith("weixins:")) {
-                        
-                        try {
-                            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
-                            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(intent)
-                            return true
-                        } catch (e: Exception) {
-                            AppLogger.e("TokenConfigWebView", "无法打开外部应用: ${e.message}")
-                            // 如果打开失败，返回false让WebView尝试处理
-                            return false
-                        }
-                    }
-                    
+
                     // 对于http/https链接，让WebView正常加载
                     if (url.startsWith("http://") || url.startsWith("https://")) {
                         return false

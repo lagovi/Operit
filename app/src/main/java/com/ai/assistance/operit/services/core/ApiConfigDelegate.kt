@@ -150,7 +150,7 @@ class ApiConfigDelegate(
     private val _modelName = MutableStateFlow("")
     val modelName: StateFlow<String> = _modelName.asStateFlow()
 
-    private val _apiProviderType = MutableStateFlow(ApiProviderType.DEEPSEEK)
+    private val _apiProviderType = MutableStateFlow(ApiProviderType.OPENAI)
     val apiProviderType: StateFlow<ApiProviderType> = _apiProviderType.asStateFlow()
 
     private val _isInitialized = MutableStateFlow(false)
@@ -545,11 +545,11 @@ class ApiConfigDelegate(
         }
     }
 
-    suspend fun saveDeepSeekConfiguration(expectedConfigId: String, apiKey: String) {
+    suspend fun saveInitialConfiguration(expectedConfigId: String, apiKey: String) {
         try {
             val normalizedApiKey = ApiKeyFormatValidator.normalize(apiKey)
             require(ApiKeyFormatValidator.isValid(normalizedApiKey)) {
-                "DeepSeek API Key format is invalid"
+                "API Key format is invalid"
             }
             check(_activeConfigId.value == expectedConfigId) {
                 "Active chat configuration changed while saving"
@@ -558,10 +558,9 @@ class ApiConfigDelegate(
                 "Active chat configuration no longer exists"
             }
             check(
-                ApiProviderType.fromProviderTypeId(targetConfig.apiProviderTypeId) ==
-                    ApiProviderType.DEEPSEEK
+                ApiProviderType.fromProviderTypeId(targetConfig.apiProviderTypeId) != null
             ) {
-                "Active chat configuration is not a DeepSeek configuration"
+                "Active chat configuration has an unknown provider type"
             }
             modelConfigManager.updateSingleApiKey(expectedConfigId, normalizedApiKey)
             check(_activeConfigId.value == expectedConfigId) {
@@ -577,7 +576,7 @@ class ApiConfigDelegate(
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            AppLogger.e(TAG, "保存 DeepSeek 配置失败: ${e.message}", e)
+            AppLogger.e(TAG, "保存初始配置失败: ${e.message}", e)
             throw e
         }
     }

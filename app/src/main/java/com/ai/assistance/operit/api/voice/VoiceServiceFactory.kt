@@ -14,14 +14,6 @@ object VoiceServiceFactory {
         HTTP_TTS,
         /** 基于 OpenAI Realtime WebSocket 的 TTS 实现 */
         OPENAI_WS_TTS,
-        /** 硅基流动TTS服务 */
-        SILICONFLOW_TTS,
-        /** MiniMax TTS 服务 */
-        MINIMAX_TTS,
-        /** MiMo TTS 服务 */
-        MIMO_TTS,
-        /** 豆包 TTS 服务 */
-        DOUBAO_TTS,
         OPENAI_TTS,
         /** 基于 VITS/Piper ONNX Runtime 推理形态的本地 TTS 服务 */
         VITS_TTS,
@@ -61,32 +53,6 @@ object VoiceServiceFactory {
                         apiKey = profile.httpConfig.apiKey,
                         model = profile.httpConfig.modelName,
                         initialVoiceId = profile.httpConfig.voiceId
-                    )
-                }
-                VoiceServiceType.SILICONFLOW_TTS -> {
-                    SiliconFlowVoiceProvider(
-                        context = context,
-                        apiKey = profile.httpConfig.apiKey,
-                        initialVoiceId = profile.httpConfig.voiceId,
-                        initialModelName = profile.httpConfig.modelName
-                    )
-                }
-                VoiceServiceType.MINIMAX_TTS -> {
-                    MiniMaxVoiceProvider(
-                        context = context,
-                        config = profile.httpConfig
-                    )
-                }
-                VoiceServiceType.MIMO_TTS -> {
-                    MimoVoiceProvider(
-                        context = context,
-                        config = profile.httpConfig
-                    )
-                }
-                VoiceServiceType.DOUBAO_TTS -> {
-                    DoubaoVoiceProvider(
-                        context = context,
-                        config = profile.httpConfig
                     )
                 }
                 VoiceServiceType.OPENAI_TTS -> {

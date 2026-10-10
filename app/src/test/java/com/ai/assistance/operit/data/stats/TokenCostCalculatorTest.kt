@@ -69,7 +69,7 @@ class TokenCostCalculatorTest {
         val row = normalizeLegacyCacheWriteUsage(
             aggregateRow(
                 requests = 165L,
-                provider = "DEEPSEEK/legacy configuration",
+                provider = "OPENAI/legacy configuration",
                 configId = "",
                 cacheWriteKnown = 0L,
             )
@@ -102,7 +102,7 @@ class TokenCostCalculatorTest {
     fun `configured non independent provider rows are not rewritten`() {
         val row = normalizeLegacyCacheWriteUsage(
             aggregateRow(
-                provider = "DEEPSEEK",
+                provider = "OPENAI",
                 configId = "current-config",
                 cacheWriteKnown = 0L,
             )

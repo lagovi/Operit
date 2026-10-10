@@ -700,10 +700,7 @@ ensure_android_ndk_preinstall() {
   selected_ndk_url=$(select_download_url \
     "Android NDK ${ANDROID_NDK_VERSION}" \
     "$ndk_url" \
-    "dl.google.com" \
-    "mirrors.tuna.tsinghua.edu.cn" "https://mirrors.tuna.tsinghua.edu.cn/android/repository/$(basename "$ndk_url")" \
-    "mirrors.bfsu.edu.cn" "https://mirrors.bfsu.edu.cn/android/repository/$(basename "$ndk_url")" \
-    "mirrors.aliyun.com" "https://mirrors.aliyun.com/android/repository/$(basename "$ndk_url")")
+    "dl.google.com")
 
   local tmp_dir
   tmp_dir=$(mktemp -d)
@@ -890,10 +887,7 @@ ensure_android_tools() {
     cmdline_url=$(select_download_url \
       "Android command line tools" \
       "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" \
-      "dl.google.com" \
-      "mirrors.tuna.tsinghua.edu.cn" "https://mirrors.tuna.tsinghua.edu.cn/android/repository/commandlinetools-linux-11076708_latest.zip" \
-      "mirrors.bfsu.edu.cn" "https://mirrors.bfsu.edu.cn/android/repository/commandlinetools-linux-11076708_latest.zip" \
-      "mirrors.aliyun.com" "https://mirrors.aliyun.com/android/repository/commandlinetools-linux-11076708_latest.zip")
+      "dl.google.com")
     download_file "$cmdline_url" "$zip_path"
     unzip -q "$zip_path" -d "$ANDROID_HOME/cmdline-tools"
     mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
@@ -938,9 +932,7 @@ ensure_gradle() {
     gradle_url=$(select_download_url \
       "Gradle distribution" \
       "https://services.gradle.org/distributions/${GRADLE_DIST}-bin.zip" \
-      "services.gradle.org" \
-      "mirrors.cloud.tencent.com" "https://mirrors.cloud.tencent.com/gradle/${GRADLE_DIST}-bin.zip" \
-      "mirrors.aliyun.com" "https://mirrors.aliyun.com/gradle/${GRADLE_DIST}-bin.zip")
+      "services.gradle.org")
     download_file "$gradle_url" "$GRADLE_ZIP"
   else
     log "Gradle zip already present: $GRADLE_ZIP"

@@ -70,101 +70,9 @@ object ApiProviderConfigs {
             defaultApiEndpoint = ""
         ),
         ProviderApiConfig(
-            providerType = ApiProviderType.DEEPSEEK,
-            defaultModelName = "deepseek-v4-flash",
-            defaultApiEndpoint = "https://api.deepseek.com/v1/chat/completions",
-            endpointOptions = listOf(
-                ProviderEndpointOption(
-                    endpoint = "https://api.deepseek.com/v1/chat/completions",
-                    label = "Chat Completions"
-                ),
-                ProviderEndpointOption(
-                    endpoint = "https://api.deepseek.com/v1/responses",
-                    label = "Responses"
-                )
-            )
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.BAIDU,
-            defaultModelName = "ernie-bot-4",
-            defaultApiEndpoint = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.ALIYUN,
-            defaultModelName = "qwen-max",
-            defaultApiEndpoint = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.XUNFEI,
-            defaultModelName = "spark3.5",
-            defaultApiEndpoint = "https://spark-api-open.xf-yun.com/v2/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.ZHIPU,
-            defaultModelName = "glm-4.5",
-            defaultApiEndpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-            endpointOptions = listOf(
-                ProviderEndpointOption(
-                    endpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-                    label = "CN standard"
-                ),
-                ProviderEndpointOption(
-                    endpoint = "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions",
-                    label = "CN coding"
-                ),
-                ProviderEndpointOption(
-                    endpoint = "https://api.z.ai/api/paas/v4/chat/completions",
-                    label = "International standard"
-                ),
-                ProviderEndpointOption(
-                    endpoint = "https://api.z.ai/api/coding/paas/v4/chat/completions",
-                    label = "International coding"
-                )
-            )
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.BAICHUAN,
-            defaultModelName = "baichuan4",
-            defaultApiEndpoint = "https://api.baichuan-ai.com/v1/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.MOONSHOT,
-            defaultModelName = "moonshot-v1-128k",
-            defaultApiEndpoint = "https://api.moonshot.cn/v1/chat/completions",
-            endpointOptions = listOf(
-                ProviderEndpointOption(
-                    endpoint = "https://api.moonshot.cn/v1/chat/completions",
-                    label = "China (moonshot.cn)"
-                ),
-                ProviderEndpointOption(
-                    endpoint = "https://api.moonshot.ai/v1/chat/completions",
-                    label = "International (moonshot.ai)"
-                ),
-                ProviderEndpointOption(
-                    endpoint = "https://api.kimi.com/coding/v1/chat/completions",
-                    label = "Kimi Code (api.kimi.com)"
-                )
-            )
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.MIMO,
-            defaultModelName = "mimo-v2.5-pro",
-            defaultApiEndpoint = "https://api.xiaomimimo.com/v1/chat/completions"
-        ),
-        ProviderApiConfig(
             providerType = ApiProviderType.MISTRAL,
             defaultModelName = "codestral-latest",
             defaultApiEndpoint = "https://codestral.mistral.ai/v1/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.SILICONFLOW,
-            defaultModelName = "yi-1.5-34b",
-            defaultApiEndpoint = "https://api.siliconflow.cn/v1/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.IFLOW,
-            defaultModelName = "TBStars2-200B-A13B",
-            defaultApiEndpoint = "https://apis.iflow.cn/v1/chat/completions"
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.OPENROUTER,
@@ -195,31 +103,6 @@ object ApiProviderConfigs {
             providerType = ApiProviderType.NOUS_PORTAL,
             defaultModelName = "",
             defaultApiEndpoint = "https://inference-api.nousresearch.com/v1/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.INFINIAI,
-            defaultModelName = "infini-mini",
-            defaultApiEndpoint = "https://cloud.infini-ai.com/maas/v1/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.ALIPAY_BAILING,
-            defaultModelName = "Ling-1T",
-            defaultApiEndpoint = "https://api.tbox.cn/api/llm/v1/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.DOUBAO,
-            defaultModelName = "Doubao-pro-4k",
-            defaultApiEndpoint = "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
-            endpointOptions = listOf(
-                ProviderEndpointOption(
-                    endpoint = "https://ark.cn-beijing.volces.com/api/v3/chat/completions",
-                    label = "CN standard"
-                ),
-                ProviderEndpointOption(
-                    endpoint = "https://ark.cn-beijing.volces.com/api/coding/v3/chat/completions",
-                    label = "CN coding"
-                )
-            )
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.NVIDIA,
@@ -255,41 +138,6 @@ object ApiProviderConfigs {
             defaultModelName = "",
             defaultApiEndpoint = "",
             requiresApiKey = false
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.PPINFRA,
-            defaultModelName = "gpt-4o-mini",
-            defaultApiEndpoint = "https://api.ppinfra.com/openai/v1/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.NOVITA,
-            defaultModelName = "moonshotai/kimi-k2.5",
-            defaultApiEndpoint = "https://api.novita.ai/openai/v1/chat/completions",
-            endpointOptions = listOf(
-                ProviderEndpointOption(
-                    endpoint = "https://api.novita.ai/openai/v1/chat/completions",
-                    label = "OpenAI-compatible"
-                ),
-                ProviderEndpointOption(
-                    endpoint = "https://api.novita.ai/anthropic/v1/messages",
-                    label = "Anthropic-compatible"
-                )
-            )
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.MINIMAX,
-            defaultModelName = "MiniMax-M2.7",
-            defaultApiEndpoint = "https://api.minimaxi.com/v1/chat/completions",
-            endpointOptions = listOf(
-                ProviderEndpointOption(
-                    endpoint = "https://api.minimaxi.com/v1/chat/completions",
-                    label = "China (minimaxi.com)"
-                ),
-                ProviderEndpointOption(
-                    endpoint = "https://api.minimax.io/v1/chat/completions",
-                    label = "International (minimax.io)"
-                )
-            )
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.OTHER,

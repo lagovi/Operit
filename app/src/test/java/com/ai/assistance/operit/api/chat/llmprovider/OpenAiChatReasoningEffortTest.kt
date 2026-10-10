@@ -122,10 +122,12 @@ class OpenAiChatReasoningEffortTest {
     }
 
     @Test
-    fun compatibleEndpointsKeepReasoningEffortForThirdPartyModels() {
+    fun compatibleEndpointsDropReasoningEffortForUnknownThirdPartyModels() {
+        // Fork: provider-specific third-party rules were removed with the
+        // Chinese providers; unknown models behave like gpt-4o above.
         for (model in listOf("deepseek-reasoner", "glm-4.6", "qwen3-235b-a22b")) {
-            assertEquals(model, ThinkingQualityControl.LEVELS, mapping(ApiProviderType.OPENAI_GENERIC, model).control)
-            assertEquals(model, "low", requestBody(ApiProviderType.OPENAI_GENERIC, model, enableThinking = true).getString("reasoning_effort"))
+            assertEquals(model, ThinkingQualityControl.UNSUPPORTED, mapping(ApiProviderType.OPENAI_GENERIC, model).control)
+            assertFalse(model, requestBody(ApiProviderType.OPENAI_GENERIC, model, enableThinking = true).has("reasoning_effort"))
         }
     }
 

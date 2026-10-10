@@ -21,22 +21,8 @@ data class ModelPricingDefaults(
 
 object DefaultModelPricingCollect {
     private val domesticProviders = setOf(
-        "DEEPSEEK",
-        "BAIDU",
-        "ALIYUN",
-        "XUNFEI",
-        "ZHIPU",
-        "BAICHUAN",
-        "MOONSHOT",
-        "SILICONFLOW",
         "FOUR_ROUTER",
-        "INFINIAI",
-        "ALIPAY_BAILING",
-        "DOUBAO",
-        "PPINFRA",
-        "OPENAI_LOCAL",
-        "MIMO",
-        "MINIMAX"
+        "OPENAI_LOCAL"
     )
 
     private fun defaultPricePerRequest(currency: PricingCurrency): Double {
@@ -168,26 +154,11 @@ object DefaultModelPricingCollect {
         "NOUS_PORTAL" to zeroPricing(PricingCurrency.USD),
         "OTHER" to zeroPricing(PricingCurrency.USD),
         "OPENAI_LOCAL" to zeroPricing(PricingCurrency.CNY),
-        "DEEPSEEK" to zeroPricing(PricingCurrency.CNY),
-        "BAIDU" to zeroPricing(PricingCurrency.CNY),
-        "ALIYUN" to zeroPricing(PricingCurrency.CNY),
-        "XUNFEI" to zeroPricing(PricingCurrency.CNY),
-        "ZHIPU" to zeroPricing(PricingCurrency.CNY),
-        "BAICHUAN" to zeroPricing(PricingCurrency.CNY),
-        "MOONSHOT" to zeroPricing(PricingCurrency.CNY),
-        "SILICONFLOW" to zeroPricing(PricingCurrency.CNY),
         "FOUR_ROUTER" to zeroPricing(PricingCurrency.CNY),
-        "INFINIAI" to zeroPricing(PricingCurrency.CNY),
-        "ALIPAY_BAILING" to zeroPricing(PricingCurrency.CNY),
-        "DOUBAO" to zeroPricing(PricingCurrency.CNY),
-        "PPINFRA" to zeroPricing(PricingCurrency.CNY),
         "LMSTUDIO" to zeroPricing(PricingCurrency.CNY),
         "OLLAMA" to zeroPricing(PricingCurrency.CNY),
         "MNN" to zeroPricing(PricingCurrency.CNY),
-        "LLAMA_CPP" to zeroPricing(PricingCurrency.CNY),
-        "MIMO" to zeroPricing(PricingCurrency.CNY),
-        "NOVITA" to zeroPricing(PricingCurrency.USD),
-        "MINIMAX" to zeroPricing(PricingCurrency.CNY)
+        "LLAMA_CPP" to zeroPricing(PricingCurrency.CNY)
     )
 
     private fun splitProviderModel(providerModel: String): Pair<String, String> {

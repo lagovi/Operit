@@ -43,7 +43,7 @@ class ChatUtilsTest {
     @Test fun stripOpenAiResponsesProtocolMarkup_removesMetaAndSearchDisplay() {
         val content =
             "<meta provider=\"openai:responses_output_item\">payload</meta>" +
-                "<search provider=\"deepseek\"><query>q</query></search>" +
+                "<search provider=\"openai\"><query>q</query></search>" +
                 "answer"
 
         assertEquals("answer", ChatUtils.stripOpenAiResponsesProtocolMarkup(content))
@@ -64,7 +64,7 @@ class ChatUtilsTest {
     @Test fun removeThinkingContent_removesSearchBlockWithAttributes() {
         assertEquals(
             "answer",
-            ChatUtils.removeThinkingContent("<search provider=\"deepseek\"><query>x</query></search>answer")
+            ChatUtils.removeThinkingContent("<search provider=\"openai\"><query>x</query></search>answer")
         )
     }
 

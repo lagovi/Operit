@@ -570,7 +570,7 @@ class EnhancedAIService private constructor(private val context: Context) {
     /**
      * 获取指定功能类型的provider和model信息
      * @param functionType 功能类型
-     * @return Pair<provider, modelName>，例如 Pair("DEEPSEEK", "deepseek-chat")
+     * @return Pair<provider, modelName>，例如 Pair("OPENAI", "gpt-4o-mini")
      */
     suspend fun getProviderAndModelForFunction(functionType: FunctionType): Pair<String, String> {
         return getProviderAndModelForFunction(

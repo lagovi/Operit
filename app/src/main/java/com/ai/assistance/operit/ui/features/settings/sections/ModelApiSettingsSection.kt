@@ -209,10 +209,6 @@ fun ModelApiSettingsSection(
     // Google Search Grounding 配置状态 (仅Gemini)
     var enableGoogleSearchInput by remember(config.id) { mutableStateOf(config.enableGoogleSearch) }
 
-    var enableDeepSeekWebSearchInput by remember(config.id) {
-        mutableStateOf(config.enableDeepSeekWebSearch)
-    }
-
     var enableCodexWebSearchInput by remember(config.id) {
         mutableStateOf(config.enableCodexWebSearch)
     }
@@ -249,7 +245,6 @@ fun ModelApiSettingsSection(
         val enableDirectAudioProcessing: Boolean,
         val enableDirectVideoProcessing: Boolean,
         val enableGoogleSearch: Boolean,
-        val enableDeepSeekWebSearch: Boolean,
         val enableCodexWebSearch: Boolean,
         val enableClaude1hPromptCache: Boolean,
         val enableToolCall: Boolean,
@@ -275,7 +270,6 @@ fun ModelApiSettingsSection(
                     enableDirectAudioProcessing = state.enableDirectAudioProcessing,
                     enableDirectVideoProcessing = state.enableDirectVideoProcessing,
                     enableGoogleSearch = state.enableGoogleSearch,
-                    enableDeepSeekWebSearch = state.enableDeepSeekWebSearch,
                     enableCodexWebSearch = state.enableCodexWebSearch,
                     enableClaude1hPromptCache = state.enableClaude1hPromptCache,
                     enableToolCall = state.enableToolCall,
@@ -304,7 +298,6 @@ fun ModelApiSettingsSection(
             enableDirectAudioProcessing = enableDirectAudioProcessingInput,
             enableDirectVideoProcessing = enableDirectVideoProcessingInput,
             enableGoogleSearch = enableGoogleSearchInput,
-            enableDeepSeekWebSearch = enableDeepSeekWebSearchInput,
             enableCodexWebSearch = enableCodexWebSearchInput,
             enableClaude1hPromptCache = enableClaude1hPromptCacheInput,
             enableToolCall = enableToolCallInput,
@@ -356,23 +349,6 @@ fun ModelApiSettingsSection(
     // 添加一个函数检查当前API端点是否为某个提供商的默认端点
     fun isDefaultApiEndpoint(endpoint: String): Boolean {
         return ApiProviderConfigs.isDefaultApiEndpoint(endpoint)
-    }
-
-    fun syncMoonshotModelForEndpoint(endpoint: String) {
-        if (selectedApiProvider != ApiProviderType.MOONSHOT) {
-            return
-        }
-
-        val moonshotDefaultModel = getDefaultModelName(ApiProviderType.MOONSHOT.name)
-        val isKimiCodeEndpoint = endpoint.contains("api.kimi.com/coding/v1", ignoreCase = true)
-
-        if (isKimiCodeEndpoint) {
-            if (modelNameInput.isEmpty() || modelNameInput == moonshotDefaultModel) {
-                modelNameInput = "kimi-for-coding"
-            }
-        } else if (modelNameInput == "kimi-for-coding") {
-            modelNameInput = moonshotDefaultModel
-        }
     }
 
     // 当API提供商改变时更新端点
@@ -486,7 +462,6 @@ fun ModelApiSettingsSection(
                                 enableDirectAudioProcessing = enableDirectAudioProcessingInput,
                                 enableDirectVideoProcessing = enableDirectVideoProcessingInput,
                                 enableGoogleSearch = enableGoogleSearchInput,
-                                enableDeepSeekWebSearch = enableDeepSeekWebSearchInput,
                                 enableCodexWebSearch = enableCodexWebSearchInput,
                                 enableClaude1hPromptCache = enableClaude1hPromptCacheInput,
                                 enableToolCall = enableToolCallInput
@@ -676,7 +651,6 @@ fun ModelApiSettingsSection(
                                                 .clip(RoundedCornerShape(8.dp))
                                                 .clickable {
                                                     apiEndpointInput = endpoint
-                                                    syncMoonshotModelForEndpoint(endpoint)
                                                     showEndpointDialog = false
                                                 }
                                                 .background(
@@ -890,15 +864,6 @@ fun ModelApiSettingsSection(
                             checked = enableGoogleSearchInput,
                             onCheckedChange = { enableGoogleSearchInput = it }
                     )
-            }
-
-            if (selectedApiProvider == ApiProviderType.DEEPSEEK) {
-                SettingsSwitchRow(
-                    title = stringResource(R.string.enable_deepseek_web_search),
-                    subtitle = stringResource(R.string.enable_deepseek_web_search_desc),
-                    checked = enableDeepSeekWebSearchInput,
-                    onCheckedChange = { enableDeepSeekWebSearchInput = it }
-                )
             }
 
             // Claude 1小时提示缓存开关 (仅Claude支持)
@@ -1434,33 +1399,17 @@ private fun getBuiltInProviderDisplayName(provider: ApiProviderType, context: an
         ApiProviderType.ANTHROPIC_GENERIC -> context.getString(R.string.provider_anthropic_generic)
         ApiProviderType.GOOGLE -> context.getString(R.string.provider_google)
         ApiProviderType.GEMINI_GENERIC -> context.getString(R.string.provider_gemini_generic)
-        ApiProviderType.BAIDU -> context.getString(R.string.provider_baidu)
-        ApiProviderType.ALIYUN -> context.getString(R.string.provider_aliyun)
-        ApiProviderType.XUNFEI -> context.getString(R.string.provider_xunfei)
-        ApiProviderType.ZHIPU -> context.getString(R.string.provider_zhipu)
-        ApiProviderType.BAICHUAN -> context.getString(R.string.provider_baichuan)
-        ApiProviderType.MOONSHOT -> context.getString(R.string.provider_moonshot)
-        ApiProviderType.MIMO -> context.getString(R.string.provider_mimo)
-        ApiProviderType.DEEPSEEK -> context.getString(R.string.provider_deepseek)
         ApiProviderType.MISTRAL -> context.getString(R.string.provider_mistral)
-        ApiProviderType.SILICONFLOW -> context.getString(R.string.provider_siliconflow)
-        ApiProviderType.IFLOW -> context.getString(R.string.provider_iflow)
         ApiProviderType.OPENROUTER -> context.getString(R.string.provider_openrouter)
         ApiProviderType.OPENCODE -> context.getString(R.string.provider_opencode)
         ApiProviderType.FOUR_ROUTER -> context.getString(R.string.provider_4router)
         ApiProviderType.NOUS_PORTAL -> context.getString(R.string.provider_nous_portal)
-        ApiProviderType.INFINIAI -> context.getString(R.string.provider_infiniai)
-        ApiProviderType.ALIPAY_BAILING -> context.getString(R.string.provider_alipay_bailing)
-        ApiProviderType.DOUBAO -> context.getString(R.string.provider_doubao)
         ApiProviderType.NVIDIA -> context.getString(R.string.provider_nvidia)
         ApiProviderType.LMSTUDIO -> context.getString(R.string.provider_lmstudio)
         ApiProviderType.OLLAMA -> context.getString(R.string.provider_ollama)
         ApiProviderType.OPENAI_LOCAL -> context.getString(R.string.provider_openai_local)
         ApiProviderType.MNN -> context.getString(R.string.provider_mnn)
         ApiProviderType.LLAMA_CPP -> context.getString(R.string.provider_llama_cpp)
-        ApiProviderType.PPINFRA -> context.getString(R.string.provider_ppinfra)
-        ApiProviderType.NOVITA -> context.getString(R.string.provider_novita)
-        ApiProviderType.MINIMAX -> context.getString(R.string.provider_minimax)
         ApiProviderType.OTHER -> context.getString(R.string.provider_other)
     }
 }
@@ -2116,33 +2065,17 @@ private fun getProviderColor(providerTypeId: String): androidx.compose.ui.graphi
         ApiProviderType.ANTHROPIC_GENERIC -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.85f)
         ApiProviderType.GOOGLE -> MaterialTheme.colorScheme.secondary
         ApiProviderType.GEMINI_GENERIC -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f)
-        ApiProviderType.BAIDU -> MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-        ApiProviderType.ALIYUN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
-        ApiProviderType.XUNFEI -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f)
-        ApiProviderType.ZHIPU -> MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-        ApiProviderType.BAICHUAN -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.7f)
-        ApiProviderType.MOONSHOT -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
-        ApiProviderType.MIMO -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.66f)
-        ApiProviderType.DEEPSEEK -> MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
         ApiProviderType.MISTRAL -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.65f)
-        ApiProviderType.SILICONFLOW -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f)
-        ApiProviderType.IFLOW -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.55f)
         ApiProviderType.OPENROUTER -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
         ApiProviderType.OPENCODE -> MaterialTheme.colorScheme.primary.copy(alpha = 0.68f)
         ApiProviderType.FOUR_ROUTER -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.56f)
         ApiProviderType.NOUS_PORTAL -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.52f)
-        ApiProviderType.INFINIAI -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-        ApiProviderType.ALIPAY_BAILING -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.45f)
-        ApiProviderType.DOUBAO -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
         ApiProviderType.NVIDIA -> MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
         ApiProviderType.LMSTUDIO -> MaterialTheme.colorScheme.tertiary
         ApiProviderType.OLLAMA -> MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
         ApiProviderType.OPENAI_LOCAL -> MaterialTheme.colorScheme.primary.copy(alpha = 0.82f)
         ApiProviderType.MNN -> MaterialTheme.colorScheme.secondary
         ApiProviderType.LLAMA_CPP -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f)
-        ApiProviderType.PPINFRA -> MaterialTheme.colorScheme.primaryContainer
-        ApiProviderType.NOVITA -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.75f)
-        ApiProviderType.MINIMAX -> MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
         ApiProviderType.OTHER -> MaterialTheme.colorScheme.surfaceVariant
     }
 }

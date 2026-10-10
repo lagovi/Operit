@@ -1835,7 +1835,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "tts_service_type",
                                         type = "string",
-                                        description = "optional, SIMPLE_TTS/HTTP_TTS/OPENAI_WS_TTS/SILICONFLOW_TTS/MINIMAX_TTS/MIMO_TTS/DOUBAO_TTS/OPENAI_TTS/VITS_TTS",
+                                        description = "optional, SIMPLE_TTS/HTTP_TTS/OPENAI_WS_TTS/OPENAI_TTS/VITS_TTS",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -1883,7 +1883,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "tts_voice_id",
                                         type = "string",
-                                        description = "optional, TTS voice id. For MIMO voiceclone, this may be the full data:audio/...;base64,... audio sample",
+                                        description = "optional, TTS voice id.",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -2011,7 +2011,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "api_provider_type",
                                         type = "string",
-                                        description = "optional, provider enum name (e.g. OPENAI_GENERIC/OPENAI_LOCAL/OPENAI_RESPONSES_GENERIC/DEEPSEEK/MIMO/GEMINI_GENERIC/LMSTUDIO/OLLAMA/MNN/LLAMA_CPP)",
+                                        description = "optional, provider enum name (e.g. OPENAI_GENERIC/OPENAI_LOCAL/OPENAI_RESPONSES_GENERIC/GEMINI_GENERIC/LMSTUDIO/OLLAMA/MNN/LLAMA_CPP)",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -4827,7 +4827,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "tts_service_type",
                                         type = "string",
-                                        description = "可选，SIMPLE_TTS/HTTP_TTS/OPENAI_WS_TTS/SILICONFLOW_TTS/MINIMAX_TTS/MIMO_TTS/DOUBAO_TTS/OPENAI_TTS/VITS_TTS",
+                                        description = "可选，SIMPLE_TTS/HTTP_TTS/OPENAI_WS_TTS/OPENAI_TTS/VITS_TTS",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -4875,7 +4875,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "tts_voice_id",
                                         type = "string",
-                                        description = "可选，TTS 音色 ID。MIMO voiceclone 可填写完整 data:audio/...;base64,... 音频样本",
+                                        description = "可选，TTS 音色 ID。",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -5003,7 +5003,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "api_provider_type",
                                         type = "string",
-                                        description = "可选，提供商枚举名（如 OPENAI_GENERIC/OPENAI_LOCAL/OPENAI_RESPONSES_GENERIC/DEEPSEEK/MIMO/GEMINI_GENERIC/LMSTUDIO/OLLAMA/MNN/LLAMA_CPP）",
+                                        description = "可选，提供商枚举名（如 OPENAI_GENERIC/OPENAI_LOCAL/OPENAI_RESPONSES_GENERIC/GEMINI_GENERIC/LMSTUDIO/OLLAMA/MNN/LLAMA_CPP）",
                                         required = false
                                     ),
                                     ToolParameterSchema(

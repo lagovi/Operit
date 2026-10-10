@@ -121,23 +121,8 @@ object WebViewConfig {
                                 ): Boolean {
                                     request?.url?.let { uri ->
                                         val url = uri.toString()
-                                        
-                                        // 处理特殊协议，仍然需要外部跳转
-                                        if (url.startsWith("alipays:") || 
-                                            url.startsWith("alipay:") || 
-                                            url.startsWith("weixin:") ||
-                                            url.startsWith("weixins:")) {
-                                            try {
-                                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, uri)
-                                                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                view?.context?.startActivity(intent)
-                                                return true
-                                            } catch (e: Exception) {
-                                                AppLogger.e("WebViewConfig", "无法在新窗口打开外部应用: ${e.message}")
-                                            }
-                                            return true
-                                        }
 
+                                        // 非http(s)协议一律由WebView自行处理
                                         // 对于普通链接，强制在当前WebView（发起者）中加载，而不是打开外部浏览器
                                         // 这样实现了"在内置webview打开"的需求
                                         view?.post {

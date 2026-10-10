@@ -35,7 +35,7 @@ import org.json.JSONObject
 private val Context.modelConfigDataStore: DataStore<Preferences> by
         versionedPreferencesDataStore(
                 name = "model_configs",
-                currentVersion = 4,
+                currentVersion = 5,
         ) { appContext ->
             preferenceSchemaMigration { version, preferences ->
                 when (version) {
@@ -43,6 +43,7 @@ private val Context.modelConfigDataStore: DataStore<Preferences> by
                     1 -> ModelConfigManager.migratePreferencesFromVersionOne(preferences)
                     2 -> ModelConfigManager.migratePreferencesFromVersionTwo(preferences)
                     3 -> ModelConfigManager.migratePreferencesFromVersionThree(preferences)
+                    4 -> ModelConfigManager.migratePreferencesFromVersionFour(preferences)
                     else -> missingPreferencesSchemaMigration(version)
                 }
             }
@@ -69,7 +70,7 @@ class ModelConfigManager(
         const val DEFAULT_CONFIG_NAME = "model_config_default_name"
 
         // Default API provider type
-        private val DEFAULT_API_PROVIDER_TYPE = ApiProviderType.DEEPSEEK
+        private val DEFAULT_API_PROVIDER_TYPE = ApiProviderType.OPENAI
 
         /**
          * LAN test gateway, debug builds only. Baked in so the test phone
@@ -360,7 +361,43 @@ class ModelConfigManager(
         }
 
         private fun isDeepSeekProvider(providerTypeId: String): Boolean =
-                providerTypeId.equals(ApiProviderType.DEEPSEEK.name, ignoreCase = true)
+                providerTypeId.equals("DEEPSEEK", ignoreCase = true)
+
+        /**
+         * Fork 10.10: Chinese providers removed from [ApiProviderType].
+         * Version 4 rewrites stored configs to OPENAI_GENERIC (endpoints and
+         * keys are preserved — most of these APIs were OpenAI-compatible).
+         * Without this, kotlinx decoding of the stored enum value throws and
+         * the user's config is replaced by a fresh default.
+         */
+        private val REMOVED_PROVIDER_TYPE_IDS = setOf(
+                "BAIDU", "ALIYUN", "XUNFEI", "ZHIPU", "BAICHUAN", "MOONSHOT",
+                "MIMO", "DEEPSEEK", "SILICONFLOW", "IFLOW", "INFINIAI",
+                "ALIPAY_BAILING", "DOUBAO", "PPINFRA", "NOVITA", "MINIMAX"
+        )
+
+        internal fun migratePreferencesFromVersionFour(preferences: MutablePreferences) {
+            val configIds = preferences[CONFIG_LIST_KEY]?.let { json.decodeFromString<List<String>>(it) }
+                    ?: emptyList()
+
+            configIds.forEach { configId ->
+                val configKey = stringPreferencesKey("config_${configId}")
+                val configJson = preferences[configKey] ?: return@forEach
+                // Raw JSONObject: typed decode would throw on the removed enum value.
+                val stored = try {
+                    JSONObject(configJson)
+                } catch (_: Exception) {
+                    return@forEach
+                }
+                val typeId = stored.optString("apiProviderTypeId", "").trim().uppercase(Locale.US)
+                if (typeId !in REMOVED_PROVIDER_TYPE_IDS) {
+                    return@forEach
+                }
+                stored.put("apiProviderType", ApiProviderType.OPENAI_GENERIC.name)
+                stored.put("apiProviderTypeId", ApiProviderType.OPENAI_GENERIC.name)
+                preferences[configKey] = stored.toString()
+            }
+        }
 
         private fun isDeepSeekResponsesEndpoint(apiEndpoint: String): Boolean =
                 apiEndpoint.trim()
@@ -375,7 +412,7 @@ class ModelConfigManager(
                 return thinkingConfigurations
             }
 
-            val defaultRules = thinkingRulesJsonArray(thinkingRulesForProvider(ApiProviderType.DEEPSEEK.name))
+            val defaultRules = thinkingRulesJsonArray(thinkingRulesForProvider("DEEPSEEK"))
             val responsesRule = defaultRules.firstThinkingRuleById(DEEPSEEK_RESPONSES_REASONING_EFFORT_RULE_ID)
                     ?: return thinkingConfigurations
 
@@ -773,7 +810,6 @@ class ModelConfigManager(
             enableDirectAudioProcessing: Boolean,
             enableDirectVideoProcessing: Boolean,
             enableGoogleSearch: Boolean,
-            enableDeepSeekWebSearch: Boolean,
             enableCodexWebSearch: Boolean,
             enableClaude1hPromptCache: Boolean,
             enableToolCall: Boolean
@@ -796,7 +832,6 @@ class ModelConfigManager(
                     enableDirectAudioProcessing = enableDirectAudioProcessing,
                     enableDirectVideoProcessing = enableDirectVideoProcessing,
                     enableGoogleSearch = enableGoogleSearch,
-                    enableDeepSeekWebSearch = enableDeepSeekWebSearch,
                     enableCodexWebSearch = enableCodexWebSearch,
                     enableClaude1hPromptCache = enableClaude1hPromptCache,
                     enableToolCall = enableToolCall
@@ -941,10 +976,6 @@ class ModelConfigManager(
     // 更新 Google Search Grounding 配置 (仅Gemini支持)
     suspend fun updateGoogleSearch(configId: String, enableGoogleSearch: Boolean): ModelConfigData {
         return updateConfigInternal(configId) { it.copy(enableGoogleSearch = enableGoogleSearch) }
-    }
-
-    suspend fun updateDeepSeekWebSearch(configId: String, enableDeepSeekWebSearch: Boolean): ModelConfigData {
-        return updateConfigInternal(configId) { it.copy(enableDeepSeekWebSearch = enableDeepSeekWebSearch) }
     }
 
     suspend fun updateCodexWebSearch(configId: String, enableCodexWebSearch: Boolean): ModelConfigData {

@@ -329,15 +329,6 @@ object ScreenRouteRegistry {
                 order = 160
             ),
             hostEntryDefinition(
-                entryId = "toolbox.auto_glm_one_click",
-                screen = Screen.AutoGlmOneClick,
-                surface = NavigationSurface.TOOLBOX,
-                titleResId = R.string.tool_autoglm_one_click,
-                descriptionResId = R.string.tool_autoglm_one_click_desc,
-                icon = Icons.Default.AutoMode,
-                order = 170
-            ),
-            hostEntryDefinition(
                 entryId = "toolbox.auto_glm_tool",
                 screen = Screen.AutoGlmTool,
                 surface = NavigationSurface.TOOLBOX,

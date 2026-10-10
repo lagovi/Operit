@@ -79,7 +79,7 @@ class OpenAIResponsesPayloadAdapterTest {
                       "status": "completed",
                       "action": {
                         "type": "search",
-                        "queries": ["deepseek responses web search"]
+                        "queries": ["openai responses web search"]
                       }
                     },
                     {
@@ -117,12 +117,12 @@ class OpenAIResponsesPayloadAdapterTest {
                     "action",
                     JSONObject()
                         .put("type", "search")
-                        .put("queries", JSONArray().put("deepseek responses web search"))
+                        .put("queries", JSONArray().put("openai responses web search"))
                 )
         val outputItemMeta = OpenAIResponsesPayloadAdapter.createOutputItemMetadataTag(webSearchItem)!!
         val chatStyleRequest =
             JSONObject()
-                .put("model", "deepseek-reasoner")
+                .put("model", "gpt-4o-mini")
                 .put(
                     "messages",
                     JSONArray()
@@ -132,7 +132,7 @@ class OpenAIResponsesPayloadAdapterTest {
                                 .put(
                                     "content",
                                     outputItemMeta +
-                                        "\n<search provider=\"deepseek\"><query>deepseek responses web search</query></search>" +
+                                        "\n<search provider=\"openai\"><query>openai responses web search</query></search>" +
                                         "\nanswer"
                                 )
                         )
@@ -147,7 +147,7 @@ class OpenAIResponsesPayloadAdapterTest {
         assertEquals("call_00_web", replayedItem.getString("id"))
         assertEquals("search", replayedItem.getJSONObject("action").getString("type"))
         assertEquals(
-            "deepseek responses web search",
+            "openai responses web search",
             replayedItem.getJSONObject("action").getJSONArray("queries").getString(0)
         )
         assertEquals("message", visibleMessage.getString("type"))

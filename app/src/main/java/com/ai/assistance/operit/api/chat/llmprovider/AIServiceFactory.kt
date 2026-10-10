@@ -493,34 +493,7 @@ object AIServiceFactory {
                     enableToolCall = enableToolCall
                 )
 
-            // 阿里云（通义千问）使用QwenProvider
-            ApiProviderType.ALIYUN ->
-                QwenAIProvider(
-                    apiEndpoint = config.apiEndpoint,
-                    apiKeyProvider = apiKeyProvider,
-                    modelName = config.modelName,
-                    client = httpClient,
-                    customHeaders = customHeaders,
-                    qwenProviderType = providerType,
-                    supportsVision = supportsVision,
-                    supportsAudio = supportsAudio,
-                    supportsVideo = supportsVideo,
-                    enableToolCall = enableToolCall,
-                    thinkingConfigurations = config.thinkingConfigurations,
-                    thinkingOptionId = config.thinkingOptionId,
-                )
-
-            // 其他中文服务商，当前使用OpenAI Provider (大多数兼容OpenAI格式)
-            ApiProviderType.BAIDU,
-            ApiProviderType.XUNFEI,
-            ApiProviderType.ZHIPU,
-            ApiProviderType.BAICHUAN,
-            ApiProviderType.IFLOW,
-            ApiProviderType.INFINIAI,
-            ApiProviderType.ALIPAY_BAILING,
-            ApiProviderType.PPINFRA,
-            ApiProviderType.NOVITA,
-            ApiProviderType.MINIMAX,
+            // Other OpenAI-compatible providers use OpenAIProvider.
             ApiProviderType.OTHER ->
                 OpenAIProvider(
                     apiEndpoint = config.apiEndpoint,
@@ -537,47 +510,6 @@ object AIServiceFactory {
                     thinkingOptionId = config.thinkingOptionId,
                 )
 
-            ApiProviderType.MOONSHOT ->
-                KimiProvider(
-                    apiEndpoint = config.apiEndpoint,
-                    apiKeyProvider = apiKeyProvider,
-                    modelName = config.modelName,
-                    client = httpClient,
-                    customHeaders = customHeaders,
-                    providerType = providerType,
-                    supportsVision = supportsVision,
-                    supportsAudio = supportsAudio,
-                    supportsVideo = supportsVideo,
-                    enableToolCall = enableToolCall,
-                    thinkingConfigurations = config.thinkingConfigurations,
-                    thinkingOptionId = config.thinkingOptionId,
-                )
-            ApiProviderType.MIMO ->
-                MimoProvider(
-                    apiEndpoint = config.apiEndpoint,
-                    apiKeyProvider = apiKeyProvider,
-                    modelName = config.modelName,
-                    client = httpClient,
-                    customHeaders = customHeaders,
-                    providerType = providerType,
-                    supportsVision = supportsVision,
-                    supportsAudio = supportsAudio,
-                    supportsVideo = supportsVideo,
-                    enableToolCall = enableToolCall,
-                    thinkingConfigurations = config.thinkingConfigurations,
-                    thinkingOptionId = config.thinkingOptionId,
-                )
-            ApiProviderType.DEEPSEEK ->
-                DeepseekProvider.create(
-                    config = config,
-                    client = httpClient,
-                    customHeaders = customHeaders,
-                    apiKeyProvider = apiKeyProvider,
-                    supportsVision = supportsVision,
-                    supportsAudio = supportsAudio,
-                    supportsVideo = supportsVideo,
-                    enableToolCall = enableToolCall
-                )
             ApiProviderType.MISTRAL ->
                 MistralProvider(
                     apiEndpoint = config.apiEndpoint,
@@ -586,21 +518,6 @@ object AIServiceFactory {
                     client = httpClient,
                     customHeaders = customHeaders,
                     providerType = providerType,
-                    supportsVision = supportsVision,
-                    supportsAudio = supportsAudio,
-                    supportsVideo = supportsVideo,
-                    enableToolCall = enableToolCall,
-                    thinkingConfigurations = config.thinkingConfigurations,
-                    thinkingOptionId = config.thinkingOptionId,
-                )
-            ApiProviderType.SILICONFLOW ->
-                QwenAIProvider(
-                    apiEndpoint = config.apiEndpoint,
-                    apiKeyProvider = apiKeyProvider,
-                    modelName = config.modelName,
-                    client = httpClient,
-                    customHeaders = customHeaders,
-                    qwenProviderType = providerType,
                     supportsVision = supportsVision,
                     supportsAudio = supportsAudio,
                     supportsVideo = supportsVideo,
@@ -652,21 +569,6 @@ object AIServiceFactory {
                 )
             ApiProviderType.NOUS_PORTAL ->
                 NousPortalProvider(
-                    apiEndpoint = config.apiEndpoint,
-                    apiKeyProvider = apiKeyProvider,
-                    modelName = config.modelName,
-                    client = httpClient,
-                    customHeaders = customHeaders,
-                    providerType = providerType,
-                    supportsVision = supportsVision,
-                    supportsAudio = supportsAudio,
-                    supportsVideo = supportsVideo,
-                    enableToolCall = enableToolCall,
-                    thinkingConfigurations = config.thinkingConfigurations,
-                    thinkingOptionId = config.thinkingOptionId,
-                )
-            ApiProviderType.DOUBAO ->
-                DoubaoAIProvider(
                     apiEndpoint = config.apiEndpoint,
                     apiKeyProvider = apiKeyProvider,
                     modelName = config.modelName,

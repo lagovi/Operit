@@ -19,7 +19,7 @@ interface AIService {
     /** 输出token计数 */
     val outputTokenCount: Long
 
-    /** 获取供应商:模型标识符，格式如"DEEPSEEK:deepseek-chat" */
+    /** 获取供应商:模型标识符，格式如"OPENAI:gpt-4o-mini" */
     val providerModel: String
 
     /** 重置token计数器 */

@@ -183,8 +183,8 @@ class ApiPreferences private constructor(private val context: Context) {
         const val DEFAULT_FEATURE_TOGGLES_JSON = "{}"
 
         // API 配置默认值
-        const val DEFAULT_API_ENDPOINT = "https://api.deepseek.com/v1/chat/completions"
-        const val DEFAULT_MODEL_NAME = "deepseek-v4-flash"
+        const val DEFAULT_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
+        const val DEFAULT_MODEL_NAME = "gpt-4o-mini"
 
         private const val TAG = "ApiPreferences"
     }

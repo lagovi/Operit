@@ -18,13 +18,13 @@ data class TabConfig(
 
 @Serializable
 data class UrlConfig(
-    val name: String = "DeepSeek",
-    val signInUrl: String = "https://platform.deepseek.com/sign_in",
+    val name: String = "OpenAI",
+    val signInUrl: String = "https://platform.openai.com/sign_in",
     val tabs: List<TabConfig> = listOf(
-        TabConfig(OperitApplication.instance.getString(R.string.url_config_api_key), "https://platform.deepseek.com/api_keys"),
-        TabConfig(OperitApplication.instance.getString(R.string.url_config_usage), "https://platform.deepseek.com/usage"),
-        TabConfig(OperitApplication.instance.getString(R.string.url_config_top_up), "https://platform.deepseek.com/top_up"),
-        TabConfig(OperitApplication.instance.getString(R.string.url_config_profile), "https://platform.deepseek.com/profile")
+        TabConfig(OperitApplication.instance.getString(R.string.url_config_api_key), "https://platform.openai.com/api-keys"),
+        TabConfig(OperitApplication.instance.getString(R.string.url_config_usage), "https://platform.openai.com/usage"),
+        TabConfig(OperitApplication.instance.getString(R.string.url_config_top_up), "https://platform.openai.com/settings/organization/billing"),
+        TabConfig(OperitApplication.instance.getString(R.string.url_config_profile), "https://platform.openai.com/settings/profile")
     )
 )
 

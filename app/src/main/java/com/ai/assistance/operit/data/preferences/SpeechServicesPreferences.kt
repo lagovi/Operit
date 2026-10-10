@@ -162,9 +162,13 @@ class SpeechServicesPreferences(private val context: Context) {
 
     // --- TTS Flows ---
     val ttsServiceTypeFlow: Flow<VoiceServiceFactory.VoiceServiceType> = dataStore.data.map { prefs ->
-        VoiceServiceFactory.VoiceServiceType.valueOf(
-            prefs[TTS_SERVICE_TYPE] ?: DEFAULT_TTS_SERVICE_TYPE.name
-        )
+        // Fork 10.10: Chinese TTS types removed; stored names map to the default
+        // instead of throwing inside valueOf.
+        runCatching {
+            VoiceServiceFactory.VoiceServiceType.valueOf(
+                prefs[TTS_SERVICE_TYPE] ?: DEFAULT_TTS_SERVICE_TYPE.name
+            )
+        }.getOrDefault(DEFAULT_TTS_SERVICE_TYPE)
     }
 
     val ttsHttpConfigFlow: Flow<TtsHttpConfig> = dataStore.data.map { prefs ->

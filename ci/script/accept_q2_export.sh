@@ -26,6 +26,14 @@ step() { echo "== $1"; }
 # 0. transport + root
 step "transport+root"
 adb -s "$PHONE" shell echo alive >/dev/null || { echo "FAIL phone unreachable"; exit 2; }
+# Keep the display awake for the run (dumps taken while asleep are empty);
+# restored on exit.
+orig_off_timeout=$(adb -s "$PHONE" shell settings get system screen_off_timeout 2>/dev/null | tr -d '\r') || orig_off_timeout=""
+adb -s "$PHONE" shell settings put system screen_off_timeout 1800000 >/dev/null 2>&1
+restore_display() {
+    [ -n "${orig_off_timeout:-}" ] && adb -s "$PHONE" shell settings put system screen_off_timeout "$orig_off_timeout" >/dev/null 2>&1
+}
+trap restore_display EXIT
 adb -s "$PHONE" shell "su -c id" | grep -q "uid=0" && ok "root" || { bad "root"; exit 2; }
 
 # 1. clean install
@@ -53,8 +61,10 @@ ok "grants"
 step "first launch: single onboarding screen (liability + permissions +"
 # level on one scroll) -> Continue -> chat. Continue sits at the bottom,
 # so swipe up until it is visible; grants from step 2 make the rows pass.
+plab_wake
 adb -s "$PHONE" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
 sleep 4
+plab_wake
 plab_wait_text "Your responsibility" 30 || { bad "onboarding"; exit 2; }
 for _ in 1 2 3 4 5; do plab_texts | grep -q "Continue" && break; adb -s "$PHONE" shell input swipe 360 1100 360 400 400; sleep 1; done
 plab_tap_text "Continue" || { bad "onboarding continue"; exit 2; }

@@ -74,6 +74,15 @@ plab_tap() {
 # Plain input tap (works for in-app controls; kept as fallback).
 plab_tap_input() { _adb shell input tap "$1" "$2"; sleep 0.5; }
 
+# Wake the display (no secure lock on the lab phone; keyguard, if any,
+# dismisses with MENU). Dumps taken while asleep come back empty.
+plab_wake() {
+    _adb shell "input keyevent WAKEUP" >/dev/null 2>&1
+    sleep 1
+    _adb shell "input keyevent 82" >/dev/null 2>&1
+    sleep 1
+}
+
 # Fresh UI dump to stdout.
 plab_dump() {
     _adb shell uiautomator dump /sdcard/window_dump.xml >/dev/null 2>&1

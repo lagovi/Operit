@@ -2,9 +2,11 @@ package com.ai.assistance.operit.core.subpack
 
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.io.File
 import java.io.FileInputStream
 import java.security.KeyStore
+import java.security.Provider
 import java.security.Security
 
 /** 密钥库辅助类 统一处理密钥库加载、验证和Provider管理 */
@@ -13,23 +15,49 @@ class KeyStoreHelper {
         private const val TAG = "KeyStoreHelper"
 
         /**
+         * Registers the bundled BouncyCastle first WITHOUT removing the
+         * platform one (DoD-proven 10.10, task 13: removal kills the only
+         * guaranteed PKCS12 KeyStore).
+         *
+         * Live-fire 10.10 correction: the platform BC alone canNOT unwrap
+         * our PBES2-encrypted PKCS12 (SecretKeyFactory for
+         * 1.2.840.113549.1.5.12 unavailable) — the working path is the
+         * bundled BC inserted at position 1. Returns the insert outcome
+         * for diagnostics; failure is non-fatal (iteration below still
+         * tries every registered provider).
+         */
+        @JvmStatic
+        fun registerBouncyCastleProvider(): Boolean {
+            try {
+                val existing = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)
+                if (existing is BouncyCastleProvider) {
+                    AppLogger.d(TAG, "Bundled BC already registered")
+                    return true
+                }
+                val position = Security.insertProviderAt(BouncyCastleProvider(), 1)
+                AppLogger.d(TAG, "Bundled BC inserted at $position")
+                return position > 0
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "注册BouncyCastle提供程序失败: ${e.message}", e)
+                return false
+            }
+        }
+
+        /**
          * Loads and verifies a keystore, trying every registered provider
          * that offers the requested type in preference order.
          *
-         * Why not KeyStore.getInstance(type): JCA instantiates the FIRST
-         * provider's service, but instantiation success does not mean the
-         * load succeeds — a provider whose service classes fail at use time
-         * (seen live 10.10: bundled BC shadows the platform BC, its
-         * KeyStore.PKCS12 instantiates, then private-key unwrap dies with
-         * "SecretKeyFactory not available") blocks every provider behind it.
-         * Iterating to load+verify is JCA's own pattern extended past
-         * instantiation; total failure still returns null (surfaced by the
-         * caller, never swallowed). We deliberately do NOT insert/remove
-         * providers here: the platform BC stays first and working.
+         * Why not a bare KeyStore.getInstance(type): JCA instantiates the
+         * FIRST provider's service, but instantiation success does not mean
+         * the load succeeds. Iterating to load+verify extends JCA's own
+         * pattern past instantiation; total failure still returns null
+         * (surfaced by the caller, never swallowed).
          */
         @JvmStatic
         fun loadVerifiedKeystore(file: File, type: String, password: String): KeyStore? {
+            registerBouncyCastleProvider()
             val providers = Security.getProviders("KeyStore.$type")
+            AppLogger.d(TAG, "KeyStore.$type offered by: ${providers?.joinToString { it.name }}")
             if (providers.isNullOrEmpty()) {
                 AppLogger.e(TAG, "No provider offers KeyStore.$type")
                 return null

@@ -592,54 +592,51 @@ class ApkReverseEngineer(private val context: Context) {
         try {
             AppLogger.d(TAG, "尝试以$keyStoreType 格式加载密钥库")
 
-            // 使用KeyStoreHelper获取密钥库实例
-            val keyStore = KeyStoreHelper.getKeyStoreInstance(keyStoreType)
+            // Load via every provider offering the type; first verified load
+            // wins (see KeyStoreHelper.loadVerifiedKeystore for why a bare
+            // getInstance is not enough).
+            val keyStore =
+                    KeyStoreHelper.loadVerifiedKeystore(
+                            keyStoreFile,
+                            keyStoreType,
+                            keyStorePassword
+                    )
             if (keyStore == null) {
                 val errorMessage = context.getString(R.string.apk_get_keystore_instance_failed, keyStoreType)
                 AppLogger.e(TAG, errorMessage)
                 return Pair(false, errorMessage)
             }
+            AppLogger.d(TAG, "成功以$keyStoreType 格式加载密钥库")
 
-            FileInputStream(keyStoreFile).use { input ->
-                try {
-                    keyStore.load(input, keyStorePassword.toCharArray())
-                    AppLogger.d(TAG, "成功以$keyStoreType 格式加载密钥库")
-                } catch (e: Exception) {
-                    val errorMessage = context.getString(R.string.apk_load_keystore_failed, keyStoreType, e.message ?: "")
-                    AppLogger.e(TAG, errorMessage)
-                    return Pair(false, errorMessage)
-                }
-
-                // 获取可用的别名
-                val aliases = keyStore.aliases()
-                val aliasList = mutableListOf<String>()
-                while (aliases.hasMoreElements()) {
-                    aliasList.add(aliases.nextElement())
-                }
-
-                if (aliasList.isEmpty()) {
-                    val errorMessage = context.getString(R.string.apk_keystore_no_aliases, keyStoreType)
-                    AppLogger.e(TAG, errorMessage)
-                    return Pair(false, errorMessage)
-                } else {
-                    AppLogger.d(TAG, "$keyStoreType 密钥库中的别名: ${aliasList.joinToString()}")
-
-                    // 如果指定的别名不存在，但有其他别名，使用第一个别名
-                    if (!aliasList.contains(keyAlias) && aliasList.isNotEmpty()) {
-                        AppLogger.w(TAG, "指定的别名'$keyAlias'不存在，将使用可用的别名: ${aliasList[0]}")
-                        val actualKeyAlias = aliasList[0]
-                        return signWithKeyStore(
-                                keyStore,
-                                unsignedApk,
-                                actualKeyAlias,
-                                keyPassword,
-                                outputApk
-                        )
-                    }
-                }
-
-                return signWithKeyStore(keyStore, unsignedApk, keyAlias, keyPassword, outputApk)
+            // 获取可用的别名
+            val aliases = keyStore.aliases()
+            val aliasList = mutableListOf<String>()
+            while (aliases.hasMoreElements()) {
+                aliasList.add(aliases.nextElement())
             }
+
+            if (aliasList.isEmpty()) {
+                val errorMessage = context.getString(R.string.apk_keystore_no_aliases, keyStoreType)
+                AppLogger.e(TAG, errorMessage)
+                return Pair(false, errorMessage)
+            } else {
+                AppLogger.d(TAG, "$keyStoreType 密钥库中的别名: ${aliasList.joinToString()}")
+
+                // 如果指定的别名不存在，但有其他别名，使用第一个别名
+                if (!aliasList.contains(keyAlias) && aliasList.isNotEmpty()) {
+                    AppLogger.w(TAG, "指定的别名'$keyAlias'不存在，将使用可用的别名: ${aliasList[0]}")
+                    val actualKeyAlias = aliasList[0]
+                    return signWithKeyStore(
+                            keyStore,
+                            unsignedApk,
+                            actualKeyAlias,
+                            keyPassword,
+                            outputApk
+                    )
+                }
+            }
+
+            return signWithKeyStore(keyStore, unsignedApk, keyAlias, keyPassword, outputApk)
         } catch (e: Exception) {
             val errorMessage = context.getString(R.string.apk_load_keystore_format_failed, keyStoreType, e.message ?: "")
             AppLogger.e(TAG, errorMessage, e)

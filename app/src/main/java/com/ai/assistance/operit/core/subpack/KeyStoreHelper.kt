@@ -2,11 +2,9 @@ package com.ai.assistance.operit.core.subpack
 
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.io.File
 import java.io.FileInputStream
 import java.security.KeyStore
-import java.security.Provider
 import java.security.Security
 
 /** 密钥库辅助类 统一处理密钥库加载、验证和Provider管理 */
@@ -14,70 +12,46 @@ class KeyStoreHelper {
     companion object {
         private const val TAG = "KeyStoreHelper"
 
-        // 保存注册的BouncyCastle提供者引用
-        private var bcProvider: Provider? = null
-
         /**
-         * 注册BouncyCastle提供者
-         * @return 是否成功注册
+         * Loads and verifies a keystore, trying every registered provider
+         * that offers the requested type in preference order.
+         *
+         * Why not KeyStore.getInstance(type): JCA instantiates the FIRST
+         * provider's service, but instantiation success does not mean the
+         * load succeeds — a provider whose service classes fail at use time
+         * (seen live 10.10: bundled BC shadows the platform BC, its
+         * KeyStore.PKCS12 instantiates, then private-key unwrap dies with
+         * "SecretKeyFactory not available") blocks every provider behind it.
+         * Iterating to load+verify is JCA's own pattern extended past
+         * instantiation; total failure still returns null (surfaced by the
+         * caller, never swallowed). We deliberately do NOT insert/remove
+         * providers here: the platform BC stays first and working.
          */
         @JvmStatic
-        fun registerBouncyCastleProvider(): Boolean {
-            try {
-                // Fork: NEVER Security.removeProvider("BC") here. That call
-                // deletes the PLATFORM BouncyCastle — the only guaranteed
-                // PKCS12 KeyStore on Android. R8 shrinks the bundled
-                // provider's service classes (see the bouncycastle keep in
-                // proguard-rules.pro), so after removal NO provider offers
-                // the KeyStore and every load fails with
-                // "PKCS12/JKS KeyStore not available" (live-fire 10.10,
-                // task 13). Inserting ours first WITHOUT removing keeps the
-                // platform as a working second entry; JCA skips providers
-                // that lack the requested service.
-                val existing = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME)
-                if (existing is BouncyCastleProvider) {
-                    bcProvider = existing
-                    return true
-                }
-
-                // 创建新的BouncyCastle提供者实例
-                val provider = BouncyCastleProvider()
-
-                // 添加到安全提供者列表首位确保优先级
-                val position = Security.insertProviderAt(provider, 1)
-
-                // 保存引用
-                bcProvider = provider
-
-                return position > 0
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "注册BouncyCastle提供程序失败: ${e.message}", e)
-                return false
-            }
-        }
-
-        /**
-         * 获取密钥库实例
-         * @param keyStoreType 密钥库类型 (PKCS12, JKS等)
-         * @return 密钥库实例或null
-         */
-        @JvmStatic
-        fun getKeyStoreInstance(keyStoreType: String): KeyStore? {
-            try {
-                // 对于PKCS12类型，确保BouncyCastle提供者已注册并在第一位
-                if (keyStoreType == "PKCS12") {
-                    registerBouncyCastleProvider()
-
-                    // 尝试直接通过类型获取，因为BC现在是第一位提供者
-                    return KeyStore.getInstance(keyStoreType)
-                } else {
-                    // 其他类型直接获取
-                    return KeyStore.getInstance(keyStoreType)
-                }
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "获取${keyStoreType}密钥库实例失败: ${e.message}", e)
+        fun loadVerifiedKeystore(file: File, type: String, password: String): KeyStore? {
+            val providers = Security.getProviders("KeyStore.$type")
+            if (providers.isNullOrEmpty()) {
+                AppLogger.e(TAG, "No provider offers KeyStore.$type")
                 return null
             }
+            for (provider in providers) {
+                try {
+                    val keyStore = KeyStore.getInstance(type, provider)
+                    FileInputStream(file).use { input ->
+                        keyStore.load(input, password.toCharArray())
+                    }
+                    if (!keyStore.aliases().hasMoreElements()) {
+                        AppLogger.d(TAG, "$type via ${provider.name}: no aliases, trying next")
+                        continue
+                    }
+                    AppLogger.d(TAG, "$type loaded via ${provider.name}")
+                    return keyStore
+                } catch (e: Exception) {
+                    AppLogger.d(TAG, "$type via ${provider.name} failed: ${e.message}, trying next")
+                }
+            }
+            AppLogger.e(TAG, "All providers failed to load $type keystore ${file.absolutePath}")
+            return null
         }
 
         /**
@@ -89,25 +63,11 @@ class KeyStoreHelper {
          */
         @JvmStatic
         fun validateKeystore(file: File, type: String, password: String): Boolean {
-            try {
-                // 对于PKCS12类型，确保提供者已正确注册
-                if (type == "PKCS12") {
-                    registerBouncyCastleProvider()
-                }
-
-                // 获取密钥库实例
-                val keyStore = getKeyStoreInstance(type) ?: return false
-
-                // 加载密钥库
-                FileInputStream(file).use { input ->
-                    keyStore.load(input, password.toCharArray())
-
-                    // 检查是否包含至少一个别名
-                    return keyStore.aliases().hasMoreElements()
-                }
+            return try {
+                loadVerifiedKeystore(file, type, password) != null
             } catch (e: Exception) {
                 AppLogger.e(TAG, "$type 密钥库验证失败: ${e.message}")
-                return false
+                false
             }
         }
 
@@ -170,9 +130,6 @@ class KeyStoreHelper {
          */
         @JvmStatic
         fun getOrCreateKeystore(context: Context): File {
-            // 确保BouncyCastle提供者已注册
-            registerBouncyCastleProvider()
-
             // 先尝试PKCS12格式
             val pkcs12KeyStoreFile = File(context.filesDir, "pkcs12.keystore")
             if (pkcs12KeyStoreFile.exists() && pkcs12KeyStoreFile.length() > 1000) {

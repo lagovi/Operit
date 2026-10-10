@@ -683,12 +683,13 @@ subpack Q1-механика).
 09.10: root через Magisk ЕСТЬ (`su -c id` uid=0, полные capabilities).
 Включён классический ПОСТОЯННЫЙ ADB: `su -c 'setprop service.adb.tcp.port
 5555'` + `stop adbd; start adbd` → `adb connect 192.168.1.69:5555`
-(TLS-порт после этого отвалился сам — так и надо, лишний). Порт держится
-до ПЕРЕЗАГРУЗКИ телефона. Автозагрузка НЕВОЗМОЖНА: `/data/adb/service.d`
-не пишется даже root (оба неймспейса, даже в Permissive — режет прошивка).
-После ребута — одна строка в Termux на телефоне:
-`su -c 'setprop service.adb.tcp.port 5555; stop adbd; start adbd'`,
-затем с ноутбука `adb connect 192.168.1.69:5555`. Локальный трюк 09.10:
+(TLS-порт после этого отвалился сам — так и надо, лишний).
+10.10: автозагрузка РЕШЕНА через Termux + Termux:Boot (оба стоят;
+`~/.termux/boot/adb-tcp.sh`: sleep 15 + setprop 5555 + restart adbd;
+root для Termux выдан пользователем один раз; оба пакета в battery
+whitelist). ДОКАЗАНО перезагрузкой 10.10: 5555 вернулся сам через ~75 с,
+uptime 1 мин. Magisk `/data/adb/service.d` был тупиком (не пишется даже
+root — режет прошивка). Локальный трюк 09.10:
 порт открыт и пингуется, а `adb connect` висит — лечится
 `adb kill-server; adb start-server` (stale server).
 **CI.** Push в feature-ветку workflow НЕ стартует — только ручной dispatch:

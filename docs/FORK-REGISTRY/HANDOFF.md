@@ -22,8 +22,12 @@ R8-mapping + `f3ce47f1`/`5cb753fe` задача 10 + `cddb9906` revert +
 ловушка `unzip -l`, рецепт стектрейсов из HTML-отчётов, состояние fresh
 install; леджер research-size п.3 и таблица обновлены (subpack-механика
 готова, R8 — done, дрейф размера android.apk на Drive).
-ОТКРЫТО: 6 (terminal-env setup, нужны батарея+сеть), 8 (совместное ручное,
-включая E2E экспорта в leaf), 14 (онбординг: кнопка «Пропустить всё»),
+ОТКРЫТО: 6 (terminal-env setup: шаги и DoD — в п.6, делать с запасом
+батареи/сети), 8 (совместное ручное: закрыта только 8а; остались 5a/5b
+глазами и красное задачи 6), 14 (онбординг skip-all: первый шаг —
+картировать код по строкам), 15 (китайские интеграции: инвентарь готов,
+нужны решения что выносить), 16 (install-size раунд 2: сначала перемерить
+на настроенном устройстве, таблица решений),
 12 ЧАСТИЧНО ((a) apktool удалён И замерен 08.10 — ЗАКРЫТА;
 (b) desktop удалён И замерен 08.10 — ЗАКРЫТА; живые helper APK,
 templates/emoji — в Q2 с картой читателей),
@@ -42,6 +46,81 @@ subpack Q1-механика).
 **Как читать:** статус ниже — правда на сейчас, читать первым. Разделы
 с пометкой SUPERSEDED/CLOSED — история, не трогать. Хеш кодового коммита
 сверять с `git log` — docs-коммиты поведение не меняют.
+
+## Fresh-session memo (читать вторым — всё, чтобы не наступать снова)
+
+**Связь.** Только `adb -s 192.168.1.69:5555` (классический ADB-TCP,
+поднят root-командой `su -c 'setprop service.adb.tcp.port 5555;
+stop adbd; start adbd'`). Перезагрузок НЕ боится: Termux + Termux:Boot
+выполняют тот же скрипт (`~/.termux/boot/adb-tcp.sh`, root выдан один
+раз) — доказано ребут-тестом 10.10 (порт вернулся через ~75 с). USB
+мёртв (`lsusb` пуст). Если порт открыт и пингуется, а `adb connect`
+висит — `adb kill-server; adb start-server` (stale server, 09.10).
+Pairing-порт ≠ adb-порт: connect на pairing даёт refused/вис — не гадать,
+просить у пользователя настоящий или брать 5555. TLS-порт беспроводной
+отладки мёртв с момента включения 5555 (так и надо).
+**Root.** Magisk `su` есть (`su -c id` → uid=0), в т.ч. из Termux
+(`run-as com.termux su -c id`). НО: `/data/adb/service.d` не пишется
+даже root с полными capabilities, в Permissive и из `su -mm` — режет
+прошивка; Magisk-автозагрузку не чинить, обход — Termux:Boot выше.
+**Гранты свежей установки** (shell-набор, достаточен): `pm grant PKG
+READ/WRITE_EXTERNAL_STORAGE + FINE/COARSE_LOCATION + RECORD_AUDIO`,
+`appops set PKG MANAGE_EXTERNAL_STORAGE + SYSTEM_ALERT_WINDOW allow`,
+`dumpsys deviceidle whitelist +PKG`. Без них визард крутится по кругу
+«Incomplete → Continue» — это не баг.
+**Нажатия.** Основной инструмент — root-тапы sendevent:
+`/dev/input/event3` (`ILITEK_TDDI`, протокол MT-B), координаты 1:1
+к координатам дампа (доказано, в т.ч. y=1394–1407). Рецепт тапа:
+slot 0 → BTN_TOUCH(330) 1 → tracking_id N++ → X(53) → Y(54) →
+major(48)=9 → pressure(58)=50 → SYN → пауза 0.12 → tracking −1 →
+BTN_TOUCH 0 → SYN. Готовая обёртка: `ci/script/phone_lab.sh`
+(`plab_tap`, `plab_tap_text`, `plab_wait_text`, `plab_assert_leaf_file`).
+`input tap` работает ВНУТРИ приложения, но ГЛУХ в системном DocumentsUI
+(строки папок и кнопка USE — проверено прочёсыванием одиночных/двойных/
+долгих тапов) — там только sendevent (палец больше не нужен вообще).
+Клавиатурно: TAB ходит по фокусу (включая строки списка после тапа),
+DPAD_UP/DOWN — по строкам, ENTER жмёт обычные кнопки, НО на USE/строках
+DocumentsUI ENTER/SPACE/CENTER глухи (ENTER на USE уводит фокус).
+**Чтение экрана.** `uiautomator dump` + парсинг XML (тексты/границы) —
+основное; скриншоты (`screencap -p` + Read) — только для визуала.
+Если dump дохнет с SIGKILL — фолбэк на скриншоты. Дрейф низа (E11):
+хитбоксы на 40–100px ВЫШЕ глифов — при промахах прочёсывать вверх,
+не давить в ту же точку.
+**Файлы на телефоне.** Только `adb exec-out run-as PKG` (других путей
+внутрь нет); БД тащить тремя файлами (`app_database`+`-wal`+`-shm`);
+`input text` — только `%s`-безопасные строки; `/sdcard` переживает
+переустановку (фиxture `/sdcard/q2html/index.html` на месте).
+**CI/сборки.** Workflow только ручной dispatch И ТОЛЬКО ПОСЛЕ PUSH
+(раннер чекаутит origin). Каждый CI-билд — новый debug-ключ:
+перед install всегда `uninstall` (`-r` даёт UPDATE_INCOMPATIBLE).
+Папка APK = UTC-старт рана + `CHANGES.md` (3–6 строк дельты).
+Замер — `python3 zipfile`, НЕ `unzip -l` (врёт). Mapping-артефакт
+тянуть всегда. 10.10 GitHub сам отключал Actions на форке (баннер
+«disabled because of its Actions usage», dispatch 422; расписаний
+у нас нет — эвристика на пачку долгих ранов): лечится ТОЛЬКО кнопкой
+на вкладке Actions (владелец), API/тумблеры не помогают.
+**Диск `/` хронически 95–100%.** Перед качанием артефактов смотреть
+`df`; протухшие `/tmp/gh-artifact.*.zip` и дубли моделей — первые
+кандидаты; тулкит (`jdk/kotlinc/venv`) и `gigaam-model` НЕ трогать.
+**Правила.** No-fallback: чинить настоящую причину (примеры: keep
+commons-compress вместо try/catch вокруг setTime; keep BC + не удалять
+платформенный провайдер вместо глотания исключений). Коммиты: код и
+доки — отдельно; audit-гейт (`fork_audit.py --no-color --no-hotspots`,
+CJK-NEW 0) перед push.
+**Негативные эксперименты (проверено, НЕ повторять):**
+(a) adb-тапы по DocumentsUI — глухи (см. Нажатия); (б) Magisk service.d —
+не пишется (см. Root); (в) `svc wifi disable` для offline-теста УБИВАЕТ
+ADB-транспорт (связь только по WiFi!): offline — только iptables
+owner-match на uid приложения (`iptables -A OUTPUT -m owner
+--uid-owner <uid> -j REJECT`, снять `-D`); (г) `install -r` между CI-
+сборками — UPDATE_INCOMPATIBLE (ключи разные); (д) BACK из пикера/
+экранов теряет remember-состояние (папку/флоу выбирать заново,
+URI-грант в системе при этом жив); (е) JKS-keystore на Android НЕ
+существует в принципе (провайдера нет и не будет — чинить только
+PKCS12-путь); (ж) `removeProvider("BC")` удаляет ПЛАТФОРМЕННЫЙ BC —
+единственный гарантированный PKCS12 (не возвращать); (з) тумблеры
+Settings/API против 422 Actions — не работают, только кнопка на
+вкладке Actions; (и) `unzip -l` врёт нулями на этих APK.
 
 ## Статус: что есть
 
@@ -595,12 +674,86 @@ subpack Q1-механика).
   (строка — в `R.string`, English-only гейт), пропуск всего flow
   сразу до чата; разрешения — shell-набором из чит-шита или позже.
   DoD: чистая установка → тап Skip → сразу чат без
-  соглашения/тура/визарда. Код онбординга пока не картирован.
+  соглашения/тура/визарда. Код онбординга пока не картирован: первый шаг —
+  найти стартовый экран поиском строк 'User Agreement'/'Feature Tour' в
+  `app/src/main/java` (там же визард разрешений и выбор уровня).
+  15. Китайские интеграции — ревизия и вынос (ОТКРЫТА, 10.10; решение
+  пользователя: только дописать задачи, код НЕ трогать). Инвентарь
+  (все пути — от корня репо, размеры — байты в APK `2026-10-10_00-41-11Z`
+  через `python3 zipfile`, если не сказано иное):
+  (а) QQ Bot (Tencent QQ OpenAPI, только CN-рынок: нужны QQ-credentials):
+  `examples/qqbot/` (исходники ~520 КБ), в whitelist
+  `tools/example_packages/packages_whitelist.txt` → пакуется в
+  `assets/packages/` + ставится в toolpkg_cache; UI — плитка Toolbox
+  «QQ Bot Settings». Путь — как 12a (apktool): вычеркнуть из whitelist,
+  stale-кэш чистит сам `reconcileToolPkgCaches`, DoD — замер CI
+  (`python3 zipfile`, `*qqbot*` ноль). НЕЯСНО: точный размер .toolpkg
+  (собрать sync-скриптом и взвесить до решения);
+  (б) Пресеты CN-провайдеров (размера ноль, только видимость):
+  `provider_baidu/provider_alipay_bailing/provider_aliyun` (`app/.../res/
+  values/strings.xml:4138+`), endpoints Baidu/Xiaomi
+  (`ApiProviderConfigCollect.kt:90,152`, `ModelConfigData.kt:24`,
+  `MimoProvider.kt`, `MimoVoiceProvider.kt`), тестовый URL baidu.com
+  (`ToolTesterScreen.kt:326`), схема alipay: в Token-WebView
+  (`TokenConfigWebViewScreen.kt:108`, `WebViewConfig.kt:126`), строки
+  test_desc (`strings.xml:3045`). Решение: спрятать для EN-сборки или
+  оставить (провайдеры рабочие глобально? Xiaomi/Baidu — спросить
+  пользователя);
+  (в) Карта CN-приложений (`StandardUITools.kt:65-123,248-249`): 微信/QQ/
+  微博/淘宝/百度地图/bilibili/腾讯视频/QQ音乐/QQ邮箱/腾讯新闻 → package
+  names; размер ноль, но метки китайские (T1-территория: перевести или
+  скрыть вне CN);
+  (г) HuaweiCloud-maven в шаблонах экспорта
+  (`assets/templates/{android,flutter}/.../settings.gradle.kts`,
+  `build.gradle.kts`): зеркало для CN, остальному миру лишняя попытка
+  при сборке на устройстве — разобраться в порядок/фолбэк gradle,
+  убрать только если доказано безвредно;
+  (д) Проверено НЕ китайское (не трогать): OCR-движок — Google MLKit
+  `com.google.mlkit:text-recognition:16.0.0` (`gradle/libs.versions.toml:18`,
+  `app/build.gradle.kts:649`, `libmlkit_google_ocr_pipeline.so` 9.5 МБ,
+  скриптовых пакетов zh/ja/ko в зависимостях НЕТ); шрифтов CJK в assets
+  НЕТ (только `terminal/.../jetbrains_mono_nerd_font_regular.ttf`);
+  `res/` — только `values`+`values-night` (values-zh НЕТ); MNN
+  (`libMNN.so` 20.9 МБ + Wrapper 5.3 МБ) грузит ЖИВОЙ `llm/mnn`
+  (`MNNLibraryLoader.kt:33,37`, `MNNModule.kt`) — удаление только
+  вместе с фичей MNN-LLM (решение пользователя, НЕ free win;
+  мёртвого MNN-STT в коде не осталось — проверено grep 10.10);
+  push-SDK (Huawei/Xiaomi/Oppo/Vivo/JPush) в зависимостях НЕТ.
+  16. Install-size раунд 2 (ОТКРЫТА, 10.10; только дописать, код НЕ
+  трогать). База: APK 179.7 МБ, installed_linux: assets ~155 МБ stored
+  + копии в `files/` (rootfs 61 МБ тарболл + распаковка ~358 МБ,
+  toolpkg_cache ~31 МБ) — цифры research-size, перед работой перемерить
+  на настроенном устройстве (`run-as ... du` по `files/*`: objectbox,
+  translation_cache, media_pool, skill_repo_zip_pool, image_pool,
+  custom_emoji, logs — сколько реально весят, записать сюда).
+  Кандидаты delete (все — решение пользователя, цифры из APK 10.10):
+  avatar-стек ~14.5 МБ (`libfilament-jni`+`libgltfio-jni` 5.2,
+  `libdragonbones_native` 2.6, `libMmdWrapper` 5.1, `libFbxWrapper` 1.6)
+  — только вместе с фичей аватаров; FFmpeg ~26 МБ (`libavcodec` 15.7,
+  `libavfilter` 5.2, `libavformat` 5.1) — только вместе с Toolbox
+  «FFmpeg Toolbox» + `ffmpeg.js` toolpkg; llama-стек ~23 МБ
+  (`libllama-common` 12.6, `libllama` 7.9, `libggml-*` 3.1) — только
+  вместе с GGUF-инференсом; MNN ~26 МБ — см. 15(д); MLKit 9.5 МБ —
+  только вместе с OCR (фича живая: `OCRUtils`, screen-OCR во флоатере).
+  Кандидаты на SD/out-of-APK (технические, без убийства фич):
+  helper APK (`assets/shizuku.apk` 2.5 + `accessibility.apk` 2.7 МБ,
+  читатели `ShizukuInstaller:37`, `UIHierarchyManager:89-91`) и
+  templates (11 МБ, `WorkspaceUtils.copyTemplateFiles:682`) + emoji
+  (3.7 МБ, `CustomEmojiRepository:298`) — тем же Q2-лекалом задачи 13;
+  toolpkg_cache (переезд вслед за SubpackStorage-механикой);
+  aapt2-дубли в templates (2×4.5 МБ) — НЕ ТРОГАТЬ (ломает экспорт,
+  SIZE-006). НЕ ТРОГАТЬ ВООБЩЕ: rootfs (E3: proot с внешнего leaf не
+  стартует — эксперимент с преддоказательством и откатом, отдельно),
+  `lib/`+dex кроме перечисленного (E2), `assets/js` 1.4 МБ (горячий
+  рантайм JS), keystore assets, `bridge/`, `operit_shell_exec`.
+  DoD раунда: таблица «модуль → МБ в APK → МБ installed → решение»
+  здесь + по каждому взятому — как 12a (удаление+замер) или 13
+  (on-demand+приёмка `accept_q2_export.sh`-стилем).
 
 ## Статус: окружение
 
 - APK каждой проверенной сборки: `/home/uzzzver/operit-fork/apk/<UTC-дата-старт-CI>/`
-  + `CHANGES.md` (3–6 строк дельты). Сейчас там ВОСЕМЬ папок:
+  + `CHANGES.md` (3–6 строк дельты). Сейчас там ТРИНАДЦАТЬ папок:
   `2026-10-04_13-47-09Z` (R8-эксперимент, rejected),
   `2026-10-05_10-51-45Z` (A-сборка, терминал), `2026-10-05_17-52-47Z`
   (llm-io-log, 287387420 байт, CI `37351728353`),
@@ -609,10 +762,17 @@ subpack Q1-механика).
   CI `37551624980`, cold start clean), `2026-10-07_01-07-20Z` (финал 4+5:
   247288542 байт, CI `37555506347`, ПОЛНАЯ приёмка),
   `2026-10-07_06-31-03Z` (задача 10: 247288246 байт, CI `37581930601`,
-  e2e PONG) и `2026-10-08_01-06-04Z` (subpack Q1: 247299182 байт,
-  CI `37709173132`, пикер+переезд приняты).
-  Пользователь чистит сам (диск `/` уже 98% — КРИТИЧНО, чистка нужна
-  до следующей серии сборок).
+  e2e PONG), `2026-10-08_01-06-04Z` (subpack Q1: 247299182 байт,
+  CI `37709173132`, пикер+переезд приняты), `2026-10-08_03-29-43Z`
+  (12a apktool: 220307769 байт, CI `37722980127`),
+  `2026-10-08_04-17-45Z` (12b desktop: 214210621 байт, CI `37726800230`),
+  `2026-10-08_11-45-43Z` (Q2 subpack: 177474049 байт, CI `37772193743`),
+  `2026-10-09_17-58-51Z` (фикс репака: 177496617 байт, CI `37970071214`),
+  `2026-10-10_00-41-11Z` (фикс подписи: 179691879 байт, CI `38010108122`,
+  DoD 13 закрыт).
+  Диск `/` хронически 95–100%: `/tmp` чистит агент (протухшие
+  `gh-artifact.*.zip`, дубли моделей, свои скриншоты/дампы; тулкит и
+  `gigaam-model` не трогать), остальное — пользователь.
   Удалённые докачиваются с CI без пересборки: T3
   `gh run download 37201078764 --dir ...` (внутри
   `operit-android-34/apk/debug/app-debug.apk`, 373487996 байт), T2

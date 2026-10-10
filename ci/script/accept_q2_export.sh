@@ -69,7 +69,11 @@ for _ in 1 2 3 4 5 6; do plab_texts | grep -q "HTML Packager" && break; adb -s "
 sleep 1
 plab_tap_text "HTML Packager" || { bad "packager open"; exit 2; }
 plab_wait_text "Select Folder" 20 || { bad "packager open"; exit 2; }
-plab_tap_text "Select Folder"; sleep 4
+# Kernel taps occasionally do not register: tap until the picker is open.
+for _ in 1 2 3; do
+    plab_tap_text "Select Folder"; sleep 4
+    plab_assert_pkg "com.google.android.documentsui" >/dev/null 2>&1 && break
+done
 plab_assert_pkg "com.google.android.documentsui" && ok "picker" || { bad "picker"; exit 2; }
 # NOTE: the fixture folder /sdcard/q2html/index.html must exist (created once via shell).
 plab_wait_text "q2html" 20 || { bad "fixture folder"; exit 2; }

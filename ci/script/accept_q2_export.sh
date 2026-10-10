@@ -65,11 +65,12 @@ plab_wake
 adb -s "$PHONE" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
 sleep 4
 plab_wake
-plab_wait_text "Your responsibility" 30 || { bad "onboarding"; exit 2; }
+plab_expect_text "Your responsibility" 30 "onboarding screen" || { bad "onboarding"; exit 2; }
 for _ in 1 2 3 4 5; do plab_texts | grep -q "Continue" && break; adb -s "$PHONE" shell input swipe 360 1100 360 400 400; sleep 1; done
+plab_expect_text "Continue" 10 "onboarding continue button" || { bad "onboarding continue"; exit 2; }
 plab_tap_text "Continue" || { bad "onboarding continue"; exit 2; }
 sleep 2
-plab_wait_text "New Chat" 30 && ok "onboarding" || { bad "onboarding"; exit 2; }
+plab_expect_text "New Chat" 30 "chat after onboarding" && ok "onboarding" || { bad "onboarding"; exit 2; }
 
 # 4. Toolbox -> HTML Packager -> Select Folder (picker) -> USE -> Allow.
 # An "Announcement" dialog (Got it) can pop up at any moment; dismiss
@@ -83,12 +84,15 @@ plab_dismiss_got_it() {
 plab_dismiss_got_it
 plab_tap 49 110; sleep 1.5
 plab_dismiss_got_it
-plab_tap_text "Toolbox"; sleep 1.5
+plab_expect_text "Toolbox" 15 "drawer after menu tap" || { bad "drawer"; exit 2; }
+plab_tap_text "Toolbox" || { bad "drawer"; exit 2; }
+sleep 1.5
 plab_dismiss_got_it
 for _ in 1 2 3 4 5 6; do plab_texts | grep -q "HTML Packager" && break; adb -s "$PHONE" shell input swipe 360 1100 360 400 400; sleep 1; done
 sleep 1
+plab_expect_text "HTML Packager" 10 "packager in toolbox" || { bad "packager open"; exit 2; }
 plab_tap_text "HTML Packager" || { bad "packager open"; exit 2; }
-plab_wait_text "Select Folder" 20 || { bad "packager open"; exit 2; }
+plab_expect_text "Select Folder" 20 "packager screen" || { bad "packager open"; exit 2; }
 # Kernel taps occasionally do not register: tap until the picker is open.
 for _ in 1 2 3; do
     plab_tap_text "Select Folder"; sleep 4
@@ -96,19 +100,21 @@ for _ in 1 2 3; do
 done
 plab_assert_pkg "com.google.android.documentsui" && ok "picker" || { bad "picker"; exit 2; }
 # NOTE: the fixture folder /sdcard/q2html/index.html must exist (created once via shell).
-plab_wait_text "q2html" 20 || { bad "fixture folder"; exit 2; }
-plab_tap_text "ИСПОЛЬЗОВАТЬ ЭТУ ПАПКУ"; sleep 3
-if plab_texts | grep -q "РАЗРЕШИТЬ"; then plab_tap_text "РАЗРЕШИТЬ"; sleep 3; fi
-plab_wait_text "Selected: q2html" 20 && ok "folder picked" || { bad "folder picked"; exit 2; }
+plab_expect_text "q2html" 20 "fixture folder in picker" || { bad "fixture folder"; exit 2; }
+plab_tap_text "ИСПОЛЬЗОВАТЬ ЭТУ ПАПКУ" || { bad "folder use tap"; exit 2; }
+sleep 3
+if plab_texts | grep -q "РАЗРЕШИТЬ"; then plab_tap_text "РАЗРЕШИТЬ" || { bad "folder allow tap"; exit 2; }; sleep 3; fi
+plab_expect_text "Selected: q2html" 20 "folder picked" && ok "folder picked" || { bad "folder picked"; exit 2; }
 
 # 5. online export: download + repack + sign, output exists
 step "online export: download + repack + sign, output exists"
 adb -s "$PHONE" logcat -c
-plab_tap_text "Generate Package"; sleep 2
+plab_tap_text "Generate Package" || { bad "export start tap"; exit 2; }
+sleep 2
 plab_tap 258 784; sleep 2
-plab_wait_text "Configure Android App" 20 || { bad "export dialog"; exit 2; }
+plab_expect_text "Configure Android App" 20 "export dialog" || { bad "export dialog"; exit 2; }
 plab_tap 508 1224
-plab_wait_text "Export Successful" 600 || { bad "online export"; adb -s "$PHONE" logcat -d | grep -i -E "Exception|not available" | head -3; exit 2; }
+plab_expect_text "Export Successful" 600 "online export" || { bad "online export"; adb -s "$PHONE" logcat -d | grep -i -E "Exception|not available" | head -3; exit 2; }
 OUT_APK=$(plab_texts | grep -m1 "WebApp_.*\.apk")
 # The dialog shows a full path; stat needs the basename.
 OUT_APK=$(basename "$OUT_APK")
@@ -127,11 +133,13 @@ step "offline reuse: block ONLY the app uid via iptables (never svc wifi — it 
 AID=$(adb -s "$PHONE" shell dumpsys package "$PKG" 2>/dev/null | grep -m1 userId | grep -o "[0-9]*")
 adb -s "$PHONE" shell "su -c 'iptables -A OUTPUT -m owner --uid-owner $AID -j REJECT'"
 adb -s "$PHONE" logcat -c
-plab_tap_text "Close"; sleep 1.5
-plab_tap_text "Generate Package"; sleep 2
+plab_tap_text "Close" || { bad "close dialog tap"; exit 2; }
+sleep 1.5
+plab_tap_text "Generate Package" || { bad "export restart tap"; exit 2; }
+sleep 2
 plab_tap 258 784; sleep 2
 plab_tap 508 1224
-plab_wait_text "Export Successful" 300 && ok "offline export" || { bad "offline export"; adb -s "$PHONE" shell "su -c 'iptables -D OUTPUT -m owner --uid-owner $AID -j REJECT'"; exit 2; }
+plab_expect_text "Export Successful" 300 "offline export" || { bad "offline export"; adb -s "$PHONE" shell "su -c 'iptables -D OUTPUT -m owner --uid-owner $AID -j REJECT'"; exit 2; }
 adb -s "$PHONE" shell "su -c 'iptables -D OUTPUT -m owner --uid-owner $AID -j REJECT'"
 if adb -s "$PHONE" logcat -d | grep -qiE "RemoteAssetFetcher.*(download|fetch)|downloading.*apk_editor"; then bad "offline downloaded"; exit 2; else ok "offline: no download"; fi
 

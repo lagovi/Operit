@@ -128,13 +128,36 @@ plab_tap_text() {
 }
 
 # Wait up to $2 seconds for $1 (fixed string) to appear in UI texts.
+# Wakes the display when dumps come back empty (asleep phone reads empty);
+# prints a heartbeat on long waits so a stuck run is visible, not silent.
 plab_wait_text() {
-    local want="$1" timeout="${2:-30}" i
+    local want="$1" timeout="${2:-30}" i empty_streak=0 texts
     for ((i=0; i<timeout; i+=2)); do
-        if plab_texts 2>/dev/null | grep -qF "$want"; then return 0; fi
+        texts=$(plab_texts 2>/dev/null)
+        if echo "$texts" | grep -qF "$want"; then return 0; fi
+        if [ -z "$texts" ]; then
+            empty_streak=$((empty_streak+1))
+            if [ "$empty_streak" -ge 2 ]; then plab_wake; empty_streak=0; fi
+        else
+            empty_streak=0
+        fi
+        if [ "$timeout" -ge 60 ] && [ "$i" -gt 0 ] && [ $((i % 60)) -eq 0 ]; then
+            echo "  ... still waiting for '$want' (${i}s), screen top: $(echo "$texts" | head -3 | tr '\n' '|')" >&2
+        fi
         sleep 2
     done
     echo "plab_wait_text: timeout waiting for '$want'" >&2
+    return 1
+}
+
+# Expectation: $1 must become visible within $2s while doing stage $3.
+# On timeout prints what the screen actually shows and fails — every stage
+# states what it expects, nothing waits blindly.
+plab_expect_text() {
+    local want="$1" timeout="$2" stage="$3"
+    if plab_wait_text "$want" "$timeout"; then return 0; fi
+    echo "EXPECT FAILED [$stage]: wanted '$want', screen shows:" >&2
+    plab_texts 2>/dev/null | head -20 >&2
     return 1
 }
 

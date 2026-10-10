@@ -58,6 +58,25 @@ class KeyStoreHelper {
             registerBouncyCastleProvider()
             val providers = Security.getProviders("KeyStore.$type")
             AppLogger.d(TAG, "KeyStore.$type offered by: ${providers?.joinToString { it.name }}")
+            AppLogger.d(
+                TAG,
+                "All providers: ${Security.getProviders()?.joinToString { "${it.name}/${it.version}" }}"
+            )
+            // Reference probe: old-style lookup (first match, JCA's own
+            // iteration) in the SAME process, to compare against the
+            // explicit-provider loads below.
+            try {
+                val ref = KeyStore.getInstance(type)
+                AppLogger.d(TAG, "Old-style $type resolved to ${ref.provider.name}")
+            } catch (e: Exception) {
+                AppLogger.d(TAG, "Old-style $type failed: ${e.message}")
+            }
+            try {
+                val sf = java.security.SecretKeyFactory.getInstance("1.2.840.113549.1.5.12")
+                AppLogger.d(TAG, "PBES2 SecretKeyFactory offered by ${sf.provider.name}")
+            } catch (e: Exception) {
+                AppLogger.d(TAG, "PBES2 SecretKeyFactory unavailable: ${e.message}")
+            }
             if (providers.isNullOrEmpty()) {
                 AppLogger.e(TAG, "No provider offers KeyStore.$type")
                 return null

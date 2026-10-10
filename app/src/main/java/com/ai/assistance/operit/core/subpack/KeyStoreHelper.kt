@@ -15,17 +15,18 @@ class KeyStoreHelper {
         private const val TAG = "KeyStoreHelper"
 
         /**
-         * Registers the bundled BouncyCastle first WITHOUT removing the
-         * platform one (DoD-proven 10.10, task 13: removal kills the only
-         * guaranteed PKCS12 KeyStore).
-         *
-         * Live-fire 10.10 correction: the platform BC alone canNOT unwrap
-         * our PBES2-encrypted PKCS12 (SecretKeyFactory for
-         * 1.2.840.113549.1.5.12 unavailable) — the working path is the
-         * bundled BC inserted at position 1. Returns the insert outcome
-         * for diagnostics; failure is non-fatal (iteration below still
-         * tries every registered provider).
-         */
+          * Registers the bundled BouncyCastle at position 1, evicting the
+          * platform one from the "BC" slot if needed.
+          *
+          * Root cause (task 17, proven live 10.10-11): the platform BC is
+          * Android's stripped fork — NO PBES2 SecretKeyFactory exists
+          * device-wide, so our PBES2-encrypted PKCS12 can never open
+          * through it; and insertProviderAt is rejected (-1) while the
+          * platform occupies the "BC" name. The bundled full BC (kept by
+          * R8, see the bouncycastle rule in proguard-rules.pro) unwraps
+          * PBES2 fine. Upstream ran remove+insert for years; TLS/CertPath/
+          * AndroidKeyStore live in other providers, unaffected.
+          */
         @JvmStatic
         fun registerBouncyCastleProvider(): Boolean {
             try {
@@ -34,8 +35,13 @@ class KeyStoreHelper {
                     AppLogger.d(TAG, "Bundled BC already registered")
                     return true
                 }
+                if (existing != null) {
+                    Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME)
+                    AppLogger.d(TAG, "Evicted ${existing.javaClass.name} from BC slot")
+                }
                 val position = Security.insertProviderAt(BouncyCastleProvider(), 1)
                 AppLogger.d(TAG, "Bundled BC inserted at $position")
+                AppLogger.d(TAG, "BC slot now: ${Security.getProvider("BC")?.javaClass?.name}")
                 return position > 0
             } catch (e: Exception) {
                 AppLogger.e(TAG, "注册BouncyCastle提供程序失败: ${e.message}", e)

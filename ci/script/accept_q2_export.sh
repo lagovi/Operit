@@ -13,7 +13,7 @@
 # agreement -> tour -> welcome -> permissions -> level); first live run pending.
 
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 # shellcheck disable=SC1091
 source ci/script/phone_lab.sh
 
@@ -51,10 +51,20 @@ plab_tap_text "Continue" || { bad "onboarding continue"; exit 2; }
 sleep 2
 plab_wait_text "New Chat" 30 && ok "onboarding" || { bad "onboarding"; exit 2; }
 
-# 4. Toolbox -> HTML Packager -> Select Folder (picker) -> USE -> Allow
-plab_texts | grep -q "Got it" && { plab_tap_text "Got it"; sleep 1; }
+# 4. Toolbox -> HTML Packager -> Select Folder (picker) -> USE -> Allow.
+# An "Announcement" dialog (Got it) can pop up at any moment; dismiss
+# it whenever it is visible, before every navigation step.
+plab_dismiss_got_it() {
+    for _ in 1 2 3; do
+        plab_texts | grep -q "Got it" || return 0
+        plab_tap_text "Got it"; sleep 1.5
+    done
+}
+plab_dismiss_got_it
 plab_tap 49 110; sleep 1.5
+plab_dismiss_got_it
 plab_tap_text "Toolbox"; sleep 1.5
+plab_dismiss_got_it
 for _ in 1 2 3 4 5 6; do plab_texts | grep -q "HTML Packager" && break; adb -s "$PHONE" shell input swipe 360 1100 360 400 400; sleep 1; done
 sleep 1
 plab_tap_text "HTML Packager" || { bad "packager open"; exit 2; }

@@ -323,6 +323,14 @@ private fun LiabilityCard(onTourClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            Text(
+                    text = stringResource(R.string.onboarding_plugins_note),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             TextButton(onClick = onTourClick, modifier = Modifier.align(Alignment.End)) {
                 Text(text = stringResource(R.string.onboarding_tour_button))
             }

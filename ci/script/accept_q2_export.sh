@@ -9,6 +9,8 @@
 # Usage: ci/script/accept_q2_export.sh <local-apk>
 # Env: PHONE (default 192.168.1.69:5555), PKG (default ...operit.debug).
 # Exit 0 = full DoD green.
+# NOTE: step 3 rewritten 10.10 for the single-screen onboarding (was
+# agreement -> tour -> welcome -> permissions -> level); first live run pending.
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -38,20 +40,16 @@ adb -s "$PHONE" shell appops set "$PKG" SYSTEM_ALERT_WINDOW allow
 adb -s "$PHONE" shell dumpsys deviceidle whitelist +"$PKG" >/dev/null
 ok "grants"
 
-# 3. first launch: agreement -> tour(3) -> welcome -> permissions -> level
+# 3. first launch: single onboarding screen (liability + permissions +
+# level on one scroll) -> Continue -> chat. Continue sits at the bottom,
+# so swipe up until it is visible; grants from step 2 make the rows pass.
 adb -s "$PHONE" shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
 sleep 4
-plab_wait_text "User Agreement" 30 || { bad "agreement"; exit 2; }
-plab_tap 360 1371; sleep 2
-for _ in 1 2 3; do plab_tap 650 1378; sleep 1.5; done
-plab_wait_text "Welcome" 20 || { bad "tour"; exit 2; }
-plab_tap 650 1378; sleep 2
-plab_wait_text "Basic Permissions" 20 || { bad "permissions"; exit 2; }
-plab_tap 650 1378; sleep 2
-plab_wait_text "Select Permission Level" 20 || { bad "level screen"; exit 2; }
-plab_tap 360 461; sleep 1
-plab_tap 360 1206; sleep 2
-plab_wait_text "New Chat" 30 && ok "wizard" || { bad "wizard"; exit 2; }
+plab_wait_text "Your responsibility" 30 || { bad "onboarding"; exit 2; }
+for _ in 1 2 3 4 5; do plab_texts | grep -q "Continue" && break; adb -s "$PHONE" shell input swipe 360 1100 360 400 400; sleep 1; done
+plab_tap_text "Continue" || { bad "onboarding continue"; exit 2; }
+sleep 2
+plab_wait_text "New Chat" 30 && ok "onboarding" || { bad "onboarding"; exit 2; }
 
 # 4. Toolbox -> HTML Packager -> Select Folder (picker) -> USE -> Allow
 plab_texts | grep -q "Got it" && { plab_tap_text "Got it"; sleep 1; }

@@ -93,7 +93,6 @@ import com.ai.assistance.operit.data.api.MarketV2ManifestCategory
 import com.ai.assistance.operit.data.api.MarketV2Notification
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
 import com.ai.assistance.operit.data.preferences.GitHubUser
-import com.ai.assistance.operit.data.preferences.MarketAgreementPreferences
 import com.ai.assistance.operit.ui.features.github.GitHubLoginDialog
 import com.ai.assistance.operit.ui.features.packages.market.BindMarketSearchToTopBar
 import com.ai.assistance.operit.ui.features.packages.market.MarketBrowseSection
@@ -185,13 +184,6 @@ fun UnifiedMarketScreen(
     onNavigateToNotifications: () -> Unit = {}
 ) {
     var selectedTab by rememberSaveable(initialTab) { mutableStateOf(initialTab) }
-    val context = LocalContext.current
-    val marketAgreementPreferences = remember {
-        MarketAgreementPreferences(context.applicationContext)
-    }
-    var showMarketAgreementDialog by remember {
-        mutableStateOf(!marketAgreementPreferences.isAgreementAccepted())
-    }
 
     val openEntry: (MarketV2Entry) -> Unit = onNavigateToDetail
 
@@ -216,12 +208,11 @@ fun UnifiedMarketScreen(
                     onOpenCategory = onNavigateToCategory
                 )
 
-                MarketHomeTab.MINE -> MarketMinePane(
+                MarketHomeTab.MINE ->                 MarketMinePane(
                     onManage = onNavigateToMarketManage,
                     onPublishArtifact = onNavigateToArtifactPublish,
                     onPublishRepo = onNavigateToRepoPublish,
-                    onOpenNotifications = onNavigateToNotifications,
-                    onOpenAgreement = { showMarketAgreementDialog = true }
+                    onOpenNotifications = onNavigateToNotifications
                 )
             }
         }
@@ -249,17 +240,6 @@ fun UnifiedMarketScreen(
                 )
             }
         }
-    }
-
-    if (showMarketAgreementDialog) {
-        MarketAgreementDialog(
-            mandatory = !marketAgreementPreferences.isAgreementAccepted(),
-            onDismissRequest = { showMarketAgreementDialog = false },
-            onAccept = {
-                marketAgreementPreferences.acceptCurrentAgreement()
-                showMarketAgreementDialog = false
-            }
-        )
     }
 
 }
@@ -741,8 +721,7 @@ private fun MarketMinePane(
     onManage: () -> Unit,
     onPublishArtifact: () -> Unit,
     onPublishRepo: (MarketStatsType) -> Unit,
-    onOpenNotifications: () -> Unit,
-    onOpenAgreement: () -> Unit
+    onOpenNotifications: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -818,11 +797,6 @@ private fun MarketMinePane(
                     if (authState.isLoggedIn) onOpenNotifications() else showLoginDialog = true
                 },
                 icon = Icons.Default.Notifications
-            )
-            MarketMineActionCard(
-                title = stringResource(R.string.market_agreement_entry),
-                onClick = onOpenAgreement,
-                icon = Icons.Default.Description
             )
         }
     }

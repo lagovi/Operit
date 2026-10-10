@@ -100,6 +100,8 @@ plab_wait_text "Configure Android App" 20 || { bad "export dialog"; exit 2; }
 plab_tap 508 1224
 plab_wait_text "Export Successful" 600 || { bad "online export"; adb -s "$PHONE" logcat -d | grep -i -E "Exception|not available" | head -3; exit 2; }
 OUT_APK=$(plab_texts | grep -m1 "WebApp_.*\.apk")
+# The dialog shows a full path; stat needs the basename.
+OUT_APK=$(basename "$OUT_APK")
 [ -n "$OUT_APK" ] || { bad "output path"; exit 2; }
 ok "online export: $OUT_APK"
 SZ=$(adb -s "$PHONE" shell "stat -c %s /storage/emulated/0/Download/Operit/exports/$OUT_APK")

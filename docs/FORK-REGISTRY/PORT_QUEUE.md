@@ -22,7 +22,7 @@
 
 | Upstream | Что | Статус |
 |---|---|---|
-| `45d63331` clipboard-gate (`AIChatScreen.kt` наш) | TODO |
+| `45d63331` clipboard-gate (ручной перенос + тесты) | PORTED 11.10, ждёт CI |
 | `1ee5dbb4` порядок tool-результатов (`EnhancedAIService.kt` наш) | TODO |
 | `72c1216b`+`19b50643`+`f2414493` DB/config repair (наш `AppDatabase.kt`, строки в удалённые локали — портировать строки только в `values/`) | TODO |
 | `40081a2a` DataStore repair (нужен `PreferencesHealthManager.kt` из batch-2 выше) | BLOCKED |

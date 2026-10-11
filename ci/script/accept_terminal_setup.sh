@@ -22,6 +22,15 @@ ok()   { echo "  ok    $1"; pass=$((pass+1)); }
 bad()  { echo "  FAIL  $1"; failed=$((failed+1)); }
 step() { echo "== $1"; }
 
+# Screen context for every navigation failure (package + screen top),
+# walker-style. Defined once, used by to_chat/to_debugger_row/terminal_state.
+where() {
+    local pkg texts
+    pkg=$(adb -s "$PHONE" shell "dumpsys window" 2>/dev/null | grep -m1 "mCurrentFocus=" | grep -o "u0 [a-zA-Z0-9._/]*" | head -1)
+    texts=$(plab_texts 2>/dev/null | head -8 | tr '\n' '|')
+    echo "at package=[${pkg:-unknown}] screen=[$texts]" >&2
+}
+
 to_chat() {
     # Anchor: "Enter question" (the chat input hint). NOT "New Chat": that
     # text exists only when the chat list is empty; a used chat (history,
@@ -44,6 +53,7 @@ to_chat() {
         adb -s "$PHONE" shell "monkey -p $PKG -c android.intent.category.LAUNCHER 1" >/dev/null 2>&1
         sleep 3
     done
+    where
     return 1
 }
 
@@ -80,13 +90,13 @@ to_debugger_row() {
         sleep 3
     done
     sleep 2
-    plab_wait_text "Permission Level" 20 || return 1
+    plab_wait_text "Permission Level" 20 || { where; return 1; }
     for _ in 1 2 3; do
         plab_tap_text "DEBUGGER" 2>/dev/null && break
         sleep 3
     done
     sleep 3
-    plab_wait_text "Debug Permission" 20 || return 1
+    plab_wait_text "Debug Permission" 20 || { where; return 1; }
     adb -s "$PHONE" shell "input swipe 360 1200 360 300 400" && sleep 2
     plab_dump | python3 -c "
 import sys, re

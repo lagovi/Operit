@@ -102,9 +102,8 @@ class OfflinePayload(
             unpackedBytes = 11412717L
         )
 
-        val all: List<OfflinePayload> = listOf(
-            GIGAAM, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU, HELPER_A11Y
-        )
+        /** One download base for every payload: no per-file host to mistype. */
+        private const val RELEASE_BASE = "https://github.com/lagovi/Operit/releases/download"
 
         /**
           * Shizuku helper APK, provisioned from the fork's own release into
@@ -154,7 +153,8 @@ class OfflinePayload(
             version = "1.5"
         )
 
-        /** One download base for every payload: no per-file host to mistype. */
-        private const val RELEASE_BASE = "https://github.com/lagovi/Operit/releases/download"
+        val all: List<OfflinePayload> = listOf(
+            GIGAAM, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU, HELPER_A11Y
+        )
     }
 }

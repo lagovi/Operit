@@ -1,0 +1,90 @@
+# Screen tour: every main screen shows its "?" button, which opens the
+# right offline help topic. Run AFTER installing a build with the help
+# scaffold (HelpContent.kt + AppContent FAB).
+# Pattern per screen: drawer -> label -> title check -> ? -> topic -> back x2.
+# Drawer toggle is icon-only: TAP_AT 49 110.
+
+TAP_AT 49 110
+TAP AI Chat
+EXPECT Enter question
+TAP ?
+EXPECT Chat
+BACK
+BACK
+
+TAP_AT 49 110
+TAP Memory Base
+EXPECT Memory Base
+TAP ?
+EXPECT Memory Base
+BACK
+BACK
+
+TAP_AT 49 110
+TAP Packages
+EXPECT Packages
+TAP ?
+EXPECT Packages (Plugins / Packages / Skills / MCP)
+BACK
+BACK
+
+TAP_AT 49 110
+TAP Toolbox
+EXPECT Toolbox
+TAP ?
+EXPECT Toolbox
+BACK
+BACK
+
+TAP_AT 49 110
+TAP Settings
+EXPECT Settings
+TAP ?
+EXPECT Settings
+BACK
+BACK
+
+TAP_AT 49 110
+TAP Workflow
+EXPECT Workflow
+TAP ?
+EXPECT Workflows
+BACK
+BACK
+
+TAP_AT 49 110
+TAP Terminal
+EXPECT Terminal
+TAP ?
+EXPECT Terminal
+BACK
+BACK
+
+TAP_AT 49 110
+TAP Permissions
+EXPECT Permissions
+TAP ?
+EXPECT Permission center
+BACK
+BACK
+
+TAP_AT 49 110
+TAP Tool Permission Settings
+EXPECT Tool Permission Settings
+TAP ?
+EXPECT Tool permissions
+BACK
+BACK
+
+TAP_AT 49 110
+TAP About
+EXPECT About
+TAP ?
+EXPECT About
+BACK
+BACK
+
+TAP_AT 49 110
+TAP User Manual
+EXPECT Help
+DUMP

@@ -47,6 +47,29 @@ to_chat() {
     return 1
 }
 
+# Walk to the terminal screen and report its state: RUNNING (install in
+# progress), NEED_TAP (setup screen idle), or UNKNOWN.
+terminal_state() {
+    to_chat || return 1
+    plab_tap 49 110 && sleep 3
+    plab_tap_text "Toolbox" 2>/dev/null || return 1
+    sleep 3
+    for _ in 1 2 3 4; do
+        plab_texts 2>/dev/null | grep -qF "Command Terminal" && break
+        adb -s "$PHONE" shell "input swipe 360 1200 360 300 400" < /dev/null && sleep 2
+    done
+    plab_tap_text "Command Terminal" 2>/dev/null || return 1
+    sleep 5
+    if plab_texts 2>/dev/null | grep -qF "Interrupt"; then
+        echo "RUNNING"
+    elif plab_texts 2>/dev/null | grep -qF "Start Setup"; then
+        echo "NEED_TAP"
+    else
+        echo "UNKNOWN"
+    fi
+    return 0
+}
+
 to_debugger_row() {
     # From anywhere: home the app, walk to Permissions -> DEBUGGER, print
     # the status text following "Operit Terminal".
@@ -95,12 +118,11 @@ adb -s "$PHONE" shell "su -c id" | grep -q "uid=0" && ok "root" || { bad "root";
 step "build present"
 adb -s "$PHONE" shell dumpsys package "$PKG" | grep -q "lastUpdateTime" && ok "pkg present" || { bad "pkg $PKG missing"; exit 2; }
 
-# 2. already running? (monkey resumes the foreground screen: if the
-# terminal shows Interrupt, the install is going — skip the taps)
+# 2. tap part, unless the install is already running
 step "tap part"
-adb -s "$PHONE" shell "monkey -p $PKG -c android.intent.category.LAUNCHER 1" >/dev/null 2>&1
-sleep 4
-if plab_wait_text "Interrupt" 10; then
+state=$(terminal_state) || state="NAVFAIL"
+echo "  terminal state: $state"
+if [ "$state" = "RUNNING" ]; then
     ok "install already running"
 else
     to_chat || { bad "to chat"; exit 2; }

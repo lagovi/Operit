@@ -14,7 +14,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -1291,6 +1292,8 @@ private fun MessageCopyPreviewBottomSheet(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Kept (against upstream 72731683): our overscroll connection + height cap
+    // still drive an outer verticalScroll, so the scroll state stays.
     val textScrollState = rememberScrollState()
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
     val previewMaxHeight =
@@ -1386,7 +1389,16 @@ private fun MessageCopyPreviewBottomSheet(
                     CircularProgressIndicator()
                 }
             } else {
-                SelectionContainer(
+                BasicTextField(
+                    value = displayedText,
+                    onValueChange = {},
+                    readOnly = true,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    // BasicTextField owns selection dragging, so it scrolls itself while a
+                    // handle is dragged past an edge and keeps the selection in sync.
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = previewMaxHeight)
@@ -1394,14 +1406,7 @@ private fun MessageCopyPreviewBottomSheet(
                         .nestedScroll(copyPreviewNestedScrollConnection)
                         .verticalScroll(textScrollState)
                         .padding(bottom = 12.dp)
-                ) {
-                    Text(
-                        text = displayedText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                )
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),

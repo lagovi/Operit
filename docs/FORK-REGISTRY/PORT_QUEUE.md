@@ -33,7 +33,7 @@
 | `1e89d4f2` composedsl курсор (наш `ToolPkgComposeDslScreen.kt`) | TODO |
 | `a19d7ef8`+`6bb2a245` unpaired toolcalls (наши `Deepseek/KimiProvider` УДАЛЕНЫ — портировать только в живые провайдеры) | TODO |
 | `2112033a`+`9cf8283e` copy-preview (cherry-pick + ручной резолв конфликта) | PORTED 11.10, ждёт CI |
-| `72731683` copy-preview read-only field | TODO |
+| `72731683` copy-preview read-only field (cherry-pick + ручной резолв) | PORTED 11.10, ждёт CI |
 | `99830874` tool round markup (ручной + тест) | PORTED 11.10, ждёт CI |
 | `e295a82a` summary-секции (наши `EnhancedAIService`, промпты, строки) | TODO |
 | `863fb0d8` message_persisted (нужен `ToolPkgChatMessageHookBridge.kt` — файла нет в форке; искать породивший коммит) | BLOCKED |

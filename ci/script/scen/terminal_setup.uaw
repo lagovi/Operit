@@ -1,0 +1,21 @@
+# terminal_setup.uaw — terminal-env setup, tap part (UI).
+#
+# Precondition (runner): target build installed, app at chat.
+# Flow: Toolbox -> Command Terminal -> Start Setup -> Notice OK ->
+# terminal home with the install running ("Interrupt" proves it started).
+# Completion (all packages installed) is the runner's poll job: the
+# DEBUGGER "Operit Terminal" row flips to Granted when pnpm+python+pip
+# are present (DemoStateManager, command -v checks in the proot session).
+#
+# Element inventory: drawer hamburger icon only -> TAP_AT 49 110.
+
+EXPECT 15 New Chat
+TAP_AT 49 110
+TAP Toolbox
+SCROLL_TO 4 Command Terminal
+TAP Command Terminal
+EXPECT 60 Environment Setup
+TAP Start Setup
+EXPECT 30 Notice
+TAP OK
+EXPECT 60 Interrupt

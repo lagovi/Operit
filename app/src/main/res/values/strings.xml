@@ -1523,7 +1523,7 @@
     <string name="data_recovery_sql_completed">SQL execution complete</string>
     <!-- Port of upstream 72c1216b (database health repair), translated to English -->
     <string name="data_recovery_database_health_section">Database health check</string>
-    <string name="data_recovery_database_health_description">Checks the Room database file, SQLite integrity, version, foreign keys and actual schema. Detection never repairs on its own; the repair button is enabled only after an isolated copy validates and a definite handling exists.</string>
+    <string name="data_recovery_database_health_description">Checks that the database is healthy. The repair button appears only for issues confirmed safe to handle.</string>
     <string name="data_recovery_database_check_action">Check database</string>
     <string name="data_recovery_database_repair_action">Repair handleable issues</string>
     <string name="data_recovery_database_check_running">Checking database</string>
@@ -1542,6 +1542,9 @@
     <string name="data_recovery_database_summary_healthy">Database check passed</string>
     <string name="data_recovery_database_summary_repairable">Handleable database issues found</string>
     <string name="data_recovery_database_summary_manual">Issues needing manual rescue found; originals were not rewritten</string>
+    <!-- Port of upstream 19b50643 (collapsed report), translated to English -->
+    <string name="data_recovery_database_checks_passed">Passed %1$d/%2$d checks</string>
+    <string name="data_recovery_database_problem_summary">Issue: %1$s</string>
     <string name="data_recovery_database_check_owner">Database connection</string>
     <string name="data_recovery_database_check_owner_failed">Cannot close the current Room owner: %1$s</string>
     <string name="data_recovery_database_check_file">Database file</string>

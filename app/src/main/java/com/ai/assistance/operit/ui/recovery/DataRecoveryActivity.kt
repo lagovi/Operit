@@ -12,6 +12,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +32,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RestartAlt
 import androidx.compose.material.icons.filled.Restore
@@ -397,6 +400,7 @@ private fun DataRecoveryScreen() {
 
 @Composable
 private fun DatabaseHealthReport(report: RoomDatabaseHealthManager.Report) {
+    var expanded by remember(report) { mutableStateOf(false) }
     val summaryColor =
         when (report.status) {
             RoomDatabaseHealthManager.Status.HEALTHY -> MaterialTheme.colorScheme.primary
@@ -404,45 +408,85 @@ private fun DatabaseHealthReport(report: RoomDatabaseHealthManager.Report) {
             RoomDatabaseHealthManager.Status.MANUAL_RECOVERY_REQUIRED ->
                 MaterialTheme.colorScheme.error
         }
-    Text(
-        text = report.summary,
-        style = MaterialTheme.typography.titleSmall,
-        color = summaryColor
-    )
-    Spacer(modifier = Modifier.height(4.dp))
-    SelectionContainer {
-        Text(
-            text = report.databasePath,
-            style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-    Spacer(modifier = Modifier.height(8.dp))
-    report.checks.forEach { item ->
-        val itemColor =
-            when (item.status) {
-                RoomDatabaseHealthManager.ItemStatus.PASS -> MaterialTheme.colorScheme.primary
-                RoomDatabaseHealthManager.ItemStatus.WARNING -> MaterialTheme.colorScheme.tertiary
-                RoomDatabaseHealthManager.ItemStatus.FAILURE -> MaterialTheme.colorScheme.error
-            }
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
-            color = itemColor.copy(alpha = 0.08f),
-            shape = MaterialTheme.shapes.small
-        ) {
-            Column(modifier = Modifier.padding(10.dp)) {
-                Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = itemColor,
-                    fontWeight = FontWeight.SemiBold
+    val passedCount = report.checks.count { it.status == RoomDatabaseHealthManager.ItemStatus.PASS }
+    val problemItems = report.checks.filter { it.status != RoomDatabaseHealthManager.ItemStatus.PASS }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
+        color = summaryColor.copy(alpha = 0.08f),
+        shape = MaterialTheme.shapes.small
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = report.summary,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = summaryColor
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.data_recovery_database_checks_passed,
+                            passedCount,
+                            report.checks.size
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+            }
+
+            problemItems.firstOrNull()?.let { problem ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(
+                        R.string.data_recovery_database_problem_summary,
+                        problem.detail
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = summaryColor
+                )
+            }
+
+            if (expanded) {
+                Spacer(modifier = Modifier.height(8.dp))
                 SelectionContainer {
                     Text(
-                        text = item.detail,
-                        style = MaterialTheme.typography.bodySmall
+                        text = report.databasePath,
+                        style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                report.checks.forEach { item ->
+                    val itemColor =
+                        when (item.status) {
+                            RoomDatabaseHealthManager.ItemStatus.PASS -> MaterialTheme.colorScheme.primary
+                            RoomDatabaseHealthManager.ItemStatus.WARNING -> MaterialTheme.colorScheme.tertiary
+                            RoomDatabaseHealthManager.ItemStatus.FAILURE -> MaterialTheme.colorScheme.error
+                        }
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                        color = itemColor.copy(alpha = 0.08f),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Text(
+                                text = item.title,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = itemColor,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            SelectionContainer {
+                                Text(text = item.detail, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
                 }
             }
         }

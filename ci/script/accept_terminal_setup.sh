@@ -75,12 +75,15 @@ adb -s "$PHONE" shell "su -c id" | grep -q "uid=0" && ok "root" || { bad "root";
 step "build present"
 adb -s "$PHONE" shell dumpsys package "$PKG" | grep -q "lastUpdateTime" && ok "pkg present" || { bad "pkg $PKG missing"; exit 2; }
 
-# 2. already running? (a previous run may have tapped Start Setup)
+# 2. already running? (monkey resumes the foreground screen: if the
+# terminal shows Interrupt, the install is going — skip the taps)
 step "tap part"
-to_chat || { bad "to chat"; exit 2; }
-if plab_texts | grep -qF "Interrupt"; then
+adb -s "$PHONE" shell "monkey -p $PKG -c android.intent.category.LAUNCHER 1" >/dev/null 2>&1
+sleep 4
+if plab_wait_text "Interrupt" 10; then
     ok "install already running"
 else
+    to_chat || { bad "to chat"; exit 2; }
     uaw_run ci/script/scen/terminal_setup.uaw || exit 1
     ok "setup started"
 fi

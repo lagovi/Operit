@@ -14,7 +14,9 @@ import com.ai.assistance.operit.util.AppLogger
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.subpack.HelperApkStorage
 import com.ai.assistance.operit.core.tools.system.AccessibilityProviderInstaller
+import com.ai.assistance.operit.util.OfflinePayload
 import com.ai.assistance.operit.provider.IAccessibilityProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +27,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.File
-import java.io.FileOutputStream
 import java.io.StringReader
 import kotlin.coroutines.resume
 import kotlinx.coroutines.GlobalScope
@@ -43,8 +44,6 @@ object UIHierarchyManager {
 
     // 新的无障碍服务提供者应用的包名
     private const val PROVIDER_PACKAGE_NAME = "com.ai.assistance.operit.provider"
-    // 无障碍服务提供者APK的文件名
-    private const val PROVIDER_APK_NAME = "accessibility.apk"
     // 用于绑定的自定义Action，必须与服务提供者应用中的声明一致
     private const val PROVIDER_ACTION = "com.ai.assistance.operit.provider.IAccessibilityProvider"
     // TODO: 如果你不在Google Play上发布，可以将其更改为直接下载的URL
@@ -80,25 +79,17 @@ object UIHierarchyManager {
     }
 
     /**
-     * 从应用内assets目录中提取无障碍服务提供者APK文件。
-     * @param context Context
-     * @return 提取出的APK文件，如果失败则返回null。
-     */
-    private fun extractProviderApkFromAssets(context: Context): File? {
-        return try {
-            val apkFile = File(context.cacheDir, PROVIDER_APK_NAME)
-            // 如果文件已存在且大小匹配，可以跳过提取，但为了简单起见，这里总是覆盖
-            context.assets.open(PROVIDER_APK_NAME).use { inputStream ->
-                FileOutputStream(apkFile).use { outputStream ->
-                    inputStream.copyTo(outputStream)
-                }
-            }
-            AppLogger.d(TAG, "无障碍服务APK已提取到: ${apkFile.absolutePath}")
-            apkFile
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "从assets提取无障碍服务APK失败", e)
-            null
-        }
+      * Provisions the accessibility provider APK into `cacheDir`, downloading
+      * it from the fork's release on first use (Q2: no longer bundled).
+      * @param context Context
+      * @return 提取出的APK文件，如果失败则返回null。
+      */
+    private suspend fun extractProviderApkFromAssets(context: Context): File? {
+        val asset = OfflinePayload.HELPER_A11Y.assets.single()
+        return HelperApkStorage(context).ensureHelperApk(asset)
+            .onFailure { e ->
+                AppLogger.e(TAG, "Failed to provision accessibility provider APK", e)
+            }.getOrNull()
     }
 
     /**

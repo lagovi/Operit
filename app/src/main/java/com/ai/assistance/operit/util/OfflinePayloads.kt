@@ -14,13 +14,13 @@ import java.io.File
  * | payload | in APK | movable | note |
  * |---|---:|---|---|
  * | terminal rootfs | 61.2 MiB | yes | already extracted to filesDir on first terminal use |
- * | helper APKs | 5.2 MiB | yes | accessibility + shizuku (desktop.apk deleted, HANDOFF 12b) |
  * | templates, emoji, js | 8.0 MiB | yes | project gallery and KaTeX |
  *
  * Gone from the table because Q2 removed them from the APK (see the objects
  * below): `subpack/android.apk`, `subpack/windows.zip` (release `v1.12.1+4`,
  * 2026-10-08), `apktool.toolpkg` (dropped from the whitelist, HANDOFF 12a),
- * `desktop.apk` (deleted, HANDOFF 12b).
+ * `desktop.apk` (deleted, HANDOFF 12b), `shizuku.apk` + `accessibility.apk`
+ * (on-demand into cacheDir, release `v1.12.1+4`).
  * The terminal rootfs is not listed as an object yet: it has to lose its
  * `context.assets.open` call first, and the proot tree may not start from an
  * external leaf at all (E3). Adding an entry before that work is done would
@@ -37,7 +37,9 @@ class OfflinePayload(
     val leaf: String,
     val assets: List<RemoteAsset>,
     /** Size after unpacking, which is what the payload really costs on the phone. */
-    val unpackedBytes: Long
+    val unpackedBytes: Long,
+    /** Version shown in "bundled vs installed" comparisons, if the payload has one. */
+    val version: String? = null
 ) {
     val downloadBytes: Long get() = assets.sumOf { it.sizeBytes }
 
@@ -100,7 +102,57 @@ class OfflinePayload(
             unpackedBytes = 11412717L
         )
 
-        val all: List<OfflinePayload> = listOf(GIGAAM, SUBPACK_ANDROID, SUBPACK_WINDOWS)
+        val all: List<OfflinePayload> = listOf(
+            GIGAAM, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU, HELPER_A11Y
+        )
+
+        /**
+          * Shizuku helper APK, provisioned from the fork's own release into
+          * `cacheDir` on first install press. The staged file keeps the
+          * historical name (`shizuku.apk`), so copies extracted by earlier
+          * builds are recognised by size+sha and never downloaded again.
+          *
+          * Bytes are the `assets/shizuku.apk` entry of the last APK that
+          * still bundled it; version is the former `shizuku_version.txt`
+          * content, now hardcoded (bump together with the release file).
+          */
+        val HELPER_SHIZUKU = OfflinePayload(
+            id = "helper-shizuku",
+            title = "Shizuku helper app",
+            leaf = "cache",
+            assets = listOf(
+                RemoteAsset(
+                    name = "shizuku.apk",
+                    url = "$RELEASE_BASE/v1.12.1+4/helper-shizuku.apk",
+                    sizeBytes = 2571773L,
+                    sha256 = "6e273ab0e991c4e79bc8b1bbb9b9dd739ccac1a8712a541a214078886b7b790f"
+                )
+            ),
+            unpackedBytes = 2571773L,
+            version = "13.6.0"
+        )
+
+        /**
+          * Accessibility provider APK, same mechanics as [HELPER_SHIZUKU].
+          * Bytes are the `assets/accessibility.apk` entry of the last APK
+          * that still bundled it; version is the former
+          * `accessibility_version.txt` content.
+          */
+        val HELPER_A11Y = OfflinePayload(
+            id = "helper-a11y",
+            title = "Accessibility provider app",
+            leaf = "cache",
+            assets = listOf(
+                RemoteAsset(
+                    name = "accessibility.apk",
+                    url = "$RELEASE_BASE/v1.12.1+4/helper-accessibility.apk",
+                    sizeBytes = 2763980L,
+                    sha256 = "b6bac271c33a41b6cc39840d122286488cebc57be2e74b39aed5bb0d0b1c5212"
+                )
+            ),
+            unpackedBytes = 2763980L,
+            version = "1.5"
+        )
 
         /** One download base for every payload: no per-file host to mistype. */
         private const val RELEASE_BASE = "https://github.com/lagovi/Operit/releases/download"

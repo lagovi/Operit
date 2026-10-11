@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.OfflinePayload
 import com.ai.assistance.operit.data.repository.UIHierarchyManager
 import kotlin.math.min
 
@@ -19,31 +20,18 @@ class AccessibilityProviderInstaller {
 
         // 缓存版本信息
         private var cachedInstalledVersion: String? = null
-        private var cachedBundledVersion: String? = null
         private var cachedUpdateNeeded: Boolean? = null
         private var lastCheckTime: Long = 0
         private const val CACHE_EXPIRE_TIME = 60 * 1000 // 缓存有效期1分钟
 
         /**
-         * 获取内置无障碍服务APK版本信息
-         */
+          * 获取内置无障碍服务APK版本信息 (Q2: former
+          * `accessibility_version.txt` content, now pinned on the release
+          * payload — bump together).
+          */
         fun getBundledVersion(context: Context): String {
-            if (cachedBundledVersion != null && !isCacheExpired()) {
-                return cachedBundledVersion!!
-            }
-
-            try {
-                val versionInfo = context.assets.open("accessibility_version.txt").use {
-                    it.bufferedReader().readText().trim()
-                }
-                cachedBundledVersion = versionInfo
-                return versionInfo
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "获取内置无障碍服务版本失败", e)
-                val unknown = context.getString(R.string.accessibility_provider_unknown)
-                cachedBundledVersion = unknown
-                return unknown
-            }
+            return OfflinePayload.HELPER_A11Y.version
+                ?: context.getString(R.string.accessibility_provider_unknown)
         }
 
         /**
@@ -151,7 +139,6 @@ class AccessibilityProviderInstaller {
 
         fun clearCache() {
             cachedInstalledVersion = null
-            cachedBundledVersion = null
             cachedUpdateNeeded = null
             lastCheckTime = 0
             AppLogger.d(TAG, "无障碍服务版本缓存已清除")

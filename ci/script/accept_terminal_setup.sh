@@ -23,11 +23,15 @@ bad()  { echo "  FAIL  $1"; failed=$((failed+1)); }
 step() { echo "== $1"; }
 
 to_chat() {
+    # Anchor: "Enter question" (the chat input hint). NOT "New Chat": that
+    # text exists only when the chat list is empty; a used chat (history,
+    # bound workspace) still shows the input. Learned the hard way: 18
+    # BACKs walked past a history-carrying chat without ever matching.
     adb -s "$PHONE" shell "monkey -p $PKG -c android.intent.category.LAUNCHER 1" >/dev/null 2>&1
     sleep 3
     for _round in 1 2 3; do
         for _ in 1 2 3 4 5 6; do
-            plab_wait_text "New Chat" 3 && return 0
+            plab_wait_text "Enter question" 3 && return 0
             adb -s "$PHONE" shell "input keyevent KEYCODE_BACK"
             sleep 2
         done
@@ -35,7 +39,7 @@ to_chat() {
         if plab_texts 2>/dev/null | grep -qF "Preview"; then
             plab_tap 671 110
             sleep 3
-            plab_wait_text "New Chat" 10 && return 0
+            plab_wait_text "Enter question" 10 && return 0
         fi
         adb -s "$PHONE" shell "monkey -p $PKG -c android.intent.category.LAUNCHER 1" >/dev/null 2>&1
         sleep 3

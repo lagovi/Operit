@@ -9,7 +9,7 @@
 #
 # Element inventory: drawer hamburger icon only -> TAP_AT 49 110.
 
-EXPECT 15 New Chat
+EXPECT 15 Enter question
 TAP_AT 49 110
 TAP Toolbox
 SCROLL_TO 4 Command Terminal

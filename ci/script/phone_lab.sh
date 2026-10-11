@@ -27,6 +27,22 @@ PLAB_TRACK_ID=20
 _adb() {
     # Hard timeout: a stalled ADB transport must fail fast, never hang
     # the caller forever (10.10: accept run hung with zero output).
+    # Resilient: on transport errors retry, then revive a stale server
+    # (kill-server/start-server/connect) and retry again — the caller
+    # sees one failure only when the phone is truly unreachable.
+    local attempt out rc
+    for attempt in 1 2; do
+        out=$(timeout 90 adb -s "$PHONE" "$@" 2>&1); rc=$?
+        if [ $rc -eq 0 ]; then echo "$out"; return 0; fi
+        if ! echo "$out" | grep -qiE "offline|not found|no devices|no route|timeout|closed"; then
+            echo "$out"; return $rc
+        fi
+        sleep 3
+    done
+    adb kill-server >/dev/null 2>&1
+    adb start-server >/dev/null 2>&1
+    adb connect "$PHONE" >/dev/null 2>&1
+    sleep 3
     timeout 90 adb -s "$PHONE" "$@"
 }
 
@@ -177,4 +193,71 @@ plab_assert_pkg() {
     got=$(plab_dump | grep -o 'package="[^"]*"' | sed 's/package="//; s/"//' | sort -u | tr '\n' ' ')
     [ "$got" = "$want " ] || [ "$got" = "$want" ] || { echo "plab_assert_pkg: want [$want] got [$got]" >&2; return 1; }
     return 0
+}
+
+# --- Run protocol: status file + ETA + early-wake wait ---------------------
+# Long phone jobs (downloads, installs, polls) run detached (nohup) and
+# report progress to a status file, one line per step:
+#   <epoch> START total=<N>
+#   <epoch> STEP <i>/<N> <detail>
+#   <epoch> FINAL PASS=<n> FAIL=<m>
+# The agent never sleeps blind: it asks plab_eta for an informed sleep,
+# then plab_wait_final which returns EARLY when FINAL appears.
+# Format is plain text so `tail -3 <file>` is always meaningful.
+
+plab_status_init() { echo "$(date +%s) START total=$2" > "$1"; }
+plab_status() { echo "$(date +%s) STEP $2 $3" >> "$1"; }
+plab_status_final() { echo "$(date +%s) FINAL PASS=$2 FAIL=$3" >> "$1"; }
+
+# One-line progress + ETA from a status file: completed steps, elapsed,
+# per-step rate, estimated remaining. Prints e.g.:
+#   done 3/24, elapsed 410s, ~1m40s/step, ETA ~52m
+plab_eta() {
+    python3 - "$1" <<'EOF'
+import sys, time
+f = sys.argv[1]
+try:
+    lines = open(f).read().splitlines()
+except OSError:
+    print('no status file yet'); sys.exit(0)
+start = None; total = None; done = 0; last = None
+for ln in lines:
+    p = ln.split()
+    if len(p) < 2: continue
+    try: ts = int(p[0])
+    except ValueError: continue
+    if p[1] == 'START':
+        start = ts
+        for q in p[2:]:
+            if q.startswith('total='): total = int(q[6:])
+    elif p[1] == 'STEP':
+        done += 1; last = ts
+    elif p[1] == 'FINAL':
+        print('FINISHED: ' + ' '.join(p[2:])); sys.exit(0)
+if start is None:
+    print('no START yet'); sys.exit(0)
+now = int(time.time())
+el = max(now - start, 1); done = max(done, 1)
+rate = el / done
+rem = (total - done) if total else None
+def fmt(s):
+    s = int(s)
+    return (f'{s//3600}h{(s%3600)//60:02d}m' if s >= 3600 else (f'{s//60}m{s%60:02d}s' if s >= 60 else f'{s}s'))
+tot = f'/{total}' if total else ''
+eta = fmt(rem * rate) if rem is not None and rem > 0 else 'n/a'
+print(f'done {done}{tot}, elapsed {fmt(el)}, ~{fmt(rate)}/step, ETA {eta}')
+EOF
+}
+
+# Sleep until FINAL appears in $1 or $2 seconds pass. Checks every 30s
+# (cheap: one file read, no ADB). Returns 0 on FINAL, 1 on timeout.
+# Usage: plab_wait_final /tmp/job.status 3600  → then read the tail.
+plab_wait_final() {
+    local file="$1" timeout="${2:-3600}" waited=0
+    while [ $waited -lt "$timeout" ]; do
+        grep -q "FINAL" "$file" 2>/dev/null && return 0
+        sleep 30
+        waited=$((waited + 30))
+    done
+    grep -q "FINAL" "$file" 2>/dev/null && return 0 || return 1
 }

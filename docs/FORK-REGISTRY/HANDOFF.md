@@ -998,9 +998,21 @@ PKCS12-путь);   (ж) `removeProvider("BC")` вне связки с неме�
   PASS=10 FAIL=0): в логе `BC/1.78` первый (платформа evicted),
   `PBES2 SecretKeyFactory offered by BC`, `PKCS12 loaded via BC` ×2;
   свежий `WebApp_1791671054137.apk` (01:24, 48094313 Б): keytool —
-  Signer #1 самоподпись CN=1, `adb install` — Success. 15-коммит
+  Signer #1 самоподпись CN=1, `adb install` — Success.   15-коммит
   невиновен (бисектить нечего); A/B 094027Z — артефакт несвежего файла,
   больше не цитировать.
+  18. Идентичность форка (решение пользователя 10.10: B+C сейчас, D позже).
+  B — строка атрибуции `fork_attribution` («English-only community fork
+  of Operit (upstream: github.com/AAswordman/Operit). ALPHA build, use at
+  your own risk.»): в карточке онбординга (после plugins-note, мелким
+  кеглем) + в About под версией (там упоминания форка не было вообще).
+  C — debug-ярлык «Operit Debug» → «Operit EN» (`app/build.gradle.kts`
+  resValue; clone-флейвор не тронут). D (переименование пакета
+  `...operit.*` ради сосуществования с апстримом) — ОТЛОЖЕНО до реальной
+  раздачи людям: тяжело (FileProvider, зашитые строки, переустановки),
+  пользователей кроме тестового телефона нет. CI после пуша; проверка
+  глазами (строка на онбординге/About + ярлык в лаунчере) — когда телефон
+  зарядится (ночью 8%).
 
 ## Статус: окружение
 

@@ -58,6 +58,8 @@ import com.ai.assistance.operit.ui.main.navigation.ScreenRouteViewModelStoreOwne
 import com.ai.assistance.operit.ui.main.navigation.retainedRouteKeysOnContentAttach
 import com.ai.assistance.operit.ui.main.screens.Screen
 import com.ai.assistance.operit.ui.common.composedsl.ToolPkgComposeDslToolScreen
+import com.ai.assistance.operit.ui.features.help.content.HelpTopicHolder
+import com.ai.assistance.operit.ui.features.help.content.helpTopicForScreen
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -370,7 +372,35 @@ fun AppContent(
                     // Scaffold会处理 insets, 这里不再需要手动添加 modifier
                 )
             },
-            containerColor = Color.Transparent
+            containerColor = Color.Transparent,
+            floatingActionButton = {
+                // Fork: one "?" button for every documented screen. Topic comes
+                // from the screen class; undocumented screens show no button.
+                // AiChat keeps its input row clear: button rides 96.dp higher.
+                val topicId = helpTopicForScreen(currentScreen)
+                if (topicId != null && currentScreen !is Screen.Help) {
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier.padding(
+                            bottom = if (currentScreen is Screen.AiChat) 96.dp else 0.dp
+                        )
+                    ) {
+                        androidx.compose.material3.SmallFloatingActionButton(
+                            onClick = {
+                                HelpTopicHolder.topic = topicId
+                                onScreenChange(Screen.Help)
+                            },
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ) {
+                            Text(
+                                text = "?",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            )
+                        }
+                    }
+                }
+            }
         ) { innerPadding ->
             // 主内容区域
             // 添加底部导航栏的 padding，确保内容不会被导航栏遮挡

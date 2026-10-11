@@ -1,0 +1,12 @@
+# bc_identity.uaw — fork identity acceptance (UI part).
+#
+# Precondition (runner): target build installed + grants set + app at chat.
+# Proves: About screen shows the fork attribution line.
+# (Onboarding attribution + launcher label are the runner's job: onboarding
+# shows once per install, the launcher lives outside the app.)
+
+EXPECT 15 New Chat
+TAP_AT 49 110
+TAP About
+EXPECT 20 community fork of Operit
+BACK

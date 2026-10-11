@@ -13,6 +13,10 @@
 #   TAP_AT <x> <y>        coordinate tap for icon-only elements (no text node);
 #                         prefer TAP whenever text exists
 #   EXPECT [secs] <text>  screen must show <text> within secs (default 30)
+#   WAIT_PKG [secs] <pkg-substring>
+#                         foreground window must belong to <pkg-substring>
+#                         (locale-independent screen tracking: the installer
+#                         speaks Russian on this phone, the package does not)
 #   TYPE <text>           adb `input text` (%s for spaces, as usual)
 #   BACK                  KEYCODE_BACK
 #   HIDEKB                BACK only when the soft keyboard is shown
@@ -72,9 +76,21 @@ for m in re.finditer(r'<node[^>]*>', x):
 # every abort message.
 uaw_where() {
     local pkg texts
-    pkg=$(adb -s "$PHONE" shell "dumpsys window windows" 2>/dev/null | grep -m1 "mCurrentFocus" | grep -o "u0 [a-zA-Z0-9._/]*" | head -1)
+    pkg=$(adb -s "$PHONE" shell "dumpsys window" 2>/dev/null | grep -m1 "mCurrentFocus=" | grep -o "u0 [a-zA-Z0-9._/]*" | head -1)
     texts=$(plab_texts 2>/dev/null | head -25 | tr '\n' '|')
     echo "package=[${pkg:-unknown}] screen=[${texts:-EMPTY}]"
+}
+
+# Wait until the foreground window belongs to $1 (substring), up to $2 secs.
+uaw_wait_pkg() {
+    local want="$1" timeout="${2:-30}" i
+    for ((i=0; i<timeout; i+=2)); do
+        if adb -s "$PHONE" shell "dumpsys window" 2>/dev/null | grep -m1 "mCurrentFocus=" | grep -qF "$want"; then
+            return 0
+        fi
+        sleep 2
+    done
+    return 1
 }
 
 uaw_abort() {
@@ -133,6 +149,18 @@ uaw_run() {
                 plab_wait_text "$want" "$secs" \
                     || uaw_abort "text '$want' not visible within ${secs}s"
                 echo "  expect($UA_STEP) '$want' ok"
+                ;;
+            WAIT_PKG)
+                local wpkg wsecs wfirst
+                wpkg="$rest"; wsecs=30
+                wfirst="${rest%% *}"
+                if [[ "$wfirst" =~ ^[0-9]+$ ]]; then
+                    wsecs="$wfirst"; wpkg="${rest#* }"
+                fi
+                [ -n "$wpkg" ] || uaw_abort "WAIT_PKG needs a package"
+                uaw_wait_pkg "$wpkg" "$wsecs" \
+                    || uaw_abort "package '$wpkg' not foreground within ${wsecs}s"
+                echo "  wait_pkg($UA_STEP) '$wpkg' ok"
                 ;;
             TYPE)
                 [ -n "$rest" ] || uaw_abort "TYPE needs text"

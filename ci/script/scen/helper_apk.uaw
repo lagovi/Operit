@@ -17,7 +17,7 @@ EXPECT 20 Debug Permission
 SWIPE_UP
 EXPECT 20 Install Bundled Version
 TAP Install Bundled Version
-EXPECT 90 want to install
+WAIT_PKG 90 packageinstaller
 BACK
 TAP ACCESSIBILITY
 EXPECT 20 Permission Level
@@ -28,5 +28,5 @@ EXPECT 20 Confirm
 TYPE I%sunderstand%sand%sacknowledge%sthe%srisks%sof%saccount%sbans%sand%srestricted%saccount%sfunctions%scaused%sby%saccessibility%spermissions,%sand%sI%sbear%sthe%sconsequences%smyself
 HIDEKB
 TAP Confirm
-EXPECT 90 want to install
+WAIT_PKG 90 packageinstaller
 BACK

@@ -54,9 +54,11 @@ adb -s "$PHONE" shell "monkey -p $PKG -c android.intent.category.LAUNCHER 1" >/d
 plab_expect_text "Your responsibility" 60 "onboarding" || { bad "onboarding"; exit 2; }
 plab_expect_text "community fork of Operit" 20 "onboarding attribution" && ok "onboarding attribution" || { bad "onboarding attribution"; exit 2; }
 adb -s "$PHONE" shell "input swipe 360 1200 360 300 400" && sleep 2
-for _ in 1 2 3; do
-    plab_tap_text "Continue" 2>/dev/null && break
+for _ in 1 2 3 4 5; do
+    plab_tap_text "Continue" 2>/dev/null
     sleep 2
+    plab_wait_text "New Chat" 3 && break
+    adb -s "$PHONE" shell "input swipe 360 1200 360 300 400" && sleep 2
 done
 plab_expect_text "New Chat" 30 "onboarding passthrough" && ok "chat" || { bad "chat"; exit 2; }
 

@@ -74,6 +74,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.recovery.PreferencesHealthManager
 import com.ai.assistance.operit.data.recovery.RoomDatabaseHealthManager
 import com.ai.assistance.operit.ui.common.OperitUtilityTheme
 import com.ai.assistance.operit.util.LocaleUtils
@@ -101,7 +102,7 @@ private fun DataRecoveryScreen() {
         viewModel(factory = DataRecoveryViewModel.Factory(context))
     val state by viewModel.state.collectAsState()
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
-    var showDatabaseRepairConfirmation by remember { mutableStateOf(false) }
+    var showHealthRepairConfirmation by remember { mutableStateOf(false) }
 
     val snapshotPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -264,7 +265,7 @@ private fun DataRecoveryScreen() {
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedButton(
-                            onClick = { viewModel.inspectDatabase() },
+                            onClick = { viewModel.inspectStorage() },
                             enabled = !state.isRunning
                         ) {
                             Icon(
@@ -276,10 +277,11 @@ private fun DataRecoveryScreen() {
                             Text(stringResource(R.string.data_recovery_database_check_action))
                         }
                         Button(
-                            onClick = { showDatabaseRepairConfirmation = true },
+                            onClick = { showHealthRepairConfirmation = true },
                             enabled =
                                 !state.isRunning &&
-                                    state.databaseHealthReport?.canRepair == true
+                                    (state.configurationHealthReport?.canRepair == true ||
+                                        state.databaseHealthReport?.canRepair == true)
                         ) {
                             Icon(
                                 Icons.Default.Restore,
@@ -291,17 +293,33 @@ private fun DataRecoveryScreen() {
                         }
                     }
 
-                    state.databaseHealthReport?.let { report ->
+                    val configurationReport = state.configurationHealthReport
+                    val databaseReport = state.databaseHealthReport
+                    if (configurationReport != null && databaseReport != null) {
                         Spacer(modifier = Modifier.height(12.dp))
-                        DatabaseHealthReport(report)
-                        if (report.repairActions.isNotEmpty()) {
+                        ConfigurationAndDatabaseHealthReport(
+                            configurationReport = configurationReport,
+                            databaseReport = databaseReport
+                        )
+                        if (configurationReport.canRepair || databaseReport.canRepair) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = stringResource(R.string.data_recovery_database_repair_plan),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.SemiBold
                             )
-                            report.repairActions.forEach { action ->
+                            if (configurationReport.canRepair) {
+                                Text(
+                                    text =
+                                        "• " +
+                                            stringResource(
+                                                R.string.data_recovery_configuration_repair_reset_files,
+                                                configurationReport.repairableFileNames.size
+                                            ),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            databaseReport.repairActions.forEach { action ->
                                 val label =
                                     when (action) {
                                         RoomDatabaseHealthManager.RepairAction.REBUILD_INDEXES ->
@@ -321,6 +339,24 @@ private fun DataRecoveryScreen() {
                         }
                     }
 
+                    state.lastConfigurationRepairArchivePath?.let { path ->
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = stringResource(R.string.data_recovery_configuration_repair_archive),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        SelectionContainer {
+                            Text(
+                                text = path,
+                                style =
+                                    MaterialTheme.typography.bodySmall.copy(
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                            )
+                        }
+                    }
+
                     state.lastDatabaseRepairArchivePath?.let { path ->
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
@@ -336,6 +372,19 @@ private fun DataRecoveryScreen() {
                                         fontFamily = FontFamily.Monospace
                                     )
                             )
+                        }
+                    }
+
+                    if (state.healthRepairCompleted) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        FilledTonalButton(onClick = { restartMainApp(context) }) {
+                            Icon(
+                                Icons.Default.RestartAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.data_recovery_start_main_app))
                         }
                     }
                 }
@@ -374,23 +423,23 @@ private fun DataRecoveryScreen() {
         )
     }
 
-    if (showDatabaseRepairConfirmation) {
+    if (showHealthRepairConfirmation) {
         AlertDialog(
-            onDismissRequest = { showDatabaseRepairConfirmation = false },
+            onDismissRequest = { showHealthRepairConfirmation = false },
             title = { Text(stringResource(R.string.data_recovery_database_repair_confirm_title)) },
             text = { Text(stringResource(R.string.data_recovery_database_repair_confirm_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        showDatabaseRepairConfirmation = false
-                        viewModel.repairDatabase()
+                        showHealthRepairConfirmation = false
+                        viewModel.repairStorage()
                     }
                 ) {
                     Text(stringResource(R.string.data_recovery_database_repair_confirm_action))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatabaseRepairConfirmation = false }) {
+                TextButton(onClick = { showHealthRepairConfirmation = false }) {
                     Text(stringResource(R.string.data_recovery_cancel_action))
                 }
             }
@@ -399,17 +448,48 @@ private fun DataRecoveryScreen() {
 }
 
 @Composable
-private fun DatabaseHealthReport(report: RoomDatabaseHealthManager.Report) {
-    var expanded by remember(report) { mutableStateOf(false) }
+private fun ConfigurationAndDatabaseHealthReport(
+    configurationReport: PreferencesHealthManager.Report,
+    databaseReport: RoomDatabaseHealthManager.Report
+) {
+    var expanded by remember(configurationReport, databaseReport) { mutableStateOf(false) }
+    val requiresManualRecovery =
+        configurationReport.status == PreferencesHealthManager.Status.MANUAL_RECOVERY_REQUIRED ||
+            databaseReport.status == RoomDatabaseHealthManager.Status.MANUAL_RECOVERY_REQUIRED
+    val needsRepair =
+        configurationReport.status == PreferencesHealthManager.Status.NEEDS_REPAIR ||
+            databaseReport.status == RoomDatabaseHealthManager.Status.NEEDS_REPAIR
     val summaryColor =
-        when (report.status) {
-            RoomDatabaseHealthManager.Status.HEALTHY -> MaterialTheme.colorScheme.primary
-            RoomDatabaseHealthManager.Status.NEEDS_REPAIR -> MaterialTheme.colorScheme.tertiary
-            RoomDatabaseHealthManager.Status.MANUAL_RECOVERY_REQUIRED ->
-                MaterialTheme.colorScheme.error
+        when {
+            requiresManualRecovery -> MaterialTheme.colorScheme.error
+            needsRepair -> MaterialTheme.colorScheme.tertiary
+            else -> MaterialTheme.colorScheme.primary
         }
-    val passedCount = report.checks.count { it.status == RoomDatabaseHealthManager.ItemStatus.PASS }
-    val problemItems = report.checks.filter { it.status != RoomDatabaseHealthManager.ItemStatus.PASS }
+    val summary =
+        stringResource(
+            when {
+                requiresManualRecovery -> R.string.data_recovery_database_summary_manual
+                needsRepair -> R.string.data_recovery_database_summary_repairable
+                else -> R.string.data_recovery_database_summary_healthy
+            }
+        )
+    val passedCount =
+        configurationReport.checks.count { it.status == PreferencesHealthManager.ItemStatus.PASS } +
+            databaseReport.checks.count { it.status == RoomDatabaseHealthManager.ItemStatus.PASS }
+    val totalCount = configurationReport.checks.size + databaseReport.checks.size
+    val firstProblem =
+        configurationReport.checks
+            .firstOrNull { it.status == PreferencesHealthManager.ItemStatus.FAILURE }
+            ?.detail
+            ?: databaseReport.checks
+                .firstOrNull { it.status == RoomDatabaseHealthManager.ItemStatus.FAILURE }
+                ?.detail
+            ?: configurationReport.checks
+                .firstOrNull { it.status == PreferencesHealthManager.ItemStatus.WARNING }
+                ?.detail
+            ?: databaseReport.checks
+                .firstOrNull { it.status == RoomDatabaseHealthManager.ItemStatus.WARNING }
+                ?.detail
 
     Surface(
         modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
@@ -420,16 +500,17 @@ private fun DatabaseHealthReport(report: RoomDatabaseHealthManager.Report) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = report.summary,
+                        text = summary,
                         style = MaterialTheme.typography.titleSmall,
                         color = summaryColor
                     )
                     Text(
-                        text = stringResource(
-                            R.string.data_recovery_database_checks_passed,
-                            passedCount,
-                            report.checks.size
-                        ),
+                        text =
+                            stringResource(
+                                R.string.data_recovery_database_checks_passed,
+                                passedCount,
+                                totalCount
+                            ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -441,53 +522,75 @@ private fun DatabaseHealthReport(report: RoomDatabaseHealthManager.Report) {
                 )
             }
 
-            problemItems.firstOrNull()?.let { problem ->
+            firstProblem?.let { problem ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = stringResource(
-                        R.string.data_recovery_database_problem_summary,
-                        problem.detail
-                    ),
+                    text = stringResource(R.string.data_recovery_database_problem_summary, problem),
                     style = MaterialTheme.typography.bodySmall,
                     color = summaryColor
                 )
             }
 
             if (expanded) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = stringResource(R.string.data_recovery_configuration_details),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                configurationReport.checks.forEach { item ->
+                    val itemColor =
+                        when (item.status) {
+                            PreferencesHealthManager.ItemStatus.PASS -> MaterialTheme.colorScheme.primary
+                            PreferencesHealthManager.ItemStatus.WARNING -> MaterialTheme.colorScheme.tertiary
+                            PreferencesHealthManager.ItemStatus.FAILURE -> MaterialTheme.colorScheme.error
+                        }
+                    HealthCheckDetail(item.title, item.detail, itemColor)
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = stringResource(R.string.data_recovery_database_details),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
                 SelectionContainer {
                     Text(
-                        text = report.databasePath,
+                        text = databaseReport.databasePath,
                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Spacer(modifier = Modifier.height(6.dp))
-                report.checks.forEach { item ->
+                databaseReport.checks.forEach { item ->
                     val itemColor =
                         when (item.status) {
                             RoomDatabaseHealthManager.ItemStatus.PASS -> MaterialTheme.colorScheme.primary
                             RoomDatabaseHealthManager.ItemStatus.WARNING -> MaterialTheme.colorScheme.tertiary
                             RoomDatabaseHealthManager.ItemStatus.FAILURE -> MaterialTheme.colorScheme.error
                         }
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                        color = itemColor.copy(alpha = 0.08f),
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Column(modifier = Modifier.padding(8.dp)) {
-                            Text(
-                                text = item.title,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = itemColor,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            SelectionContainer {
-                                Text(text = item.detail, style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    }
+                    HealthCheckDetail(item.title, item.detail, itemColor)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HealthCheckDetail(title: String, detail: String, color: androidx.compose.ui.graphics.Color) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        color = color.copy(alpha = 0.08f),
+        shape = MaterialTheme.shapes.small
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelLarge,
+                color = color,
+                fontWeight = FontWeight.SemiBold
+            )
+            SelectionContainer {
+                Text(text = detail, style = MaterialTheme.typography.bodySmall)
             }
         }
     }

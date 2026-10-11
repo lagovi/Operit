@@ -26,7 +26,7 @@
 | `1ee5dbb4` порядок tool-результатов (cherry-pick -n, чистый) | PORTED 11.10, ждёт CI |
 | `72c1216b` DB health repair (cherry-pick + AppDatabase резолв + 55 строк в EN) | PORTED 11.10, ждёт CI |
 | `19b50643` DB health collapse + `907a4c77` weight-import fix (cherry-pick + EN) | PORTED 11.10, ждёт CI |
-| `f2414493` config repair | TODO |
+| `f2414493` config repair (cherry-pick + 14 rewords + 15 строк в EN) | PORTED 11.10, ждёт CI |
 | `40081a2a` DataStore repair (нужен `PreferencesHealthManager.kt` из batch-2 выше) | BLOCKED |
 | `62ea0c3e` perf-мониторы (наши `PackageDetailsDialog/SettingsScreen/OperitScreens`, строки) + `4e6ae68a` поверх | TODO |
 | `6d5e8ae8` floating crash-protection (cherry-pick -n, auto-merge чистый) | PORTED 11.10, ждёт CI |

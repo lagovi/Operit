@@ -1,0 +1,18 @@
+# seed_templates.uaw — project-template seed acceptance (UI part).
+#
+# Precondition (runner): target build installed + grants set + app at chat.
+# Flow: open workspace -> Create Default -> Web Project -> bound preview.
+# The seed download (~4 MB) happens inside the bind; Preview proves the copy.
+# File asserts (zip size+sha, unpacked tree, workspace index.html) are the
+# runner's job after this scenario.
+#
+# Element inventory (uaw_elements + manual pass, 20261011_141729Z-era UI):
+#   workspace toggle (Code icon, topbar right): icon only -> TAP_AT 671 110
+
+EXPECT 15 New Chat
+TAP_AT 671 110
+EXPECT 20 Setup Workspace
+TAP Create Default
+EXPECT 20 Select Language Type
+TAP Web Project
+EXPECT 180 Preview

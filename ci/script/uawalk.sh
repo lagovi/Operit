@@ -22,6 +22,8 @@
 #   HIDEKB                BACK only when the soft keyboard is shown
 #   SWIPE_UP              swipe 360,1200 -> 360,300
 #   SWIPE_DOWN            swipe 360,300 -> 360,1200
+#   SCROLL_TO [n] <text>  swipe down (reveal content above) until <text> is
+#                         visible, max n swipes (default 5); abort otherwise
 #   SLEEP <secs>
 #   DUMP                  save current dump+texts to the log trail
 #
@@ -191,6 +193,25 @@ uaw_run() {
                 adb -s "$PHONE" shell "input swipe 360 300 360 1200 400"
                 echo "  swipe_down($UA_STEP)"
                 sleep 2
+                ;;
+            SCROLL_TO)
+                local stext smax sfirst s i
+                stext="$rest"; smax=5
+                sfirst="${rest%% *}"
+                if [[ "$sfirst" =~ ^[0-9]+$ ]]; then
+                    smax="$sfirst"; stext="${rest#* }"
+                fi
+                [ -n "$stext" ] || uaw_abort "SCROLL_TO needs text"
+                for ((s=0; s<smax; s++)); do
+                    if plab_texts 2>/dev/null | grep -qF "$stext"; then
+                        echo "  scroll_to($UA_STEP) '$stext' ok after $s swipes"
+                        break
+                    fi
+                    adb -s "$PHONE" shell "input swipe 360 300 360 1200 400" < /dev/null
+                    sleep 2
+                done
+                plab_texts 2>/dev/null | grep -qF "$stext" \
+                    || uaw_abort "text '$stext' not visible after $smax swipes"
                 ;;
             SLEEP)
                 sleep "${rest:-2}"

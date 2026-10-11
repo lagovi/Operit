@@ -19,7 +19,7 @@ EXPECT 20 Install Bundled Version
 TAP Install Bundled Version
 WAIT_PKG 90 packageinstaller
 BACK
-SWIPE_DOWN
+SCROLL_TO 4 ACCESSIBILITY
 TAP ACCESSIBILITY
 EXPECT 20 Permission Level
 SWIPE_UP

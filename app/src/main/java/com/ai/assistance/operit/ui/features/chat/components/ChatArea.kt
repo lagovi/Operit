@@ -73,6 +73,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -1266,6 +1267,18 @@ private enum class MessageCopyMode {
     XML_SOURCE,
 }
 
+/**
+ * Consume leftover nested-scroll at both edges of the copy preview so
+ * [ModalBottomSheet] does not start a rebound of its own.
+ */
+private fun copyPreviewConsumedOverscrollY(scrollState: ScrollState, availableY: Float): Float {
+    return when {
+        availableY > 0f && !scrollState.canScrollBackward -> availableY
+        availableY < 0f && !scrollState.canScrollForward -> availableY
+        else -> 0f
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun MessageCopyPreviewBottomSheet(
@@ -1276,6 +1289,11 @@ private fun MessageCopyPreviewBottomSheet(
     val clipboardManager = LocalClipboardManager.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val textScrollState = rememberScrollState()
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
+    val previewMaxHeight =
+        remember(screenHeightDp) {
+            (screenHeightDp * 0.4f).coerceIn(120.dp, 520.dp)
+        }
     val copyPreviewNestedScrollConnection =
         remember(textScrollState) {
             object : NestedScrollConnection {
@@ -1284,26 +1302,16 @@ private fun MessageCopyPreviewBottomSheet(
                     available: Offset,
                     source: NestedScrollSource,
                 ): Offset {
-                    return if (
-                        source == NestedScrollSource.UserInput &&
-                            textScrollState.value == 0 &&
-                            available.y > 0f
-                    ) {
-                        Offset(x = 0f, y = available.y)
-                    } else {
-                        Offset.Zero
-                    }
+                    val consumedY = copyPreviewConsumedOverscrollY(textScrollState, available.y)
+                    return if (consumedY == 0f) Offset.Zero else Offset(x = 0f, y = consumedY)
                 }
 
                 override suspend fun onPostFling(
                     consumed: Velocity,
                     available: Velocity,
                 ): Velocity {
-                    return if (textScrollState.value == 0 && available.y > 0f) {
-                        Velocity(x = 0f, y = available.y)
-                    } else {
-                        Velocity.Zero
-                    }
+                    val consumedY = copyPreviewConsumedOverscrollY(textScrollState, available.y)
+                    return if (consumedY == 0f) Velocity.Zero else Velocity(x = 0f, y = consumedY)
                 }
             }
         }
@@ -1378,8 +1386,8 @@ private fun MessageCopyPreviewBottomSheet(
                 SelectionContainer(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 520.dp)
-                        // Keep top pulls in the preview so the sheet does not start a second rebound.
+                        .heightIn(max = previewMaxHeight)
+                        // Keep leftover edge overscroll in the preview so the sheet does not rebound with it.
                         .nestedScroll(copyPreviewNestedScrollConnection)
                         .verticalScroll(textScrollState)
                         .padding(bottom = 12.dp)

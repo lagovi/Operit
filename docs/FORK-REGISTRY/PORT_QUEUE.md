@@ -30,7 +30,7 @@
 | `6d5e8ae8` floating crash-protection (cherry-pick -n, auto-merge чистый) | PORTED 11.10, ждёт CI |
 | `567f245a` group-orchestration дубли (ручной, threaded через sendMessageInternal) | PORTED 11.10, ждёт CI |
 | `21212530` dialogue review (наш `EnhancedAIService.kt`, `ModelConfig*`) | TODO |
-| `1e89d4f2` composedsl курсор (наш `ToolPkgComposeDslScreen.kt`) | TODO |
+| `1e89d4f2` composedsl курсор (cherry-pick -n, чистый) | PORTED 11.10, ждёт CI |
 | `a19d7ef8`+`6bb2a245` unpaired toolcalls (наши `Deepseek/KimiProvider` УДАЛЕНЫ — портировать только в живые провайдеры) | TODO |
 | `2112033a`+`9cf8283e` copy-preview (cherry-pick + ручной резолв конфликта) | PORTED 11.10, ждёт CI |
 | `72731683` copy-preview read-only field (cherry-pick + ручной резолв) | PORTED 11.10, ждёт CI |

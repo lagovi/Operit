@@ -30,6 +30,12 @@ to_chat() {
         adb -s "$PHONE" shell "input keyevent KEYCODE_BACK"
         sleep 2
     done
+    # Bound workspace view traps BACK: the Code icon toggles back to chat.
+    if plab_texts 2>/dev/null | grep -qF "Preview"; then
+        plab_tap 671 110
+        sleep 3
+        plab_wait_text "New Chat" 10 && return 0
+    fi
     return 1
 }
 

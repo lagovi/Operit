@@ -47,7 +47,7 @@ for m in re.finditer(r'<node[^>]*>', x):
 "
 }
 
-# Print bounds [x1,y1][x2,y2] of the first node with exact text, else exact
+# Print "x1 y1 x2 y2" of the first node with exact text, else exact
 # content-desc. Return 1 when the element is not on screen.
 uaw_find() {
     local want="$1"
@@ -59,11 +59,11 @@ for m in re.finditer(r'<node[^>]*>', x):
     n = m.group(0)
     t = re.search(r'text=\"([^\"]*)\"', n)
     d = re.search(r'content-desc=\"([^\"]*)\"', n)
-    b = re.search(r'bounds=\"([^\"]*)\"', n)
+    b = re.search(r'bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"', n)
     if not b:
         continue
     if (t and t.group(1) == want) or (d and d.group(1) == want):
-        print(b.group(1))
+        print(b.group(1), b.group(2), b.group(3), b.group(4))
         break
 "
 }
@@ -109,6 +109,8 @@ uaw_run() {
                 [ -n "$rest" ] || uaw_abort "TAP needs an element"
                 local b c
                 b=$(uaw_find "$rest") || uaw_abort "element '$rest' not on screen"
+                [[ "$b" =~ ^[0-9]+[[:space:]][0-9]+[[:space:]][0-9]+[[:space:]][0-9]+$ ]] \
+                    || uaw_abort "element '$rest' has unparsable bounds '$b'"
                 c=$(echo "$b" | plab_center)
                 echo "  tap($UA_STEP) '$rest' @ $c | $(uaw_where)"
                 plab_tap $c

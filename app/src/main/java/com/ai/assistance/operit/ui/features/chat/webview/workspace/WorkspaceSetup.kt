@@ -19,7 +19,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.subpack.AssetSeedStorage
 import com.ai.assistance.operit.ui.features.chat.webview.createAndGetDefaultWorkspace
+import com.ai.assistance.operit.util.OfflinePayload
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
@@ -120,15 +122,39 @@ fun WorkspaceSetup(chatId: String, onBindWorkspace: (String, String?) -> Unit) {
     }
 
     fun bindBuiltInWorkspace(projectType: String?) {
-        val workspaceDir =
-            if (projectType == null) {
-                createAndGetDefaultWorkspace(context, chatId)
-            } else {
-                createAndGetDefaultWorkspace(context, chatId, projectType)
-            }
-        onBindWorkspace(workspaceDir.absolutePath, null)
-        showProjectTypeDialog = false
+        if (isImportingToolPkgTemplate) return
+        isImportingToolPkgTemplate = true
         projectTypeDialogError = null
+        // Q2: templates are no longer bundled — provision the seed from the
+        // fork's release first (IO), then build the workspace off the
+        // unpacked tree. Same busy flag + error slot as the ToolPkg import.
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                AssetSeedStorage(context)
+                    .ensureSeed(OfflinePayload.SEED_TEMPLATES.assets.single())
+                    .map { seedRoot ->
+                        if (projectType == null) {
+                            createAndGetDefaultWorkspace(context, chatId, seedRoot)
+                        } else {
+                            createAndGetDefaultWorkspace(context, chatId, projectType, seedRoot)
+                        }
+                    }
+            }
+            result.fold(
+                onSuccess = { workspaceDir ->
+                    onBindWorkspace(workspaceDir.absolutePath, null)
+                    showProjectTypeDialog = false
+                    projectTypeDialogError = null
+                },
+                onFailure = { e ->
+                    projectTypeDialogError = context.getString(
+                        R.string.download_failed,
+                        e.message ?: e.javaClass.simpleName
+                    )
+                }
+            )
+            isImportingToolPkgTemplate = false
+        }
     }
 
     fun importToolPkgWorkspaceTemplate(template: PackageManager.ToolPkgWorkspaceTemplate) {

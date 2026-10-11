@@ -6,8 +6,8 @@ import com.ai.assistance.operit.util.OperitPaths
 import java.io.File
 import java.io.IOException
 
-fun createAndGetDefaultWorkspace(context: Context, chatId: String): File {
-    return createAndGetDefaultWorkspace(context, chatId, null)
+fun createAndGetDefaultWorkspace(context: Context, chatId: String, seedTemplatesRoot: File): File {
+    return createAndGetDefaultWorkspace(context, chatId, null, seedTemplatesRoot)
 }
 
 fun createAndResetWorkspaceDirectory(context: Context, chatId: String): File {
@@ -19,7 +19,7 @@ fun createAndResetWorkspaceDirectory(context: Context, chatId: String): File {
     return workspaceDir
 }
 
-fun createAndGetDefaultWorkspace(context: Context, chatId: String, projectType: String?): File {
+fun createAndGetDefaultWorkspace(context: Context, chatId: String, projectType: String?, seedTemplatesRoot: File): File {
     // 创建内部存储工作区
     val workspacePath = getWorkspacePath(context, chatId)
     ensureWorkspaceDirExists(workspacePath)
@@ -29,42 +29,42 @@ fun createAndGetDefaultWorkspace(context: Context, chatId: String, projectType: 
     // 根据项目类型复制模板文件并创建配置
     when (projectType) {
         "android" -> {
-            copyTemplateFiles(context, webContentDir, "android")
+            copyTemplateFiles(seedTemplatesRoot, webContentDir, "android")
             createProjectConfigIfNeeded(context, webContentDir, ProjectType.ANDROID)
         }
         "flutter" -> {
-            copyTemplateFiles(context, webContentDir, "flutter")
+            copyTemplateFiles(seedTemplatesRoot, webContentDir, "flutter")
             createProjectConfigIfNeeded(context, webContentDir, ProjectType.FLUTTER)
         }
         "node" -> {
-            copyTemplateFiles(context, webContentDir, "node")
+            copyTemplateFiles(seedTemplatesRoot, webContentDir, "node")
             createProjectConfigIfNeeded(context, webContentDir, ProjectType.NODE)
         }
         "typescript" -> {
-            copyTemplateFiles(context, webContentDir, "typescript")
+            copyTemplateFiles(seedTemplatesRoot, webContentDir, "typescript")
             createProjectConfigIfNeeded(context, webContentDir, ProjectType.TYPESCRIPT)
         }
         "python" -> {
-            copyTemplateFiles(context, webContentDir, "python")
+            copyTemplateFiles(seedTemplatesRoot, webContentDir, "python")
             createProjectConfigIfNeeded(context, webContentDir, ProjectType.PYTHON)
         }
         "java" -> {
-            copyTemplateFiles(context, webContentDir, "java")
+            copyTemplateFiles(seedTemplatesRoot, webContentDir, "java")
             createProjectConfigIfNeeded(context, webContentDir, ProjectType.JAVA)
         }
         "go" -> {
-            copyTemplateFiles(context, webContentDir, "go")
+            copyTemplateFiles(seedTemplatesRoot, webContentDir, "go")
             createProjectConfigIfNeeded(context, webContentDir, ProjectType.GO)
         }
         "office" -> {
-            copyTemplateFiles(context, webContentDir, "office")
+            copyTemplateFiles(seedTemplatesRoot, webContentDir, "office")
             createProjectConfigIfNeeded(context, webContentDir, ProjectType.OFFICE)
         }
         "blank" -> {
             createProjectConfigIfNeeded(context, webContentDir, ProjectType.BLANK)
         }
         else -> {
-            copyTemplateFiles(context, webContentDir, "web")
+            copyTemplateFiles(seedTemplatesRoot, webContentDir, "web")
             createProjectConfigIfNeeded(context, webContentDir, ProjectType.WEB)
         }
     }
@@ -677,69 +677,39 @@ private fun generateOfficeProjectConfig(context: Context): String {
 }
 
 /**
- * 从 assets 复制项目模板文件到工作区
+ * Copies project template files from the seed tree (Q2: no longer assets)
+ * into the workspace. The caller (WorkspaceSetup) guarantees the seed via
+ * AssetSeedStorage before calling; only plain files move here.
  */
-private fun copyTemplateFiles(context: Context, workspaceDir: File, templateName: String) {
-    val assetManager = context.assets
-    val templatePath = "templates/$templateName"
-
+private fun copyTemplateFiles(seedTemplatesRoot: File, workspaceDir: File, templateName: String) {
     try {
-        val files = assetManager.list(templatePath) ?: return
-
-        for (filename in files) {
-            val sourcePath = "$templatePath/$filename"
-            // 特殊处理：gitignore (无点) -> .gitignore (有点)
-            // 因为 Android 构建工具会排除 assets 中的 .gitignore 文件
-            val destFileName = if (filename == "gitignore") ".gitignore" else filename
-            val destFile = File(workspaceDir, destFileName)
-
-            // 检查是否是目录
-            val isDirectory = try {
-                assetManager.list(sourcePath)?.isNotEmpty() == true
-            } catch (e: IOException) {
-                false
-            }
-
-            if (isDirectory) {
-                // 递归复制子目录
-                destFile.mkdirs()
-                copyTemplateFilesRecursive(assetManager, sourcePath, destFile)
-            } else {
-                // 复制文件
-                assetManager.open(sourcePath).use { inputStream ->
-                    destFile.outputStream().use { outputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                }
-            }
-        }
+        val templateDir = File(seedTemplatesRoot, templateName)
+        if (!templateDir.isDirectory) return
+        copyTemplateFilesRecursive(templateDir, workspaceDir)
     } catch (e: IOException) {
         e.printStackTrace()
     }
 }
 
 /**
- * 递归复制模板文件
+ * 递归复制模板文件 (plain files, no AssetManager).
  */
-private fun copyTemplateFilesRecursive(assetManager: android.content.res.AssetManager, sourcePath: String, destDir: File) {
+private fun copyTemplateFilesRecursive(sourceDir: File, destDir: File) {
     try {
-        val files = assetManager.list(sourcePath) ?: return
+        val files = sourceDir.listFiles() ?: return
 
-        for (filename in files) {
-            val currentSourcePath = "$sourcePath/$filename"
-            val destFile = File(destDir, filename)
+        for (sourceFile in files) {
+            val filename = sourceFile.name
+            // 特殊处理：gitignore (无点) -> .gitignore (有点)
+            // (legacy assets-имени; в seed-zip имя сохранено как было)
+            val destFileName = if (filename == "gitignore") ".gitignore" else filename
+            val destFile = File(destDir, destFileName)
 
-            val isDirectory = try {
-                assetManager.list(currentSourcePath)?.isNotEmpty() == true
-            } catch (e: IOException) {
-                false
-            }
-
-            if (isDirectory) {
+            if (sourceFile.isDirectory) {
                 destFile.mkdirs()
-                copyTemplateFilesRecursive(assetManager, currentSourcePath, destFile)
+                copyTemplateFilesRecursive(sourceFile, destFile)
             } else {
-                assetManager.open(currentSourcePath).use { inputStream ->
+                sourceFile.inputStream().use { inputStream ->
                     destFile.outputStream().use { outputStream ->
                         inputStream.copyTo(outputStream)
                     }

@@ -14,13 +14,15 @@ import java.io.File
  * | payload | in APK | movable | note |
  * |---|---:|---|---|
  * | terminal rootfs | 61.2 MiB | yes | already extracted to filesDir on first terminal use |
- * | templates, emoji, js | 8.0 MiB | yes | project gallery and KaTeX |
+ * | js | 1.4 MiB | no | hot JS-engine runtime, offline (HANDOFF 12b) |
  *
  * Gone from the table because Q2 removed them from the APK (see the objects
  * below): `subpack/android.apk`, `subpack/windows.zip` (release `v1.12.1+4`,
  * 2026-10-08), `apktool.toolpkg` (dropped from the whitelist, HANDOFF 12a),
  * `desktop.apk` (deleted, HANDOFF 12b), `shizuku.apk` + `accessibility.apk`
- * (on-demand into cacheDir, release `v1.12.1+4`).
+ * (on-demand into cacheDir, release `v1.12.1+4`), `templates/` +
+ * `emoji/` trees (one zip each, unpacked into the seed dir on first use,
+ * release `v1.12.1+4`).
  * The terminal rootfs is not listed as an object yet: it has to lose its
  * `context.assets.open` call first, and the proot tree may not start from an
  * external leaf at all (E3). Adding an entry before that work is done would
@@ -153,8 +155,49 @@ class OfflinePayload(
             version = "1.5"
         )
 
+        /**
+          * Project templates (`templates/` tree, 193 files): one zip, unpacked
+          * into the seed dir on first project creation. Bytes are the zip of
+          * the last APK that still bundled the tree.
+          */
+        val SEED_TEMPLATES = OfflinePayload(
+            id = "seed-templates",
+            title = "Project templates",
+            leaf = "seed",
+            assets = listOf(
+                RemoteAsset(
+                    name = "templates.zip",
+                    url = "$RELEASE_BASE/v1.12.1+4/seed-templates.zip",
+                    sizeBytes = 4227058L,
+                    sha256 = "e86ed55bee6610154c75d0d0bd4bc006e0568b2ad89f875ca1c363506a40aae0"
+                )
+            ),
+            unpackedBytes = 9819818L
+        )
+
+        /**
+          * Built-in emoji (`emoji/` tree, 53 files): one zip, unpacked into
+          * the seed dir on first startup seeding. Same mechanics as
+          * [SEED_TEMPLATES].
+          */
+        val SEED_EMOJI = OfflinePayload(
+            id = "seed-emoji",
+            title = "Built-in emoji",
+            leaf = "seed",
+            assets = listOf(
+                RemoteAsset(
+                    name = "emoji.zip",
+                    url = "$RELEASE_BASE/v1.12.1+4/seed-emoji.zip",
+                    sizeBytes = 3614642L,
+                    sha256 = "061c97f081e0979faec92b06e2aaac0a56bea252bbee5a03c8cb3222c4f74165"
+                )
+            ),
+            unpackedBytes = 3632112L
+        )
+
         val all: List<OfflinePayload> = listOf(
-            GIGAAM, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU, HELPER_A11Y
+            GIGAAM, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU, HELPER_A11Y,
+            SEED_TEMPLATES, SEED_EMOJI
         )
     }
 }

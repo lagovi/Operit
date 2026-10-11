@@ -5,17 +5,20 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.subpack.AssetSeedStorage
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.CustomEmoji
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CustomEmojiPreferences
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.OfflinePayload
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.util.UUID
 
 /**
@@ -59,9 +62,10 @@ class CustomEmojiRepository private constructor(private val context: Context) {
             return@withContext
         }
 
-        copyBuiltinEmojisFromAssets(target)
-        preferences.setBuiltinEmojisInitialized(target, true)
-        AppLogger.d(TAG, "Built-in emojis initialized successfully for target: $target")
+        if (copyBuiltinEmojisFromAssets(target)) {
+            preferences.setBuiltinEmojisInitialized(target, true)
+            AppLogger.d(TAG, "Built-in emojis initialized successfully for target: $target")
+        }
     }
 
     suspend fun resetToDefault() = withContext(Dispatchers.IO) {
@@ -76,7 +80,9 @@ class CustomEmojiRepository private constructor(private val context: Context) {
             preferences.clearAllEmojis(target)
             getTargetBaseDir(target).deleteRecursively()
 
-            copyBuiltinEmojisFromAssets(target)
+            if (!copyBuiltinEmojisFromAssets(target)) {
+                throw IOException("Built-in emoji seed unavailable")
+            }
             preferences.setBuiltinEmojisInitialized(target, true)
 
             AppLogger.d(TAG, "Reset emojis to default successfully for target: $target")
@@ -293,21 +299,33 @@ class CustomEmojiRepository private constructor(private val context: Context) {
         return categoryName.matches(Regex("^[a-z0-9_]+$"))
     }
 
-    private suspend fun copyBuiltinEmojisFromAssets(target: ActivePrompt) {
+    private suspend fun copyBuiltinEmojisFromAssets(target: ActivePrompt): Boolean {
+        // Q2: the emoji tree is no longer bundled — provision the seed from
+        // the fork's release first. False = not seeded (caller decides:
+        // startup seeding retries next launch, reset throws).
+        val seedResult = AssetSeedStorage(context)
+            .ensureSeed(OfflinePayload.SEED_EMOJI.assets.single())
+        val emojiSeedRoot = seedResult.getOrElse { e ->
+            AppLogger.w(TAG, "Emoji seed unavailable: ${e.message}")
+            return false
+        }
         try {
-            val emojiAssetsDir = "emoji"
-            val categories = context.assets.list(emojiAssetsDir)
+            val categories = emojiSeedRoot.listFiles()
+                ?.filter { it.isDirectory }
+                ?.map { it.name }
+                ?.sorted()
 
             if (categories.isNullOrEmpty()) {
-                AppLogger.w(TAG, "No built-in emoji categories found in assets.")
-                return
+                AppLogger.w(TAG, "No built-in emoji categories found in seed.")
+                return false
             }
 
-            preferences.addCategories(target, categories.toList())
+            preferences.addCategories(target, categories)
 
             categories.forEach { category ->
-                val files = context.assets.list("$emojiAssetsDir/$category")
-                files?.forEach { fileName ->
+                val files = File(emojiSeedRoot, category).listFiles()
+                files?.forEach { sourceFile ->
+                    val fileName = sourceFile.name
                     val extension = fileName.substringAfterLast('.', "")
                     if (extension.lowercase() !in SUPPORTED_EXTENSIONS) {
                         return@forEach
@@ -321,7 +339,7 @@ class CustomEmojiRepository private constructor(private val context: Context) {
                     val targetFileName = "${UUID.randomUUID()}.$extension"
                     val targetFile = File(targetDir, targetFileName)
 
-                    context.assets.open("$emojiAssetsDir/$category/$fileName").use { input ->
+                    sourceFile.inputStream().use { input ->
                         FileOutputStream(targetFile).use { output ->
                             input.copyTo(output)
                         }
@@ -335,6 +353,7 @@ class CustomEmojiRepository private constructor(private val context: Context) {
                     preferences.addCustomEmoji(target, emoji)
                 }
             }
+            return true
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error copying built-in emojis for target: $target", e)
             throw e

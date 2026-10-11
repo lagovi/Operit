@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.backup.RawSnapshotBackupManager
 import com.ai.assistance.operit.data.db.AppDatabase
+import com.ai.assistance.operit.data.recovery.RoomDatabaseHealthManager
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.LocaleUtils
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +34,9 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
         val queryResult: QueryResult? = null,
         val affectedRows: Int? = null,
         val lastSnapshotPath: String? = null,
-        val restoreCompleted: Boolean = false
+        val restoreCompleted: Boolean = false,
+        val databaseHealthReport: RoomDatabaseHealthManager.Report? = null,
+        val lastDatabaseRepairArchivePath: String? = null
     )
 
     private val _state = MutableStateFlow(State())
@@ -62,7 +65,8 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                                 isRunning = false,
                                 status = context.getString(R.string.data_recovery_query_completed, result.rows.size),
                                 queryResult = result,
-                                affectedRows = null
+                                affectedRows = null,
+                                databaseHealthReport = null
                             )
                     }
                 } else {
@@ -74,7 +78,8 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                                 isRunning = false,
                                 status = context.getString(R.string.data_recovery_sql_completed),
                                 queryResult = null,
-                                affectedRows = affectedRows
+                                affectedRows = affectedRows,
+                                databaseHealthReport = null
                             )
                     }
                 }
@@ -135,10 +140,90 @@ class DataRecoveryViewModel(private val context: Context) : ViewModel() {
                     _state.value.copy(
                         isRunning = false,
                         status = context.getString(R.string.data_recovery_restore_completed),
-                        restoreCompleted = true
+                        restoreCompleted = true,
+                        databaseHealthReport = null
                     )
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Raw snapshot restore failed", e)
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        error = e.message ?: e.javaClass.name,
+                        status = null
+                    )
+            }
+        }
+    }
+
+    fun inspectDatabase() {
+        _state.value =
+            _state.value.copy(
+                isRunning = true,
+                error = null,
+                status = context.getString(R.string.data_recovery_database_check_running),
+                affectedRows = null
+            )
+        viewModelScope.launch {
+            try {
+                val report = RoomDatabaseHealthManager.inspect(context)
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        status = report.summary,
+                        databaseHealthReport = report
+                    )
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Room database health inspection failed", e)
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        error = e.message ?: e.javaClass.name,
+                        status = null
+                    )
+            }
+        }
+    }
+
+    fun repairDatabase() {
+        _state.value =
+            _state.value.copy(
+                isRunning = true,
+                error = null,
+                status = context.getString(R.string.data_recovery_database_repair_running),
+                affectedRows = null,
+                lastDatabaseRepairArchivePath = null
+            )
+        viewModelScope.launch {
+            try {
+                val result = RoomDatabaseHealthManager.repair(context)
+                val status =
+                    if (result.report.status == RoomDatabaseHealthManager.Status.HEALTHY) {
+                        context.getString(R.string.data_recovery_database_repair_completed)
+                    } else {
+                        context.getString(R.string.data_recovery_database_repair_remaining)
+                    }
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        status = status,
+                        databaseHealthReport = result.report,
+                        lastDatabaseRepairArchivePath = result.sourceArchive.absolutePath
+                    )
+            } catch (e: RoomDatabaseHealthManager.RepairFailedException) {
+                AppLogger.e(TAG, "Room database repair failed after source preservation", e)
+                _state.value =
+                    _state.value.copy(
+                        isRunning = false,
+                        error =
+                            context.getString(
+                                R.string.data_recovery_database_repair_failed_preserved,
+                                e.sourceArchive.absolutePath
+                            ),
+                        status = null,
+                        lastDatabaseRepairArchivePath = e.sourceArchive.absolutePath
+                    )
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Room database repair failed", e)
                 _state.value =
                     _state.value.copy(
                         isRunning = false,

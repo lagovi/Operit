@@ -67,9 +67,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.recovery.RoomDatabaseHealthManager
 import com.ai.assistance.operit.ui.common.OperitUtilityTheme
 import com.ai.assistance.operit.util.LocaleUtils
 
@@ -96,6 +98,7 @@ private fun DataRecoveryScreen() {
         viewModel(factory = DataRecoveryViewModel.Factory(context))
     val state by viewModel.state.collectAsState()
     var pendingRestoreUri by remember { mutableStateOf<Uri?>(null) }
+    var showDatabaseRepairConfirmation by remember { mutableStateOf(false) }
 
     val snapshotPicker =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -245,6 +248,96 @@ private fun DataRecoveryScreen() {
                 }
             }
 
+            item {
+                RecoverySection(title = stringResource(R.string.data_recovery_database_health_section)) {
+                    Text(
+                        text = stringResource(R.string.data_recovery_database_health_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { viewModel.inspectDatabase() },
+                            enabled = !state.isRunning
+                        ) {
+                            Icon(
+                                Icons.Default.Storage,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.data_recovery_database_check_action))
+                        }
+                        Button(
+                            onClick = { showDatabaseRepairConfirmation = true },
+                            enabled =
+                                !state.isRunning &&
+                                    state.databaseHealthReport?.canRepair == true
+                        ) {
+                            Icon(
+                                Icons.Default.Restore,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.data_recovery_database_repair_action))
+                        }
+                    }
+
+                    state.databaseHealthReport?.let { report ->
+                        Spacer(modifier = Modifier.height(12.dp))
+                        DatabaseHealthReport(report)
+                        if (report.repairActions.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(R.string.data_recovery_database_repair_plan),
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            report.repairActions.forEach { action ->
+                                val label =
+                                    when (action) {
+                                        RoomDatabaseHealthManager.RepairAction.REBUILD_INDEXES ->
+                                            stringResource(
+                                                R.string.data_recovery_database_repair_rebuild_indexes
+                                            )
+                                        RoomDatabaseHealthManager.RepairAction.RUN_ROOM_MIGRATIONS ->
+                                            stringResource(
+                                                R.string.data_recovery_database_repair_run_migrations
+                                            )
+                                    }
+                                Text(
+                                    text = "• $label",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+
+                    state.lastDatabaseRepairArchivePath?.let { path ->
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = stringResource(R.string.data_recovery_database_repair_archive),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        SelectionContainer {
+                            Text(
+                                text = path,
+                                style =
+                                    MaterialTheme.typography.bodySmall.copy(
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                            )
+                        }
+                    }
+                }
+            }
+
             state.queryResult?.let { result ->
                 item {
                     QueryResultPanel(result)
@@ -276,6 +369,83 @@ private fun DataRecoveryScreen() {
                 }
             }
         )
+    }
+
+    if (showDatabaseRepairConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDatabaseRepairConfirmation = false },
+            title = { Text(stringResource(R.string.data_recovery_database_repair_confirm_title)) },
+            text = { Text(stringResource(R.string.data_recovery_database_repair_confirm_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDatabaseRepairConfirmation = false
+                        viewModel.repairDatabase()
+                    }
+                ) {
+                    Text(stringResource(R.string.data_recovery_database_repair_confirm_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatabaseRepairConfirmation = false }) {
+                    Text(stringResource(R.string.data_recovery_cancel_action))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun DatabaseHealthReport(report: RoomDatabaseHealthManager.Report) {
+    val summaryColor =
+        when (report.status) {
+            RoomDatabaseHealthManager.Status.HEALTHY -> MaterialTheme.colorScheme.primary
+            RoomDatabaseHealthManager.Status.NEEDS_REPAIR -> MaterialTheme.colorScheme.tertiary
+            RoomDatabaseHealthManager.Status.MANUAL_RECOVERY_REQUIRED ->
+                MaterialTheme.colorScheme.error
+        }
+    Text(
+        text = report.summary,
+        style = MaterialTheme.typography.titleSmall,
+        color = summaryColor
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    SelectionContainer {
+        Text(
+            text = report.databasePath,
+            style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+    report.checks.forEach { item ->
+        val itemColor =
+            when (item.status) {
+                RoomDatabaseHealthManager.ItemStatus.PASS -> MaterialTheme.colorScheme.primary
+                RoomDatabaseHealthManager.ItemStatus.WARNING -> MaterialTheme.colorScheme.tertiary
+                RoomDatabaseHealthManager.ItemStatus.FAILURE -> MaterialTheme.colorScheme.error
+            }
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp),
+            color = itemColor.copy(alpha = 0.08f),
+            shape = MaterialTheme.shapes.small
+        ) {
+            Column(modifier = Modifier.padding(10.dp)) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = itemColor,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                SelectionContainer {
+                    Text(
+                        text = item.detail,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
     }
 }
 

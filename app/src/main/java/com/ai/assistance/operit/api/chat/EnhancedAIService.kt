@@ -38,6 +38,7 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.AITool
+import com.ai.assistance.operit.data.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.ExternalHttpApiPreferences
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
@@ -2594,13 +2595,13 @@ class EnhancedAIService private constructor(private val context: Context) {
     suspend fun generateSummary(
             messages: List<Pair<String, String>>,
             previousSummary: String?,
-            customRules: String? = null,
+            summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
     ): String {
         return generateSummaryFromPromptTurns(
             messages.toPromptTurns(),
             previousSummary,
-            customRules,
+            summaryConfig,
             recordTokenUsage,
         )
     }
@@ -2608,7 +2609,7 @@ class EnhancedAIService private constructor(private val context: Context) {
     suspend fun generateSummaryFromPromptTurns(
             messages: List<PromptTurn>,
             previousSummary: String?,
-            customRules: String? = null,
+            summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
             recordTokenUsage: Boolean = true,
     ): String {
         // 调用ConversationService中的方法
@@ -2616,7 +2617,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             messages,
             previousSummary,
             multiServiceManager,
-            customRules,
+            summaryConfig,
             recordTokenUsage,
         )
     }

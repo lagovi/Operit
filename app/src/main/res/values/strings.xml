@@ -961,6 +961,13 @@
     <string name="settings_summary_message_count_threshold_subtitle">Number of new messages to trigger summary (1-20)</string>
     <string name="settings_summary_custom_rules">Custom Summary Rules</string>
     <string name="settings_summary_custom_rules_desc">Extra rules sent when summarizing the conversation. Leave blank for none</string>
+    <!-- Port of upstream e295a82a (summary sections), translated to English -->
+    <string name="settings_summary_structure">Summary structure</string>
+    <string name="settings_summary_section_enabled_desc">When off, this section is omitted from generated summaries</string>
+    <string name="settings_summary_section_title">Section title</string>
+    <string name="settings_summary_section_title_desc">Title shown in the summary</string>
+    <string name="settings_summary_section_instruction">Section instruction</string>
+    <string name="settings_summary_section_instruction_desc">What this section should record</string>
     
     <string name="settings_section_display">Display and Behavior</string>
 

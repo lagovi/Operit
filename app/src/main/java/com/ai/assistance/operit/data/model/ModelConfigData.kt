@@ -52,6 +52,26 @@ object ModelConfigDefaults {
         const val DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD = 16
 }
 
+data class SummarySectionConfig(
+        val id: String,
+        val enabled: Boolean = true,
+        val title: String = "",
+        val instruction: String = ""
+)
+
+@Serializable
+data class SummarySectionOverride(
+        val id: String,
+        val enabled: Boolean? = null,
+        val title: String? = null,
+        val instruction: String? = null
+)
+
+data class ConversationSummaryConfig(
+        val globalRules: String? = null,
+        val sectionOverrides: List<SummarySectionOverride> = emptyList()
+)
+
 /** 表示完整的模型配置，包括API设置和模型参数 */
 @Serializable
 data class ModelConfigData(
@@ -116,6 +136,7 @@ data class ModelConfigData(
                 ModelConfigDefaults.DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD,
         // 自定义总结规则
         val summaryCustomRules: String = "",
+        val summarySectionOverrides: List<SummarySectionOverride> = emptyList(),
 
         // MNN特定配置
         // 注意：MNN模型路径会根据modelName自动构建，不需要单独存储

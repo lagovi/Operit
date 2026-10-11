@@ -35,7 +35,7 @@
 | `2112033a`+`9cf8283e` copy-preview (cherry-pick + ручной резолв конфликта) | PORTED 11.10, ждёт CI |
 | `72731683` copy-preview read-only field (cherry-pick + ручной резолв) | PORTED 11.10, ждёт CI |
 | `99830874` tool round markup (ручной + тест) | PORTED 11.10, ждёт CI |
-| `e295a82a` summary-секции (наши `EnhancedAIService`, промпты, строки) | TODO |
+| `e295a82a` summary-секции (cherry-pick + строки вручную в EN) | PORTED 11.10, ждёт CI |
 | `863fb0d8` message_persisted (нужен `ToolPkgChatMessageHookBridge.kt` — файла нет в форке; искать породивший коммит) | BLOCKED |
 | `a7676fa3` (dev) Antigravity OAuth (поверх наших CN-вырезов, 5k реформат) | TODO (решать: нужен ли провайдер) |
 

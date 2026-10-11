@@ -27,10 +27,23 @@ install; леджер research-size п.3 и таблица обновлены (s
 12 ЧАСТИЧНО (живые helper APK, templates/emoji — в Q2 с картой читателей),
 13 (subpack DoD ЗАКРЫТ; остаток Q2: helper APK, templates/emoji — тем же
 лекалом; подпись чинена задачей 17).
-ЗАКРЫТО 10.10 ночью: 14 (см. CLOSE-OUT в теле), 15 (полная приёмка
-`accept10` PASS=10 FAIL=0 на `20261010_215026Z` — онбординг/picker/папка/
-скачивание/репак/подпись/offline-повтор), 17 (корень PBES2 + evict-фикс,
-доказательство в теле).
+  ЗАКРЫТО 10.10 ночью: 14 (см. CLOSE-OUT в теле), 15 (полная приёмка
+  `accept10` PASS=10 FAIL=0 на `20261010_215026Z` — онбординг/picker/папка/
+  скачивание/репак/подпись/offline-повтор), 17 (корень PBES2 + evict-фикс,
+  доказательство в теле).
+  Q2-ПРОДОЛЖЕНИЕ 10.10 ночью (helper APK; templates/emoji — следующими):
+  `OfflinePayload.HELPER_SHIZUKU/HELPER_A11Y` (URL релиза v1.12.1+4,
+  size+sha с последних бандлов, версии 13.6.0/1.5 пинятся в объекте);
+  новый `core/subpack/HelperApkStorage.kt` (ensure в cacheDir через
+  `RemoteAssetFetcher` — копии старых сборок узнаются без докачки);
+  `ShizukuInstaller.extractApkFromAssets` → suspend-ensure (мёртвые
+  `isApkExtracted`/`installBundledShizuku` удалены — звателей не было,
+  якоря реестра чистые), версия → константа; `AccessibilityProviderInstaller`
+  версия → константа; `UIHierarchyManager.extractProviderApkFromAssets` →
+  suspend-ensure (зовётся из IO-скоупа, тост-путь сохранён); 2 сайта
+  ShizukuDemoScreen уже в `scope.launch(IO)` — замена прозрачна. Файлы
+  залиты в релиз (`helper-shizuku.apk` 2571773, `helper-accessibility.apk`
+  2763980 — размеры сошлись), 4 ассета вырезаны `git rm`. CI после пуша.
 12 ЧАСТИЧНО ((a) apktool удалён И замерен 08.10 — ЗАКРЫТА;
 (b) desktop удалён И замерен 08.10 — ЗАКРЫТА; живые helper APK,
 templates/emoji — в Q2 с картой читателей),

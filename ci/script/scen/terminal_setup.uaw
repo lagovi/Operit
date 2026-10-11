@@ -12,7 +12,7 @@
 EXPECT 15 Enter question
 TAP_AT 49 110
 TAP Toolbox
-SCROLL_TO 4 Command Terminal
+SCROLL_TO 4 UP Command Terminal
 TAP Command Terminal
 EXPECT 60 Environment Setup
 TAP Start Setup

@@ -22,8 +22,10 @@
 #   HIDEKB                BACK only when the soft keyboard is shown
 #   SWIPE_UP              swipe 360,1200 -> 360,300
 #   SWIPE_DOWN            swipe 360,300 -> 360,1200
-#   SCROLL_TO [n] <text>  swipe down (reveal content above) until <text> is
-#                         visible, max n swipes (default 5); abort otherwise
+#   SCROLL_TO [n] [UP|DOWN] <text>
+#                         swipe until <text> is visible, max n swipes
+#                         (default 5 DOWN = reveal content above; UP reveals
+#                         content below); abort otherwise
 #   SLEEP <secs>
 #   DUMP                  save current dump+texts to the log trail
 #
@@ -195,19 +197,29 @@ uaw_run() {
                 sleep 2
                 ;;
             SCROLL_TO)
-                local stext smax sfirst s i
-                stext="$rest"; smax=5
-                sfirst="${rest%% *}"
-                if [[ "$sfirst" =~ ^[0-9]+$ ]]; then
-                    smax="$sfirst"; stext="${rest#* }"
-                fi
+                local stext smax sdir sfirst s i
+                stext="$rest"; smax=5; sdir="DOWN"
+                for _t in 1 2; do
+                    sfirst="${stext%% *}"
+                    if [[ "$sfirst" =~ ^[0-9]+$ ]]; then
+                        smax="$sfirst"; stext="${stext#* }"
+                    elif [[ "$sfirst" == "UP" || "$sfirst" == "DOWN" ]]; then
+                        sdir="$sfirst"; stext="${stext#* }"
+                    else
+                        break
+                    fi
+                done
                 [ -n "$stext" ] || uaw_abort "SCROLL_TO needs text"
                 for ((s=0; s<smax; s++)); do
                     if plab_texts 2>/dev/null | grep -qF "$stext"; then
                         echo "  scroll_to($UA_STEP) '$stext' ok after $s swipes"
                         break
                     fi
-                    adb -s "$PHONE" shell "input swipe 360 300 360 1200 400" < /dev/null
+                    if [ "$sdir" = "UP" ]; then
+                        adb -s "$PHONE" shell "input swipe 360 1200 360 300 400" < /dev/null
+                    else
+                        adb -s "$PHONE" shell "input swipe 360 300 360 1200 400" < /dev/null
+                    fi
                     sleep 2
                 done
                 plab_texts 2>/dev/null | grep -qF "$stext" \

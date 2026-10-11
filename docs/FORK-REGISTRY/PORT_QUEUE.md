@@ -27,7 +27,7 @@
 | `72c1216b`+`19b50643`+`f2414493` DB/config repair (наш `AppDatabase.kt`, строки в удалённые локали — портировать строки только в `values/`) | TODO |
 | `40081a2a` DataStore repair (нужен `PreferencesHealthManager.kt` из batch-2 выше) | BLOCKED |
 | `62ea0c3e` perf-мониторы (наши `PackageDetailsDialog/SettingsScreen/OperitScreens`, строки) + `4e6ae68a` поверх | TODO |
-| `6d5e8ae8` floating crash-protection (наш `FloatingChatService.kt`) | TODO |
+| `6d5e8ae8` floating crash-protection (cherry-pick -n, auto-merge чистый) | PORTED 11.10, ждёт CI |
 | `567f245a` group-orchestration дубли (ручной, threaded через sendMessageInternal) | PORTED 11.10, ждёт CI |
 | `21212530` dialogue review (наш `EnhancedAIService.kt`, `ModelConfig*`) | TODO |
 | `1e89d4f2` composedsl курсор (наш `ToolPkgComposeDslScreen.kt`) | TODO |

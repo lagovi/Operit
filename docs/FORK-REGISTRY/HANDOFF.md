@@ -52,6 +52,22 @@ install; леджер research-size п.3 и таблица обновлены (s
   (BACK без установки — Shizuku телефона цел). По пути walker добрал
   4 бага живьём: fd3-stdin, bare-bounds, WAIT_PKG, SCROLL_TO (все в
   memo выше — не повторять).
+  Q2-ПРОДОЛЖЕНИЕ 11.10 (templates/emoji seeds): `SEED_TEMPLATES/SEED_EMOJI`
+  (по одному zip в релизе v1.12.1+4, size+sha замерены); новый
+  `core/subpack/AssetSeedStorage.kt` (ensure zip в filesDir/seed/ +
+  распаковка с zip-slip-guard, маркер `.seed-ok` РЯДОМ с деревом, не
+  внутри); `WorkspaceUtils.copyTemplateFiles` → File-рекурсия (gitignore-
+  переименование сохранено), seed-root параметром из WorkspaceSetup;
+  `bindBuiltInWorkspace` → async (тот же busy-флаг + error-слот, ошибка
+  в `download_failed`-формат); emoji — ensure в существующем IO-пути,
+  copy возвращает Boolean (reset бросает при недоступности seed, стартап
+  молча откладывает). Залито: `seed-templates.zip` 4227058,
+  `seed-emoji.zip` 3614642. Нарушения по пути (честно): (1) запушил на
+  красном ANCHOR-LOST (якорь SIZE-006 указывал в удалённое дерево) —
+  починено переносом SIZE-006 на WorkspaceUtils + seed (ворота снова
+  зелёные); (2) перезаписал registry.json с indent=2 вместо 1 (дифф
+  577 строк) — переделано, amend + force-with-lease СВОЕГО свежего
+  docs-коммита (чужих коммитов в ветке нет, CI его не брал). CI после.
 12 ЧАСТИЧНО ((a) apktool удалён И замерен 08.10 — ЗАКРЫТА;
 (b) desktop удалён И замерен 08.10 — ЗАКРЫТА; живые helper APK,
 templates/emoji — в Q2 с картой читателей),

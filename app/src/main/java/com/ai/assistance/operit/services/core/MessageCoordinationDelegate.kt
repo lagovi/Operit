@@ -328,6 +328,9 @@ class MessageCoordinationDelegate(
         roleCardIdOverride: String? = null,
         chatIdOverride: String? = null,
         messageTextOverride: String? = null,
+        // Port of upstream 567f245a: group-orchestration first member reuses
+        // the content orchestrateGroupConversation already built and persisted.
+        prebuiltMessageContent: String? = null,
         proxySenderNameOverride: String? = null,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
@@ -369,6 +372,7 @@ class MessageCoordinationDelegate(
                     chatIdOverride = chatIdOverride,
                     messageTextOverride = messageTextOverride,
                     proxySenderNameOverride = proxySenderNameOverride,
+                    prebuiltMessageContent = prebuiltMessageContent,
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
                     chatModelIndexOverride = chatModelIndexOverride,
                     turnOptions = turnOptions
@@ -383,6 +387,7 @@ class MessageCoordinationDelegate(
                 chatIdOverride = chatIdOverride,
                 messageTextOverride = messageTextOverride,
                 proxySenderNameOverride = proxySenderNameOverride,
+                prebuiltMessageContent = prebuiltMessageContent,
                 chatModelConfigIdOverride = chatModelConfigIdOverride,
                 chatModelIndexOverride = chatModelIndexOverride,
                 turnOptions = turnOptions
@@ -524,6 +529,8 @@ class MessageCoordinationDelegate(
         chatIdOverride: String? = null,
         messageTextOverride: String? = null,
         proxySenderNameOverride: String? = null,
+        // Port of upstream 567f245a, threaded through sendUserMessage.
+        prebuiltMessageContent: String? = null,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
         memorySpaceIdOverride: String? = null,
@@ -728,6 +735,7 @@ class MessageCoordinationDelegate(
             attachments = currentAttachments,
             chatId = chatId,
             messageTextOverride = effectiveMessageTextOverride,
+            prebuiltMessageContent = prebuiltMessageContent,
             proxySenderNameOverride = proxySenderName,
             workspacePath = workspacePath,
             workspaceEnv = workspaceEnv,
@@ -969,6 +977,10 @@ class MessageCoordinationDelegate(
                     roleCardIdOverride = member.characterCardId,
                     chatIdOverride = chatId,
                     messageTextOverride = memberMessage,
+                    // 首成员的输入就是编排器落库的那条用户消息：复用已构建内容,
+                    // 避免重建触发第二遍输入处理钩子，并让 sendUserMessage
+                    //剥离历史末尾的同一条消息，防止模型收到两份。
+                    prebuiltMessageContent = if (isFirstMemberOfFirstRound) finalUserMessageContent else null,
                     proxySenderNameOverride = null,
                     chatModelConfigIdOverride = null,
                     chatModelIndexOverride = null,

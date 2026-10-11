@@ -746,6 +746,11 @@ class MessageProcessingDelegate(
             attachments: List<AttachmentInfo> = emptyList(),
             chatId: String,
             messageTextOverride: String? = null,
+            // Port of upstream 567f245a (group orchestration): the orchestrator
+            // already built and persisted this round's user message — reuse it
+            // instead of rebuilding via buildUserMessageContent, otherwise
+            // input hooks run twice on the same message.
+            prebuiltMessageContent: String? = null,
             proxySenderNameOverride: String? = null,
             workspacePath: String? = null,
             workspaceEnv: String? = null,
@@ -842,33 +847,37 @@ class MessageProcessingDelegate(
 
             // 1. 使用 AIMessageManager 构建最终消息
             val buildUserMessageStartTime = messageTimingNow()
-            val finalMessageContent = AIMessageManager.buildUserMessageContent(
-                context = context,
-                messageText = messageText,
-                proxySenderName = proxySenderNameOverride,
-                attachments = attachments,
-                workspacePath = workspacePath,
-                workspaceEnv = workspaceEnv,
-                replyToMessage = replyToMessage,
-                enableDirectImageProcessing = enableDirectImageProcessing,
-                enableDirectFileProcessing = enableDirectFileProcessing,
-                enableDirectAudioProcessing = enableDirectAudioProcessing,
-                enableDirectVideoProcessing = enableDirectVideoProcessing,
-                chatId = chatId,
-                roleCardId = roleCardId,
-                onHookTimeout = { pluginIdentifier ->
-                    reportNonFatalError(
-                        context.getString(
-                            R.string.toolpkg_hook_timeout_continue_sending_with_plugin,
-                            pluginIdentifier
+            val finalMessageContent = if (prebuiltMessageContent != null) {
+                prebuiltMessageContent
+            } else {
+                AIMessageManager.buildUserMessageContent(
+                    context = context,
+                    messageText = messageText,
+                    proxySenderName = proxySenderNameOverride,
+                    attachments = attachments,
+                    workspacePath = workspacePath,
+                    workspaceEnv = workspaceEnv,
+                    replyToMessage = replyToMessage,
+                    enableDirectImageProcessing = enableDirectImageProcessing,
+                    enableDirectFileProcessing = enableDirectFileProcessing,
+                    enableDirectAudioProcessing = enableDirectAudioProcessing,
+                    enableDirectVideoProcessing = enableDirectVideoProcessing,
+                    chatId = chatId,
+                    roleCardId = roleCardId,
+                    onHookTimeout = { pluginIdentifier ->
+                        reportNonFatalError(
+                            context.getString(
+                                R.string.toolpkg_hook_timeout_continue_sending_with_plugin,
+                                pluginIdentifier
+                            )
                         )
-                    )
-                }
-            )
+                    }
+                )
+            }
             logMessageTiming(
                 stage = "delegate.buildUserMessageContent",
                 startTimeMs = buildUserMessageStartTime,
-                details = "chatId=$chatId, attachments=${attachments.size}, finalLength=${finalMessageContent.length}"
+                details = "chatId=$chatId, attachments=${attachments.size}, finalLength=${finalMessageContent.length}, prebuilt=${prebuiltMessageContent != null}"
             )
 
             // 自动继续且原本消息为空时，不添加到聊天历史（虽然会发送"继续"给AI）
@@ -1148,7 +1157,14 @@ class MessageProcessingDelegate(
                     chatId = activeChatId,
                     messageContent = requestMessageContent,
                     // 仅在群组编排中去掉当前用户消息，避免重复拼接。
-                    chatHistory = if (isGroupOrchestrationTurn && userMessageAdded && chatHistory.isNotEmpty()) {
+                    // userMessageAdded 只覆盖本次发送自行落库的情况；编排路径的消息由
+                    // orchestrateGroupConversation 预先落库，此时由 prebuiltMessageContent
+                    // 识别：若不剥离历史末尾这条消息，模型会在历史和当前输入里各收到一份。
+                    chatHistory = if (
+                        isGroupOrchestrationTurn &&
+                        (userMessageAdded || prebuiltMessageContent != null) &&
+                        chatHistory.isNotEmpty()
+                    ) {
                         chatHistory.subList(0, chatHistory.size - 1)
                     } else {
                         chatHistory

@@ -28,7 +28,7 @@
 | `40081a2a` DataStore repair (нужен `PreferencesHealthManager.kt` из batch-2 выше) | BLOCKED |
 | `62ea0c3e` perf-мониторы (наши `PackageDetailsDialog/SettingsScreen/OperitScreens`, строки) + `4e6ae68a` поверх | TODO |
 | `6d5e8ae8` floating crash-protection (наш `FloatingChatService.kt`) | TODO |
-| `567f245a` group-orchestration дубли (наш `MessageProcessingDelegate.kt`) | TODO |
+| `567f245a` group-orchestration дубли (ручной, threaded через sendMessageInternal) | PORTED 11.10, ждёт CI |
 | `21212530` dialogue review (наш `EnhancedAIService.kt`, `ModelConfig*`) | TODO |
 | `1e89d4f2` composedsl курсор (наш `ToolPkgComposeDslScreen.kt`) | TODO |
 | `a19d7ef8`+`6bb2a245` unpaired toolcalls (наши `Deepseek/KimiProvider` УДАЛЕНЫ — портировать только в живые провайдеры) | TODO |

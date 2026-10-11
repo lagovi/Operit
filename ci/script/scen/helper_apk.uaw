@@ -1,0 +1,32 @@
+# helper_apk.uaw — helper-APK on-demand acceptance (UI part).
+#
+# Precondition (runner): target build installed + grants set + app at chat
+# (onboarding passed). Starts at chat, ends at the a11y installer.
+# File asserts (size+sha) are the runner's job after this scenario.
+#
+# Element inventory (uaw_elements, 20261011_015941Z):
+#   drawer hamburger: icon only, no text -> TAP_AT 49 110
+#   wizard buttons: "Install Bundled Version" (shizuku), "Install Provider App" (a11y)
+
+EXPECT 15 New Chat
+TAP_AT 49 110
+TAP Permissions
+EXPECT 20 Permission Level
+TAP DEBUGGER
+EXPECT 20 Debug Permission
+SWIPE_UP
+EXPECT 20 Install Bundled Version
+TAP Install Bundled Version
+EXPECT 90 want to install
+BACK
+TAP ACCESSIBILITY
+EXPECT 20 Permission Level
+SWIPE_UP
+EXPECT 20 Install Provider App
+TAP Install Provider App
+EXPECT 20 Confirm
+TYPE I%sunderstand%sand%sacknowledge%sthe%srisks%sof%saccount%sbans%sand%srestricted%saccount%sfunctions%scaused%sby%saccessibility%spermissions,%sand%sI%sbear%sthe%sconsequences%smyself
+HIDEKB
+TAP Confirm
+EXPECT 90 want to install
+BACK

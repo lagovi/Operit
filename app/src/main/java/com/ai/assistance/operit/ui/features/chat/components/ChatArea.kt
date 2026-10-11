@@ -1278,6 +1278,9 @@ private fun copyPreviewConsumedOverscrollY(scrollState: ScrollState, availableY:
         else -> 0f
     }
 }
+// Port of upstream 9cf8283e: wider cap (70% height, 720.dp) so long
+// messages show more lines on short screens.
+private const val COPY_PREVIEW_SHEET_HEIGHT_FRACTION = 0.7f
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -1292,7 +1295,7 @@ private fun MessageCopyPreviewBottomSheet(
     val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
     val previewMaxHeight =
         remember(screenHeightDp) {
-            (screenHeightDp * 0.4f).coerceIn(120.dp, 520.dp)
+            (screenHeightDp * COPY_PREVIEW_SHEET_HEIGHT_FRACTION).coerceIn(120.dp, 720.dp)
         }
     val copyPreviewNestedScrollConnection =
         remember(textScrollState) {

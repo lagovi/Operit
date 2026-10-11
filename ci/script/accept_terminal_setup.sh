@@ -25,17 +25,21 @@ step() { echo "== $1"; }
 to_chat() {
     adb -s "$PHONE" shell "monkey -p $PKG -c android.intent.category.LAUNCHER 1" >/dev/null 2>&1
     sleep 3
-    for _ in 1 2 3 4 5 6; do
-        plab_wait_text "New Chat" 3 && return 0
-        adb -s "$PHONE" shell "input keyevent KEYCODE_BACK"
-        sleep 2
-    done
-    # Bound workspace view traps BACK: the Code icon toggles back to chat.
-    if plab_texts 2>/dev/null | grep -qF "Preview"; then
-        plab_tap 671 110
+    for _round in 1 2 3; do
+        for _ in 1 2 3 4 5 6; do
+            plab_wait_text "New Chat" 3 && return 0
+            adb -s "$PHONE" shell "input keyevent KEYCODE_BACK"
+            sleep 2
+        done
+        # Bound workspace view traps BACK: the Code icon toggles back to chat.
+        if plab_texts 2>/dev/null | grep -qF "Preview"; then
+            plab_tap 671 110
+            sleep 3
+            plab_wait_text "New Chat" 10 && return 0
+        fi
+        adb -s "$PHONE" shell "monkey -p $PKG -c android.intent.category.LAUNCHER 1" >/dev/null 2>&1
         sleep 3
-        plab_wait_text "New Chat" 10 && return 0
-    fi
+    done
     return 1
 }
 
@@ -44,10 +48,16 @@ to_debugger_row() {
     # the status text following "Operit Terminal".
     to_chat || return 1
     plab_tap 49 110 && sleep 3
-    plab_tap_text "Permissions" || return 1
-    sleep 3
+    for _ in 1 2 3; do
+        plab_tap_text "Permissions" 2>/dev/null && break
+        sleep 3
+    done
+    sleep 2
     plab_wait_text "Permission Level" 20 || return 1
-    plab_tap_text "DEBUGGER" || return 1
+    for _ in 1 2 3; do
+        plab_tap_text "DEBUGGER" 2>/dev/null && break
+        sleep 3
+    done
     sleep 3
     plab_wait_text "Debug Permission" 20 || return 1
     adb -s "$PHONE" shell "input swipe 360 1200 360 300 400" && sleep 2

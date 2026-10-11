@@ -455,7 +455,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("debug")
-            resValue("string", "app_name", "Operit Debug")
+            resValue("string", "app_name", "Operit EN")
             // Fork EXPERIMENT (task 4): retry debug minification now that the
             // QuickJS JNI keep-fix is in. Revert this block (not the keep rule)
             // if the device cold start still shows Application Error. See E1.

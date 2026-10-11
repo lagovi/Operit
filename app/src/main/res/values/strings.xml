@@ -1251,6 +1251,7 @@
     <string name="onboarding_liability_text">Everything this app does on your device — good or bad — is your responsibility alone. The developer takes no responsibility for anything.</string>
     <string name="onboarding_tour_button">What can it do?</string>
     <string name="onboarding_plugins_note">Third-party plugins run their authors\' code on your device — install them at your own risk.</string>
+    <string name="fork_attribution">English-only community fork of Operit (upstream: github.com/AAswordman/Operit). ALPHA build, use at your own risk.</string>
     <string name="onboarding_tour_close">Close</string>
     <string name="onboarding_level_default_hint">Nothing selected? Standard stays.</string>
     <string name="onboarding_continue">Continue</string>

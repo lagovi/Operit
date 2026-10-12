@@ -968,6 +968,11 @@
     <string name="settings_summary_section_title_desc">Title shown in the summary</string>
     <string name="settings_summary_section_instruction">Section instruction</string>
     <string name="settings_summary_section_instruction_desc">What this section should record</string>
+    <!-- Port of upstream 21212530 (dialogue review), translated to English -->
+    <string name="settings_summary_dialogue_review">Dialogue review</string>
+    <string name="settings_summary_dialogue_review_desc">Appends a program-built record of user, assistant and tool-call entries at the end of the summary</string>
+    <string name="settings_summary_dialogue_review_title">Review title</string>
+    <string name="settings_summary_dialogue_review_title_desc">Title shown at the end of the summary; blank uses the default title</string>
     
     <string name="settings_section_display">Display and Behavior</string>
 

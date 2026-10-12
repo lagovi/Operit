@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.features.settings.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -24,6 +25,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Link
@@ -53,6 +56,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -83,6 +88,7 @@ import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
+import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.LocaleUtils
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
@@ -162,6 +168,12 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     var summaryCustomRulesInput by remember(currentConfig?.id) {
         mutableStateOf(currentConfig?.summaryCustomRules.orEmpty())
     }
+    var dialogueReviewEnabled by remember(currentConfig?.id) {
+        mutableStateOf(currentConfig?.enableSummaryDialogueReview ?: true)
+    }
+    var dialogueReviewTitleInput by remember(currentConfig?.id) {
+        mutableStateOf(currentConfig?.summaryDialogueReviewTitle.orEmpty())
+    }
     val useEnglish = !LocaleUtils.usesChineseContent(context)
     var summarySectionsInput by remember(currentConfig?.id) {
         mutableStateOf(emptyList<SummarySectionConfig>())
@@ -192,6 +204,12 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
     }
     LaunchedEffect(currentConfig?.id, currentConfig?.summaryCustomRules) {
         summaryCustomRulesInput = currentConfig?.summaryCustomRules.orEmpty()
+    }
+    LaunchedEffect(currentConfig?.id, currentConfig?.enableSummaryDialogueReview) {
+        dialogueReviewEnabled = currentConfig?.enableSummaryDialogueReview ?: true
+    }
+    LaunchedEffect(currentConfig?.id, currentConfig?.summaryDialogueReviewTitle) {
+        dialogueReviewTitleInput = currentConfig?.summaryDialogueReviewTitle.orEmpty()
     }
     LaunchedEffect(currentConfig?.id, currentConfig?.summarySectionOverrides, useEnglish) {
         summarySectionsInput = FunctionalPrompts.resolveSummarySections(
@@ -250,6 +268,13 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
         currentConfig = currentConfig,
         summarySectionsInputProvider = { summarySectionsInput },
         useEnglish = useEnglish,
+        modelConfigManager = modelConfigManager,
+        errorSaveFailed = errorSaveFailed,
+        onSummaryErrorChange = { summaryError = it }
+    )
+    ContextSummaryDialogueReviewAutoSaveEffect(
+        currentConfig = currentConfig,
+        dialogueReviewInputProvider = { dialogueReviewEnabled to dialogueReviewTitleInput },
         modelConfigManager = modelConfigManager,
         errorSaveFailed = errorSaveFailed,
         onSummaryErrorChange = { summaryError = it }
@@ -319,6 +344,10 @@ fun ContextSummarySettingsScreen(onBackPressed: () -> Unit) {
                     onSummaryCustomRulesInputChange = {
                         summaryCustomRulesInput = it
                     },
+                    dialogueReviewEnabled = dialogueReviewEnabled,
+                    onDialogueReviewEnabledChange = { dialogueReviewEnabled = it },
+                    dialogueReviewTitleInput = dialogueReviewTitleInput,
+                    onDialogueReviewTitleChange = { dialogueReviewTitleInput = it },
                     summarySectionsInput = summarySectionsInput,
                     onSummarySectionsInputChange = { summarySectionsInput = it },
                     onOpenFullscreenEditor = { title, value, onValueChange ->
@@ -613,6 +642,46 @@ private fun ContextSummarySectionsAutoSaveEffect(
 }
 
 @Composable
+private fun ContextSummaryDialogueReviewAutoSaveEffect(
+    currentConfig: ModelConfigData?,
+    dialogueReviewInputProvider: () -> Pair<Boolean, String>,
+    modelConfigManager: ModelConfigManager,
+    errorSaveFailed: String,
+    onSummaryErrorChange: (String?) -> Unit
+) {
+    val latestConfig by rememberUpdatedState(currentConfig)
+
+    LaunchedEffect(currentConfig?.id) {
+        val configId = currentConfig?.id ?: return@LaunchedEffect
+        snapshotFlow { dialogueReviewInputProvider() }
+            .drop(1)
+            .debounce(700)
+            .distinctUntilChanged()
+            .collectLatest { (enabled, title) ->
+                val current = latestConfig ?: return@collectLatest
+                if (current.id != configId) return@collectLatest
+                val normalizedTitle = title.trim()
+                if (current.enableSummaryDialogueReview == enabled &&
+                    current.summaryDialogueReviewTitle == normalizedTitle
+                ) {
+                    return@collectLatest
+                }
+                try {
+                    modelConfigManager.updateSummaryDialogueReviewSettings(
+                        configId = current.id,
+                        enabled = enabled,
+                        title = normalizedTitle
+                    )
+                    onSummaryErrorChange(null)
+                } catch (e: Exception) {
+                    AppLogger.w("ContextSummarySettings", "保存对话回顾设置失败", e)
+                    onSummaryErrorChange(e.message ?: errorSaveFailed)
+                }
+            }
+    }
+}
+
+@Composable
 private fun RenderContextSummaryConfigSections(
     componentBackgroundColor: Color,
     contextLengthInput: String,
@@ -630,6 +699,10 @@ private fun RenderContextSummaryConfigSections(
     onSummaryMessageCountThresholdInputChange: (String) -> Unit,
     summaryCustomRulesInput: String,
     onSummaryCustomRulesInputChange: (String) -> Unit,
+    dialogueReviewEnabled: Boolean,
+    onDialogueReviewEnabledChange: (Boolean) -> Unit,
+    dialogueReviewTitleInput: String,
+    onDialogueReviewTitleChange: (String) -> Unit,
     summarySectionsInput: List<SummarySectionConfig>,
     onSummarySectionsInputChange: (List<SummarySectionConfig>) -> Unit,
     onOpenFullscreenEditor: (String, String, (String) -> Unit) -> Unit,
@@ -725,20 +798,14 @@ private fun RenderContextSummaryConfigSections(
 
     Spacer(modifier = Modifier.size(8.dp))
     val globalRulesTitle = stringResource(id = R.string.settings_summary_custom_rules)
-    SettingsMultilineTextField(
+    GlobalSummaryRulesEditor(
         title = globalRulesTitle,
         subtitle = stringResource(id = R.string.settings_summary_custom_rules_desc),
-        value = summaryCustomRulesInput,
-        onValueChange = onSummaryCustomRulesInputChange,
         backgroundColor = componentBackgroundColor,
         enabled = enableSummary,
-        onOpenFullscreen = {
-            onOpenFullscreenEditor(
-                globalRulesTitle,
-                summaryCustomRulesInput,
-                onSummaryCustomRulesInputChange
-            )
-        }
+        value = summaryCustomRulesInput,
+        onValueChange = onSummaryCustomRulesInputChange,
+        onOpenFullscreenEditor = onOpenFullscreenEditor
     )
     Spacer(modifier = Modifier.size(12.dp))
     SectionTitle(
@@ -760,6 +827,49 @@ private fun RenderContextSummaryConfigSections(
             onOpenFullscreenEditor = onOpenFullscreenEditor
         )
     }
+    DialogueReviewEditor(
+        enabled = dialogueReviewEnabled,
+        onEnabledChange = onDialogueReviewEnabledChange,
+        title = dialogueReviewTitleInput,
+        onTitleChange = onDialogueReviewTitleChange,
+        backgroundColor = componentBackgroundColor,
+        summaryEnabled = enableSummary
+    )
+}
+
+@Composable
+private fun GlobalSummaryRulesEditor(
+    title: String,
+    subtitle: String,
+    backgroundColor: Color,
+    enabled: Boolean,
+    value: String,
+    onValueChange: (String) -> Unit,
+    onOpenFullscreenEditor: (String, String, (String) -> Unit) -> Unit
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    SummaryEditorHeader(
+        title = title,
+        subtitle = subtitle,
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        backgroundColor = backgroundColor,
+        enabled = enabled
+    )
+    AnimatedVisibility(visible = expanded) {
+        SettingsMultilineTextField(
+            title = title,
+            subtitle = subtitle,
+            value = value,
+            onValueChange = onValueChange,
+            backgroundColor = backgroundColor,
+            enabled = enabled,
+            onOpenFullscreen = {
+                onOpenFullscreenEditor(title, value, onValueChange)
+            }
+        )
+    }
+    Spacer(modifier = Modifier.size(8.dp))
 }
 
 @Composable
@@ -770,38 +880,163 @@ private fun SummarySectionEditor(
     enabled: Boolean,
     onOpenFullscreenEditor: (String, String, (String) -> Unit) -> Unit
 ) {
-    SettingsSwitchRow(
+    var expanded by rememberSaveable(section.id) { mutableStateOf(false) }
+    SummaryConfigEditorHeader(
         title = section.title,
         subtitle = stringResource(id = R.string.settings_summary_section_enabled_desc),
         checked = section.enabled,
         onCheckedChange = { onSectionChange(section.copy(enabled = it)) },
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
         backgroundColor = backgroundColor,
         enabled = enabled
     )
-    SettingsMultilineTextField(
-        title = stringResource(id = R.string.settings_summary_section_title),
-        subtitle = stringResource(id = R.string.settings_summary_section_title_desc),
-        value = section.title,
-        onValueChange = { onSectionChange(section.copy(title = it)) },
-        backgroundColor = backgroundColor,
-        enabled = enabled && section.enabled,
-        singleLine = true,
-        minHeight = 40.dp
-    )
-    SettingsMultilineTextField(
-        title = stringResource(id = R.string.settings_summary_section_instruction),
-        subtitle = stringResource(id = R.string.settings_summary_section_instruction_desc),
-        value = section.instruction,
-        onValueChange = { onSectionChange(section.copy(instruction = it)) },
-        backgroundColor = backgroundColor,
-        enabled = enabled && section.enabled,
-        onOpenFullscreen = {
-            onOpenFullscreenEditor(section.title, section.instruction) { value ->
-                onSectionChange(section.copy(instruction = value))
-            }
+    AnimatedVisibility(visible = expanded) {
+        Column {
+            SettingsMultilineTextField(
+                title = stringResource(id = R.string.settings_summary_section_title),
+                subtitle = stringResource(id = R.string.settings_summary_section_title_desc),
+                value = section.title,
+                onValueChange = { onSectionChange(section.copy(title = it)) },
+                backgroundColor = backgroundColor,
+                enabled = enabled && section.enabled,
+                singleLine = true,
+                minHeight = 40.dp
+            )
+            SettingsMultilineTextField(
+                title = stringResource(id = R.string.settings_summary_section_instruction),
+                subtitle = stringResource(id = R.string.settings_summary_section_instruction_desc),
+                value = section.instruction,
+                onValueChange = { onSectionChange(section.copy(instruction = it)) },
+                backgroundColor = backgroundColor,
+                enabled = enabled && section.enabled,
+                onOpenFullscreen = {
+                    onOpenFullscreenEditor(section.title, section.instruction) { value ->
+                        onSectionChange(section.copy(instruction = value))
+                    }
+                }
+            )
         }
-    )
+    }
     Spacer(modifier = Modifier.size(8.dp))
+}
+
+@Composable
+private fun DialogueReviewEditor(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit,
+    title: String,
+    onTitleChange: (String) -> Unit,
+    backgroundColor: Color,
+    summaryEnabled: Boolean
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    SummaryConfigEditorHeader(
+        title = stringResource(id = R.string.settings_summary_dialogue_review),
+        subtitle = stringResource(id = R.string.settings_summary_dialogue_review_desc),
+        checked = enabled,
+        onCheckedChange = onEnabledChange,
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        backgroundColor = backgroundColor,
+        enabled = summaryEnabled
+    )
+    AnimatedVisibility(visible = expanded) {
+        SettingsMultilineTextField(
+            title = stringResource(id = R.string.settings_summary_dialogue_review_title),
+            subtitle = stringResource(id = R.string.settings_summary_dialogue_review_title_desc),
+            value = title,
+            onValueChange = onTitleChange,
+            backgroundColor = backgroundColor,
+            enabled = summaryEnabled && enabled,
+            singleLine = true,
+            minHeight = 40.dp
+        )
+    }
+    Spacer(modifier = Modifier.size(8.dp))
+}
+
+@Composable
+private fun SummaryConfigEditorHeader(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    backgroundColor: Color,
+    enabled: Boolean
+) {
+    val contentAlpha = if (enabled) 1f else 0.38f
+    Row(
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(bottom = 4.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(backgroundColor)
+                .alpha(contentAlpha)
+                .clickable(enabled = enabled) { onExpandedChange(!expanded) }
+                .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
+        IconButton(onClick = { onExpandedChange(!expanded) }, enabled = enabled) {
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = stringResource(
+                    if (expanded) R.string.model_config_collapse else R.string.model_config_expand
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryEditorHeader(
+    title: String,
+    subtitle: String,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    backgroundColor: Color,
+    enabled: Boolean
+) {
+    val contentAlpha = if (enabled) 1f else 0.38f
+    Row(
+        modifier =
+            Modifier.fillMaxWidth()
+                .padding(bottom = 4.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(backgroundColor)
+                .alpha(contentAlpha)
+                .clickable(enabled = enabled) { onExpandedChange(!expanded) }
+                .padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(text = title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        IconButton(onClick = { onExpandedChange(!expanded) }, enabled = enabled) {
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = stringResource(
+                    if (expanded) R.string.model_config_collapse else R.string.model_config_expand
+                )
+            )
+        }
+    }
 }
 
 @Composable

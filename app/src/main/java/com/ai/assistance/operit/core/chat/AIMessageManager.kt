@@ -56,6 +56,13 @@ internal fun logMessageTiming(
     AppLogger.d(MESSAGE_PROCESS_TIMING_TAG, "$stage 耗时=${elapsed}ms$suffix")
 }
 
+internal fun formatDialogueReviewHeader(defaultHeader: String, customTitle: String): String {
+    val normalizedTitle =
+        customTitle.replace(Regex("\\s+"), " ").trim().trimEnd(':', '：')
+    val separator = if (defaultHeader.contains('：')) '：' else ':'
+    return if (normalizedTitle.isBlank()) defaultHeader else "\n\n$normalizedTitle$separator\n"
+}
+
 /**
  * 单例对象，负责管理与 EnhancedAIService 的所有通信。
  *
@@ -1053,8 +1060,13 @@ object AIMessageManager {
                 val packageWarmupBlock = buildPackageWarmupBlock(messagesToSummarize, useEnglish)
                 val summaryWithQuotes = buildString {
                     append(trimmedSummary)
-                    if (conversationReviewEntries.isNotEmpty()) {
-                        append(context.getString(R.string.ai_message_dialogue_review))
+                    if (summaryConfig.dialogueReviewEnabled && conversationReviewEntries.isNotEmpty()) {
+                        append(
+                            formatDialogueReviewHeader(
+                                defaultHeader = context.getString(R.string.ai_message_dialogue_review),
+                                customTitle = summaryConfig.dialogueReviewTitle
+                            )
+                        )
                         conversationReviewEntries.forEach { (speaker, content) ->
                             append("- ")
                             append(speaker)

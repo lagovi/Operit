@@ -1033,6 +1033,19 @@ class ModelConfigManager(
         }
     }
 
+    suspend fun updateSummaryDialogueReviewSettings(
+            configId: String,
+            enabled: Boolean,
+            title: String
+    ): ModelConfigData {
+        return updateConfigInternal(configId) {
+            it.copy(
+                    enableSummaryDialogueReview = enabled,
+                    summaryDialogueReviewTitle = title
+            )
+        }
+    }
+
     /**
      * 根据配置ID获取完整的模型参数列表（包括标准和自定义参数）
      * @param configId 配置ID

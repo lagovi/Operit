@@ -32,7 +32,7 @@
 | `4e6ae68a` CPU sampling поверх | PORTED 11.10, ждёт CI |
 | `6d5e8ae8` floating crash-protection (cherry-pick -n, auto-merge чистый) | PORTED 11.10, ждёт CI |
 | `567f245a` group-orchestration дубли (ручной, threaded через sendMessageInternal) | PORTED 11.10, ждёт CI |
-| `21212530` dialogue review (наш `EnhancedAIService.kt`, `ModelConfig*`) | TODO |
+| `21212530` dialogue review (cherry-pick + 4 строки EN) | PORTED 11.10, ждёт CI |
 | `1e89d4f2` composedsl курсор (cherry-pick -n, чистый) | PORTED 11.10, ждёт CI |
 | `a19d7ef8` unpaired toolcalls (cherry-pick, мёртвые провайдеры отброшены) | PORTED 11.10, ждёт CI |
 | `6bb2a245` unmatched tool history ( wholesale 6 файлов + EN, через промежуточные переименования) | PORTED 11.10, ждёт CI |

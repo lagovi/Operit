@@ -69,7 +69,9 @@ data class SummarySectionOverride(
 
 data class ConversationSummaryConfig(
         val globalRules: String? = null,
-        val sectionOverrides: List<SummarySectionOverride> = emptyList()
+        val sectionOverrides: List<SummarySectionOverride> = emptyList(),
+        val dialogueReviewEnabled: Boolean = true,
+        val dialogueReviewTitle: String = ""
 )
 
 /** 表示完整的模型配置，包括API设置和模型参数 */
@@ -137,6 +139,8 @@ data class ModelConfigData(
         // 自定义总结规则
         val summaryCustomRules: String = "",
         val summarySectionOverrides: List<SummarySectionOverride> = emptyList(),
+        val enableSummaryDialogueReview: Boolean = true,
+        val summaryDialogueReviewTitle: String = "",
 
         // MNN特定配置
         // 注意：MNN模型路径会根据modelName自动构建，不需要单独存储

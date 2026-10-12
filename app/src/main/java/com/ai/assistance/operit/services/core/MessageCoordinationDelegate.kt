@@ -2043,7 +2043,9 @@ class MessageCoordinationDelegate(
                 val config = modelConfigManager.getModelConfigFlow(chatMapping.configId).first()
                 ConversationSummaryConfig(
                     globalRules = config.summaryCustomRules.takeIf { it.isNotBlank() },
-                    sectionOverrides = config.summarySectionOverrides
+                    sectionOverrides = config.summarySectionOverrides,
+                    dialogueReviewEnabled = config.enableSummaryDialogueReview,
+                    dialogueReviewTitle = config.summaryDialogueReviewTitle
                 )
             } else {
                 ConversationSummaryConfig()

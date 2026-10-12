@@ -831,7 +831,9 @@ dependencies {
     
     // 协程测试依赖
     testImplementation(libs.coroutines.test)
-    androidTestImplementation(libs.coroutines.test)
+    // NOTE (fork): no androidTest uses coroutines-test, and its startup
+    // initializer (TestMainDispatcherFactory) crashes the minified app
+    // under instrumentation (stripped MainDispatcherFactory$DefaultImpls).
     
     // 模拟测试框架 - 保留现有的 mockito 并新增 mockk
     testImplementation(libs.mockito.core)

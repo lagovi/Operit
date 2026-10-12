@@ -173,3 +173,11 @@
 # Reactor BlockHound integration with Netty
 -dontwarn reactor.blockhound.integration.BlockHoundIntegration
 -dontwarn io.netty.util.internal.Hidden$NettyBlockHoundIntegration
+
+# androidTest R8 (assembleDebugAndroidTest): test-only deps reference
+# classes absent from the APK (mockito-inline internals, opentest4j).
+# Warnings only — the on-device baseline test does not touch them.
+-dontwarn org.mockito.internal.**
+-dontwarn org.mockito.exceptions.**
+-dontwarn net.bytebuddy.**
+-dontwarn org.opentest4j.**

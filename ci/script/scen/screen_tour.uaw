@@ -3,91 +3,121 @@
 # installing a build with the help scaffold (HelpContent.kt + AppContent
 # "?" action). EXPECTs use topic-unique section headers, never titles
 # (some titles equal screen titles and prove nothing).
-# Pattern per screen: drawer -> label -> title check -> ? -> section -> back x2.
-# Drawer toggle is icon-only: TAP_AT 49 110.
+# Drawer toggle is icon-only: TAP_AT 49 110, proven open by EXPECT User Manual.
+# Screens without drawer entries (Terminal, Tool Permission Settings)
+# are reached via Toolbox cards / Settings rows; BACK counts differ there.
 
 TAP_AT 49 110
+EXPECT User Manual
 TAP AI Chat
 MAYBE_TAP New Chat
 EXPECT Enter your question
 TAP ?
+SCROLL_TO UP Model row and toggles
 EXPECT Model row and toggles
 BACK
 BACK
 
 TAP_AT 49 110
+EXPECT User Manual
 TAP Memory Base
 EXPECT Memory Base
 TAP ?
+SCROLL_TO UP Graph canvas
 EXPECT Graph canvas
 BACK
 BACK
 
 TAP_AT 49 110
+EXPECT User Manual
 TAP Packages
 EXPECT Packages
 TAP ?
+SCROLL_TO UP Rows, details, enable switch
 EXPECT Rows, details, enable switch
 BACK
 BACK
 
 TAP_AT 49 110
+EXPECT User Manual
 TAP Toolbox
 EXPECT Toolbox
 TAP ?
+SCROLL_TO UP Shell and system
 EXPECT Shell and system
 BACK
 BACK
 
 TAP_AT 49 110
+EXPECT User Manual
 TAP Settings
 EXPECT Settings
 TAP ?
+SCROLL_TO UP Data and permissions
 EXPECT Data and permissions
 BACK
 BACK
 
 TAP_AT 49 110
+EXPECT User Manual
 TAP Workflow
 EXPECT Workflow
 TAP ?
+SCROLL_TO UP Create and templates
 EXPECT Create and templates
 BACK
 BACK
 
+# Terminal has no drawer entry: Toolbox card (title text taps its card).
 TAP_AT 49 110
-TAP Terminal
+EXPECT User Manual
+TAP Toolbox
+SCROLL_TO UP Command Terminal
+TAP Command Terminal
 EXPECT Terminal
 TAP ?
+SCROLL_TO UP Terminal view
 EXPECT Terminal view
+BACK
 BACK
 BACK
 
 TAP_AT 49 110
+EXPECT User Manual
 TAP Permissions
 EXPECT Permissions
 TAP ?
+SCROLL_TO UP Higher levels
 EXPECT Higher levels
 BACK
 BACK
 
+# Tool Permission Settings has no drawer entry: Settings row.
 TAP_AT 49 110
+EXPECT User Manual
+TAP Settings
+SCROLL_TO UP Tool Permission Settings
 TAP Tool Permission Settings
-EXPECT Tool Permission Settings
+EXPECT Tool Permissions
 TAP ?
+SCROLL_TO UP Global chips and lists
 EXPECT Global chips and lists
+BACK
 BACK
 BACK
 
 TAP_AT 49 110
+EXPECT User Manual
 TAP About
 EXPECT About
 TAP ?
+SCROLL_TO UP Storage and links
 EXPECT Storage and links
 BACK
 BACK
 
 TAP_AT 49 110
+EXPECT User Manual
 TAP User Manual
 EXPECT Help
 DUMP

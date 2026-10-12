@@ -11,6 +11,7 @@ on:
         options:
           - assembleDebug
           - ':app:assembleDebugAndroidTest'
+          - 'BOTH:APP_AND_TEST'
           - ':app:assembleNightly'
           - ':app:assembleClone'
           - ':app:bundleRelease'
@@ -218,7 +219,14 @@ jobs:
             *) echo "Unsupported workflow event: $EVENT_NAME" >&2; exit 2 ;;
           esac
           chmod +x ./gradlew
-          ./gradlew "$gradle_task" --stacktrace --no-daemon
+          # BOTH:APP_AND_TEST builds app + test APKs in ONE run so both
+          # share the ephemeral debug signature (required for am instrument).
+          # Word-splitting $gradle_task is intentional here.
+          if [ "$gradle_task" = "BOTH:APP_AND_TEST" ]; then
+            ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace --no-daemon
+          else
+            ./gradlew "$gradle_task" --stacktrace --no-daemon
+          fi
 
       - name: Upload Android reports
         if: always()

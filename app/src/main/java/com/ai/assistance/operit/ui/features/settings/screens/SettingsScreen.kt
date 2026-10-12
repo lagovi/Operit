@@ -56,6 +56,7 @@ fun SettingsScreen(
         navigateToWaifuModeSettings: () -> Unit,
         navigateToTokenUsageStatistics: () -> Unit,
         navigateToLlmIoLog: () -> Unit,
+        navigateToPerformanceMonitor: () -> Unit,
         navigateToContextSummarySettings: () -> Unit,
         navigateToLayoutAdjustmentSettings: () -> Unit
 ) {
@@ -301,6 +302,13 @@ fun SettingsScreen(
                         )
 
                         SubpackStorageSection()
+
+                        CompactSettingsItem(
+                                 title = stringResource(id = R.string.settings_performance_monitor),
+                                 subtitle = stringResource(id = R.string.settings_performance_monitor_subtitle),
+                                 icon = Icons.Default.Speed,
+                                 onClick = navigateToPerformanceMonitor
+                         )
                 }
 
                 // ======= 隐私与数据清理 =======

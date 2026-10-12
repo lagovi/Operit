@@ -52,6 +52,7 @@ import com.ai.assistance.operit.ui.features.settings.screens.ContextSummarySetti
 import com.ai.assistance.operit.ui.features.settings.screens.ExternalHttpChatSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.FunctionalConfigScreen
 import com.ai.assistance.operit.ui.features.settings.screens.GlobalDisplaySettingsScreen
+import com.ai.assistance.operit.ui.features.performance.PerformanceMonitorScreen
 import com.ai.assistance.operit.ui.features.settings.screens.GitHubAccountScreen
 import com.ai.assistance.operit.ui.features.settings.screens.LanguageSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.LayoutAdjustmentSettingsScreen
@@ -616,6 +617,7 @@ sealed class Screen(
                     navigateToWaifuModeSettings = { navigateTo(WaifuModeSettings) },
                     navigateToTokenUsageStatistics = { navigateTo(TokenUsageStatistics) },
                     navigateToLlmIoLog = { navigateTo(LlmIoLog) },
+                    navigateToPerformanceMonitor = { navigateTo(PerformanceMonitor) },
                     navigateToContextSummarySettings = { navigateTo(ContextSummarySettings) },
                     navigateToLayoutAdjustmentSettings = { navigateTo(LayoutAdjustmentSettings) }
             )
@@ -1156,6 +1158,25 @@ sealed class Screen(
             LlmIoLogScreen(
                     onBackPressed = onGoBack,
             )
+        }
+    }
+
+    data object PerformanceMonitor :
+            Screen(
+                    navItem = NavItem.Settings,
+                    titleRes = R.string.screen_title_performance_monitor
+            ) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            PerformanceMonitorScreen()
         }
     }
 

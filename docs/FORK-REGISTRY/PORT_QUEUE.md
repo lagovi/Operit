@@ -29,7 +29,7 @@
 | `f2414493` config repair (cherry-pick + 14 rewords + 15 строк в EN) | PORTED 11.10, ждёт CI |
 | `40081a2a` DataStore domain repair (cherry-pick -n, чистый) | PORTED 11.10, ждёт CI |
 | `62ea0c3e` perf-мониторы (cherry-pick + обе строки Settings + 50 строк EN + terminal-submodule PTY pid) | PORTED 11.10, ждёт CI |
-| `4e6ae68a` CPU sampling поверх (файл теперь есть) | TODO |
+| `4e6ae68a` CPU sampling поверх | PORTED 11.10, ждёт CI |
 | `6d5e8ae8` floating crash-protection (cherry-pick -n, auto-merge чистый) | PORTED 11.10, ждёт CI |
 | `567f245a` group-orchestration дубли (ручной, threaded через sendMessageInternal) | PORTED 11.10, ждёт CI |
 | `21212530` dialogue review (наш `EnhancedAIService.kt`, `ModelConfig*`) | TODO |
@@ -51,3 +51,10 @@
 - `92327665` proxy-история (трогает удалённые Deepseek/Kimi + model_logos-svg; брать только если портируем соседние провайдерные фиксы).
 - i18n-коммиты (`a51f23b4`, `a46e0c62`, `d1a28473`, `98241209`, `f72b20f6`, `2f31888b`) — нечего локализовывать, форк English-only.
 - Dev draw-пакеты (`29d67812`, `ef1bf4b6`, `14c8afdc`) — draw не трогаем.
+
+## Долг: terminal-подмодуль (не блокирует)
+- Указатель `26d4964a`→`04586898` (нужен `pty.pid` для perf-монитора) принёс
+  49 hardcoded CN-строк (SSH-экраны, имена зеркал). Это код чужого репозитория
+  (сабмодуль) — править там нельзя (CI пересоберёт чистое). Внесены в
+  `cjk-allowlist.json` как upstream-долг. Полный EN-проход terminal — отдельной
+  задачей, когда будем форкать terminal (апстрим сам начал values-en).

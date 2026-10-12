@@ -182,3 +182,11 @@
 -dontwarn net.bytebuddy.**
 -dontwarn org.opentest4j.**
 -dontwarn com.sun.jna.**
+
+# Instrumentation (androidTest): coroutines-test registers a
+# MainDispatcherFactory via ServiceLoader; its initializer runs inside the
+# minified app process and needs these internals. A few KB, harmless.
+-keep class kotlinx.coroutines.internal.MainDispatcherFactory { *; }
+-keep class kotlinx.coroutines.internal.MainDispatcherFactory$* { *; }
+-keep class kotlinx.coroutines.android.** { *; }
+-keep class kotlinx.coroutines.test.internal.** { *; }

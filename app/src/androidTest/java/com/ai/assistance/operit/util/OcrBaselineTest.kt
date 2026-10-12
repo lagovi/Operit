@@ -47,7 +47,8 @@ class OcrBaselineTest {
         val client = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         val sb = StringBuilder()
         // Warm-up: first ML Kit call includes model init, not representative.
-        Tasks.await(client.process(InputImage.fromFilePathOrNull(imgs.first())), 120, TimeUnit.SECONDS)
+        val warmBmp = BitmapFactory.decodeFile(imgs.first().absolutePath)
+        Tasks.await(client.process(InputImage.fromBitmap(warmBmp, 0)), 120, TimeUnit.SECONDS)
         sb.appendLine("warmup done on ${imgs.first().name}")
         for (img in imgs) {
             val bmp = BitmapFactory.decodeFile(img.absolutePath)
@@ -63,12 +64,5 @@ class OcrBaselineTest {
         }
         client.close()
         File(dir, "results.txt").writeText(sb.toString())
-    }
-
-    private fun InputImage.Companion.fromFilePathOrNull(file: File): InputImage {
-        return InputImage.fromFilePath(
-            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext,
-            android.net.Uri.fromFile(file)
-        )
     }
 }

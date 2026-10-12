@@ -12,6 +12,10 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 internal object StructuredToolCallBridge {
+    private const val PACKAGE_PROXY_TOOL_NAME = "package_proxy"
+    private const val CLI_PROXY_TOOL_NAME = "proxy"
+    private const val PROXY_TARGET_TOOL_NAME_PARAM = "tool_name"
+
     private enum class ProviderHistoryBlockType {
         ASSISTANT,
         USER_INPUT,
@@ -23,28 +27,49 @@ internal object StructuredToolCallBridge {
         val content: String
     )
 
-    /** A tool call that has been sent to the model but has no `tool` message answering it yet. */
-    data class OpenToolCall(val id: String, val name: String)
+    /** A tool call that has been sent to the model but has no result answering it yet. */
+    data class OpenToolCall(
+        val id: String,
+        val matchingName: String,
+    )
 
     data class MatchedToolCall(val resultIndex: Int, val call: OpenToolCall)
 
     /**
-     * The callable tool name behind a queued tool call, unwrapping the `package_proxy` envelope so
-     * that a `pkg:tool` result can still be matched back to the call that produced it.
+     * The executable tool name behind a queued tool call, unwrapping proxy envelopes so the tool
+     * result emitted by execution is matched back to the call that produced it. Gemini passes a
+     * bare `functionCall` with an object-valued `args`; Claude passes `input`; OpenAI-style
+     * providers wrap the function and serialize its `arguments`.
      */
     fun toolCallName(toolCall: JSONObject): String {
-        val function = toolCall.optJSONObject("function") ?: return ""
+        val function = toolCall.optJSONObject("function") ?: toolCall
         val name = function.optString("name", "").trim()
-        if (name != "package_proxy") {
+        if (name != PACKAGE_PROXY_TOOL_NAME && name != CLI_PROXY_TOOL_NAME) {
             return name
         }
 
+        val targetName = proxyTargetToolName(function, name)
+        return if (targetName.isNotBlank()) targetName else name
+    }
+
+    private fun proxyTargetToolName(function: JSONObject, proxyName: String): String {
         return try {
-            JSONObject(function.optString("arguments", "{}"))
-                .optString("tool_name", "")
+            val rawArguments = when {
+                function.has("arguments") -> function.opt("arguments")
+                function.has("args") -> function.opt("args")
+                else -> function.opt("input")
+            }
+            val arguments =
+                when (rawArguments) {
+                    is JSONObject -> rawArguments
+                    is String -> JSONObject(rawArguments)
+                    else -> null
+                } ?: return ""
+            arguments
+                .optString(PROXY_TARGET_TOOL_NAME_PARAM, "")
                 .trim()
         } catch (e: Exception) {
-            AppLogger.w("StructuredToolCallBridge", "package_proxy arguments are not valid JSON", e)
+            AppLogger.w("StructuredToolCallBridge", "$proxyName arguments are not valid JSON", e)
             ""
         }
     }
@@ -65,7 +90,7 @@ internal object StructuredToolCallBridge {
             val normalizedResultName = resultName?.trim().orEmpty()
             if (normalizedResultName.isEmpty()) return@forEachIndexed
 
-            val callIndex = openToolCalls.indexOfFirst { it.name == normalizedResultName }
+            val callIndex = openToolCalls.indexOfFirst { it.matchingName == normalizedResultName }
             if (callIndex >= 0) {
                 matched.add(MatchedToolCall(resultIndex, openToolCalls.removeAt(callIndex)))
             }
@@ -74,34 +99,25 @@ internal object StructuredToolCallBridge {
     }
 
     /**
-     * Protocol placeholder for an open tool call that still needs a tool message.
-     * History serialization is not a user-cancel path, so this never reports
-     * `User cancelled`.
+     * Keeps provider tool-call history protocol-valid without claiming an execution completed or
+     * that the user cancelled it.
      */
-    fun placeholderToolResultContent(reason: String, toolName: String? = null): String {
+    fun unmatchedToolResultContent(reason: String, toolName: String?): String {
         val toolLabel = toolName?.trim().orEmpty().ifEmpty { "unknown_tool" }
-        return when (reason) {
-            "tool_result_partial_batch",
-            "tool_result_without_structured_match" ->
-                "Tool result missing: no matching execution result was available for `$toolLabel`. This is not a user cancellation."
-            "typed_tool_call_without_payload" ->
-                "Tool result missing: the call for `$toolLabel` had no executable payload. This is not a user cancellation."
-            "tool_call_api_disabled" ->
-                "Tool result missing: structured tool-call protocol was disabled before `$toolLabel` received an execution result. This is not a user cancellation."
-            "user_boundary",
-            "system_boundary",
-            "assistant_boundary",
-            "assistant_tool_call_before_result",
-            "assistant_tool_use_before_result",
-            "assistant_function_call_before_result",
-            "typed_tool_call_before_result",
-            "typed_tool_use_before_result",
-            "typed_function_call_before_result",
-            "history_end" ->
-                "Tool result missing: later conversation history arrived before `$toolLabel` received an execution result. This is not a user cancellation."
-            else ->
-                "Tool result missing: the call for `$toolLabel` was closed without an execution result ($reason). This is not a user cancellation."
-        }
+        val detail =
+            when (reason) {
+                "tool_result_partial_batch", "tool_result_without_structured_match" ->
+                    "no matching execution result"
+                "typed_tool_call_without_payload" -> "call had no executable payload"
+                "tool_call_api_disabled" -> "tool-call protocol was disabled"
+                "user_boundary", "system_boundary", "assistant_boundary",
+                "assistant_tool_call_before_result", "typed_tool_call_before_result",
+                "typed_function_call_before_result", "typed_tool_use_before_result",
+                "assistant_function_call_before_result", "assistant_tool_use_before_result",
+                "history_end" -> "later history arrived with no execution result"
+                else -> "call ended with no execution result"
+            }
+        return "Tool result missing: $toolLabel $detail. This is not a user cancellation."
     }
 
     fun buildToolsJson(toolPrompts: List<ToolPrompt>?): String? {
@@ -293,19 +309,21 @@ internal object StructuredToolCallBridge {
             queuedOpenToolCalls.clear()
         }
 
-        fun flushOpenToolCallsAsCancelled(reason: String) {
+        fun flushOpenToolCallsAsUnmatched(reason: String) {
             emitQueuedToolCallsIfNeeded()
             if (openToolCalls.isEmpty()) return
+
             AppLogger.w(
                 "StructuredToolCallBridge",
-                "发现未完成的tool_calls，按缺失结果补齐: count=${openToolCalls.size}, reason=$reason"
+                "发现未匹配的tool_calls，按工具结果缺失处理: count=${openToolCalls.size}, reason=$reason"
             )
+
             for (openToolCall in openToolCalls) {
                 messagesArray.put(
                     JSONObject().apply {
                         put("role", "tool")
                         put("tool_call_id", openToolCall.id)
-                        put("content", placeholderToolResultContent(reason, openToolCall.matchingName))
+                        put("content", unmatchedToolResultContent(reason, openToolCall.matchingName))
                     }
                 )
             }
@@ -323,7 +341,7 @@ internal object StructuredToolCallBridge {
 
             when (turn.kind) {
                 PromptTurnKind.SYSTEM -> {
-                    flushOpenToolCallsAsCancelled("system_boundary")
+                    flushOpenToolCallsAsUnmatched("system_boundary")
                     messagesArray.put(
                         JSONObject().apply {
                             put("role", "system")
@@ -334,7 +352,7 @@ internal object StructuredToolCallBridge {
 
                 PromptTurnKind.USER,
                 PromptTurnKind.SUMMARY -> {
-                    flushOpenToolCallsAsCancelled("user_boundary")
+                    flushOpenToolCallsAsUnmatched("user_boundary")
                     messagesArray.put(
                         JSONObject().apply {
                             put("role", "user")
@@ -353,10 +371,10 @@ internal object StructuredToolCallBridge {
                         }
 
                     if (toolCalls != null && toolCalls.length() > 0) {
-                        flushOpenToolCallsAsCancelled("assistant_tool_call_before_result")
+                        flushOpenToolCallsAsUnmatched("assistant_tool_call_before_result")
                         queueToolCalls(textContent, toolCalls)
                     } else {
-                        flushOpenToolCallsAsCancelled("assistant_boundary")
+                        flushOpenToolCallsAsUnmatched("assistant_boundary")
                         messagesArray.put(
                             JSONObject().apply {
                                 put("role", "assistant")
@@ -376,10 +394,10 @@ internal object StructuredToolCallBridge {
                         }
 
                     if (toolCalls != null && toolCalls.length() > 0) {
-                        flushOpenToolCallsAsCancelled("typed_tool_call_before_result")
+                        flushOpenToolCallsAsUnmatched("typed_tool_call_before_result")
                         queueToolCalls(textContent, toolCalls)
                     } else {
-                        flushOpenToolCallsAsCancelled("typed_tool_call_without_payload")
+                        flushOpenToolCallsAsUnmatched("typed_tool_call_without_payload")
                         messagesArray.put(
                             JSONObject().apply {
                                 put("role", "assistant")
@@ -417,7 +435,7 @@ internal object StructuredToolCallBridge {
                             )
                         }
 
-                        flushOpenToolCallsAsCancelled("tool_result_partial_batch")
+                        flushOpenToolCallsAsUnmatched("tool_result_partial_batch")
                         if (textContent.isNotBlank()) {
                             messagesArray.put(
                                 JSONObject().apply {
@@ -427,7 +445,7 @@ internal object StructuredToolCallBridge {
                             )
                         }
                     } else {
-                        flushOpenToolCallsAsCancelled("tool_result_without_structured_match")
+                        flushOpenToolCallsAsUnmatched("tool_result_without_structured_match")
                         if (textContent.isNotBlank()) {
                             messagesArray.put(
                                 JSONObject().apply {
@@ -441,7 +459,7 @@ internal object StructuredToolCallBridge {
             }
         }
 
-        flushOpenToolCallsAsCancelled("history_end")
+        flushOpenToolCallsAsUnmatched("history_end")
         return messagesArray
     }
     private fun nonEmptyContent(content: String): String {

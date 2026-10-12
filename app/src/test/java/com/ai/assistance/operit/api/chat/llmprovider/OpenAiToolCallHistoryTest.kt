@@ -81,16 +81,6 @@ class OpenAiToolCallHistoryTest {
             listOf("system", "user", "assistant", "tool", "tool", "user"),
             messages.roles()
         )
-        assertEquals("alpha", messages.at(3).getString("content"))
-        val unanswered = messages.at(4).getString("content")
-        assertEquals(
-            StructuredToolCallBridge.placeholderToolResultContent(
-                "tool_result_partial_batch",
-                "read_file_part"
-            ),
-            unanswered
-        )
-        assertFalse(unanswered.contains("User cancelled"))
         assertEquals("The second read was skipped.", messages.at(5).getString("content"))
     }
 
@@ -152,6 +142,37 @@ class OpenAiToolCallHistoryTest {
     }
 
     @Test
+    fun `OpenAI local proxy results are paired through the target tool name`() {
+        val messages =
+            buildMessages(
+                listOf(
+                    PromptTurn(kind = PromptTurnKind.USER, content = "Read it."),
+                    PromptTurn(
+                        kind = PromptTurnKind.ASSISTANT,
+                        content =
+                            toolCall(
+                                "proxy",
+                                "tool_name" to "read_file",
+                                "params" to "{\"path\":\"a.txt\"}"
+                            )
+                    ),
+                    PromptTurn(
+                        kind = PromptTurnKind.TOOL_RESULT,
+                        content = toolResult("read_file", "alpha")
+                    )
+                )
+            )
+
+        assertToolResultsFollowTheirCalls(messages)
+        assertEquals(listOf("user", "assistant", "tool"), messages.roles())
+        val proxyCall = messages.at(1).getJSONArray("tool_calls").getJSONObject(0)
+        assertEquals("proxy", proxyCall.getJSONObject("function").getString("name"))
+        assertEquals(proxyCall.getString("id"), messages.at(2).getString("tool_call_id"))
+        assertEquals("alpha", messages.at(2).getString("content"))
+        assertFalse(messages.toString().contains("工具结果缺失"))
+    }
+
+    @Test
     fun `assistant tool call message omits empty content`() {
         val messages =
             buildMessages(ModelConfigConnectionTester.buildToolCallProbeHistory("echo"))
@@ -183,31 +204,30 @@ class OpenAiToolCallHistoryTest {
         assertEquals(toolCalls.getJSONObject(1).getString("id"), messages.at(3).getString("tool_call_id"))
         val placeholder = messages.at(3).getString("content")
         assertEquals(
-            StructuredToolCallBridge.placeholderToolResultContent(
+            StructuredToolCallBridge.unmatchedToolResultContent(
                 "tool_result_partial_batch",
                 "second"
             ),
             placeholder
         )
-        assertFalse(placeholder.contains("User cancelled"))
-        assertTrue(placeholder.contains("Tool result missing"))
+        assertFalse(placeholder.contains("用户取消"))
         assertEquals(4, messages.length())
     }
 
     @Test
-    fun `history placeholders never report user cancellation`() {
-        assertEquals(
-            "Tool result missing: no matching execution result was available for `second`. This is not a user cancellation.",
-            StructuredToolCallBridge.placeholderToolResultContent("tool_result_partial_batch", "second")
-        )
-        assertEquals(
-            "Tool result missing: later conversation history arrived before `read_file` received an execution result. This is not a user cancellation.",
-            StructuredToolCallBridge.placeholderToolResultContent("user_boundary", "read_file")
-        )
-        assertFalse(
-            StructuredToolCallBridge.placeholderToolResultContent("history_end", "echo")
-                .contains("User cancelled")
-        )
+    fun `history placeholders describe missing results without reporting cancellation`() {
+        val partialBatch =
+            StructuredToolCallBridge.unmatchedToolResultContent(
+                "tool_result_partial_batch",
+                "read_file"
+            )
+        val historyEnd =
+            StructuredToolCallBridge.unmatchedToolResultContent("history_end", "echo")
+
+        assertEquals("工具结果缺失：read_file 没有匹配到执行结果。这不是用户取消。", partialBatch)
+        assertEquals("工具结果缺失：echo 后续对话历史已到达，但未返回执行结果。这不是用户取消。", historyEnd)
+        assertFalse(partialBatch.contains("User cancelled"))
+        assertFalse(historyEnd.contains("User cancelled"))
     }
 
     @Test

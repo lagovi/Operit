@@ -715,7 +715,7 @@ open class GeminiProvider(
             emitQueuedFunctionCallsIfNeeded()
             if (openFunctionCalls.isEmpty()) return false
 
-            logDebug("发现未完成的Gemini functionCall，按缺失结果补齐: count=${openFunctionCalls.size}, reason=$reason")
+            logDebug("Unfinished Gemini functionCall, backfilling missing result: count=${openFunctionCalls.size}, reason=$reason")
             openFunctionCalls.forEach { openFunctionCall ->
                 target.put(
                     JSONObject().apply {

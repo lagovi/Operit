@@ -836,7 +836,9 @@ dependencies {
     // 模拟测试框架 - 保留现有的 mockito 并新增 mockk
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockito.kotlin)
-    androidTestImplementation(libs.mockito.android)
+    // NOTE (fork): no androidTest file uses mockito, and mockito-android
+    // drags bytebuddy (JNA refs) into the test APK, which our minified
+    // debug R8 rejects as missing classes. Dropped, not replaced.
     
     // // 新增的测试依赖 - mockk 和 kotlin-test
     // testImplementation(libs.mockk)

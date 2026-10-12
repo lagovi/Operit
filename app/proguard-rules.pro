@@ -181,3 +181,4 @@
 -dontwarn org.mockito.exceptions.**
 -dontwarn net.bytebuddy.**
 -dontwarn org.opentest4j.**
+-dontwarn com.sun.jna.**

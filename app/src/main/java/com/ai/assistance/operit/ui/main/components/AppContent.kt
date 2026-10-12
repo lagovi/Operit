@@ -356,7 +356,30 @@ fun AppContent(
                             )
                         }
                     },
-                    actions = actions,
+                    actions = {
+                        actions()
+                        // Fork: one "?" action for every documented screen.
+                        // A central FAB was tried first and lost: screens with
+                        // their own bottom-end FAB columns (Memory, Packages,
+                        // …) cover it or push it off-screen (screenshot-proven
+                        // 11.10). The app bar is collision-free everywhere.
+                        val topicId = helpTopicForScreen(currentScreen)
+                        if (topicId != null && currentScreen !is Screen.Help) {
+                            androidx.compose.material3.IconButton(
+                                onClick = {
+                                    HelpTopicHolder.topic = topicId
+                                    onScreenChange(Screen.Help)
+                                }
+                            ) {
+                                Text(
+                                    text = "?",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp,
+                                    color = appBarContentColor
+                                )
+                            }
+                        }
+                    },
                     colors =
                     TopAppBarDefaults.topAppBarColors(
                         containerColor =
@@ -372,35 +395,7 @@ fun AppContent(
                     // Scaffold会处理 insets, 这里不再需要手动添加 modifier
                 )
             },
-            containerColor = Color.Transparent,
-            floatingActionButton = {
-                // Fork: one "?" button for every documented screen. Topic comes
-                // from the screen class; undocumented screens show no button.
-                // AiChat keeps its input row clear: button rides 96.dp higher.
-                val topicId = helpTopicForScreen(currentScreen)
-                if (topicId != null && currentScreen !is Screen.Help) {
-                    androidx.compose.foundation.layout.Box(
-                        modifier = Modifier.padding(
-                            bottom = if (currentScreen is Screen.AiChat) 96.dp else 0.dp
-                        )
-                    ) {
-                        androidx.compose.material3.SmallFloatingActionButton(
-                            onClick = {
-                                HelpTopicHolder.topic = topicId
-                                onScreenChange(Screen.Help)
-                            },
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        ) {
-                            Text(
-                                text = "?",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            )
-                        }
-                    }
-                }
-            }
+            containerColor = Color.Transparent
         ) { innerPadding ->
             // 主内容区域
             // 添加底部导航栏的 padding，确保内容不会被导航栏遮挡

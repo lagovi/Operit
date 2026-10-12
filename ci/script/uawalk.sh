@@ -12,6 +12,9 @@
 #                         abort if the element is not on screen
 #   TAP_AT <x> <y>        coordinate tap for icon-only elements (no text node);
 #                         prefer TAP whenever text exists
+#   MAYBE_TAP <text>      tap only when the element is on screen, else skip
+#                         (for genuinely optional UI like an empty-chat
+#                         "New Chat" button — NOT an error softener);
 #   EXPECT [secs] <text>  screen must show <text> within secs (default 30)
 #   WAIT_PKG [secs] <pkg-substring>
 #                         foreground window must belong to <pkg-substring>
@@ -141,6 +144,21 @@ uaw_run() {
                 echo "  tap_at($UA_STEP) $rest | $(uaw_where)"
                 plab_tap $rest
                 sleep 2
+                ;;
+            MAYBE_TAP)
+                [ -n "$rest" ] || uaw_abort "MAYBE_TAP needs an element"
+                local mb mc
+                # NOTE: uaw_find always exits 0 (empty output = absent),
+                # so test the string, not $?.
+                mb=$(uaw_find "$rest")
+                if [[ "$mb" =~ ^[0-9]+[[:space:]][0-9]+[[:space:]][0-9]+[[:space:]][0-9]+$ ]]; then
+                    mc=$(echo "$mb" | plab_center)
+                    echo "  maybe_tap($UA_STEP) '$rest' @ $mc | $(uaw_where)"
+                    plab_tap $mc
+                    sleep 2
+                else
+                    echo "  maybe_tap($UA_STEP) '$rest' absent, skipped"
+                fi
                 ;;
             EXPECT)
                 local want secs first

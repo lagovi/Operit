@@ -1,14 +1,17 @@
-# Screen tour: every main screen shows its "?" button, which opens the
-# right offline help topic. Run AFTER installing a build with the help
-# scaffold (HelpContent.kt + AppContent FAB).
-# Pattern per screen: drawer -> label -> title check -> ? -> topic -> back x2.
+# Screen tour: every main screen shows its "?" button (top app bar,
+# right side), which opens the right offline help topic. Run AFTER
+# installing a build with the help scaffold (HelpContent.kt + AppContent
+# "?" action). EXPECTs use topic-unique section headers, never titles
+# (some titles equal screen titles and prove nothing).
+# Pattern per screen: drawer -> label -> title check -> ? -> section -> back x2.
 # Drawer toggle is icon-only: TAP_AT 49 110.
 
 TAP_AT 49 110
 TAP AI Chat
-EXPECT Enter question
+MAYBE_TAP New Chat
+EXPECT Enter your question
 TAP ?
-EXPECT Chat
+EXPECT Model row and toggles
 BACK
 BACK
 
@@ -16,7 +19,7 @@ TAP_AT 49 110
 TAP Memory Base
 EXPECT Memory Base
 TAP ?
-EXPECT Memory Base
+EXPECT Graph canvas
 BACK
 BACK
 
@@ -24,7 +27,7 @@ TAP_AT 49 110
 TAP Packages
 EXPECT Packages
 TAP ?
-EXPECT Packages (Plugins / Packages / Skills / MCP)
+EXPECT Rows, details, enable switch
 BACK
 BACK
 
@@ -32,7 +35,7 @@ TAP_AT 49 110
 TAP Toolbox
 EXPECT Toolbox
 TAP ?
-EXPECT Toolbox
+EXPECT Shell and system
 BACK
 BACK
 
@@ -40,7 +43,7 @@ TAP_AT 49 110
 TAP Settings
 EXPECT Settings
 TAP ?
-EXPECT Settings
+EXPECT Data and permissions
 BACK
 BACK
 
@@ -48,7 +51,7 @@ TAP_AT 49 110
 TAP Workflow
 EXPECT Workflow
 TAP ?
-EXPECT Workflows
+EXPECT Create and templates
 BACK
 BACK
 
@@ -56,7 +59,7 @@ TAP_AT 49 110
 TAP Terminal
 EXPECT Terminal
 TAP ?
-EXPECT Terminal
+EXPECT Terminal view
 BACK
 BACK
 
@@ -64,7 +67,7 @@ TAP_AT 49 110
 TAP Permissions
 EXPECT Permissions
 TAP ?
-EXPECT Permission center
+EXPECT Higher levels
 BACK
 BACK
 
@@ -72,7 +75,7 @@ TAP_AT 49 110
 TAP Tool Permission Settings
 EXPECT Tool Permission Settings
 TAP ?
-EXPECT Tool permissions
+EXPECT Global chips and lists
 BACK
 BACK
 
@@ -80,7 +83,7 @@ TAP_AT 49 110
 TAP About
 EXPECT About
 TAP ?
-EXPECT About
+EXPECT Storage and links
 BACK
 BACK
 

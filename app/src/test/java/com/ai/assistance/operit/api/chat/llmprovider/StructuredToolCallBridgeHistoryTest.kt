@@ -5,6 +5,7 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,6 +35,16 @@ class StructuredToolCallBridgeHistoryTest {
             )
 
         assertEquals(listOf("user", "assistant", "tool", "tool", "user"), messages.roles())
+        assertEquals("alpha", messages.at(2).getString("content"))
+        val unanswered = messages.at(3).getString("content")
+        assertEquals(
+            StructuredToolCallBridge.placeholderToolResultContent(
+                "tool_result_partial_batch",
+                "read_file_part"
+            ),
+            unanswered
+        )
+        assertFalse(unanswered.contains("User cancelled"))
         assertEquals("The second read was skipped.", messages.at(4).getString("content"))
         assertToolResultsFollowTheirCalls(messages)
     }

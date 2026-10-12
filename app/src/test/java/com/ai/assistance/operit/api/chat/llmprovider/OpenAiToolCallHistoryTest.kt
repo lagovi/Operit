@@ -81,6 +81,16 @@ class OpenAiToolCallHistoryTest {
             listOf("system", "user", "assistant", "tool", "tool", "user"),
             messages.roles()
         )
+        assertEquals("alpha", messages.at(3).getString("content"))
+        val unanswered = messages.at(4).getString("content")
+        assertEquals(
+            StructuredToolCallBridge.placeholderToolResultContent(
+                "tool_result_partial_batch",
+                "read_file_part"
+            ),
+            unanswered
+        )
+        assertFalse(unanswered.contains("User cancelled"))
         assertEquals("The second read was skipped.", messages.at(5).getString("content"))
     }
 
@@ -171,8 +181,33 @@ class OpenAiToolCallHistoryTest {
         assertEquals(toolCalls.getJSONObject(0).getString("id"), messages.at(2).getString("tool_call_id"))
         assertEquals("ok", messages.at(2).getString("content"))
         assertEquals(toolCalls.getJSONObject(1).getString("id"), messages.at(3).getString("tool_call_id"))
-        assertEquals("User cancelled", messages.at(3).getString("content"))
+        val placeholder = messages.at(3).getString("content")
+        assertEquals(
+            StructuredToolCallBridge.placeholderToolResultContent(
+                "tool_result_partial_batch",
+                "second"
+            ),
+            placeholder
+        )
+        assertFalse(placeholder.contains("User cancelled"))
+        assertTrue(placeholder.contains("Tool result missing"))
         assertEquals(4, messages.length())
+    }
+
+    @Test
+    fun `history placeholders never report user cancellation`() {
+        assertEquals(
+            "Tool result missing: no matching execution result was available for `second`. This is not a user cancellation.",
+            StructuredToolCallBridge.placeholderToolResultContent("tool_result_partial_batch", "second")
+        )
+        assertEquals(
+            "Tool result missing: later conversation history arrived before `read_file` received an execution result. This is not a user cancellation.",
+            StructuredToolCallBridge.placeholderToolResultContent("user_boundary", "read_file")
+        )
+        assertFalse(
+            StructuredToolCallBridge.placeholderToolResultContent("history_end", "echo")
+                .contains("User cancelled")
+        )
     }
 
     @Test

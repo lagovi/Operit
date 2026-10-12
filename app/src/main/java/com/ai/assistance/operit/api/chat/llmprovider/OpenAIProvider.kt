@@ -1069,14 +1069,20 @@ open class OpenAIProvider(
 
             AppLogger.w(
                 "AIService",
-                "发现未完成的tool_calls，按取消处理: count=${openToolCalls.size}, reason=$reason"
+                "发现未完成的tool_calls，按缺失结果补齐: count=${openToolCalls.size}, reason=$reason"
             )
             for (openToolCall in openToolCalls) {
                 messagesArray.put(
                     JSONObject().apply {
                         put("role", "tool")
                         put("tool_call_id", openToolCall.id)
-                        put("content", "User cancelled")
+                        put(
+                            "content",
+                            StructuredToolCallBridge.placeholderToolResultContent(
+                                reason,
+                                openToolCall.matchingName
+                            )
+                        )
                     }
                 )
             }

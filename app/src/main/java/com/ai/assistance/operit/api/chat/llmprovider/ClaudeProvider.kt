@@ -813,14 +813,20 @@ open class ClaudeProvider(
 
             AppLogger.w(
                 "AIService",
-                "发现未完成的tool_use，按取消处理: count=${openToolUses.size}, reason=$reason"
+                "发现未完成的tool_use，按缺失结果补齐: count=${openToolUses.size}, reason=$reason"
             )
             for (openToolUse in openToolUses) {
                 target.put(
                     JSONObject().apply {
                         put("type", "tool_result")
                         put("tool_use_id", openToolUse.id)
-                        put("content", "User cancelled")
+                        put(
+                            "content",
+                            StructuredToolCallBridge.placeholderToolResultContent(
+                                reason,
+                                openToolUse.matchingName
+                            )
+                        )
                     }
                 )
             }

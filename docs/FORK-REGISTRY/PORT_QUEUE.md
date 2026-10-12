@@ -41,7 +41,23 @@
 | `99830874` tool round markup (ручной + тест) | PORTED 11.10, ждёт CI |
 | `e295a82a` summary-секции (cherry-pick + строки вручную в EN) | PORTED 11.10, ждёт CI |
 | `863fb0d8` message_persisted (файл создан самим коммитом; cherry-pick -n, чистый) | PORTED 11.10, ждёт CI |
-| `a7676fa3` (dev) Antigravity OAuth (поверх наших CN-вырезов, 5k реформат) | TODO (решать: нужен ли провайдер) |
+| `a7676fa3` (dev) Antigravity OAuth | BACKLOG (пользователь 12.10: НУЖЕН) |
+## Бэклог (решения пользователя 12.10)
+- **Antigravity**: портировать `a7676fa3` (OAuth + fingerprint-spoofing).
+  Сложность: `ModelConfigScreen` 5k реформат поверх наших CN-вырезов,
+  `AIServiceFactory` ±1404, `ApiProviderConfigCollect` ±756,
+  `ModelConfigData` ±491. План: cherry-pick -n → резолв реестров
+  (наших Deepseek/Kimi уже нет — их куски отбросить), строки в EN,
+  приёмка: OAuth-login глазами + список моделей. НЕ тянуть dev-целиком.
+- **PaddleOCR**: заменить/добавить движок PP-OCRv6-small (50 языков,
+  вкл. русский). Путь: модуль `deploy/ppocr-android/ppocr-sdk` (ONNX
+  Runtime, minSdk 26) + det/rec ONNX моделями в Q2 on-demand
+  (как subpack: zip в релиз, ensure в filesDir, on-demand).
+  Ориентир следа: 30–55 МБ вне APK. Baseline текущего (11.5 МБ,
+  латиница 100%, 1–5 с) держать до приёмки Paddle: те же 5 картинок
+  + русская должны читаться; DoD: точность ≥ текущей по латинице
+  + русский разборчив + след замерен. Русский baseline-мусор
+  (`/tmp/opencode/ocr_base/russian.png`) — в деле.
 
 ## Не берём (REJECTED, сознательно)
 

@@ -132,11 +132,11 @@ internal fun buildGeminiFunctionCallPart(
 
 /** Google Gemini API的实现 支持标准Gemini接口流式传输 */
 open class GeminiProvider(
-    private val apiEndpoint: String,
-    private val apiKeyProvider: ApiKeyProvider,
+    protected val apiEndpoint: String,
+    protected val apiKeyProvider: ApiKeyProvider,
     protected val modelName: String,
     private val client: OkHttpClient,
-    private val customHeaders: Map<String, String> = emptyMap(),
+    protected val customHeaders: Map<String, String> = emptyMap(),
     private val providerType: ApiProviderType = ApiProviderType.GOOGLE,
     private val enableGoogleSearch: Boolean = false,
     private val enableToolCall: Boolean = false, // 是否启用Tool Call接口（预留，Gemini有原生tool支持）
@@ -174,7 +174,7 @@ open class GeminiProvider(
     // HTTP客户端
     // private val client: OkHttpClient = HttpClientFactory.instance
 
-    private val JSON = "application/json".toMediaType()
+    protected val JSON = "application/json".toMediaType()
 
     // 活跃请求，用于取消流式请求
     private var activeCall: Call? = null
@@ -1581,7 +1581,7 @@ open class GeminiProvider(
 
                         try {
                             // 立即解析每个SSE数据行的JSON
-                            val json = JSONObject(data)
+                            val json = unwrapStreamingPayload(JSONObject(data))
                             jsonCount++
 
                             val extraction = extractContentFromJson(
@@ -1858,7 +1858,7 @@ open class GeminiProvider(
             logDebug("收到完整响应，长度: ${responseText.length}")
             
             // 解析JSON响应
-            val json = JSONObject(responseText)
+            val json = unwrapStreamingPayload(JSONObject(responseText))
             
             // 提取内容
             val extraction = extractContentFromJson(
@@ -1901,6 +1901,10 @@ open class GeminiProvider(
     }
 
     /** 从Gemini响应JSON中提取内容 */
+    // Intent: unwrap an outer "response" envelope (Antigravity and similar providers),
+    // identity for plain Gemini payloads. Subclasses override to adapt wire shapes.
+    protected open fun unwrapStreamingPayload(json: JSONObject): JSONObject = json
+
     private suspend fun extractContentFromJson(
         context: Context,
         json: JSONObject,

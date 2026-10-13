@@ -98,7 +98,7 @@ object OCRUtils {
             val lines = PaddleOcrEngine.recognizeLines(context, processedBitmap).getOrElse { e ->
                 return OCRResult.Error(e.message ?: "Unknown error")
             }
-            OCRResult.Success(fullText = lines.joinToString("\n"), blocks = lines)
+            OCRResult.Success(text = lines.joinToString("\n"), blocks = lines)
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error recognizing text from bitmap: ${e.message}", e)
             OCRResult.Error(e.message ?: "Unknown error")
@@ -266,9 +266,9 @@ object OCRUtils {
     /** OCR recognition result */
     sealed class OCRResult {
         /** Recognition success */
-        data class Success(val fullText: String, val blocks: List<String>) : OCRResult() {
+        data class Success(val text: String, val blocks: List<String>) : OCRResult() {
             /** Full recognized text */
-            fun getFullText(): String = fullText
+            fun getFullText(): String = text
 
             /** All text lines */
             fun getTextBlocks(): List<String> = blocks

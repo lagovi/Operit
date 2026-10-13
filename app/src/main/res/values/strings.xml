@@ -8499,6 +8499,30 @@
     <string name="codex_usage_unavailable">Usage is temporarily unavailable</string>
     <string name="codex_reset_after_days">Resets in %1$d days</string>
     <string name="codex_reset_after_clock">Resets in %1$02d:%2$02d</string>
+
+    <string name="provider_antigravity">Antigravity (Google)</string>
+    <string name="onboarding_config_antigravity_login_required">Sign in to Antigravity first</string>
+    <string name="antigravity_login_title">Sign in to Antigravity</string>
+    <string name="antigravity_login_starting">Preparing Antigravity sign-in...</string>
+    <string name="antigravity_login_waiting">Finish Google sign-in in the browser</string>
+    <string name="antigravity_login_action">Sign in with Google</string>
+    <string name="antigravity_login_success">Antigravity sign-in succeeded</string>
+    <string name="antigravity_login_failed">Antigravity sign-in failed: %1$s</string>
+    <string name="antigravity_logout_action">Sign out of Antigravity</string>
+    <string name="antigravity_logout_success">Signed out of Antigravity</string>
+    <string name="antigravity_auth_title">Antigravity account</string>
+    <string name="antigravity_auth_not_logged_in">Sign in with Google to use the Antigravity quota</string>
+    <string name="antigravity_auth_account">Account: %1$s</string>
+    <string name="antigravity_endpoint_fixed">The Antigravity endpoint is fixed</string>
+    <string name="antigravity_plan">Plan: %1$s</string>
+    <string name="antigravity_direct_media_processing_desc">Send images directly to Antigravity</string>
+    <string name="antigravity_quota_remaining">%1$d%% remaining</string>
+    <string name="antigravity_quota_no_data">No quota data</string>
+    <string name="antigravity_quota_refresh">Refresh Antigravity quota</string>
+    <string name="antigravity_quota_unavailable">Quota is temporarily unavailable</string>
+    <string name="antigravity_quota_reset_unknown">Reset time unavailable</string>
+    <string name="antigravity_login_completing">Completing authorization and loading account details…</string>
+    <string name="antigravity_login_timed_out">Timed out after waiting 15 minutes for Google authorization. Please start sign-in again.</string>
     <string name="conversation_media_file_link">&lt;link type=&quot;file&quot; id=&quot;%1$s&quot; filename=&quot;%2$s&quot;&gt;PDF&lt;/link&gt;</string>
 
     <string name="package_market_origin_title">External Package Source Notice</string>

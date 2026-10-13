@@ -41,14 +41,19 @@
 | `99830874` tool round markup (ручной + тест) | PORTED 11.10, ждёт CI |
 | `e295a82a` summary-секции (cherry-pick + строки вручную в EN) | PORTED 11.10, ждёт CI |
 | `863fb0d8` message_persisted (файл создан самим коммитом; cherry-pick -n, чистый) | PORTED 11.10, ждёт CI |
-| `a7676fa3` (dev) Antigravity OAuth | BACKLOG (пользователь 12.10: НУЖЕН) |
+| `a7676fa3` (dev) Antigravity OAuth | DONE 13.10 (`92b4cc63`+`d2246757`, CI `38332016760` green, сборка `20261013_025022Z`) |
+## Antigravity приёмка 13.10 (телефон, сборка 20261013_025022Z)
+- PASS: `Antigravity (Google)` в диалоге провайдеров; блок входа
+  (Sign in with Google + fixed endpoint + `gemini-3.7-flash` по умолчанию);
+  OAuth доходит до accounts.google.com (лого Antigravity, скриншот);
+  loopback+PKCE в logcat; падений нет.
+- По пути: наш `GeminiProvider` держал `modelName/apiEndpoint/apiKeyProvider/JSON/customHeaders` в private (апстрим protected) + не имел `unwrapStreamingPayload` — расширено до апстримного вида, оба parse-сайта завернуты в хук.
+- Пропущен осознанно дрейф (provider-groups, DeepSeek/Moonshot, isEmbeddedLocalProvider, юнит-тесты — их CI не гоняет).
+- Телефон возвращён как был: Default Config = OPENAI_GENERIC + 192.168.1.55 + ключ цел (сейв в logcat).
+- РУЧНОЙ ШАГ ПОЛЬЗОВАТЕЛЯ: завершить Google sign-in, проверить квоты/список моделей/чат через Antigravity.
 ## Бэклог (решения пользователя 12.10)
-- **Antigravity**: портировать `a7676fa3` (OAuth + fingerprint-spoofing).
-  Сложность: `ModelConfigScreen` 5k реформат поверх наших CN-вырезов,
-  `AIServiceFactory` ±1404, `ApiProviderConfigCollect` ±756,
-  `ModelConfigData` ±491. План: cherry-pick -n → резолв реестров
-  (наших Deepseek/Kimi уже нет — их куски отбросить), строки в EN,
-  приёмка: OAuth-login глазами + список моделей. НЕ тянуть dev-целиком.
+- **Antigravity**: DONE 13.10 (см. приёмку выше). Остался только ручной
+  шаг пользователя (завершить Google sign-in).
 - **PaddleOCR**: заменить/добавить движок PP-OCRv6-small (50 языков,
   вкл. русский). Путь: модуль `deploy/ppocr-android/ppocr-sdk` (ONNX
   Runtime, minSdk 26) + det/rec ONNX моделями в Q2 on-demand

@@ -7,124 +7,102 @@ import android.net.Uri
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.util.AppLogger
 import androidx.annotation.WorkerThread
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.Text
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.TextRecognizer
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
-/** OCR工具类，封装ML Kit的文本识别功能 */
+/** OCR utility: PaddleOCR engine (PP-OCRv6-small det + cyrillic rec). */
 object OCRUtils {
     private const val TAG = "OCRUtils"
 
-    // Fork: only the bundled Latin recognizer ships. The Chinese, Japanese,
-    // Korean and Devanagari recognizers are separate ML Kit artifacts that
-    // cannot read Latin script and cost ~2.4 MB of APK assets between them.
-    private var latinRecognizer: TextRecognizer? = null
-
-    /** 文本识别语言选项 */
+    // Fork: single PaddleOCR engine replaces ML Kit Latin. The rec dict
+    // covers Latin and Cyrillic in one model, so Language is kept only for
+    // call-site compatibility and carries no behavior.
+    /** Text recognition language option (kept for API compatibility). */
     enum class Language {
-        LATIN // 拉丁语系（英文、法文、德文等）
+        LATIN
     }
 
-    /** 识别质量选项 */
+    /** Recognition quality option */
     enum class Quality {
-        /** 快速、低精度，适用于预览或简单文本 */
+        /** Fast, lower precision, for previews or simple text */
         LOW,
-        /** 慢速、高精度，会进行图像预处理以提升准确率 */
+        /** Slower, higher precision, upscales small images first */
         HIGH
     }
 
-    /** 初始化识别器 */
-    private fun getRecognizer(language: Language): TextRecognizer {
-        return when (language) {
-            Language.LATIN -> {
-                if (latinRecognizer == null) {
-                    latinRecognizer =
-                            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                }
-                latinRecognizer!!
-            }
-        }
-    }
-
     /**
-     * 对Bitmap进行预处理以提高OCR识别率
+     * Preprocess a Bitmap to improve OCR accuracy.
      *
-     * @param bitmap 原始Bitmap
-     * @return 经过处理的Bitmap，如果无需处理则返回原始Bitmap
+     * @param bitmap source bitmap
+     * @return processed bitmap, or the source bitmap when no work is needed
      */
     private fun preprocessBitmap(bitmap: Bitmap): Bitmap {
-        // 对于高质量模式，我们放大图像。这可以显著提高小图像的OCR准确性。
-        // 我们使用一个缩放因子，但避免使图像过大。
+        // For high-quality mode we upscale. This significantly improves OCR
+        // accuracy on small images. Cap size to avoid OOM.
         val scaleFactor = 2.0f
-        val maxDimension = 4096 // 限制最大尺寸以避免OOM
+        val maxDimension = 4096
 
         val newWidth = (bitmap.width * scaleFactor).toInt()
         val newHeight = (bitmap.height * scaleFactor).toInt()
 
-        // 如果图像已经足够大或放大后会超出限制，则不进行处理
         if (bitmap.width >= newWidth ||
-                        bitmap.height >= newHeight ||
-                        newWidth > maxDimension ||
-                        newHeight > maxDimension
+            bitmap.height >= newHeight ||
+            newWidth > maxDimension ||
+            newHeight > maxDimension
         ) {
             AppLogger.d(TAG, "Bitmap already large enough, not upscaling for OCR.")
             return bitmap
         }
 
         AppLogger.d(
-                TAG,
-                "Upscaling bitmap from ${bitmap.width}x${bitmap.height} to ${newWidth}x${newHeight} for OCR."
+            TAG,
+            "Upscaling bitmap from ${bitmap.width}x${bitmap.height} to ${newWidth}x${newHeight} for OCR."
         )
         return Bitmap.createScaledBitmap(
-                bitmap,
-                newWidth,
-                newHeight,
-                true // filter=true for better quality scaling
+            bitmap,
+            newWidth,
+            newHeight,
+            true // filter=true for better quality scaling
         )
     }
 
-    // --------- 低级API：直接返回OCRResult结果 ---------//
+    // --------- Low-level API: OCRResult results ---------//
 
     /**
-     * 从Bitmap识别文本（同步方法）
+     * Recognize text from a Bitmap.
      *
-     * @param bitmap 要识别的图像
-     * @param language 识别语言
-     * @param quality 识别质量
-     * @return 识别结果
+     * @param context needed to provision the on-demand engine files
+     * @param bitmap image to recognize
+     * @param language recognition language (compatibility only)
+     * @param quality recognition quality
+     * @return recognition result
      */
     @WorkerThread
     suspend fun recognizeTextFromBitmap(
-            bitmap: Bitmap,
-            language: Language = Language.LATIN,
-            quality: Quality = Quality.LOW
+        context: Context,
+        bitmap: Bitmap,
+        language: Language = Language.LATIN,
+        quality: Quality = Quality.LOW
     ): OCRResult {
         val processedBitmap =
-                if (quality == Quality.HIGH) {
-                    preprocessBitmap(bitmap)
-                } else {
-                    bitmap
-                }
+            if (quality == Quality.HIGH) {
+                preprocessBitmap(bitmap)
+            } else {
+                bitmap
+            }
 
         return try {
-            val image = InputImage.fromBitmap(processedBitmap, 0)
-            val result = processImage(image, language)
-            OCRResult.Success(result)
+            val lines = PaddleOcrEngine.recognizeLines(context, processedBitmap).getOrElse { e ->
+                return OCRResult.Error(e.message ?: "Unknown error")
+            }
+            OCRResult.Success(fullText = lines.joinToString("\n"), blocks = lines)
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error recognizing text from bitmap: ${e.message}", e)
             OCRResult.Error(e.message ?: "Unknown error")
         } finally {
-            // 如果创建了新的Bitmap，则回收它
             if (processedBitmap !== bitmap) {
                 processedBitmap.recycle()
             }
@@ -132,87 +110,59 @@ object OCRUtils {
     }
 
     /**
-     * 从Uri识别文本（同步方法）
+     * Recognize text from a Uri.
      *
-     * @param context 上下文
-     * @param uri 图像的Uri
-     * @param language 识别语言
-     * @param quality 识别质量
-     * @return 识别结果
+     * @param context context
+     * @param uri image Uri
+     * @param language recognition language (compatibility only)
+     * @param quality recognition quality
+     * @return recognition result
      */
     @WorkerThread
     suspend fun recognizeTextFromUri(
-            context: Context,
-            uri: Uri,
-            language: Language = Language.LATIN,
-            quality: Quality = Quality.LOW
+        context: Context,
+        uri: Uri,
+        language: Language = Language.LATIN,
+        quality: Quality = Quality.LOW
     ): OCRResult {
-        // 低质量模式直接使用MLKit的API，效率更高
-        if (quality == Quality.LOW) {
-            return try {
-                val image = InputImage.fromFilePath(context, uri)
-                val result = processImage(image, language)
-                OCRResult.Success(result)
-            } catch (e: IOException) {
-                AppLogger.e(TAG, "Error reading image: ${e.message}", e)
-                OCRResult.Error(context.getString(R.string.ocr_cannot_read_image, e.message))
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "Error recognizing text from uri: ${e.message}", e)
-                OCRResult.Error(e.message ?: "Unknown error")
-            }
-        }
-
-        // 高质量模式需要先加载Bitmap进行预处理
         return withContext(Dispatchers.IO) {
             try {
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
                     val originalBitmap = BitmapFactory.decodeStream(inputStream)
                     if (originalBitmap != null) {
-                        val result = recognizeTextFromBitmap(originalBitmap, language, quality)
-                        originalBitmap.recycle() // 回收从输入流创建的Bitmap
+                        val result =
+                            recognizeTextFromBitmap(context, originalBitmap, language, quality)
+                        originalBitmap.recycle()
                         result
                     } else {
                         OCRResult.Error(context.getString(R.string.ocr_cannot_decode_bitmap_from_uri))
                     }
                 }
-                        ?: OCRResult.Error(context.getString(R.string.ocr_cannot_open_uri_stream))
+                    ?: OCRResult.Error(context.getString(R.string.ocr_cannot_open_uri_stream))
             } catch (e: Exception) {
-                AppLogger.e(TAG, "Error recognizing text from uri (high quality): ${e.message}", e)
-                OCRResult.Error(e.message ?: "Unknown error on high quality path")
+                AppLogger.e(TAG, "Error recognizing text from uri: ${e.message}", e)
+                OCRResult.Error(e.message ?: "Unknown error")
             }
         }
     }
 
-    /** 处理图像并识别文本 */
-    private suspend fun processImage(image: InputImage, language: Language): Text =
-            suspendCancellableCoroutine { continuation ->
-                val recognizer = getRecognizer(language)
-                recognizer
-                        .process(image)
-                        .addOnSuccessListener { text -> continuation.resume(text) }
-                        .addOnFailureListener { e ->
-                            AppLogger.e(TAG, "Text recognition failed: ${e.message}", e)
-                            continuation.resumeWithException(e)
-                        }
-            }
-
-    // --------- 高级API：简化的接口，直接返回文本字符串 ---------//
+    // --------- High-level API: simplified, return plain text ---------//
 
     /**
-     * 识别图像中的文本（同时识别拉丁文和中文）
+     * Recognize text in an image.
      *
-     * @param context 上下文
-     * @param bitmap 图像
-     * @param quality 识别质量
-     * @return 识别到的文本，如果失败则返回空字符串
+     * @param context context
+     * @param bitmap image
+     * @param quality recognition quality
+     * @return recognized text, empty string on failure
      */
     @WorkerThread
     suspend fun recognizeText(
-            context: Context,
-            bitmap: Bitmap,
-            quality: Quality = Quality.LOW
+        context: Context,
+        bitmap: Bitmap,
+        quality: Quality = Quality.LOW
     ): String {
-        val result = recognizeTextFromBitmap(bitmap, Language.LATIN, quality)
+        val result = recognizeTextFromBitmap(context, bitmap, Language.LATIN, quality)
         return when (result) {
             is OCRResult.Success -> result.getFullText()
             is OCRResult.Error -> {
@@ -223,22 +173,22 @@ object OCRUtils {
     }
 
     /**
-     * 识别图像中的文本（指定语言）
+     * Recognize text in an image (explicit language).
      *
-     * @param context 上下文
-     * @param bitmap 图像
-     * @param language 语言
-     * @param quality 识别质量
-     * @return 识别到的文本，如果失败则返回空字符串
+     * @param context context
+     * @param bitmap image
+     * @param language language (compatibility only)
+     * @param quality recognition quality
+     * @return recognized text, empty string on failure
      */
     @WorkerThread
     suspend fun recognizeText(
-            context: Context,
-            bitmap: Bitmap,
-            language: Language,
-            quality: Quality = Quality.LOW
+        context: Context,
+        bitmap: Bitmap,
+        language: Language,
+        quality: Quality = Quality.LOW
     ): String {
-        val result = recognizeTextFromBitmap(bitmap, language, quality)
+        val result = recognizeTextFromBitmap(context, bitmap, language, quality)
         return when (result) {
             is OCRResult.Success -> result.getFullText()
             is OCRResult.Error -> {
@@ -249,12 +199,12 @@ object OCRUtils {
     }
 
     /**
-     * 从文件Uri识别文本（同时识别拉丁文和中文）
+     * Recognize text from a file Uri.
      *
-     * @param context 上下文
-     * @param uri 图像Uri
-     * @param quality 识别质量
-     * @return 识别到的文本，如果失败则返回空字符串
+     * @param context context
+     * @param uri image Uri
+     * @param quality recognition quality
+     * @return recognized text, empty string on failure
      */
     @WorkerThread
     suspend fun recognizeText(context: Context, uri: Uri, quality: Quality = Quality.LOW): String {
@@ -269,89 +219,65 @@ object OCRUtils {
     }
 
     /**
-     * 扫描并提取图像中所有的文本块
+     * Scan an image and extract all text lines.
      *
-     * @param bitmap 要识别的图像
-     * @param languages 要尝试的语言列表，按优先级排序
-     * @param quality 识别质量
-     * @return 识别到的所有文本块列表
+     * @param context needed to provision the on-demand engine files
+     * @param bitmap image to recognize
+     * @param languages language list by priority (compatibility only)
+     * @param quality recognition quality
+     * @return all recognized text lines
      */
     @WorkerThread
     suspend fun extractTextBlocks(
-            bitmap: Bitmap,
-            languages: List<Language> = listOf(Language.LATIN),
-            quality: Quality = Quality.LOW
+        context: Context,
+        bitmap: Bitmap,
+        languages: List<Language> = listOf(Language.LATIN),
+        quality: Quality = Quality.LOW
     ): List<String> {
-        val textBlocks = mutableListOf<String>()
-
-        for (language in languages) {
-            val result = recognizeTextFromBitmap(bitmap, language, quality)
-            if (result is OCRResult.Success) {
-                result.getTextBlocks().forEach { block -> textBlocks.add(block.text) }
-                // 如果有结果，就不需要继续尝试其他语言
-                if (textBlocks.isNotEmpty()) {
-                    break
-                }
-            }
-        }
-
-        return textBlocks
+        if (languages.isEmpty()) return emptyList()
+        val result = recognizeTextFromBitmap(context, bitmap, languages.first(), quality)
+        return if (result is OCRResult.Success) result.getTextBlocks() else emptyList()
     }
 
     /**
-     * 保存Bitmap到临时文件，用于OCR处理
+     * Save a Bitmap to a temp file, for OCR processing.
      *
-     * @param context 上下文
-     * @param bitmap 位图
-     * @return 临时文件
+     * @param context context
+     * @param bitmap bitmap
+     * @return temp file
      */
     @WorkerThread
     suspend fun saveBitmapToTempFile(context: Context, bitmap: Bitmap): File? =
-            withContext(Dispatchers.IO) {
-                val cacheDir = context.cacheDir
-                val tempFile = File(cacheDir, "ocr_temp_${System.currentTimeMillis()}.jpg")
+        withContext(Dispatchers.IO) {
+            val cacheDir = context.cacheDir
+            val tempFile = File(cacheDir, "ocr_temp_${System.currentTimeMillis()}.jpg")
 
-                try {
-                    FileOutputStream(tempFile).use { out ->
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
-                    }
-                    return@withContext tempFile
-                } catch (e: IOException) {
-                    AppLogger.e(TAG, "Failed to save bitmap to temp file", e)
-                    return@withContext null
+            try {
+                FileOutputStream(tempFile).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
                 }
-            }
-
-    /** 清理资源 */
-    fun closeRecognizers() {
-        latinRecognizer?.close()
-        latinRecognizer = null
-    }
-
-    /** OCR识别结果 */
-    sealed class OCRResult {
-        /** 识别成功 */
-        data class Success(val text: Text) : OCRResult() {
-            /** 获取识别到的完整文本 */
-            fun getFullText(): String = text.text
-
-            /** 获取所有文本块 */
-            fun getTextBlocks(): List<Text.TextBlock> = text.textBlocks
-
-            /** 获取结构化文本信息 */
-            fun getStructuredText(): String {
-                val sb = StringBuilder()
-                for (block in text.textBlocks) {
-                    for (line in block.lines) {
-                        sb.append(line.text).append("\n")
-                    }
-                    sb.append("\n")
-                }
-                return sb.toString().trim()
+                return@withContext tempFile
+            } catch (e: IOException) {
+                AppLogger.e(TAG, "Failed to save bitmap to temp file", e)
+                return@withContext null
             }
         }
 
-        /** 识别失败 */
+    /** OCR recognition result */
+    sealed class OCRResult {
+        /** Recognition success */
+        data class Success(val fullText: String, val blocks: List<String>) : OCRResult() {
+            /** Full recognized text */
+            fun getFullText(): String = fullText
+
+            /** All text lines */
+            fun getTextBlocks(): List<String> = blocks
+
+            /** Structured text (one line per row, blank line between blocks) */
+            fun getStructuredText(): String = blocks.joinToString("\n")
+        }
+
+        /** Recognition failure */
         data class Error(val message: String) : OCRResult()
     }
 }

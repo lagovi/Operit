@@ -190,3 +190,8 @@
 -keep class kotlinx.coroutines.internal.MainDispatcherFactory$* { *; }
 -keep class kotlinx.coroutines.android.** { *; }
 -keep class kotlinx.coroutines.test.internal.** { *; }
+
+# PaddleOCR SDK (copied sources, Apache-2.0): keep the pipeline classes.
+# No ai.onnxruntime keep: ORT already ships minified for speech today and
+# stripping it further is a SIZE win — the SDK's own rule is standalone-only.
+-keep class com.paddle.ocr.** { *; }

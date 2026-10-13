@@ -195,9 +195,50 @@ class OfflinePayload(
             unpackedBytes = 3632112L
         )
 
+        /**
+         * PaddleOCR engine files (PP-OCRv6-small det 9.9 MB + cyrillic
+         * PP-OCRv5-mobile rec 8.0 MB + rec dict + OpenCV arm64 .so 17.1 MB),
+         * provisioned into the `ocr` leaf on first OCR use. The OpenCV Java
+         * classes (391 KB) stay in the APK; only the .so is on-demand and is
+         * excluded from packaging (see app/build.gradle.kts).
+         * Release `ocr-paddleocr-v1`.
+         */
+        val PADDLE_OCR = OfflinePayload(
+            id = "paddle-ocr",
+            title = "PaddleOCR engine files",
+            leaf = "ocr",
+            assets = listOf(
+                RemoteAsset(
+                    name = "det.onnx",
+                    url = "$RELEASE_BASE/ocr-paddleocr-v1/paddle-det.onnx",
+                    sizeBytes = 9880512L,
+                    sha256 = "d73e0058b7a8086bbd57f3d10b8bcd4ff95363f67e06e2762b5e814fe9c9410e"
+                ),
+                RemoteAsset(
+                    name = "rec.onnx",
+                    url = "$RELEASE_BASE/ocr-paddleocr-v1/paddle-rec.onnx",
+                    sizeBytes = 8048799L,
+                    sha256 = "5371ee1ddaa7983cc62d0818d99e982b6804638c85e4f960d59a574094e172e5"
+                ),
+                RemoteAsset(
+                    name = "rec.yml",
+                    url = "$RELEASE_BASE/ocr-paddleocr-v1/paddle-rec.yml",
+                    sizeBytes = 6991L,
+                    sha256 = "5c76cc91fa98410178a09f498db10050d0ec1634a660053d3005ab7be581f501"
+                ),
+                RemoteAsset(
+                    name = "libopencv_java4.so",
+                    url = "$RELEASE_BASE/ocr-paddleocr-v1/libopencv_java4.so",
+                    sizeBytes = 17109960L,
+                    sha256 = "20f98317542a993031e998def9603ec07fd7f64b0719146360545cfc87ea74cb"
+                )
+            ),
+            unpackedBytes = 35152262L
+        )
+
         val all: List<OfflinePayload> = listOf(
             GIGAAM, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU, HELPER_A11Y,
-            SEED_TEMPLATES, SEED_EMOJI
+            SEED_TEMPLATES, SEED_EMOJI, PADDLE_OCR
         )
     }
 }

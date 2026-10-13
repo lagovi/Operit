@@ -526,6 +526,10 @@ android {
             // installed grows back (~+66 MB). See
             // docs/TODO/offline-assets-move/2_WorkQueue.md item 1.
             useLegacyPackaging = true
+            // PaddleOCR: the OpenCV .so (17 MB arm64) ships on-demand via
+            // OfflinePayloads.PADDLE_OCR and loads with System.load — the
+            // 391 KB Java classes stay, the native lib must not bloat the APK.
+            excludes += "**/libopencv_java4.so"
         }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -642,11 +646,10 @@ dependencies {
     // Desugaring support for modern Java APIs on older Android
     coreLibraryDesugaring(libs.desugar.jdk)
 
-    // ML Kit - 文本识别.
-    // Fork: only the Latin recognizer. The Chinese/Japanese/Korean/Devanagari
-    // artifacts are separate bundled models that cannot read Latin script and
-    // add ~2.4 MB of assets. See docs/FORK-REGISTRY/registry.json SIZE-002.
-    implementation(libs.mlkit.text.recognition)
+    // OpenCV Java API for the PaddleOCR pipeline (copied SDK sources).
+    // Only the classes ship in the APK; libopencv_java4.so is excluded
+    // above and provisioned on-demand (OfflinePayloads.PADDLE_OCR).
+    implementation("com.quickbirdstudios:opencv:4.5.3")
 
     implementation(libs.zxing.core)
     

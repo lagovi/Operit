@@ -233,26 +233,28 @@
   {
    "id": "SIZE-002",
    "area": "size",
-   "title": "Non-Latin ML Kit text recognition removed",
+   "title": "ML Kit OCR replaced by on-demand PaddleOCR",
    "commit": null,
-   "rationale": "The bundled Chinese/Japanese/Korean/Devanagari recognition models are ~2.4 MB of APK assets and cannot recognize Latin text, which is all an English build needs.",
+   "rationale": "Was: non-Latin ML Kit models removed, Latin kept. Now: ML Kit removed entirely (11.5 MB pipeline .so out of the APK); single PaddleOCR engine (PP-OCRv6-small det + cyrillic v5 rec, Latin+Russian) with models and OpenCV .so on-demand via OfflinePayloads.PADDLE_OCR (release ocr-paddleocr-v1). No dual engine, no silent degradation.",
    "files": [
     "app/build.gradle.kts",
-    "app/src/main/java/com/ai/assistance/operit/util/OCRUtils.kt"
+    "app/src/main/java/com/ai/assistance/operit/util/OCRUtils.kt",
+    "app/src/main/java/com/ai/assistance/operit/util/PaddleOcrEngine.kt",
+    "app/src/main/java/com/ai/assistance/operit/util/OfflinePayloads.kt"
    ],
    "anchors": [
     {
      "file": "app/build.gradle.kts",
-     "contains": "implementation(libs.mlkit.text.recognition)",
-     "why": "the Latin recognizer, which is the one we keep"
+     "contains": "implementation(\"com.quickbirdstudios:opencv:4.5.3\")",
+     "why": "OpenCV Java API only; the .so is excluded from the APK"
     },
     {
-     "file": "app/src/main/java/com/ai/assistance/operit/util/OCRUtils.kt",
-     "contains": "enum class Language {",
-     "why": "Latin is the only recognizer the enum offers"
+     "file": "app/src/main/java/com/ai/assistance/operit/util/PaddleOcrEngine.kt",
+     "contains": "OfflinePayloads.PADDLE_OCR",
+     "why": "engine files provision on first use, failure surfaces"
     }
    ],
-   "reverify": "confirm assets/mlkit-google-ocr-models contains only Latn + shared models",
+   "reverify": "APK has no libmlkit .so; OCR works after on-demand provisioning",
    "status": "applied"
   },
   {

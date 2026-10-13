@@ -250,7 +250,7 @@
     },
     {
      "file": "app/src/main/java/com/ai/assistance/operit/util/PaddleOcrEngine.kt",
-     "contains": "OfflinePayloads.PADDLE_OCR",
+     "contains": "OfflinePayload.PADDLE_OCR",
      "why": "engine files provision on first use, failure surfaces"
     }
    ],

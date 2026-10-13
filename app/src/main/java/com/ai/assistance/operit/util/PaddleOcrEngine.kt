@@ -16,7 +16,7 @@ import kotlinx.coroutines.sync.withLock
  * The SDK sources under `com.paddle.ocr` are upstream PaddleOCR
  * (Apache-2.0) with a 3-site fork: models and the OpenCV .so load from
  * filesDir instead of assets/APK (SIZE goals), provisioned on first use
- * from the fork's own release via [OfflinePayloads.PADDLE_OCR].
+ * from the fork's own release via [OfflinePayload.PADDLE_OCR].
  * There is no second engine and no silent degradation: if provisioning
  * fails the caller gets the failure to surface.
  */
@@ -62,7 +62,7 @@ object PaddleOcrEngine {
             val ctx = appContext.applicationContext
             val dir = File(ctx.filesDir, LEAF)
             val fetch = RemoteAssetFetcher(ctx)
-                .ensureAssets(dir, OfflinePayloads.PADDLE_OCR.assets)
+                .ensureAssets(dir, OfflinePayload.PADDLE_OCR.assets)
                 .getOrElse { throw it }
             val soFile = File(fetch, "libopencv_java4.so")
             if (!OpenCVUtils.initWithSo(soFile)) {

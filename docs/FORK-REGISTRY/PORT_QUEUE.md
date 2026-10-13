@@ -63,6 +63,14 @@
   + русская должны читаться; DoD: точность ≥ текущей по латинице
   + русский разборчив + след замерен. Русский baseline-мусор
   (`/tmp/opencode/ocr_base/russian.png`) — в деле.
+- **Прокси провайдера** (решение 13.10): в настройках провайдера —
+  опция «подключение через прокси», типы SOCKS5 и HTTP/HTTPS.
+  План: поля в `ModelConfigData` (host/port/type, креды — в key pool?),
+  UI-блок в `ModelApiSettingsSection`, проброс в `AIServiceFactory`
+  (OkHttp `Proxy(HTTP)` нативно; SOCKS5 без auth нативно, с auth —
+  свой SocketFactory), плюс OAuth-клиенты (Codex/Antigravity).
+  Нюанс: MNN/llama локальные — исключить. DoD: чат через
+  HTTP-прокси и через SOCKS5 (с/без auth) глазами на телефоне.
 
 ## Не берём (REJECTED, сознательно)
 

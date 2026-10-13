@@ -134,7 +134,7 @@ internal fun buildGeminiFunctionCallPart(
 open class GeminiProvider(
     private val apiEndpoint: String,
     private val apiKeyProvider: ApiKeyProvider,
-    private val modelName: String,
+    protected val modelName: String,
     private val client: OkHttpClient,
     private val customHeaders: Map<String, String> = emptyMap(),
     private val providerType: ApiProviderType = ApiProviderType.GOOGLE,

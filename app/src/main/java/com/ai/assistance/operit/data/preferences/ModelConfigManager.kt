@@ -813,7 +813,12 @@ class ModelConfigManager(
             enableGoogleSearch: Boolean,
             enableCodexWebSearch: Boolean,
             enableClaude1hPromptCache: Boolean,
-            enableToolCall: Boolean
+            enableToolCall: Boolean,
+            proxyMode: String,
+            proxyHost: String,
+            proxyPort: Int,
+            proxyUsername: String,
+            proxyPassword: String
     ): ModelConfigData {
         return updateConfigInternal(configId) {
             it.copy(
@@ -835,7 +840,12 @@ class ModelConfigManager(
                     enableGoogleSearch = enableGoogleSearch,
                     enableCodexWebSearch = enableCodexWebSearch,
                     enableClaude1hPromptCache = enableClaude1hPromptCache,
-                    enableToolCall = enableToolCall
+                    enableToolCall = enableToolCall,
+                    proxyMode = proxyMode,
+                    proxyHost = proxyHost.trim(),
+                    proxyPort = proxyPort.coerceIn(0, 65535),
+                    proxyUsername = proxyUsername,
+                    proxyPassword = proxyPassword
             )
         }
     }

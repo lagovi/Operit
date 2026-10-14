@@ -2,6 +2,8 @@ package com.ai.assistance.operit.data.api
 
 import android.content.Context
 import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.model.ProviderProxyClients
+import com.ai.assistance.operit.data.model.ProxySettings
 import com.ai.assistance.operit.data.preferences.AntigravityAuthPreferences
 import com.ai.assistance.operit.data.preferences.AntigravityAuthState
 import com.ai.assistance.operit.data.preferences.AntigravityQuotaPreferences
@@ -31,7 +33,10 @@ class AntigravityAuthManager private constructor(context: Context) {
 
     // Intent: force HTTP/1.1 with max 2 connections per host (30s idle timeout).
     // If skipped: native Antigravity avoids HTTP/2 without proxy/special directives, and long-idle connections trip the GFE 240s reset.
-    private val httpClient = OkHttpClient.Builder()
+    // NOTE: login/token-refresh helpers below use this direct client on purpose
+    // (account-level flows with no config context); only the explicit
+    // fetchModels/fetchQuota calls honor a config proxy passed by the caller.
+    private val baseHttpClient = OkHttpClient.Builder()
         .protocols(listOf(Protocol.HTTP_1_1))
         .connectionPool(ConnectionPool(2, 30, TimeUnit.SECONDS))
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -39,9 +44,14 @@ class AntigravityAuthManager private constructor(context: Context) {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    private val oauthClient = AntigravityOAuthClient(client = httpClient)
-    private val modelClient = AntigravityModelClient(client = httpClient)
-    private val quotaClient = AntigravityQuotaClient(client = httpClient)
+    private val oauthClient = AntigravityOAuthClient(client = baseHttpClient)
+
+    private fun clientFor(proxy: ProxySettings?): OkHttpClient =
+        if (proxy == null) baseHttpClient else ProviderProxyClients.forBase(baseHttpClient, proxy)
+
+    private fun modelClient(proxy: ProxySettings?) = AntigravityModelClient(client = clientFor(proxy))
+
+    private fun quotaClient(proxy: ProxySettings?) = AntigravityQuotaClient(client = clientFor(proxy))
     private val quotaPreferences = AntigravityQuotaPreferences.getInstance(context)
     private val refreshMutex = Mutex()
 
@@ -120,12 +130,12 @@ class AntigravityAuthManager private constructor(context: Context) {
         preferences.clear()
     }
 
-    suspend fun fetchQuota(): Result<AntigravityQuotaSnapshot> {
+    suspend fun fetchQuota(proxy: ProxySettings? = null): Result<AntigravityQuotaSnapshot> {
         return try {
             val accessToken = getValidAccessToken()
             val projectId = currentProjectId()
                 ?: throw IOException("Antigravity project id is unavailable")
-            val result = quotaClient.fetch(accessToken = accessToken, projectId = projectId)
+            val result = quotaClient(proxy).fetch(accessToken = accessToken, projectId = projectId)
             if (result.isSuccess) {
                 quotaPreferences.save(projectId, result.getOrThrow())
             }
@@ -136,12 +146,12 @@ class AntigravityAuthManager private constructor(context: Context) {
         }
     }
 
-    suspend fun fetchModels(): Result<List<ModelOption>> {
+    suspend fun fetchModels(proxy: ProxySettings? = null): Result<List<ModelOption>> {
         return try {
             val accessToken = getValidAccessToken()
             val projectId = currentProjectId()
                 ?: throw IOException("Antigravity project id is unavailable")
-            modelClient.fetch(accessToken = accessToken, projectId = projectId)
+            modelClient(proxy).fetch(accessToken = accessToken, projectId = projectId)
         } catch (error: Exception) {
             AppLogger.e(TAG, "Failed to prepare Antigravity model request", error)
             Result.failure(error)
@@ -156,7 +166,7 @@ class AntigravityAuthManager private constructor(context: Context) {
             .header("Accept", "application/json")
             .get()
             .build()
-        httpClient.newCall(request).execute().use { response ->
+        baseHttpClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) return@withContext null
             val body = response.body?.string().orEmpty()
             JSONObject(body).optString("email").takeIf { it.isNotBlank() }
@@ -228,7 +238,7 @@ class AntigravityAuthManager private constructor(context: Context) {
                 .header("X-Goog-Api-Client", AntigravityOAuthProtocol.ONBOARD_GOOG_API_CLIENT)
                 .build()
 
-            val bodyText = httpClient.newCall(request).execute().use { response ->
+            val bodyText = baseHttpClient.newCall(request).execute().use { response ->
                 val body = response.body?.string().orEmpty()
                 if (!response.isSuccessful) {
                     throw IOException("Antigravity onboardUser failed with HTTP ${response.code}: $body")
@@ -269,7 +279,7 @@ class AntigravityAuthManager private constructor(context: Context) {
             .header("User-Agent", AntigravityOAuthProtocol.USER_AGENT)
             .build()
 
-        val responseBody = httpClient.newCall(request).execute().use { response ->
+        val responseBody = baseHttpClient.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
                 throw IOException("Antigravity loadCodeAssist failed with HTTP ${response.code}: $text")

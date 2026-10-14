@@ -4171,6 +4171,16 @@
     <string name="enable_claude_1h_prompt_cache_desc">When enabled, Claude and Claude-compatible providers use a 1-hour prompt cache TTL</string>
     <string name="enable_tool_call">Model supports ToolCall</string>
     <string name="enable_tool_call_desc">When disabled, uses the built-in tool invocation mechanism which also supports tool calls. When enabled, uses the API\'s dedicated native interface (requires model support)</string>
+    <string name="provider_proxy">Connection proxy</string>
+    <string name="provider_proxy_desc">Route this provider\'s traffic through a SOCKS5 or HTTP proxy (lab defaults are pre-filled)</string>
+    <string name="provider_proxy_mode_direct">Direct (no proxy)</string>
+    <string name="provider_proxy_mode_http">HTTP / HTTPS proxy</string>
+    <string name="provider_proxy_mode_socks5">SOCKS5 proxy</string>
+    <string name="provider_proxy_host">Proxy host</string>
+    <string name="provider_proxy_host_hint">Hostname or IP address of the proxy server</string>
+    <string name="provider_proxy_port">Proxy port</string>
+    <string name="provider_proxy_username">Proxy username (optional)</string>
+    <string name="provider_proxy_password">Proxy password (optional)</string>
     <string name="search_sources">Search Sources</string>
     <string name="search_query_label">Query</string>
     <string name="search_action_label">Action</string>

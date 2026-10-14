@@ -61,6 +61,8 @@ import com.ai.assistance.operit.data.collects.ApiProviderConfigs
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.model.ProviderProxyDefaults
+import com.ai.assistance.operit.data.model.ProxySettings
 import com.ai.assistance.operit.data.preferences.AntigravityAuthState
 import com.ai.assistance.operit.data.preferences.CodexAuthState
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
@@ -208,7 +210,7 @@ fun ModelApiSettingsSection(
         scope.launch {
             codexUsageLoading = true
             codexUsageError = false
-            val result = codexAuthManager.fetchUsage()
+            val result = codexAuthManager.fetchUsage(currentProxySettings())
             result.exceptionOrNull()?.let { error ->
                 AppLogger.e(TAG, "获取 Codex 额度失败", error)
             }
@@ -222,7 +224,7 @@ fun ModelApiSettingsSection(
         scope.launch {
             antigravityQuotaLoading = true
             antigravityQuotaError = false
-            val result = antigravityAuthManager.fetchQuota()
+            val result = antigravityAuthManager.fetchQuota(currentProxySettings())
             result.exceptionOrNull()?.let { error ->
                 AppLogger.e(TAG, "Failed to fetch Antigravity quota", error)
             }
@@ -262,6 +264,35 @@ fun ModelApiSettingsSection(
     // Tool Call配置状态
     var enableToolCallInput by remember(config.id) { mutableStateOf(config.enableToolCall) }
 
+    // Provider proxy配置状态 (baked lab defaults arrive via ModelConfigData)
+    var proxyModeInput by remember(config.id) { mutableStateOf(config.proxyMode) }
+    var proxyHostInput by remember(config.id) { mutableStateOf(config.proxyHost) }
+    var proxyPortInput by remember(config.id) { mutableStateOf(config.proxyPort.toString()) }
+    var proxyUsernameInput by remember(config.id) { mutableStateOf(config.proxyUsername) }
+    var proxyPasswordInput by remember(config.id) { mutableStateOf(config.proxyPassword) }
+
+    fun currentProxySettings(): ProxySettings =
+        ProxySettings(
+            mode = proxyModeInput,
+            host = proxyHostInput,
+            port = proxyPortInput.toIntOrNull() ?: 0,
+            username = proxyUsernameInput,
+            password = proxyPasswordInput
+        )
+
+    // Intent: switching proxy type swaps the port only while it still holds
+    // the OTHER type's baked default — a hand-typed port is never touched.
+    // If skipped: enabling SOCKS5 keeps pointing at the HTTP port (18080).
+    fun selectProxyMode(mode: String) {
+        proxyModeInput = mode
+        val current = proxyPortInput.toIntOrNull()
+        if (mode == ProviderProxyDefaults.MODE_SOCKS5 && current == ProviderProxyDefaults.HTTP_PORT) {
+            proxyPortInput = ProviderProxyDefaults.SOCKS_PORT.toString()
+        } else if (mode == ProviderProxyDefaults.MODE_HTTP && current == ProviderProxyDefaults.SOCKS_PORT) {
+            proxyPortInput = ProviderProxyDefaults.HTTP_PORT.toString()
+        }
+    }
+
     LaunchedEffect(selectedProviderTypeId) {
         if (isCodexProvider || isAntigravityProvider) {
             enableDirectImageProcessingInput = true
@@ -289,6 +320,11 @@ fun ModelApiSettingsSection(
         val enableCodexWebSearch: Boolean,
         val enableClaude1hPromptCache: Boolean,
         val enableToolCall: Boolean,
+        val proxyMode: String,
+        val proxyHost: String,
+        val proxyPort: Int,
+        val proxyUsername: String,
+        val proxyPassword: String,
     )
 
     // 保存设置的通用函数
@@ -314,6 +350,11 @@ fun ModelApiSettingsSection(
                     enableCodexWebSearch = state.enableCodexWebSearch,
                     enableClaude1hPromptCache = state.enableClaude1hPromptCache,
                     enableToolCall = state.enableToolCall,
+                    proxyMode = state.proxyMode,
+                    proxyHost = state.proxyHost,
+                    proxyPort = state.proxyPort,
+                    proxyUsername = state.proxyUsername,
+                    proxyPassword = state.proxyPassword,
                 )
 
                 EnhancedAIService.refreshAllServices(
@@ -342,6 +383,11 @@ fun ModelApiSettingsSection(
             enableCodexWebSearch = enableCodexWebSearchInput,
             enableClaude1hPromptCache = enableClaude1hPromptCacheInput,
             enableToolCall = enableToolCallInput,
+            proxyMode = proxyModeInput,
+            proxyHost = proxyHostInput,
+            proxyPort = proxyPortInput.toIntOrNull() ?: 0,
+            proxyUsername = proxyUsernameInput,
+            proxyPassword = proxyPasswordInput,
         )
     }
 
@@ -454,6 +500,7 @@ fun ModelApiSettingsSection(
     var modelsList by remember { mutableStateOf<List<ModelOption>>(emptyList()) }
     var modelLoadError by remember { mutableStateOf<String?>(null) }
     var showEndpointDialog by remember(config.id) { mutableStateOf(false) }
+    var showProxyModeDialog by remember(config.id) { mutableStateOf(false) }
 
     // 检查是否未填写API密钥（仅用于UI显示）
     val isUsingDefaultApiKey = apiKeyInput.isBlank()
@@ -493,7 +540,7 @@ fun ModelApiSettingsSection(
     suspend fun fetchAvailableModels(): Result<List<ModelOption>> {
         return when {
             isCodexProvider -> CodexModelListFetcher.getModelsList()
-            isAntigravityProvider -> antigravityAuthManager.fetchModels()
+            isAntigravityProvider -> antigravityAuthManager.fetchModels(currentProxySettings())
                 .map { models ->
                     models.ifEmpty {
                         com.ai.assistance.operit.data.api.AntigravityOAuthProtocol.defaultModels.map { (id, name) ->
@@ -774,6 +821,58 @@ fun ModelApiSettingsSection(
                     }
                 }
 
+            if (showProxyModeDialog) {
+                val proxyModes = listOf(
+                    ProviderProxyDefaults.MODE_DIRECT to stringResource(R.string.provider_proxy_mode_direct),
+                    ProviderProxyDefaults.MODE_HTTP to stringResource(R.string.provider_proxy_mode_http),
+                    ProviderProxyDefaults.MODE_SOCKS5 to stringResource(R.string.provider_proxy_mode_socks5),
+                )
+                Dialog(onDismissRequest = { showProxyModeDialog = false }) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = stringResource(R.string.provider_proxy),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            proxyModes.forEach { (mode, label) ->
+                                val isSelected = proxyModeInput == mode
+                                Column(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable {
+                                                selectProxyMode(mode)
+                                                showProxyModeDialog = false
+                                            }
+                                            .background(
+                                                if (isSelected) {
+                                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                                } else {
+                                                    MaterialTheme.colorScheme.surface
+                                                }
+                                            )
+                                            .padding(vertical = 10.dp, horizontal = 12.dp)
+                                ) {
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                            }
+                        }
+                    }
+                }
+            }
+
             val completedEndpoint =
                 selectedApiProvider?.let {
                     EndpointCompleter.completeEndpoint(apiEndpointInput, it)
@@ -982,6 +1081,70 @@ fun ModelApiSettingsSection(
                 checked = enableToolCallInput,
                 onCheckedChange = { enableToolCallInput = it }
             )
+
+            // Provider proxy (remote providers only — MNN/llama.cpp talk to localhost)
+            if (!isMnnProvider && !isLlamaProvider) {
+                val proxyModeLabel = when (proxyModeInput) {
+                    ProviderProxyDefaults.MODE_HTTP -> stringResource(R.string.provider_proxy_mode_http)
+                    ProviderProxyDefaults.MODE_SOCKS5 -> stringResource(R.string.provider_proxy_mode_socks5)
+                    else -> stringResource(R.string.provider_proxy_mode_direct)
+                }
+                SettingsSelectorRow(
+                    title = stringResource(R.string.provider_proxy),
+                    subtitle = stringResource(R.string.provider_proxy_desc),
+                    value = proxyModeLabel,
+                    onClick = { showProxyModeDialog = true }
+                )
+                if (proxyModeInput != ProviderProxyDefaults.MODE_DIRECT) {
+                    SettingsTextField(
+                        title = stringResource(R.string.provider_proxy_host),
+                        subtitle = stringResource(R.string.provider_proxy_host_hint),
+                        value = proxyHostInput,
+                        onValueChange = {
+                            proxyHostInput = it.replace("\n", "").replace("\r", "").replace(" ", "")
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Uri,
+                            imeAction = ImeAction.Next
+                        ),
+                    )
+                    SettingsTextField(
+                        title = stringResource(R.string.provider_proxy_port),
+                        subtitle = null,
+                        value = proxyPortInput,
+                        onValueChange = { proxyPortInput = it.filter(Char::isDigit).take(5) },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next
+                        ),
+                    )
+                    SettingsTextField(
+                        title = stringResource(R.string.provider_proxy_username),
+                        subtitle = null,
+                        value = proxyUsernameInput,
+                        onValueChange = {
+                            proxyUsernameInput = it.replace("\n", "").replace("\r", "").replace(" ", "")
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Next
+                        ),
+                    )
+                    SettingsTextField(
+                        title = stringResource(R.string.provider_proxy_password),
+                        subtitle = null,
+                        value = proxyPasswordInput,
+                        onValueChange = {
+                            proxyPasswordInput = it.replace("\n", "").replace("\r", "").replace(" ", "")
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Next
+                        ),
+                        visualTransformation = ApiKeyVisualTransformation(),
+                    )
+                }
+            }
 
         }
     }

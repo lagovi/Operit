@@ -5,6 +5,8 @@ import com.ai.assistance.operit.data.preferences.CodexAuthPreferences
 import com.ai.assistance.operit.data.preferences.CodexAuthState
 import com.ai.assistance.operit.data.preferences.CodexStoredUsageSnapshot
 import com.ai.assistance.operit.data.preferences.CodexUsagePreferences
+import com.ai.assistance.operit.data.model.ProviderProxyClients
+import com.ai.assistance.operit.data.model.ProxySettings
 import com.ai.assistance.operit.util.AppLogger
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -16,13 +18,20 @@ import okhttp3.OkHttpClient
 
 class CodexAuthManager private constructor(context: Context) {
     private val preferences = CodexAuthPreferences.getInstance(context)
-    private val httpClient = OkHttpClient.Builder()
+    // NOTE: login/token-refresh use this direct client on purpose
+    // (account-level flows with no config context); only the explicit
+    // fetchUsage call honors a config proxy passed by the caller.
+    private val baseHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
-    private val oauthClient = CodexOAuthClient(client = httpClient)
-    private val usageClient = CodexUsageClient(client = httpClient)
+    private val oauthClient = CodexOAuthClient(client = baseHttpClient)
+
+    private fun clientFor(proxy: ProxySettings?): OkHttpClient =
+        if (proxy == null) baseHttpClient else ProviderProxyClients.forBase(baseHttpClient, proxy)
+
+    private fun usageClient(proxy: ProxySettings?) = CodexUsageClient(client = clientFor(proxy))
     private val usagePreferences = CodexUsagePreferences.getInstance(context)
     private val refreshMutex = Mutex()
 
@@ -112,12 +121,12 @@ class CodexAuthManager private constructor(context: Context) {
 
     fun currentResidency(): String? = preferences.currentState()?.residency
 
-    suspend fun fetchUsage(): Result<CodexUsageSnapshot> {
+    suspend fun fetchUsage(proxy: ProxySettings? = null): Result<CodexUsageSnapshot> {
         return try {
             val accessToken = getValidAccessToken()
             val accountId = currentAccountId()
                 ?: throw IOException("Codex account ID is unavailable")
-            val result = usageClient.fetch(
+            val result = usageClient(proxy).fetch(
                 accessToken = accessToken,
                 accountId = accountId,
                 residency = currentResidency(),

@@ -94,6 +94,13 @@ data class ModelConfigData(
         val currentKeyIndex: Int = 0, // 当前使用的Key索引
         val keyRotationMode: String = "ROUND_ROBIN", // 轮询模式: ROUND_ROBIN / RANDOM
 
+        // Provider proxy (SOCKS5 / HTTP CONNECT); DIRECT keeps current behavior
+        val proxyMode: String = ProviderProxyDefaults.MODE_DIRECT,
+        val proxyHost: String = ProviderProxyDefaults.HOST,
+        val proxyPort: Int = ProviderProxyDefaults.HTTP_PORT,
+        val proxyUsername: String = "",
+        val proxyPassword: String = "",
+
         // 是否包含自定义参数
         val hasCustomParameters: Boolean = false,
 

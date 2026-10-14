@@ -4,6 +4,7 @@ import android.content.Context
 import com.ai.assistance.llama.LlamaSession
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
+import com.ai.assistance.operit.data.model.ProviderProxyClients
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistry
 import com.ai.assistance.operit.util.AppLogger
@@ -295,7 +296,9 @@ object AIServiceFactory {
             )
         }
 
-        val httpClient = SharedHttpClient.instance
+        // Intent: every provider's traffic honors its own proxy config.
+        // If skipped: chat always goes direct even when the user configured a proxy.
+        val httpClient = ProviderProxyClients.forConfig(SharedHttpClient.instance, config)
         val customHeaders = parseCustomHeaders(config.customHeaders)
         val providerType =
             ApiProviderType.fromProviderTypeId(providerTypeId)

@@ -205,6 +205,37 @@ fun ModelApiSettingsSection(
         }
     }
 
+    // Provider proxy配置状态 (baked lab defaults arrive via ModelConfigData).
+    // Declared before refreshCodexUsage/refreshAntigravityQuota: local funs
+    // must be defined before their call sites in source order.
+    var proxyModeInput by remember(config.id) { mutableStateOf(config.proxyMode) }
+    var proxyHostInput by remember(config.id) { mutableStateOf(config.proxyHost) }
+    var proxyPortInput by remember(config.id) { mutableStateOf(config.proxyPort.toString()) }
+    var proxyUsernameInput by remember(config.id) { mutableStateOf(config.proxyUsername) }
+    var proxyPasswordInput by remember(config.id) { mutableStateOf(config.proxyPassword) }
+
+    fun currentProxySettings(): ProxySettings =
+        ProxySettings(
+            mode = proxyModeInput,
+            host = proxyHostInput,
+            port = proxyPortInput.toIntOrNull() ?: 0,
+            username = proxyUsernameInput,
+            password = proxyPasswordInput
+        )
+
+    // Intent: switching proxy type swaps the port only while it still holds
+    // the OTHER type's baked default — a hand-typed port is never touched.
+    // If skipped: enabling SOCKS5 keeps pointing at the HTTP port (18080).
+    fun selectProxyMode(mode: String) {
+        proxyModeInput = mode
+        val current = proxyPortInput.toIntOrNull()
+        if (mode == ProviderProxyDefaults.MODE_SOCKS5 && current == ProviderProxyDefaults.HTTP_PORT) {
+            proxyPortInput = ProviderProxyDefaults.SOCKS_PORT.toString()
+        } else if (mode == ProviderProxyDefaults.MODE_HTTP && current == ProviderProxyDefaults.SOCKS_PORT) {
+            proxyPortInput = ProviderProxyDefaults.HTTP_PORT.toString()
+        }
+    }
+
     fun refreshCodexUsage() {
         if (!isCodexProvider || codexAuthState == null || codexUsageLoading) return
         scope.launch {
@@ -263,35 +294,6 @@ fun ModelApiSettingsSection(
     
     // Tool Call配置状态
     var enableToolCallInput by remember(config.id) { mutableStateOf(config.enableToolCall) }
-
-    // Provider proxy配置状态 (baked lab defaults arrive via ModelConfigData)
-    var proxyModeInput by remember(config.id) { mutableStateOf(config.proxyMode) }
-    var proxyHostInput by remember(config.id) { mutableStateOf(config.proxyHost) }
-    var proxyPortInput by remember(config.id) { mutableStateOf(config.proxyPort.toString()) }
-    var proxyUsernameInput by remember(config.id) { mutableStateOf(config.proxyUsername) }
-    var proxyPasswordInput by remember(config.id) { mutableStateOf(config.proxyPassword) }
-
-    fun currentProxySettings(): ProxySettings =
-        ProxySettings(
-            mode = proxyModeInput,
-            host = proxyHostInput,
-            port = proxyPortInput.toIntOrNull() ?: 0,
-            username = proxyUsernameInput,
-            password = proxyPasswordInput
-        )
-
-    // Intent: switching proxy type swaps the port only while it still holds
-    // the OTHER type's baked default — a hand-typed port is never touched.
-    // If skipped: enabling SOCKS5 keeps pointing at the HTTP port (18080).
-    fun selectProxyMode(mode: String) {
-        proxyModeInput = mode
-        val current = proxyPortInput.toIntOrNull()
-        if (mode == ProviderProxyDefaults.MODE_SOCKS5 && current == ProviderProxyDefaults.HTTP_PORT) {
-            proxyPortInput = ProviderProxyDefaults.SOCKS_PORT.toString()
-        } else if (mode == ProviderProxyDefaults.MODE_HTTP && current == ProviderProxyDefaults.SOCKS_PORT) {
-            proxyPortInput = ProviderProxyDefaults.HTTP_PORT.toString()
-        }
-    }
 
     LaunchedEffect(selectedProviderTypeId) {
         if (isCodexProvider || isAntigravityProvider) {

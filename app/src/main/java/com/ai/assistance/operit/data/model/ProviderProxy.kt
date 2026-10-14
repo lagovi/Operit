@@ -209,7 +209,7 @@ internal class Socks5TunnelSocketFactory(
     override fun createSocket(host: String?, port: Int): Socket =
             createSocket().apply { connect(InetSocketAddress(host, port)) }
 
-    override fun createSocket(host: String?, port: Int, localHost: InetSocketAddress?, localPort: Int): Socket =
+    override fun createSocket(host: String?, port: Int, localHost: java.net.InetAddress?, localPort: Int): Socket =
             createSocket().apply { connect(InetSocketAddress(host, port)) }
 
     override fun createSocket(host: java.net.InetAddress?, port: Int): Socket =

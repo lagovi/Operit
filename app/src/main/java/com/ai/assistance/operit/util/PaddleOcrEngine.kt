@@ -65,14 +65,11 @@ object PaddleOcrEngine {
                 .ensureAssets(dir, OfflinePayload.PADDLE_OCR.assets)
                 .getOrElse { throw it }
             val soFile = File(fetch, "libopencv_java4.so")
-            // Intent: the OpenCV build needs a newer libc++ than the APK
-            // ships (missing __sfp_handle_exceptions), and the process may
-            // already hold the old one under the same soname. So both travel
-            // on-demand with an isolated soname (libc++_paddle.so, see the
-            // payload notes) and load in dependency order. If skipped:
-            // dlopen binds the stale process libc++ and fails.
-            val cxxFile = File(fetch, "libc++_paddle.so")
-            if (!OpenCVUtils.initWithSo(cxxFile, soFile)) {
+            // Intent: the .so is the official 4.5.5 build, era-matched to
+            // the APK's libc++ (verified: every undefined symbol resolves).
+            // The quickbird 4.5.3 .so needed __sfp_handle_exceptions from a
+            // newer libc++ and could not load — do not switch builds blindly.
+            if (!OpenCVUtils.initWithSo(soFile)) {
                 throw IllegalStateException("Could not load OpenCV from ${soFile.absolutePath}")
             }
             val created = PaddleOCR.create(

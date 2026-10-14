@@ -197,17 +197,18 @@ class OfflinePayload(
 
         /**
          * PaddleOCR engine files (PP-OCRv6-small det 9.9 MB + cyrillic
-         * PP-OCRv5-mobile rec 8.0 MB + rec dict + OpenCV arm64 .so 17.1 MB
-         * + its libc++ 6.2 MB), provisioned into the `ocr` leaf on first
-         * OCR use. The OpenCV Java classes (391 KB) stay in the APK; both
-         * native libs are excluded from packaging (see app/build.gradle.kts).
+         * PP-OCRv5-mobile rec 8.0 MB + rec dict + OpenCV arm64 .so 18.1 MB),
+         * provisioned into the `ocr` leaf on first OCR use. The OpenCV Java
+         * classes (391 KB) stay in the APK; the native lib is excluded from
+         * packaging (see app/build.gradle.kts).
          *
-         * The libc++ travels along because the OpenCV build needs
-         * `__sfp_handle_exceptions`, which the APK's older libc++ lacks —
-         * and the process may already hold that older copy under the same
-         * soname. Both .so files are byte-patched to the isolated soname
-         * `libc++_paddle.so` (equal-length .dynstr swap, verified single
-         * occurrence each) and load in dependency order.
+         * The .so is the official 4.5.5 build, era-matched to the APK's
+         * libc++: all 377 undefined symbols resolve (only __cxa_atexit /
+         * __cxa_finalize come from bionic, as usual). The quickbird 4.5.3
+         * .so imported __sfp_handle_exceptions, which no bundled libc++
+         * provides — an isolated-soname libc++ detour was tried and dropped
+         * (the provider was the system, not any libc++). Do not switch
+         * OpenCV builds without re-running the symbol check.
          * Release `ocr-paddleocr-v1`.
          */
         val PADDLE_OCR = OfflinePayload(
@@ -236,17 +237,11 @@ class OfflinePayload(
                 RemoteAsset(
                     name = "libopencv_java4.so",
                     url = "$RELEASE_BASE/ocr-paddleocr-v1/libopencv_java4.so",
-                    sizeBytes = 17109960L,
-                    sha256 = "d63166a546c8d2f5c66d901470e49f80ba5a43e9f7405d9859b6994f0d4c495a"
-                ),
-                RemoteAsset(
-                    name = "libc++_paddle.so",
-                    url = "$RELEASE_BASE/ocr-paddleocr-v1/libc++_paddle.so",
-                    sizeBytes = 6238016L,
-                    sha256 = "a0ea5ac582a66f6c136fb6572d4ed98e23f7f4438f037325e3f282603ad53eed"
+                    sizeBytes = 18133736L,
+                    sha256 = "48e7c6c5b27d8650a7650674200bb67ef385096c36beca5f34e6a2ae6db46cb2"
                 )
             ),
-            unpackedBytes = 41390278L
+            unpackedBytes = 36179278L
         )
 
         val all: List<OfflinePayload> = listOf(

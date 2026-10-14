@@ -47,19 +47,4 @@ object OpenCVUtils {
         }
         return initialized
     }
-
-    /**
-     * Fork: load an isolated libc++ first (see PaddleOcrEngine), then OpenCV.
-     */
-    fun initWithSo(cxxLibFile: java.io.File, nativeLibFile: java.io.File): Boolean {
-        if (initialized) return true
-        try {
-            System.load(cxxLibFile.absolutePath)
-            System.load(nativeLibFile.absolutePath)
-            initialized = true
-        } catch (e: UnsatisfiedLinkError) {
-            Log.e("OpenCVUtils", "Failed to load OpenCV from ${nativeLibFile.absolutePath}: ${e.message}")
-        }
-        return initialized
-    }
 }

@@ -744,8 +744,10 @@ dependencies {
     // This drops libtensorflowlite_jni.so (3.7 MB) and
     // libmediapipe_tasks_text_jni.so (7.8 MB) from the APK.
 
-    // ONNX Runtime for Android - 支持更强大的多语言Embedding模型
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.17.1")
+    // ONNX Runtime for Android - PaddleOCR models (IR 10) need >= 1.19;
+    // 1.21.1 is what the PaddleOCR SDK targets. Speech consumers
+    // (GigaAM/Silero/VITS) share it — the Java API is stable across these.
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.21.1")
 
     // Room 数据库
     implementation(libs.room.runtime)

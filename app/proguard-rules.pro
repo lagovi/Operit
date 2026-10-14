@@ -192,6 +192,9 @@
 -keep class kotlinx.coroutines.test.internal.** { *; }
 
 # PaddleOCR SDK (copied sources, Apache-2.0): keep the pipeline classes.
-# No ai.onnxruntime keep: ORT already ships minified for speech today and
-# stripping it further is a SIZE win — the SDK's own rule is standalone-only.
+# ai.onnxruntime keep is MANDATORY, not optional: the JNI layer constructs
+# OrtException(int, String) from native code on load failure, invisible to
+# R8 — stripping that ctor turns a managed load error into a native abort
+# (proven 13.10: JNI DETECTED ERROR NoSuchMethodError -> WIN DEATH).
 -keep class com.paddle.ocr.** { *; }
+-keep class ai.onnxruntime.** { *; }

@@ -69,14 +69,71 @@
   одном libc++ на устройстве) → официальный 4.5.5, era-matched (все 377
   UND-символов резолвятся); R8 ел JNI-ctor OrtException → keep;
   det IR 10 требует ORT ≥1.19 → 1.21.1 для всех.
-- **Прокси провайдера** (решение 13.10): в настройках провайдера —
-  опция «подключение через прокси», типы SOCKS5 и HTTP/HTTPS.
-  План: поля в `ModelConfigData` (host/port/type, креды — в key pool?),
-  UI-блок в `ModelApiSettingsSection`, проброс в `AIServiceFactory`
-  (OkHttp `Proxy(HTTP)` нативно; SOCKS5 без auth нативно, с auth —
-  свой SocketFactory), плюс OAuth-клиенты (Codex/Antigravity).
-  Нюанс: MNN/llama локальные — исключить. DoD: чат через
-  HTTP-прокси и через SOCKS5 (с/без auth) глазами на телефоне.
+- **Прокси провайдера** (решение пользователя 13.10): в настройках
+  провайдера — опция «подключение через прокси», типы SOCKS5 и
+  HTTP/HTTPS. Статус: НЕ НАЧАТ. Спека ниже — выполнять по шагам.
+
+  **Что пользователь хочет (дословно):** у каждого API-провайдера в
+  настройках можно указать, что подключение идёт через прокси; типы —
+  SOCKS5 и HTTP/HTTPS (оба — с логином/паролем и без).
+
+  **Карта кода (проверена 14.10, не гадать):**
+  - Чат-провайдеры висят на ОДНОМ синглтоне
+    `SharedHttpClient.instance` (`api/chat/llmprovider/AIServiceFactory.kt:197`;
+    пул/таймауты/listener — там). `AIServiceFactory.createService`
+    раздаёт его всем провайдерам (`:298` + ветки ниже). Клиент immutable —
+    per-config вариант делать через `instance.newBuilder()` (пул и
+    dispatcher общие — это хорошо) + `.proxy(...)` (+ `.proxyAuthenticator`
+    для HTTP 407), кешировать в `Map<ProxyKey, OkHttpClient>`.
+  - OAuth/model-list/quota строят СВОИ клиенты, не Shared:
+    `data/api/CodexAuthManager.kt:19` (Builder + `CodexOAuthClient`/`CodexUsageClient`),
+    `data/api/AntigravityAuthManager.kt:34`,
+    `ui/features/antigravity/AntigravityOAuthCoordinator.kt:27`.
+    Менеджеры — синглтоны на пользователя, а прокси — per-config:
+    семантика такая — вызовы fetchModels/fetchQuota/login берут прокси
+    РЕДАКТИРУЕМОГО конфига (пробросить опциональным параметром из
+    `ModelApiSettingsSection`, дефолт — прямое соединение).
+  - Хранение: `ModelConfigData` (`data/model/ModelConfigData.kt:80`,
+    `@Serializable`, все поля с дефолтами — DataStore переживает новые
+    поля молча). Новые поля: `proxyMode: String = "DIRECT"`
+    (`DIRECT`/`HTTP`/`SOCKS5`), `proxyHost: String = ""`,
+    `proxyPort: Int = 0`, `proxyUsername: String = ""`,
+    `proxyPassword: String = ""` (чувствительность как у apiKey —
+    лежит в том же конфиге, это осознанно).
+  - Сейв: `ModelConfigManager.updateApiSettingsFull` (`:798`) — у него
+    ЯВНЫЕ параметры под каждую настройку: добавить + `copy()` +
+    обновить ВСЕХ звателей (их всего два места: `ModelApiSettingsSection.kt`
+    — `persist`/`buildAutoSaveState`/`ApiAutoSaveState` (`:274–350`) —
+    и сама `ModelConfigManager.kt`).
+  - UI: блок в `ModelApiSettingsSection.kt` (селектор режима + host/port/
+    user/pass), СКРЫВАТЬ для локальных (`isMnnProvider || isLlamaProvider`
+    — переменные уже есть в файле, `:462–463`; MNN/llama ходят в localhost,
+    прокси им бессмысленен). Строки — новые EN-ключи в `values/strings.xml`
+    (формат-аргументы только `%1$s`-стиль, LABEL-CONCAT-гейт).
+  - SOCKS5 с auth OkHttp НЕ умеет нативно (только без auth через
+    `Proxy(Proxy.Type.SOCKS, addr)`) → свой `SocketFactory`: handshake
+    RFC1928 (greeting + method; `0x00` no-auth / `0x02` user-pass) +
+    при `0x02` RFC1929 (user/pass) + CONNECT к таргету, вернуть сокет;
+    сажать через `.socketFactory(...)`. Без auth — голый Proxy(SOCKS).
+    HTTP/HTTPS — `Proxy(Proxy.Type.HTTP, addr)` (+ Authenticator на 407).
+  - ВНЕ скоупа (осознанно, не «забыл»): `RemoteAssetFetcher` (пейлоады
+    обязаны качаться, даже когда прокси провайдера набит криво),
+    STT/TTS/перевод/тулы. Если пользователь попросит шире — отдельной задачей.
+
+  **Шаг 0 (инфры нет — сделать первым):** в лабе НЕТ прокси-сервера.
+  Поднять на ноутбуке (телефон в том же LAN 192.168.1.x, достучится):
+  минимальный python CONNECT-прокси для HTTP/HTTPS-теста (порт 8888) и
+  минимальный SOCKS5 (порт 1080: RFC1928 no-auth + user/pass по RFC1929).
+  Оба ~80 строк вместе, запускать руками на время приёмки, в репо НЕ
+  коммитить (тест-инфра сессии) — или в `/tmp/opencode/`, не в репо.
+
+  **DoD (глазами на телефоне):** чат-ответ через HTTP-прокси, через
+  SOCKS5 без auth, через SOCKS5 с auth (цель — LAN-gateway
+  `192.168.1.55:20128`, он живёт в том же LAN и виден через прокси);
+  негатив: кривой прокси (мертвый порт) даёт чистую ошибку за
+  connectTimeout, а не вечный вис. OAuth-логин через прокси — только
+  если просто ложится в ту же схему (не требовать аккаунт специально).
+  Регресс: прямой режим (DIRECT) работает как раньше.
 
 ## Не берём (REJECTED, сознательно)
 

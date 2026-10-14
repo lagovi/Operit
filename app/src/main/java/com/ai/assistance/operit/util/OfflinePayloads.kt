@@ -197,10 +197,17 @@ class OfflinePayload(
 
         /**
          * PaddleOCR engine files (PP-OCRv6-small det 9.9 MB + cyrillic
-         * PP-OCRv5-mobile rec 8.0 MB + rec dict + OpenCV arm64 .so 17.1 MB),
-         * provisioned into the `ocr` leaf on first OCR use. The OpenCV Java
-         * classes (391 KB) stay in the APK; only the .so is on-demand and is
-         * excluded from packaging (see app/build.gradle.kts).
+         * PP-OCRv5-mobile rec 8.0 MB + rec dict + OpenCV arm64 .so 17.1 MB
+         * + its libc++ 6.2 MB), provisioned into the `ocr` leaf on first
+         * OCR use. The OpenCV Java classes (391 KB) stay in the APK; both
+         * native libs are excluded from packaging (see app/build.gradle.kts).
+         *
+         * The libc++ travels along because the OpenCV build needs
+         * `__sfp_handle_exceptions`, which the APK's older libc++ lacks —
+         * and the process may already hold that older copy under the same
+         * soname. Both .so files are byte-patched to the isolated soname
+         * `libc++_paddle.so` (equal-length .dynstr swap, verified single
+         * occurrence each) and load in dependency order.
          * Release `ocr-paddleocr-v1`.
          */
         val PADDLE_OCR = OfflinePayload(
@@ -230,10 +237,16 @@ class OfflinePayload(
                     name = "libopencv_java4.so",
                     url = "$RELEASE_BASE/ocr-paddleocr-v1/libopencv_java4.so",
                     sizeBytes = 17109960L,
-                    sha256 = "20f98317542a993031e998def9603ec07fd7f64b0719146360545cfc87ea74cb"
+                    sha256 = "d63166a546c8d2f5c66d901470e49f80ba5a43e9f7405d9859b6994f0d4c495a"
+                ),
+                RemoteAsset(
+                    name = "libc++_paddle.so",
+                    url = "$RELEASE_BASE/ocr-paddleocr-v1/libc++_paddle.so",
+                    sizeBytes = 6238016L,
+                    sha256 = "a0ea5ac582a66f6c136fb6572d4ed98e23f7f4438f037325e3f282603ad53eed"
                 )
             ),
-            unpackedBytes = 35152262L
+            unpackedBytes = 41390278L
         )
 
         val all: List<OfflinePayload> = listOf(

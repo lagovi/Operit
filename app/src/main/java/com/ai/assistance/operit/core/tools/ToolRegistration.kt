@@ -3,6 +3,7 @@ package com.ai.assistance.operit.core.tools
 import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
+import com.ai.assistance.operit.api.speech.transcribeLocalSpeechFile
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.core.tools.defaultTool.ToolGetter
@@ -1794,6 +1795,24 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 s(R.string.toolreg_read_file_desc, path, envInfo)
             },
             executor = { tool -> runBlocking(Dispatchers.IO) { fileSystemTools.readFile(tool) } }
+    )
+
+    // Transcribe an audio file with the on-device STT engine (benchmark path,
+    // mirrors the microphone pipeline without needing a microphone).
+    handler.registerTool(
+            name = "transcribe_file",
+            descriptionGenerator = { tool ->
+                val path = tool.parameters.find { it.name == "path" }?.value ?: ""
+                val environment = tool.parameters.find { it.name == "environment" }?.value
+                val envInfo = formatEnvInfo(environment)
+                s(R.string.toolreg_transcribe_file_desc, path, envInfo)
+            },
+            executor = { tool ->
+                runBlocking(Dispatchers.IO) {
+                    val path = tool.parameters.find { it.name == "path" }?.value ?: ""
+                    transcribeLocalSpeechFile(context, path)
+                }
+            }
     )
 
     // 按行号范围读取文件内容

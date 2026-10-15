@@ -297,6 +297,7 @@ private fun getFinalToolTestGroups(context: android.content.Context): List<ToolG
     val testZip = "$testBaseDir/test.zip"
     val testUnzipDir = "$testBaseDir/unzipped"
     val testImage = "$testBaseDir/test_image.png"
+    val testAudio = "$testBaseDir/test_audio.wav"
     val largeWriteContent = "Large write test content.".repeat(12000)
 
     return listOf(
@@ -331,6 +332,7 @@ private fun getFinalToolTestGroups(context: android.content.Context): List<ToolG
             ToolTest("list_files", context.getString(R.string.list_files_test), context.getString(R.string.list_files_test_desc), listOf(ToolParameter("path", testBaseDir))),
             ToolTest("file_exists", context.getString(R.string.file_exists_test), context.getString(R.string.file_exists_test_desc), listOf(ToolParameter("path", testFile))),
             ToolTest("read_file", context.getString(R.string.ocr_read_test), context.getString(R.string.ocr_read_test_desc), listOf(ToolParameter("path", testImage))),
+            ToolTest("transcribe_file", context.getString(R.string.transcribe_file_test), context.getString(R.string.transcribe_file_test_desc), listOf(ToolParameter("path", testAudio))),
             ToolTest("read_file_part", context.getString(R.string.chunk_read_test), context.getString(R.string.chunk_read_test_desc), listOf(ToolParameter("path", testFile), ToolParameter("partIndex", "0"))),
             ToolTest("file_info", context.getString(R.string.file_info_test), context.getString(R.string.file_info_test_desc), listOf(ToolParameter("path", testFile))),
             ToolTest("find_files", context.getString(R.string.find_files_test), context.getString(R.string.find_files_test_desc), listOf(ToolParameter("path", testBaseDir), ToolParameter("pattern", "*.txt")))

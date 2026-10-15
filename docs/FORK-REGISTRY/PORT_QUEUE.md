@@ -69,9 +69,35 @@
   одном libc++ на устройстве) → официальный 4.5.5, era-matched (все 377
   UND-символов резолвятся); R8 ел JNI-ctor OrtException → keep;
   det IR 10 требует ORT ≥1.19 → 1.21.1 для всех.
-- **Прокси провайдера** (решение пользователя 13.10): в настройках
-  провайдера — опция «подключение через прокси», типы SOCKS5 и
-  HTTP/HTTPS. Статус: НЕ НАЧАТ. Спека ниже — выполнять по шагам.
+- **Прокси провайдера** (решение пользователя 13.10): DONE 14.10
+  (`2c245bf4`+фикс `bd47afae`, CI `38520434647` green, сборка
+  `20261014_062241Z` 163102271 Б = +19 КБ).
+  Что сделано: поля `proxyMode/proxyHost/proxyPort/proxyUsername/proxyPassword`
+  в `ModelConfigData` (дефолт DIRECT + запечённые lab host/ports);
+  `data/model/ProviderProxy.kt` (HTTP нативно + 407-auth; SOCKS5 без auth
+  нативно, с auth — `Socks5TunnelSocketFactory` RFC 1928/1929; кеш
+  per-base-клиент); `AIServiceFactory.buildService` — весь чат через
+  `ProviderProxyClients.forConfig`; `fetchUsage/fetchQuota/fetchModels`
+  Codex/Antigravity — опциональный `proxy: ProxySettings? = null`
+  (зовётся из секции с правками конфига); login/refresh — прямые
+  сознательно (account-level, без контекста конфига); UI-блок +
+  диалог режима в `ModelApiSettingsSection` (скрыт для MNN/llama,
+  смена типа меняет порт только пока там чужой baked-дефолт);
+  10 EN-строк `provider_proxy_*`.
+  Приёмка глазами (Test Connection → гейтвей .55:20128): DIRECT Success;
+  HTTP Success (`route=...:18888`); SOCKS5 Success; SOCKS5+auth Success
+  (`SOCKS5 tunnel ... established`, форвардер: `auth ok` + CONNECT);
+  мёртвый прокси — чистая `Failed: failed to connect to ...:11080`
+  за connectTimeout. Default Config возвращён как был (0 proxy-полей).
+  ВАЖНО: прокси лабы 192.168.1.55:18080/10808 БЛОКИРУЮТ LAN-таргеты
+  политикой (curl: наружу 200, на гейтвей — пустой ответ/000) —
+  end-to-end шёл через permissive форвардеры `/tmp/opencode/testproxy/`
+  (в репо НЕ коммитить, тест-инфра сессии) на том же боксе.
+  Остаток: `AntigravityProvider.getModelsList` ходит напрямую через
+  authManager (дефолт null) — кнопка списка моделей в секции прокси
+  передаёт (там ок); login через прокси — только если ляжет в ту же
+  схему (шаг пользователя не требовать).
+  (Спека ниже — выполнена дословно, оставлена как документ решения.)
 
   **Что пользователь хочет (дословно):** у каждого API-провайдера в
   настройках можно указать, что подключение идёт через прокси; типы —

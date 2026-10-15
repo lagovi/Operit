@@ -6,7 +6,8 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-15 (evening, EN rewrite + 15.10 decisions), HEAD `84ece94c`,
+**Date:** 2026-10-15 (evening, EN rewrite + 15.10 decisions + 5a/5b
+close-out 21:33), HEAD `eb3a5630`,
 branch `feat/english-only-build`
 
 > **Language rule (user directive, 15.10): talk to the user in Russian.
@@ -26,9 +27,8 @@ R8-mapping + `f3ce47f1`/`5cb753fe` task 10 + `cddb9906` revert +
 docs-only commits on top.)
 
 OPEN (full breakdown in §8; summary here):
-(a) 5a/5b — DECISION 15.10: the agent does them ALONE via root (no user
-finger needed); Windows export blocked — no Windows machine; methodology
-for both in §8;
+(a) 5a/5b — CLOSED 15.10 night by the agent alone via root (decision
+15.10; close-outs in §8); Windows export blocked — no Windows machine;
 (b) joint manual testing with the user — waits for their word;
 (c) manual Google sign-in to Antigravity — user will do it later
 (what to verify after — PORT_QUEUE.md, Antigravity acceptance);
@@ -469,18 +469,44 @@ Windows export never run): HTML Packager → ExportPlatformDialog →
 Android export to the end → `files/subpack/apk_editor_android.apk`
 48139093 B + sha `c56b23a8...` (size+sha matched), output APK installs;
 (CLOSE-OUT task 13 for details).
-(b) 5a/5b by eye — NOT PROVEN, agent does it alone via root (decision
-15.10); how (both — walker scenario + file proofs, like seeds): 5a —
-STT model move to SD: clean install (model ABSENT — re-download 225 MB:
-consent + resume, only with battery/network headroom) → Settings →
-SpeechToText → move to memory card → by eye: path row + dir on card +
-model sings (benchmark phrase — may run it inside 5a: the 15.10 ban
-covers only the standalone STT regression); DoD: leaf path + files +
-live recognition. 5b — ANR tails: `AnrMonitor` writes "possible ANR!"
-(`AnrMonitor.kt:208`) and "warning" (`:219`) to logcat; trigger — fast
-scroll of long lists (Settings/Packages) 30–60 s + `logcat -t N` read
-(never full `-d`); DoD: lines present/absent + context (what, how long
-scrolled) written here — the fact matters, not "clean". Task 6 CLOSED.
+(b) 5a/5b by eye — CLOSED 15.10 night, agent alone via root (decision
+15.10). 5a — STT model move to SD: no reinstall needed (CURRENT proxy
+build `20261014_062241Z` on phone since 14.10 09:40, model never pulled —
+already a clean field).
+Download: Settings → Speech Services → STT tab → Download button
+(after scrolling; tapping the "Not downloaded" row does nothing).
+Tap calibration that session: request lands ~50px ABOVE glyph here
+(pointer_location proof: request (153,795) → point (155,742); top rows
+~1:1). Download ran with NO consent dialog (consent from an earlier
+epoch persists) — "Downloading speech model... 0%" → finished in
+~2 min; files byte-exact (`model.int8.onnx` 224762512, `tokens.txt`
+391, same as M6). Move: Change → "Memory card (app folder)" →
+"Moving..." → done ~20:47. Proofs: UI path row now
+"Memory card (app folder)"; card
+`/storage/5982-1724/Android/data/.../files/stt_model/` holds both
+files byte-exact; internal `files/stt_model` GONE; app log
+`D/GigaAMSpeechProvider: GigaAM initialized` 20:59 (model exists ONLY
+on card — init-from-card proven). Live: Toolbox → Speech Recognition →
+Start → "engine initialized / Recognizing..." ~19 min (21:01–21:20),
+stopped cleanly by button; 0 phrases (quiet room — fact, not failure;
+no `Utterance decode failed`). "Sings" attempt: benchmark wav pushed to
+/sdcard/Download, but NOTHING can play it — box has no players, phone
+has no music player (chooser offers only Operit EN + Termux), Termux
+has none, `tinyplay` can't open PCM (`cannot open device`), `cplay`
+permission-denied. Recorded for the STT-benchmark methodology question:
+candidate (1) "play into mic" needs a player first (`pkg install sox`
+in Termux via RUN_COMMAND is the cheapest path). Phone left: STT model
+on SD, dictation idle, Default Config untouched.
+5b — ANR tails: `AnrMonitor` thresholds (`AnrMonitor.kt:47-48`):
+warning >500 ms, "possible ANR!" >1000 ms. Scroll load 15.10 21:30–
+21:33 (6 fast sendevent swipes over the 25-item Packages list, ~40 s):
+ZERO new AnrMonitor lines (logcat last 1000 + `operit.log` — latest
+stays 19:46). Historical (fact, not "clean"): 111 stall lines total —
+54 warnings (500–1000 ms) + 57 possible-ANR (max 5765 ms); 110 dated
+10-14 (install/acceptance day) + 1 on 10-15 19:46 (2196 ms,
+unattended — before this session, unattributed). Monitor's own strings
+still hardcoded Chinese (`检测到ANR!`, `检测到重复的ANR` — known M6
+follow-up, unchanged). Task 6 CLOSED.
 STT benchmark for the ORT 1.21.1 regression (given by user 15.10, RUN
 ONLY ON COMMAND): file `~/operit-fork/wav/benchmark_v2.wav` (mono,
 48 kHz, 37.5 s, 3.6 MB). Spoken text: "В дистрибутиве Omarchy под

@@ -1,1472 +1,1034 @@
-# Письмо себе в следующей сессии
+# Letter to myself in the next session
 
-> Точка входа: работа начинается с этого файла —
-> `docs/FORK-REGISTRY/HANDOFF.md` (корень репозитория `/home/uzzzver/operit-fork/Operit`).
-> Прочитать сверху вниз, затем идти по таблице порядка чтения ниже.
+> Entry point: start with this file —
+> `docs/FORK-REGISTRY/HANDOFF.md` (repo root `/home/uzzzver/operit-fork/Operit`).
+> Read top to bottom, then follow the reading-order table below.
 
-**От:** агент, который делал англоязычный форк Operit
-**Кому:** мне же, чистый контекст, та же задача
-**Дата:** 2026-10-15 (вечер, ревизия описаний + решения 15.10),
-HEAD `901f98bb`, ветка `feat/english-only-build`
-(сверх 08.10: порты batch-1+2 + Antigravity `92b4cc63` + PaddleOCR
-`96e27adb` + прокси `2c245bf4`+`bd47afae` + доки; детали — PORT_QUEUE.md,
-APK-папки `20261012_104102Z`/`20261013_025022Z`/`20261014_025827Z`/
-`20261014_062241Z`).
-(код: `1c0ed81d` llm-io-log + `63dadf6e` supervision + фиксы +
+**From:** the agent building the English-only Operit fork
+**To:** me, fresh context, same job
+**Date:** 2026-10-15 (evening, EN rewrite + 15.10 decisions), HEAD `84ece94c`,
+branch `feat/english-only-build`
+
+> **Language rule (user directive, 15.10): talk to the user in Russian.
+> All agent-internal docs are in English (token efficiency). Code comments,
+> logs and docs in English; user-visible strings English-only (the fork
+> is English-only).**
+
+Stack since 08.10: ports batch-1+2 + Antigravity `92b4cc63` + PaddleOCR
+`96e27adb` + proxy `2c245bf4`+`bd47afae` + docs; details — PORT_QUEUE.md,
+APK dirs `20261012_104102Z`/`20261013_025022Z`/`20261014_025827Z`/
+`20261014_062241Z`.
+(Code: `1c0ed81d` llm-io-log + `63dadf6e` supervision + fixes +
 `b4ff4a30` QuickJS keep + `c8bda3c4`/`acc9eb3a` 5a/5b + `50dc014a`
-R8-mapping + `f3ce47f1`/`5cb753fe` задача 10 + `cddb9906` revert +
-`97ad4913`/`a112091f`/`55e18396` тесты (Android Tests зелёный) +
-`a4fddb40` subpack Q1 + сабмодуль `terminal@26d4964`;
-сверх кода только docs-коммиты).
-Что изменила ревизия 08.10: шапка/пули/телефон приведены к правде
-(снято противоречие «задача 11 открыта и закрыта одновременно»);
-заведены задачи 12 (Q1 пп.3–4: apktool/desktop) и 13 (Q2 on-demand)
-с нуля до cold clarity; уточнены 6 и 8; в чит-шит внесены рецепт грантов
-через shell, КОНФЛИКТ направлений дрейфа тапов (M6 против 08.10),
-ловушка `unzip -l`, рецепт стектрейсов из HTML-отчётов, состояние fresh
-install; леджер research-size п.3 и таблица обновлены (subpack-механика
-готова, R8 — done, дрейф размера android.apk на Drive).
-ОТКРЫТО (полный разбор — §8 ниже; здесь сводка):
-(а) 5a/5b — РЕШЕНИЕ 15.10: агент делает САМ через root (палец
-пользователя больше не нужен); Windows-экспорт заблокирован —
-Windows-машины нет; методика обоих расписана в §8;
-(б) совместное ручное с пользователем — ждёт его слова;
-(в) ручной Google sign-in Antigravity — пользователь сделает сам позже
-(что проверить после — PORT_QUEUE.md, приёмка Antigravity);
-(г) STT-регресс после ORT 1.21.1 — HOLD: эталон
-`~/operit-fork/wav/benchmark_v2.wav` + правила зачёта в §8,
-прогон ТОЛЬКО по команде (открытый вопрос: как подавать wav движку —
-см. §8);
-(д) сознательные хвосты прокси (не баги): список моделей Antigravity
-(`AntigravityProvider.getModelsList`) ходит напрямую (кнопка списка
-в секции прокси передаёт); login через прокси — только если ляжет
-в схему; прокси лабы .55:18080/10808 режут LAN — end-to-end только
-через свой стенд (рецепт — memo (б4)).
-БЭКЛОГ: PaddleOCR DONE 14.10 (CI `38499450049`, сборка
-`20261014_025827Z`; латиница 12/12 + русский 3/3; «обрезанные хвосты»
-оказались кривым truth — модель читает ровно пиксели, E18);
-прокси провайдера DONE 14.10 (код `2c245bf4`+`bd47afae`,
-CI `38520434647`, сборка `20261014_062241Z`; приёмка
-DIRECT+HTTP+SOCKS5(+auth)+мёртвый прокси; прокси лабы .55:18080/10808
-режут LAN — end-to-end шёл через стенд в `/tmp/opencode/testproxy/`).
-  ЗАКРЫТО 11–12.10: 19 (очередь `PORT_QUEUE.md`: batch-1 + 17 ручных/
-  cherry-pick портов; CI зелёные; остался только Antigravity — см. выше),
-  20 (справка: офлайн-топики 12 экранов + «?» в аппбаре (FAB проиграл
-  колонкам FAB — скриншот-доказательство); тур `screen_tour.uaw` 102 шага
-  PASS на `20261012_104102Z`),
-  21 (OCR-baseline: ML Kit Latin 11.5 МБ, 5/5 точно + русский мусор
-  (ожидаемо); движок 1–5 с; PaddleOCR исследован — вердикт ниже).
-  PADDLEOCR-ВЕРДИКТ 12.10 (текущий движок: 11.5 МБ, латиница 100%,
-  офлайн, 0 интеграции): PP-OCRv6 имеет официальный Android SDK
-  (`deploy/ppocr-android`, ONNX Runtime, minSdk 26) tiers tiny 1.5M /
-  small 7.7M / medium 34.5M, 50 языков одной моделью — но реалистичный
-  след small на устройстве 30–55 МБ (det+rec+ORT .so) против 11.5 МБ,
-  плюс JNI-интеграция. Агент рекомендовал НЕ БРАТЬ; пользователь 12.10
-  решил: НУЖЕН (русский). Статус на 14.10: DONE (см. PORT_QUEUE.md:
-  v6-small det + cyrillic v5 rec, on-demand, приёмка 12/12 + русский).
-  Ниже — исторический вердикт, не план.
-  ЗАКРЫТО 11.10 ночью: 6 (строка зелёная, опрос PASS=4 FAIL=0 —
-  CLOSE-OUT в теле), плюс ранее: 18 (B+C PASS=8; D снят 15.10 — забыть).
-12 (см. ниже — дело сделано в Q2),
-13 (Q2 ЗАКРЫТ ЦЕЛИКОМ 11.10: subpack + helper APK + templates/emoji;
-rootfs НЕ берём — E3 против, решение в силе).
-  ЗАКРЫТО 10.10 ночью: 14 (см. CLOSE-OUT в теле), 15 (полная приёмка
-  `accept10` PASS=10 FAIL=0 на `20261010_215026Z` — онбординг/picker/папка/
-  скачивание/репак/подпись/offline-повтор), 17 (корень PBES2 + evict-фикс,
-  доказательство в теле).
-  Q2-ПРОДОЛЖЕНИЕ 10–11.10 (детали — ARCHIVE.md, здесь итоги): helper
-  APK on-demand (`HelperApkStorage.kt`, релиз, `git rm` 4 ассета; APK
-  `20261011_015941Z`, CI `38103675524`, −3443520 Б, walker PASS=6 FAIL=0;
-  по пути walker добрал 4 бага: fd3-stdin, bare-bounds, WAIT_PKG,
-  SCROLL_TO — все в memo); seeds templates/emoji (`AssetSeedStorage.kt`,
+R8-mapping + `f3ce47f1`/`5cb753fe` task 10 + `cddb9906` revert +
+`97ad4913`/`a112091f`/`55e18396` tests (Android Tests green) +
+`a4fddb40` subpack Q1 + submodule `terminal@26d4964`;
+docs-only commits on top.)
+
+OPEN (full breakdown in §8; summary here):
+(a) 5a/5b — DECISION 15.10: the agent does them ALONE via root (no user
+finger needed); Windows export blocked — no Windows machine; methodology
+for both in §8;
+(b) joint manual testing with the user — waits for their word;
+(c) manual Google sign-in to Antigravity — user will do it later
+(what to verify after — PORT_QUEUE.md, Antigravity acceptance);
+(d) STT regression after ORT 1.17.1→1.21.1 — HOLD: benchmark
+`~/operit-fork/wav/benchmark_v2.wav` + scoring rules in §8,
+run ONLY on command (open question: how to feed a wav to the engine —
+see §8);
+(e) deliberate proxy tails (not bugs): Antigravity `getModelsList` goes
+direct (`AntigravityProvider.getModelsList`; the model-list button in the
+settings section passes proxy); login-over-proxy only if it fits the same
+scheme; lab proxies .55:18080/10808 block LAN — end-to-end only via our
+own stand (restore recipe — memo (N41)).
+  CLOSED 11–12.10: 19 (queue `PORT_QUEUE.md`: batch-1 + 17 manual/
+  cherry-pick ports; CIs green), 20 (help: 12 offline topics + `?` in the
+  appbar; tour `screen_tour.uaw` 102 steps PASS on `20261012_104102Z`),
+  21 (OCR baseline: ML Kit Latin 11.5 MB, 5/5 exact + Russian garbage
+  (expected); engine 1–5 s).
+  PADDLEOCR VERDICT 12.10 (historical, not a plan): PP-OCRv6 has an
+  official Android SDK (`deploy/ppocr-android`, ONNX Runtime, minSdk 26).
+  Agent recommended AGAINST; user 12.10 decided: TAKE (Russian).
+  Status 14.10: DONE (see PORT_QUEUE.md).
+  CLOSED night 11.10: 6 (line green, poll PASS=4 FAIL=0 — close-out in
+  body), 18 (B+C PASS=8; D dropped 15.10 — forget it).
+  12 (done inside Q2, see below), 13 (Q2 CLOSED WHOLE 11.10: subpack +
+  helper APK + templates/emoji; rootfs NOT taken — E3 stands).
+  CLOSED night 10.10: 14 (close-out in body), 15 (full `accept10`
+  PASS=10 FAIL=0 on `20261010_215026Z`), 17 (PBES2 root + evict fix).
+  Q2 FOLLOW-UP 10–11.10 (details — ARCHIVE.md): helper APK on-demand
+  (`HelperApkStorage.kt`, release, `git rm` 4 assets; APK
+  `20261011_015941Z`, CI `38103675524`, −3443520 B, walker PASS=6 FAIL=0;
+  walker picked up 4 bugs en route: fd3-stdin, bare-bounds, WAIT_PKG,
+  SCROLL_TO — all in memo); seeds templates/emoji (`AssetSeedStorage.kt`,
   `seed-templates.zip` 4227058 + `seed-emoji.zip` 3614642, `git rm` trees;
-  APK `20261011_141729Z`, CI `38146579269`, −8208126 Б, PASS=8 FAIL=0).
-  Нарушения по пути (честно): пуш на красном ANCHOR-LOST (SIZE-006
-  перенесена на WorkspaceUtils) + registry.json с indent=2 (переделано,
-  amend + force-with-lease своего docs-коммита). Q2 ЗАКРЫТ целиком.
-12 (a/b apktool+desktop — ЗАКРЫТЫ 08.10, CI `37722980127`/`37726800230`),
- 13 (subpack DoD ЗАКРЫТ 10.10 на `2026-10-10_00-41-11Z`; подпись чинена
- в задаче 17).
-ЗАКРЫТО: всё остальное (1–5 кроме поведенческих 5a/5b — они открыты,
-см. §8; 7a, 9, 10, 11, 3a/3b, 4, subpack Q1-механика, 16 install-size —
-не трогаем, решение 10.10).
- Решения пользователя 08.10: keystore НЕ делаем (жизнь на гитхабе,
- debug-сборок достаточно); хостинг Q2 — GitHub Releases в том же репо,
- первый релиз вместе с Q2-кодом; ручное тестирование — позже, когда
- всё отшлифовано.
-**Как читать:** статус ниже — правда на сейчас, читать первым. Разделы
-с пометкой SUPERSEDED/CLOSED — история, не трогать. Хеш кодового коммита
-сверять с `git log` — docs-коммиты поведение не меняют.
+  APK `20261011_141729Z`, CI `38146579269`, −8208126 B, PASS=8 FAIL=0).
+  Q2 CLOSED whole.
+  12 (a/b apktool+desktop — CLOSED 08.10, CIs `37722980127`/`37726800230`),
+  13 (subpack DoD CLOSED 10.10 on `2026-10-10_00-41-11Z`).
+CLOSED: everything else (1–5 except behavioral 5a/5b — open, see §8;
+7a, 9, 10, 11, 3a/3b, 4, subpack Q1 mechanics, 16 install-size —
+don't touch, decision 10.10).
+  Standing user decisions: no keystore (life on GitHub, debug builds are
+  enough); Q2 hosting — GitHub Releases in the same repo, first release
+  together with Q2 code; manual testing — later, when everything polished.
+**How to read:** the status below is truth-as-of-now, read first. Sections
+marked SUPERSEDED/CLOSED are history, don't touch. Verify code-commit
+hashes against `git log` — docs commits change no behavior.
 
-## Fresh-session memo (читать вторым — всё, чтобы не наступать снова)
+## Fresh-session memo (read second — everything to not step on again)
 
-**Связь.** Только `adb -s 192.168.1.69:5555` (классический ADB-TCP,
-поднят root-командой `su -c 'setprop service.adb.tcp.port 5555;
-stop adbd; start adbd'`). Перезагрузок НЕ боится: Termux + Termux:Boot
-выполняют тот же скрипт (`~/.termux/boot/adb-tcp.sh`, root выдан один
-раз) — доказано ребут-тестом 10.10 (порт вернулся через ~75 с). USB
-мёртв (`lsusb` пуст). Если порт открыт и пингуется, а `adb connect`
-висит — `adb kill-server; adb start-server` (stale server, 09.10).
-Pairing-порт ≠ adb-порт: connect на pairing даёт refused/вис — не гадать,
-просить у пользователя настоящий или брать 5555. TLS-порт беспроводной
-отладки мёртв с момента включения 5555 (так и надо).
-**Root.** Magisk `su` есть (`su -c id` → uid=0), в т.ч. из Termux
-(`run-as com.termux su -c id`). НО: `/data/adb/service.d` не пишется
-даже root с полными capabilities, в Permissive и из `su -mm` — режет
-прошивка; Magisk-автозагрузку не чинить, обход — Termux:Boot выше.
-**Гранты свежей установки** (shell-набор, достаточен): `pm grant PKG
+**Link.** Only `adb -s 192.168.1.69:5555` (classic ADB-TCP, raised by root
+`su -c 'setprop service.adb.tcp.port 5555; stop adbd; start adbd'`).
+Survives reboots: Termux + Termux:Boot run the same script
+(`~/.termux/boot/adb-tcp.sh`, root granted once) — proven by 10.10 reboot
+test (port back after ~75 s). USB dead (`lsusb` empty). Port open and
+pingable but `adb connect` hangs — `adb kill-server; adb start-server`
+(stale server, 09.10). Pairing port ≠ adb port: connect to pairing gives
+refused/hang — ask the user for the real one or take 5555. The wireless-
+debugging TLS port is dead since 5555 was enabled (as intended).
+**(N1) Root.** Magisk `su` works (`su -c id` → uid=0), incl. from Termux
+(`run-as com.termux su -c id`). BUT: `/data/adb/service.d` is unwritable
+even as root with full capabilities, in Permissive and via `su -mm` —
+firmware cuts it; don't fix Magisk autostart, the Termux:Boot bypass above
+is the way.
+**(N2) Fresh-install grants** (shell set, sufficient): `pm grant PKG
 READ/WRITE_EXTERNAL_STORAGE + FINE/COARSE_LOCATION + RECORD_AUDIO`,
 `appops set PKG MANAGE_EXTERNAL_STORAGE + SYSTEM_ALERT_WINDOW allow`,
-`dumpsys deviceidle whitelist +PKG`. Без них визард крутится по кругу
-«Incomplete → Continue» — это не баг.
-**Нажатия.** Основной инструмент — root-тапы sendevent:
-`/dev/input/event3` (`ILITEK_TDDI`, протокол MT-B), координаты 1:1
-к координатам дампа (доказано, в т.ч. y=1394–1407). Рецепт тапа:
-slot 0 → BTN_TOUCH(330) 1 → tracking_id N++ → X(53) → Y(54) →
-major(48)=9 → pressure(58)=50 → SYN → пауза 0.12 → tracking −1 →
-BTN_TOUCH 0 → SYN. Готовая обёртка: `ci/script/phone_lab.sh`
-(`plab_tap`, `plab_tap_text`, `plab_wait_text`, `plab_assert_leaf_file`).
-`input tap` работает ВНУТРИ приложения, но ГЛУХ в системном DocumentsUI
-(строки папок и кнопка USE — проверено прочёсыванием одиночных/двойных/
-долгих тапов) — там только sendevent (палец больше не нужен вообще).
-Клавиатурно: TAB ходит по фокусу (включая строки списка после тапа),
-DPAD_UP/DOWN — по строкам, ENTER жмёт обычные кнопки, НО на USE/строках
-DocumentsUI ENTER/SPACE/CENTER глухи (ENTER на USE уводит фокус).
-**Чтение экрана.** `uiautomator dump` + парсинг XML (тексты/границы) —
-основное; скриншоты (`screencap -p` + Read) — только для визуала.
-Если dump дохнет с SIGKILL — фолбэк на скриншоты. Дрейф низа (E11):
-хитбоксы на 40–100px ВЫШЕ глифов — при промахах прочёсывать вверх,
-не давить в ту же точку.
-**Файлы на телефоне.** Только `adb exec-out run-as PKG` (других путей
-внутрь нет); БД тащить тремя файлами (`app_database`+`-wal`+`-shm`);
-`input text` — только `%s`-безопасные строки; `/sdcard` переживает
-переустановку (фиxture `/sdcard/q2html/index.html` на месте).
-**CI/сборки.** Workflow только ручной dispatch И ТОЛЬКО ПОСЛЕ PUSH
-(раннер чекаутит origin). Каждый CI-билд — новый debug-ключ:
-перед install всегда `uninstall` (`-r` даёт UPDATE_INCOMPATIBLE).
-Папка APK = UTC-старт рана + `CHANGES.md` (3–6 строк дельты).
-Замер — `python3 zipfile`, НЕ `unzip -l` (врёт). Mapping-артефакт
-тянуть всегда. 10.10 GitHub сам отключал Actions на форке (баннер
-«disabled because of its Actions usage», dispatch 422; расписаний
-у нас нет — эвристика на пачку долгих ранов): лечится ТОЛЬКО кнопкой
-на вкладке Actions (владелец), API/тумблеры не помогают.
-**Диск `/` хронически 95–100%.** Перед качанием артефактов смотреть
-`df`; протухшие `/tmp/gh-artifact.*.zip` и дубли моделей — первые
-кандидаты; тулкит (`jdk/kotlinc/venv`) и `gigaam-model` НЕ трогать.
-**Правила.** No-fallback: чинить настоящую причину (примеры: keep
-commons-compress вместо try/catch вокруг setTime; keep BC + не удалять
-платформенный провайдер вместо глотания исключений). Коммиты: код и
-доки — отдельно; audit-гейт (`fork_audit.py --no-color --no-hotspots`,
-CJK-NEW 0) перед push.
-**Негативные эксперименты (проверено, НЕ повторять):**
-(a) adb-тапы по DocumentsUI — глухи (см. Нажатия); (б) Magisk service.d —
-не пишется (см. Root); (в) `svc wifi disable` для offline-теста УБИВАЕТ
-ADB-транспорт (связь только по WiFi!): offline — только iptables
-owner-match на uid приложения (`iptables -A OUTPUT -m owner
---uid-owner <uid> -j REJECT`, снять `-D`); (г) `install -r` между CI-
-сборками — UPDATE_INCOMPATIBLE (ключи разные); (д) BACK из пикера/
-экранов теряет remember-состояние (папку/флоу выбирать заново,
-URI-грант в системе при этом жив); (е) JKS-keystore на Android НЕ
-существует в принципе (провайдера нет и не будет — чинить только
-PKCS12-путь);   (ж) `removeProvider("BC")` вне связки с немедленной вставкой
-  bundled-BC на его место — запрещён (голое удаление оставляло процесс
-  без PKCS12 вообще, live-fire 09.10); сама связка remove+insert —
-  рабочий механизм (upstream, задача 17): платформа в «BC»-слоте это
-  урезанный форк без PBES2, и только evict даёт место полному bundled; (з) тумблеры
-  Settings/API против 422 Actions — не работают, только кнопка на
-  вкладке Actions; (и) `unzip -l` врёт нулями на этих APK.
-  Сессия 10.10 вечер (приёмка+подпись, всё свежее):
-  (к) `pkill -f <паттерн>` убивает СОБСТВЕННЫЙ шелл инструмента
-  (паттерн совпадает с командной строкой) — PID искать `ps` и `kill <pid>`;
-  ТО ЖЕ относится к `ps aux | grep <паттерн> | xargs kill`: если строка
-  паттерна есть в твоей же команде (имена скриптов!), grep видит обёртку
-  и убивает себя (поймано дважды — тихий суицид без вывода); kill только
-  по PID из файла, записанного при запуске;
-  (л) `unzip` НЕТ в системе вообще: всё через `python3 zipfile`; код —
-  в `classesN.dex`, UI-строки — в resources.arsc (их отсутствие в dex —
-  норма, не «вырезано»); короткие подстроки (`inserted`, `offered`) в
-  dex-греп — шум, искать только длинные точные фразы;
-  (м) `sed 'A,Bd'` + правки по номерам строк: после удаления номера
-  плывут — границы проверять чтением; пустые `"""`-блоки, висячие `\`
-  и съеденные закрытия чинить вручную + verify python-парсингом;
-  (н) однострочные python-правки JSON: тип проверять ДО записи
-  (я снёс cjk-allowlist, заменив dict списком ключей — спас
-  `git checkout`, переделывал заново); (о) `grep -mN` режет matches —
-  «строк нет» перепроверять без `-m`; (п) `adb install` 179 МБ флапает
-  транзиентом — в скрипте причина + повтор, успех только по `Success`;
-  (р) телефон СПИТ во время ожиданий (пустые дампы): `plab_wake` +
-  `screen_off_timeout 1800000` с restore-trap на EXIT; пустой дамп ≠
-  пустой экран — сначала будить; (с) модалки поверх (Announcement/Got it)
-  уводят тапы мимо — dismiss-циклы перед каждым шагом навигации;
-  (т) чистая установка НЕ трогает `/sdcard`: чужие `WebApp_*.apk`
-  переживают прогоны — сверять имя/время/подпись, не хватать первый
-  попавшийся; (у) `gh workflow run --ref` чекаутит HEAD на момент СТАРТА
-  джобы — `headSha` сверять (`gh run view --json`), иначе тестируешь не
-  тот код; (ф) имя APK-папки — UTC-старт рана (`createdAt`), не время
-  скачивания; (х) долгие `adb`-вызовы — в `timeout` (install 600с),
-  весь `_adb` — в `timeout 90` (транспорт умирал с `error: closed`
-  и вешал прогон молча); (ц) фоновые прогоны — только nohup+лог, опрос
-  чанками ≤10 мин, НИКОГДА блокирующий вызов на 25 мин (пользователь
-  оборвёт и будет прав); (ч) опечатка в `rm -rf` чуть не снесла
-  `assets/models` (спас `.keep` через `git checkout`) — rm-пути сверять
-  `git status` СРАЗУ;   (ш) `if (false)` и заглушки запрещены даже
-  временно — только полное удаление блока; (щ) trap EXIT в скрипте не
-  срабатывает при `kill -9`: если экран перестал гаснуть — проверить
-  `settings get system screen_off_timeout` и вернуть вручную.
-  UI-walker (10.10 ночь, больше руками НЕ тапать — невоспроизводимо):
-  движок `ci/script/uawalk.sh` + сценарии `ci/script/scen/*.uaw`
-  (команды TAP/TAP_AT/EXPECT/WAIT_PKG/TYPE/BACK/HIDEKB/SWIPE_UP/DOWN/
-  SCROLL_TO/SLEEP/DUMP; `uaw_elements` — инвентарь элементов для
-  авторства); каждый шаг заявляет тап+ожидание, расхождение — ABORT с
-  номером шага, командой, ожиданием, реальным экраном (пакет+тексты)
-  и путём к дампу (`/tmp/uaw/dump_stepN.xml`);
-  (э) `adb shell` ЖРЁТ stdin: сценарий читать только с fd 3, иначе
-  выполняется шаг 1 и молча конец (поймано живьём);
-  (ю) системный установщик говорит ПО-РУССКИ («Установить это
-  приложение?»): трекинг экрана — только WAIT_PKG (`packageinstaller`),
-  тексты локаль-зависимы; `appops set REQUEST_INSTALL_PACKAGES allow`
-  — в сетап приёмки, иначе установщик упирается в диалог;
-  (я) иконки без текстового узла (hamburger, FAB, chevron) — только
-  TAP_AT по координатам из дампа; TAP ищет ТОЧНОЕ совпадение текста
-  (EXPECT — подстроку: label «1. Install Provider App» маскирует
-  отсутствие кнопки — раскрывать шаг сначала);
-  (аа) позиция скролла после BACK непредсказуема — SCROLL_TO вместо
-  слепого свайпа; клавиатуру перед Confirm снимать HIDEKB (BACK только
-  если `mInputShown=true`, иначе убьёт диалог);
-  (аб) в assert размера передавать голое число (функция сама ставит
-  пробелы — « 2571773 » даёт тройные и mismatch на верном файле);
-  (ав) якорь чат-экрана — «Enter question» (строка ввода), НЕ «New Chat»:
-  у чата с историей/привязанным workspace кнопки New Chat в текстах нет,
-  18 BACKов прошли мимо (E-урок, walker: стартовый EXPECT сценариев —
-  тоже по вводу);
-  (аг) SetupScreen terminal-модуля: дефолтный выбор = тихий no-op (E13),
-  чекбоксы проверять checked=true в дампе, слепые тапы тогглят;
-  вечный Interrupt НЕ означает «качает» (fire-and-forget без колбэка) —
-  проверять `apt history.log` + `su -c ps` (root видит всё);
-  (ад) короткий путь к env-setup: DEBUGGER → «Configure Terminal
-  Environment» (сама пишет чего нет) → Expand → «Go to Terminal
-  Configuration»;
-  (ае) BACK-стек: привязанный workspace ловит BACK (экран Preview) —
-  выход тогглом 671 110; monkey НЕ идёт домой, а resume'ит верхний экран
-  стека (опрос в цикле это учитывает);
-  (аж) криминалистика proot-установки: `history.log` (что ставил apt),
-  `su -c ps` (что реально бежит), `NodeJS环境检查` в operit.log
-  (pnpm/python/pip поимённо каждый вход на Permissions);
-  (аи) протокол длинных работ (11.10, `phone_lab.sh`): `plab_status_init/
-  status/final` пишут `<epoch> START/STEP/FINAL` в статус-файл;
-  `plab_eta` считает темп и ETA (`done 3/24, elapsed 410s, ETA ~52m`);
-  `plab_wait_final <file> <timeout>` спит чанками по 30 с и
-  возвращается ДОСРОЧНО по FINAL — слепых снов больше нет, сон всегда
-  осознанный (ETA → wait_final → tail файла); `_adb` теперь ретраит и
-  сам лечит stale server (kill/start/connect), caller видит ошибку
-  только когда телефон правда недоступен;
-  (ай) CI: `concurrency cancel-in-progress: true` — два диспатча на одну
-  ветку УБИВАЮТ друг друга (потеряна сборка 38198538271). Только серийно:
-  диспатч → зелёный/красный → следующий. Проверка headSha после каждого;
-  (ак) instrumentation под минифицированным debug: R8 вырезает цепочку
-  ServiceLoader (coroutines-test → DefaultImpls → LazyKt — кротовая нора,
-  4 цикла CI впустую). Вердикт: инструментальные тесты не гонять;
-  удаление mockito.android/coroutines-test из androidTest — оставить
-  (неиспользуемые зависимости); метод baseline — Tool Tester UI;
-  (ал) uninstall сносит ТОЛЬКО указанный пакет: перед переустановкой
-  сносить `$PKG` И `$PKG.test`, иначе старый test-APK + сигнатурный
-  конфликт (SecurityException) и ложные краши;
-  (ам) подписи: оба APK должны быть из ОДНОЙ сборки (BOTH:APP_AND_TEST);
-  эфемерный debug-ключ новый каждый ран — APK из разных ранов вместе
-  не ставить;
-  (ан) walker: `uaw_find` всегда exit 0 (пусто = нет) — проверять строку,
-  не $?; новый `MAYBE_TAP` только для genuinely-optional UI (пустой чат);
-  EXPECT только топико-уникальными заголовками (совпадение с титулом
-  экрана = ложный PASS); после TAP_AT 49 110 доказывать drawer
-  (`EXPECT User Manual`); SCROLL_TO UP — вниз по списку, DOWN — вверх;
-  `TAP ?` по тексту бьёт в IconButton аппбара (671,110);
-  (ао) промахнувшийся тап = ложные замеры времени: координаты кнопок
-  брать свежим дампом перед тап-аутом (Retest уехал с 957 на 1152);
-  тайминг — только по меткам logcat (`-v time`), не по wall-обёрткам;
-  (ап) OCR-baseline метод (11.10): Tool Tester → OCR Read (read_file без
-  intent → OCRUtils LOW) + подмена `/sdcard/Download/Operit/test/
-  test_image.png` по кругу; картинки в `/tmp/opencode/ocr_base/`,
-  результаты в `/tmp/opencode/ocr_results/`; русские картинки — мусор
-  (латинский движок, ожидаемо, SIZE-002);
-  (ар) drawer без текстовых нод у части пунктов: вести по видимым
-  лейблам (AI Chat/Memory Base/...), экраны без пунктов (Terminal =
-  карточка Command Terminal, Tool Permission Settings = строка Settings)
-  — маршруты в `screen_tour.uaw`; старт тура — BACKи до чата
-  (стек после прошлых прогонов непредсказуем);
-  (ас) debug applicationId = `com.ai.assistance.operit.debug` (не голый!);
-  перед install сносить ОБА (`...debug` + `...debug.test`), иначе
-  INSTALL_FAILED_UPDATE_INCOMPATIBLE от чужой эфемерной подписи;
-  (ат) онбординг 13.10: `Check Permission Status` только рефрешит;
-  continue-ряд (`Select Permission Level` + `Continue`) НИЖЕ фолда —
-  свайп вверх; ряды без текстовых нод — бить по координатам
-  clickable-боксов; `input text` печатает в СФОКУСИРОВАННОЕ поле —
-  после промаха фокуса текст уходит в поиск/не туда (чинить DELами,
-  курсор в конец тапом по правому краю);
-  (ау) чужой Default Config на лаб-телефоне не ломать: приёмку нового
-  провайдера делать выбором в редакторе, затем ВОЗВРАЩАТЬ
-  provider/endpoint/model как было (ключ при переключении цел,
-  сейв виден в logcat `保存API设置`); проверять сейв-строку;
-  (аф) Tool Tester: тап по ряду только ОТКРЫВАЕТ диалог, прогон — кнопка
-  Retest; результат может не влезть — смотреть Detailed Result;
-  (ах) R8 и JNI: ctor, который зовёт только натив (OrtException(int,
-  String) из libonnxruntime), для R8 мёртв — keep обязателен, иначе
-  managed-ошибка превращается в нативный abort (WIN DEATH без FATAL);
-  (ац) native crash без FATAL: искать `F/<pkg>` + `WIN DEATH` в logcat,
-  первопричина — в первых строках (здесь: JNI NewObjectV +
-  NoSuchMethodError из-за R8 + старый ORT против IR-10 модели);
-  (ач) .so-археология — только по evidence:
-  `__sfp_handle_exceptions` нет ни в
-  одном libc++ на устройстве (проверено побайтово в dynsym) — провайдер
-  только система/новый NDK; era-match проверять скриптом UND-vs-экспорт
-  до заливки, не гаданием; `cd X && A & B &` — && вяжет только A,
-  B/C бегут в старом cwd (бинарники в корне репо 13.10, чинилось
-  amend'ом);
-  (аэ) .so-форензика подробно (14.10, PaddleOCR): на боксе НЕТ
-  readelf/patchelf/unzip/objdump — всё парсится python'ом вручную
-  (ELF64: e_phoff/e_phnum → PT_DYNAMIC → DT_STRTAB/SYMTAB/SYMENT/HASH →
-  nchain символов; так проверялись SONAME/DT_NEEDED/UND-vs-экспорт).
-  Рецепт era-match нового .so ДО заливки: спарсить его UND-символы и
-  сверить с экспортом нашего APK-libc++ (взять из собранного APK:
-  `lib/arm64-v8a/libc++_shared.so`); норма — 0 C++-like недостающих
-  кроме `__cxa_atexit/__cxa_finalize` (их даёт bionic, не libc++).
-  Так было доказано: quickbird 4.5.3 импортит `__sfp_handle_exceptions`
-  (UND FUNC GLOBAL), а НЕ экспортит его НИКТО (полный скан dynsym
-  обоих AAR-libc++ и системных `libc++.so`/`libc.so` с телефона —
-  строка есть только в .comment, в dynsym её нет) → вывод: провайдер
-  символа — только система с новым NDK, изолировать импортера
-  бессмысленно (E16). Официальный 4.5.5: 377 UND, все резолвятся —
-  взят он. Версии строк `clang version` внутри .so — мусор для датировки
-  (9.0.9 при свежей сборке), верить только парам импорт/экспорт.
-  Инвентаризация моделей тем же духом: HF API
-  `api/models?author=PaddlePaddle&search=<lang>` + поле `siblings`
-  (есть ли inference.onnx/yml) + `usedStorage` (байты) + словарь из yml
-  (`PostProcess: → character_dict:`, считать покрытие unicodedata:
-  LATIN/CYRILLIC/Ё). Так доказано 13.10: v6-rec только en+zh, русский
-  максимум v5 (cyrillic dict 850: latin 115 + cyrillic 409).
-  (аю) OCR-приёмка подробно (14.10): Tool Tester → Tool Test Center →
-  ряд `OCR Read` (первый тап только ОТКРЫВАЕТ диалог; прогон — кнопка
-  Retest; результат — секция Detailed Result, `take(1000)` — мотать).
-  Путь `read_file` на .png идёт ситуацией 3 (`StandardFileSystemTools.kt`
-  ~1100–1160: ситуация 1 — direct_image-ссылка, 2 — только с intent,
-  3 — OCR; intent у теста пуст → сразу OCR). Первый прогон тянет ~36 МБ
-  (`files/ocr/`: det/rec/yml/so; sha+size сверяет `isIntact` — старые
-  файлы заменяются сами, руками чистить НЕ надо). Холод 1202 мс, тёплые
-  прогоны ~3–4 с (det ~2 с + rec ~1–1.5 с) — метки в app-логе
-  (`files/logs/operit.log` через `run-as cat`, теги PaddleOcrEngine;
-  AppLogger.d идёт И в файл, И в logcat). Фикстуры: картинки
-  `/tmp/opencode/ocr_base/*.png`, truth — соседние `.txt` (НЕ в репо —
-  при потере перегенерировать и СМОТРЕТЬ ГЛАЗАМИ: E18). Перед сравнением
-  помнить про HTML-эскейпы дампа (`&gt;` = `>`).
-  (ая) git/shell-ловушки (все — живьём 12–14.10): `git diff A B C` с тремя
-  рефами — НЕ дифф B..C, а показ B как мержа (для строк апстрима давать
-  `git show <commit> -- <file>`); `cd X && A & B &` — `&&` вяжет только A,
-  B и C бегут в СТАРОМ cwd (так 54+8 МБ бинарников осели в корне репо);
-  чистка — `git rm` + `git commit --amend` (пуш ещё не было), перед каждым
-  пушем `git show --stat HEAD | grep -E 'aar|onnx|\.so'`; `git add -A`
-  тащит stray-файлы — `git status --short` читать ВСЕГДА; `replaceAll`
-  по JSON/провайдерам — сверять счётчик (`grep -c`: thinking-коллект
-  менял ровно 2 места); `git checkout <ref> -- <paths>` для новых файлов
-  апстрима — затем CJK-скан и перевод комментов до коммита.
-  (аё) фоновый протокол CI (отработан 12–14.10, НЕ импровизировать):
-  вызов 1 — `source phone_lab.sh && plab_status_init <file> <label>`;
-  вызов 2 — `setsid nohup bash -c 'poll-loop' & disown` (поллер пишет
-  `<time> <status>` раз в 60 с и `FINAL` в конце; `&` у ВСЕЙ `&&`-цепочки
-  уводит и source — поэтому source ОТДЕЛЬНЫМ вызовом, иначе
-  `plab_wait_final: command not found`); вызов 3 — тот же source +
-  `plab_wait_final <file> <timeout>` (чанки 30 с, early-wake по FINAL).
-  Таймаут вызова = таймауту ожидания (до 2400000). Имена статус-файлов
-  по задаче (`pd_ci<N>.status`), протухшие удалять.
-  (б1) жесты 14.10: `input swipe` на лаб-телефоне МЁРТВ (контент не едет,
-  хотя `input tap/keyevent/text` живы) — скролл только sendevent-пальцем
-  (`/tmp/opencode/se_swipe2.py`: слот 0, tracking id, по одному adb-вызову
-  на событие с паузами 0.12 с; пачки в одном `sh -c` срабатывают через
-  раз). Побочка: свайпы поверх ОТКРЫТОЙ клавиатуры вписывают мусор в
-  поля (поймано: `⁹` в username, `ýýþþþþ` в proxyHost) — перед свайпом
-  гасить IME (`input keyevent 4`), после — сверять значения глазами.
-  Запасной ход без скролла: цепочка IME Next (`keyevent 66`) прыгает по
-  полям вперёд с автоскроллом; DEL стирает только если курсор в КОНЦЕ
-  (тап по правому краю поля; курсор в начале + DEL = тишина).
-  (б2) `route=` в AIHttpTrace для SOCKS врёт (показывает ТАРГЕТ, не
-  прокси — семантика `Route.socketAddress` этой версии OkHttp) —
-  чуть не увело в ложную охоту на «DIRECT-утечку». Решающий метод:
-  kill-тест (гасим прокси → ошибка обязана назвать его host:port;
-  `Failed: failed to connect to /192.168.1.55 (port 11080)` = трафик
-  идёт через прокси, точка). Позитивное доказательство — лог самого
-  прокси (CONNECT host:port), а не route=.
-  (б3) три грабли 14.10: ① `pkill -f <path>` убивает СВОЙ шелл, если
-  литерал пути есть в той же командной строке (убивать по PID через
-  отдельный `pgrep`); ② DataStore-JSON пишется с `encodeDefaults=false`:
-  DIRECT/дефолтные значения в файле ОТСУТСТВУЮТ (не баг — читать
-  отсутствие как дефолт); ③ JDK SOCKS-клиент всегда предлагает методы
-  {0x00, 0x02} — тестовый прокси обязан выбирать 0x00 при наличии,
-  иначе ломает no-auth клиентов (`SOCKS : authentication failed`).
-  (б4) прокси-стенд 14.10: прокси лабы 192.168.1.55:18080 (HTTP) и
-  :10808 (SOCKS5) режут LAN-таргеты политикой — доказано curl с бокса:
-  наружу 200, на гейтвей :20128 — пустой ответ/000 (E22). Ноутбук и
-  есть .55, телефон в том же LAN — end-to-end гнался через свои
-  permissive форвардеры (HTTP-forward absolute-URI + SOCKS5 RFC1928/
-  1929 с флагом REQUIRE_AUTH для auth-теста). Стенд жил в
-  `/tmp/opencode/testproxy/` (НЕ в репо по решению) — /tmp переживает
-  ребут бокса НЕ гарантированно: перед следующей прокси-приёмкой
-  проверить порты, при потере переписать за 15 минут (суть выше;
-  логи CONNECT/auth-ok — позитивное доказательство маршрутизации).
-## Статус: что есть
+`dumpsys deviceidle whitelist +PKG`. Without them the wizard loops
+"Incomplete → Continue" — not a bug.
+**(N3) Taps.** Main tool — root sendevent taps: `/dev/input/event3`
+(`ILITEK_TDDI`, MT-B protocol), coordinates 1:1 with dump coordinates
+(proven, incl. y=1394–1407). Tap recipe: slot 0 → BTN_TOUCH(330) 1 →
+tracking_id N++ → X(53) → Y(54) → major(48)=9 → pressure(58)=50 → SYN →
+pause 0.12 → tracking −1 → BTN_TOUCH 0 → SYN. Ready wrapper:
+`ci/script/phone_lab.sh` (`plab_tap`, `plab_tap_text`, `plab_wait_text`,
+`plab_assert_leaf_file`). `input tap` works INSIDE the app but is DEAF in
+system DocumentsUI (folder rows and USE button — proven by combing
+single/double/long taps) — sendevent only there (no finger needed at all).
+Keyboard: TAB walks focus (incl. list rows after a tap), DPAD_UP/DOWN —
+rows, ENTER presses normal buttons, BUT on DocumentsUI USE/rows
+ENTER/SPACE/CENTER are deaf (ENTER on USE steals focus).
+**(N4) Screen reading.** `uiautomator dump` + XML parsing (texts/bounds) is
+primary; screenshots (`screencap -p` + Read) — visuals only. Dump dying
+with SIGKILL — fall back to screenshots. Bottom drift (E11): hitboxes
+40–100px ABOVE glyphs — on misses comb upward, don't hammer one spot.
+**(N5) Files on the phone.** Only `adb exec-out run-as PKG` (no other way
+in); pull DB as three files (`app_database`+`-wal`+`-shm`); `input text`
+— only `%s`-safe strings; `/sdcard` survives reinstalls.
+**(N6) CI/builds.** Workflow is manual-dispatch ONLY and ONLY AFTER PUSH
+(runner checks out origin). Every CI build = new debug key: `uninstall`
+before every install (`-r` gives UPDATE_INCOMPATIBLE). APK dir =
+UTC run start + `CHANGES.md` (3–6 delta lines). Measure with
+`python3 zipfile`, NOT `unzip -l` (lies). Always pull the mapping
+artifact. 10.10 GitHub itself disabled Actions on the fork (banner
+"disabled because of its Actions usage", dispatch 422; we have no
+schedules — abuse-control heuristic on a pile of long runs): fixed ONLY
+by the owner button on the Actions tab, API/toggles don't help.
+**(N7) Disk `/` chronically 95–100%.** `df` before pulling artifacts;
+stale `/tmp/gh-artifact.*.zip` and duplicate models go first; toolkit
+(`jdk/kotlinc/venv`) and `gigaam-model` are untouchable.
+**(N8) Rules.** No-fallback: fix the true cause (examples: keep
+commons-compress instead of try/catch around setTime; keep BC + don't
+delete the platform provider instead of swallowing exceptions). Commits:
+code and docs separately; audit gate
+(`fork_audit.py --no-color --no-hotspots`, CJK-NEW 0) before push.
+**(N9) Negative experiments (verified, DO NOT repeat):**
+(a) adb taps on DocumentsUI — deaf (see N3); (b) Magisk service.d —
+unwritable (see N1); (c) `svc wifi disable` for offline tests KILLS the
+ADB transport (link is WiFi-only!): offline = only iptables owner-match
+on the app uid (`iptables -A OUTPUT -m owner --uid-owner <uid> -j REJECT`,
+remove with `-D`); (d) `install -r` across CI builds —
+UPDATE_INCOMPATIBLE (keys differ); (e) BACK from picker/screens loses
+remember-state (re-pick folder/flow; the system URI grant stays alive);
+(f) JKS keystore on Android does NOT exist, period (no provider, never
+will be — fix only the PKCS12 path); (g) `removeProvider("BC")` outside
+an immediate re-insert of bundled-BC in its place is FORBIDDEN (bare
+removal left the process with no PKCS12 at all, live-fire 09.10); the
+remove+insert pair itself is the working mechanism (upstream, task 17).
+**(N10) `pkill -f <pattern>` kills your OWN tool shell** (pattern matches
+the command line) — find PIDs via `ps`, `kill <pid>`. SAME for
+`ps aux | grep <pattern> | xargs kill`: if the pattern string is in your
+own command (script names!), grep sees the wrapper and suicides (caught
+twice — silent suicide, no output); kill only by PID from a file written
+at launch.
+**(N11) No `unzip` on the box at all**: everything via `python3 zipfile`;
+code lives in `classesN.dex`, UI strings in resources.arsc (their absence
+in dex is normal, not "stripped"); short substrings (`inserted`,
+`offered`) in dex-grep are noise — search long exact phrases only.
+**(N12) `sed 'A,Bd'` + line-number edits**: numbers drift after deletions
+— verify bounds by reading; fix dangling `"""`, stray `\`, eaten closers
+by hand + verify with python parsing; one-line python JSON edits: check
+TYPE before writing (I once replaced cjk-allowlist dict with a key list
+— saved by `git checkout`, redid); `grep -mN` cuts matches —
+"no lines" must be rechecked without `-m`.
+**(N13) `adb install` of 179 MB flaps transiently** — script has the cause
++ retry, success only on `Success`; phone SLEEPS during waits (empty
+dumps): `plab_wake` + `screen_off_timeout 1800000` with restore-trap on
+EXIT; empty dump ≠ empty screen — wake first; modals on top
+(Announcement/Got it) steal taps — dismiss cycles before each nav step;
+clean install does NOT touch `/sdcard`: other people's `WebApp_*.apk` survive runs
+— match name/time/signature, don't grab the first one; `gh workflow run
+--ref` checks out HEAD at JOB START — verify `headSha`
+(`gh run view --json`), or you test the wrong code; APK dir name =
+run UTC `createdAt`, not download time; long `adb` calls need `timeout`
+(install 600s), all of `_adb` in `timeout 90` (transport died with
+`error: closed` and hung silently); background runs — nohup+log only,
+poll in ≤10 min chunks, NEVER a 25-min blocking call (the user will cut
+it and be right); typo in `rm -rf` nearly wiped `assets/models` (saved
+by `.keep` via `git checkout`) — verify rm paths with `git status`
+IMMEDIATELY; `if (false)` and stubs forbidden even temporarily — delete
+the block whole; EXIT trap doesn't fire on `kill -9`: if the screen
+stops dimming — check `settings get system screen_off_timeout` and
+restore by hand.
+restore by hand.
+**(N14) UI walker (10.10 night, no more hand taps — unreproducible):**
+engine `ci/script/uawalk.sh` + scenarios `ci/script/scen/*.uaw`
+(commands TAP/TAP_AT/EXPECT/WAIT_PKG/TYPE/BACK/HIDEKB/SWIPE_UP/DOWN/
+SCROLL_TO/SLEEP/DUMP; `uaw_elements` — element inventory for authoring);
+every step declares tap+expectation, mismatch = ABORT with step number,
+command, expectation, real screen (package+texts) and dump path
+(`/tmp/uaw/dump_stepN.xml`). `adb shell` EATS stdin: read the scenario
+from fd 3 only, or step 1 runs and then silent end (caught live).
+System installer speaks locale language: track screens by WAIT_PKG
+(`packageinstaller`) only, texts are locale-dependent;
+`appops set REQUEST_INSTALL_PACKAGES allow` goes into acceptance setup
+or the installer stalls on a dialog. Icons without text nodes (hamburger,
+FAB, chevron) — TAP_AT by dump coordinates only; TAP needs EXACT text
+match (EXPECT is substring: label "1. Install Provider App" masks a
+missing button — expand the step first). Scroll position after BACK is
+unpredictable — SCROLL_TO instead of blind swipe; drop the keyboard
+before Confirm with HIDEKB (BACK only if `mInputShown=true`, or it kills
+the dialog). Pass bare numbers to size asserts (the function pads spaces
+itself — " 2571773 " triple-spaces into a mismatch on a correct file).
+Chat screen anchor = "Enter question" (the input), NOT "New Chat": a chat
+with history/bound workspace has no New Chat button in texts, 18 BACKs
+walked past it (E-lesson; walker scenario start EXPECTs — by input too).
+SetupScreen of the terminal module: default selection = silent no-op
+(E13) — verify checked=true in dumps, blind taps toggle; eternal
+Interrupt does NOT mean "downloading" (fire-and-forget with no callback)
+— check `apt history.log` + `su -c ps` (root sees all); short path to
+env setup: DEBUGGER → "Configure Terminal Environment" (it writes what's
+missing itself) → Expand → "Go to Terminal Configuration". BACK stack:
+a bound workspace catches BACK (Preview screen) — exit via toggle
+671 110; monkey doesn't go home, it resumes the top of the stack
+(poll loops account for that). proot-install forensics: `history.log`
+(what apt installed), `su -c ps` (what really runs),
+`NodeJS环境检查` in operit.log (pnpm/python/pip by name every
+Permissions entry).
+**(N15) Long-job protocol (11.10, `phone_lab.sh`):** `plab_status_init/
+status/final` write `<epoch> START/STEP/FINAL` to a status file;
+`plab_eta` computes pace and ETA; `plab_wait_final <file> <timeout>`
+sleeps in 30 s chunks and returns EARLY on FINAL — no more blind sleeps
+(ETA → wait_final → tail file); `_adb` retries and heals stale servers
+itself (kill/start/connect), the caller sees an error only when the
+phone is truly unreachable.
+**(N16) CI:** `concurrency cancel-in-progress: true` — two dispatches to
+one branch KILL each other (lost build 38198538271). Serial only:
+dispatch → green/red → next. headSha check after each.
+**(N17) Instrumentation under minified debug:** R8 cuts the ServiceLoader
+chain (coroutines-test → DefaultImpls → LazyKt — rabbit hole, 4 CI cycles
+wasted). Verdict: don't run instrumented tests; removing
+mockito.android/coroutines-test from androidTest stays (unused deps);
+baseline method = Tool Tester UI. `uninstall` removes ONLY the named
+package: before reinstall remove `$PKG` AND `$PKG.test`, or stale
+test-APK + signature conflict (SecurityException) and false crashes.
+Signatures: both APKs must come from ONE build (BOTH:APP_AND_TEST);
+the ephemeral debug key is new every run — APKs from different runs
+don't install together. Walker: `uaw_find` always exits 0 (empty = none)
+— check the string, not `$?`; new `MAYBE_TAP` only for genuinely-optional
+UI (empty chat); EXPECT only topic-unique headers (match with screen
+title = false PASS); after TAP_AT 49 110 prove the drawer
+(`EXPECT User Manual`); SCROLL_TO UP = down the list, DOWN = up; `TAP ?`
+by text hits the appbar IconButton (671,110).
+**(N18) Missed taps = false timings:** take button coordinates from a
+fresh dump before the tap-out (Retest moved 957→1152); timing only from
+logcat stamps (`-v time`), not wall wrappers.
+**(N19) OCR baseline method (11.10):** Tool Tester → OCR Read (read_file
+without intent → OCRUtils LOW) + rotating `/sdcard/Download/Operit/test/
+test_image.png`; pictures in `/tmp/opencode/ocr_base/`, results in
+`/tmp/opencode/ocr_results/`; Russian pictures = garbage (Latin engine,
+expected, SIZE-002).
+**(N20) Drawer has no text nodes on some items:** navigate by visible
+labels (AI Chat/Memory Base/...); screens without items (Terminal =
+Command Terminal card, Tool Permission Settings = Settings row) —
+routes in `screen_tour.uaw`; tour start = BACKs to chat (stack after
+previous runs is unpredictable).
+**(N21) debug applicationId = `com.ai.assistance.operit.debug`** (not
+bare!); before install remove BOTH (`...debug` + `...debug.test`), or
+INSTALL_FAILED_UPDATE_INCOMPATIBLE from someone else's ephemeral
+signature.
+**(N22) Onboarding 13.10:** `Check Permission Status` only refreshes;
+the continue row (`Select Permission Level` + `Continue`) is BELOW the
+fold — swipe up; rows without text nodes — hit clickable-box coordinates;
+`input text` types into the FOCUSED field — after a focus miss the text
+goes to search/elsewhere (fix with DELs, cursor to end via right-edge
+tap).
+**(N23) Don't break other people's Default Config** on the lab phone:
+accept a new provider by selecting in the editor, then RESTORE
+provider/endpoint/model as-was (key survives switching intact, save
+visible in logcat `保存API设置`); verify the save line.
+**(N24) Tool Tester:** tapping a row only OPENS the dialog, the run is
+the Retest button; results may overflow — read Detailed Result.
+**(N25) R8 vs JNI:** a ctor called only from native
+(OrtException(int, String) from libonnxruntime) is dead to R8 — keep is
+mandatory, or a managed error becomes a native abort (WIN DEATH, no
+FATAL).
+**(N26) Native crash without FATAL:** look for `F/<pkg>` + `WIN DEATH`
+in logcat; root cause is in the first lines (here: JNI NewObjectV +
+NoSuchMethodError from R8 + old ORT vs IR-10 model).
+**(N27) .so archaeology — evidence only:** `__sfp_handle_exceptions`
+exists in NO libc++ on the device (verified byte-wise in dynsym) —
+provider is system/new NDK only; era-match new .so with a UND-vs-export
+script BEFORE shipping, not by guessing; `cd X && A & B &` — && binds
+only A, B/C run in the old cwd (binaries in repo root 13.10, fixed by
+amend).
+**(N28) .so forensics in detail (14.10, PaddleOCR):** the box has NO
+readelf/patchelf/unzip/objdump — parse everything by hand in python
+(ELF64: e_phoff/e_phnum → PT_DYNAMIC → DT_STRTAB/SYMTAB/SYMENT/HASH →
+nchain symbols; SONAME/DT_NEEDED/UND-vs-export were verified this way).
+Era-match recipe for a new .so BEFORE shipping: parse its UND symbols
+and diff against our APK libc++ export (take from built APK:
+`lib/arm64-v8a/libc++_shared.so`); norm — 0 missing C++-like except
+`__cxa_atexit/__cxa_finalize` (bionic provides those, not libc++).
+Proven that way: quickbird 4.5.3 imports `__sfp_handle_exceptions`
+(UND FUNC GLOBAL) and NOBODY exports it (full dynsym scan of both
+AAR libc++ and phone `libc++.so`/`libc.so` — the string is only in
+.comment, not dynsym) → conclusion: symbol provider is system/new NDK
+only, isolating the importer is pointless (E16). Official 4.5.5: 377
+UND, all resolve — taken. `clang version` strings inside .so are dating
+garbage (9.0.9 on a fresh build) — trust only import/export pairs.
+Model inventory in the same spirit: HF API
+`api/models?author=PaddlePaddle&search=<lang>` + `siblings` field
+(has inference.onnx/yml?) + `usedStorage` (bytes) + dict from yml
+(`PostProcess: → character_dict:`, count coverage with unicodedata:
+LATIN/CYRILLIC/Ё). Proven 13.10: v6-rec is en+zh only, Russian maxes
+at v5 (cyrillic dict 850: latin 115 + cyrillic 409).
+**(N29) OCR acceptance in detail (14.10):** Tool Tester → Tool Test
+Center → `OCR Read` row (first tap only OPENS the dialog; the run is
+Retest; results — Detailed Result section, `take(1000)` — scroll).
+`read_file` on .png takes branch 3 (`StandardFileSystemTools.kt`
+~1100–1160: 1 = direct_image link, 2 = intent only, 3 = OCR; test
+intent is empty → straight to OCR). First run pulls ~36 MB
+(`files/ocr/`: det/rec/yml/so; sha+size checked by `isIntact` — stale
+files replace themselves, never clean by hand). Cold 1202 ms, warm runs
+~3–4 s (det ~2 s + rec ~1–1.5 s) — stamps in the app log
+(`files/logs/operit.log` via `run-as cat`, PaddleOcrEngine tags;
+AppLogger.d goes to file AND logcat). Fixtures: `/tmp/opencode/
+ocr_base/*.png`, truth in sibling `.txt` (NOT in repo — if lost,
+regenerate and LOOK WITH EYES: E18). Before diffing remember dump
+HTML-escapes (`&gt;` = `>`).
+**(N30) git/shell traps (all live 12–14.10):** `git diff A B C` with three
+refs is NOT a B..C diff — it shows B as a merge (for upstream lines give
+`git show <commit> -- <file>`); `cd X && A & B &` — && binds only A, B
+and C run in the OLD cwd (54+8 MB of binaries landed in repo root);
+cleanup — `git rm` + `git commit --amend` (not pushed yet), before every
+push `git show --stat HEAD | grep -E 'aar|onnx|\.so'`; `git add -A`
+drags stray files — read `git status --short` ALWAYS; `replaceAll` over
+JSON/providers — verify the count (`grep -c`); `git checkout <ref> --
+<paths>` for new upstream files — then CJK-scan and comment translation
+before commit.
+**(N31) CI background protocol (worked out 12–14.10, do NOT improvise):**
+call 1 — `source phone_lab.sh && plab_status_init <file> <label>`;
+call 2 — `setsid nohup bash -c 'poll-loop' & disown` (poller writes
+`<time> <status>` every 60 s and `FINAL` at the end; `&` on the WHOLE
+`&&`-chain takes source along — so source in a SEPARATE call, or
+`plab_wait_final: command not found`); call 3 — same source +
+`plab_wait_final <file> <timeout>` (30 s chunks, early-wake on FINAL).
+Call timeout = wait timeout (up to 2400000). Status filenames per task
+(`pd_ci<N>.status`), delete stale ones.
+Call timeout = wait timeout (up to 2400000). Status filenames per task
+(`pd_ci<N>.status`), delete stale ones.
+**(N32) Gestures 14.10:** `input swipe` on the lab phone is DEAD (content
+doesn't move, though `input tap/keyevent/text` work) — scroll only with
+a sendevent finger (`/tmp/opencode/se_swipe2.py`: slot 0, tracking id,
+one adb call per event with 0.12 s pauses; batches in one `sh -c` work
+every other time). Side effect: swipes over an OPEN keyboard type garbage
+into fields (caught: `⁹` in username, `ýýþþþþ` in proxyHost) — kill the
+IME (`input keyevent 4`) before swiping, verify values by eye after.
+No-scroll fallback: IME Next chain (`keyevent 66`) jumps forward across
+fields with autoscroll; DEL erases only with cursor at END (tap the
+right edge; cursor-at-start + DEL = silence).
+**(N33) `route=` in AIHttpTrace lies for SOCKS** (shows the TARGET, not
+the proxy — `Route.socketAddress` semantics of this OkHttp version) —
+nearly sent us on a false "DIRECT-leak" hunt. Decisive method: kill-test
+(kill the proxy → the error must name its host:port;
+`Failed: failed to connect to /192.168.1.55 (port 11080)` = traffic goes
+via proxy, period). Positive proof = the proxy's own log (CONNECT
+host:port), not route=.
+**(N34) Three 14.10 rakes:** ① `pkill -f <path>` kills YOUR OWN shell if
+the path literal is in the same command line (kill by PID via a separate
+`pgrep`); ② DataStore JSON is written with `encodeDefaults=false`:
+DIRECT/default values are ABSENT from the file (not a bug — read absence
+as default); ③ the JDK SOCKS client always offers methods {0x00, 0x02}
+— a test proxy must pick 0x00 when offered, or it breaks no-auth clients
+(`SOCKS : authentication failed`).
+**(N35) Proxy stand 14.10:** lab proxies 192.168.1.55:18080 (HTTP) and
+:10808 (SOCKS5) block LAN targets by policy — proven by curl from the
+box: outside 200, to gateway :20128 — empty reply/000 (E22). Notebook is
+.55 itself, phone on the same LAN — end-to-end ran via our own permissive
+forwarders (HTTP-forward of absolute-URI + SOCKS5 RFC1928/1929 with a
+REQUIRE_AUTH flag for the auth test). The stand lived in
+`/tmp/opencode/testproxy/` (NOT in repo, by decision) — /tmp survival
+across box reboots is NOT guaranteed: before the next proxy acceptance
+check the ports, if lost rewrite in 15 minutes (gist above; CONNECT /
+auth-ok logs are the positive routing proof).
 
-- STT = GigaAM (sherpa удалён полностью, M5 `e763e8ef`); движок принят
-  (M6: 497 фраз, RTF 1.05); кастомные CTC — по HF-ссылке. GigaAM-модели
-  на телефоне СЕЙЧАС НЕТ (чистые установки 13–15.10 её не тянули;
-  перед 5a качать 225 МБ заново — согласие + докачка, на SD умеет,
-  доказано в M6). STT-эталон регресса ORT 1.21.1 готов и лежит ВНЕ репо:
-  `~/operit-fork/wav/benchmark_v2.wav` (моно 48 кГц, 37.5 с; бэкапа
-  в репо нет — не удалять); текст и правила зачёта — в §8.
-- Перевод рантайм-китайского готов полностью: T1 (кэш + поверхности),
-  T1-Market (`ca511255`), T2 batch-prefetch (`03d51d5f`), T3 Google-фалбэк
-  (`5a76aa4d`, одобрен пользователем). Карта слоя: батч
+## Status: what exists
+
+- STT = GigaAM (sherpa fully removed, M5 `e763e8ef`); engine accepted
+  (M6: 497 phrases, RTF 1.05); custom CTC via HF link. The GigaAM model
+  is NOT on the phone now (clean installs 13–15.10 never pulled it;
+  before 5a re-download 225 MB — consent + resume, SD proven in M6).
+  STT benchmark for the ORT 1.21.1 regression is ready, OUTSIDE the repo:
+  `~/operit-fork/wav/benchmark_v2.wav` (mono 48 kHz, 37.5 s; no backup in
+  repo — do not delete); text and scoring rules — §8.
+- Runtime Chinese translation fully done: T1 (cache + surfaces), T1-Market
+  (`ca511255`), T2 batch prefetch (`03d51d5f`), T3 Google fallback
+  (`5a76aa4d`, user-approved). Layer map: batch
   `ConversationService.translateTexts` + `EnhancedAIService.translateTexts`,
-  промпт `FunctionalPrompts.translationBatchUserPrompt`, кэш/парсинг
+  prompt `FunctionalPrompts.translationBatchUserPrompt`, cache/parsing
   `data/translation/CachedTranslator.kt` (+ `TranslationPrefetch.kt`,
   `GoogleTranslateFallback.kt`), UI `TranslatedText.kt` /
-  `TranslatedMarkdown.kt` + `prefetchRuntimeTranslations` в
-  `ToolResultDisplay.kt`, триггеры в `UnifiedMarketScreen.kt`,
+  `TranslatedMarkdown.kt` + `prefetchRuntimeTranslations` in
+  `ToolResultDisplay.kt`, triggers in `UnifiedMarketScreen.kt`,
   `UnifiedMarketDetailEntryScreen.kt`, `PluginTabContent.kt`, `OperitApp.kt`,
-  диалог `RemoteAnnouncementDialog.kt`. Аватар-инициалы, бейджи, юзернеймы —
-  осознанно не переводятся (идентификаторы).
-- Терминал РАБОТАЕТ (сломан был во всех сборках форка с `bf48f418`,
-  воскрешён 05.10): PM извлекает 41 .so (`useLegacyPackaging=true`,
-  `cddb9906`) + спящий фалбэк извлечения из APK в сабмодуле (`26d4964`,
-  не срабатывает при `true`, безвреден). Приёмка 15:12 — живой шелл,
-  дерево 358 МБ, `.operit_installed_ok`; повторная проверка 06.10 на
-  llm-io-сборке — снова живой `~ $`. Сборка:
-  `/home/uzzzver/operit-fork/apk/2026-10-05_10-51-45Z/` (CI `37299257049`,
-  APK 287 МБ).
-- LLM I/O Log ГОТОВ (`1c0ed81d`, CI `37351728353`, приёмка 06.10,
-  APK-папка `2026-10-05_17-52-47Z`): таблица `llm_io_log` (миграция
-  v21→v22), хук в `TokenTrackingAIService.sendMessage` пишет запрос
-  (JSON) + сырой ответ + токены + latency + ошибку; экран в Settings
-  после Token Usage Statistics (список + фильтр по модели + диалог
-  деталей + Copy/Share + Clear + тумблер); крышка 500 строк / 8 МБ.
-  Живое доказательство: 2 TRANSLATION-строки от T2-префетча
-  (in=108/out=1235 @ 6387 мс), статистика токенов сошлась (2 запроса).
-- Shizuku v13.6.0 стоит на телефоне, Operit авторизован, уровень Debugger
-  активен (рецепт рестарта после ребута — в разделе Shizuku ниже).
-- Supervision Mode ПРИНЯТ 06.10 (`63dadf6e` + фиксы, CI `37467783125`,
-  APK-папка `2026-10-06_13-03-03Z`): тумблер + карточка в FunctionalConfig
-  глазами, 7 живых SUPERVISION-строк (6×ok), 3 комментария ушли в showToast.
-  Тост ПОЙМАН живьём 08.10 (задача 11: белый кард + id=8, текст совпал) —
-  остаточного риска больше нет. Известное ограничение v1: в дайджесте имена
-  тулов БЕЗ аргументов и результатов (нужны хуки глубже, отдельная задача —
-  не заведена; приоритет осознанно ниже размера: сначала закрыть 12 и 13).
-- Subpack Q1-механика ГОТОВА 08.10 (коммит `a4fddb40`, CI `37709173132`
-  success, APK-папка `2026-10-08_01-06-04Z` + `CHANGES.md`, 247299182 Б):
-  новый `core/subpack/SubpackStorage.kt` (leaf `subpack`, stage из assets
-  с overwrite, `migrateTo`), стейджинг `ApkEditor.fromAsset`/
-  `ExeEditor.fromAsset` переведён с cacheDir на leaf (фалбэк cacheDir
-  сохранён), в Settings → Data & Permissions добавлен
-  `SubpackStorageSection` (тот же move-механизм, что у STT-модели;
-  5 строк в default-бакете, аудит 0). Приёмка: строка рендерится с путём
-  leaf; переезд internal → external → memory card без ошибок, каталог
-  `/storage/5982-1724/.../files/subpack/` создан; шаблоны в APK этой
-  сборки на месте (`assets/subpack/android.apk` 48 МБ — ДРЕЙФ против
-  24.2 МБ в реестре, Drive-архив вырос; `windows.zip` 11 МБ). НЕ покрыто:
-  файлы в leaf после реального экспорта (нужен web-контент + flow подписи
-  — отложено в задачу 8, редирект меняет только каталог). Временный
-  windows-экспорт (`cacheDir/windows_export_temp`) осознанно не тронут.
-- Размеры честно: минифицированный debug 08.10 — 247299182 Б
-  (CI `37709173132`; дельта +10640 Б к задаче 10 — subpack-код почти
-  ничего не весит). R8-mapping каждого зелёного CI — в артефакте
-  `operit-android-mapping-<run>`. Installed для текущих сборок НЕ перемерен
-  (эпохи до реверта: 435 МБ при `true`, 369 МБ при `false` — см.
-  методологию в E2, цифры только по package dir, БЕЗ /data/data!). Перед
-  любой цитатой installed — рецепт из E2 (ОБА дерева), не гадать. Леждер
-  «что закрыто и почему»: `docs/FORK-REGISTRY/research-size.md` (леджер
-  2026-10-05 + обновление 08.10 — читать ПЕРЕД любой новой работой
-  по размеру, иначе повторишь закрытые круги).
-  ЧТО ОТКРЫТО (исторический срез 08.10, НЕ правда на сейчас — Q2 закрыт
-  целиком 11.10, см. шапку; оставлено как документ решения): Q2 on-demand — задача 13
-  (хостинг РЕШЁН: GitHub Releases в том же репо; кандидаты: subpack
-  59.5 МБ, helper APK shizuku/accessibility 5.4 МБ, templates 9.8 МБ,
-  emoji 3.6 МБ — карта читателей в задаче 12(b)). Детали:
-  `docs/TODO/offline-assets-move/2_WorkQueue.md` (Q1: п.1 rootfs FAIL,
-  п.2 subpack МЕХАНИКА ГОТОВА, п.3 apktool УДАЛЁН+ЗАМЕРЕН,
-  п.4 desktop УДАЛЁН+ЗАМЕРЕН; очередь 2 — пп.5–7).
-  затем Q2 on-demand — задача 13 (хостинг РЕШЁН: GitHub Releases в том
-  же репо). Детали: `docs/TODO/offline-assets-move/2_WorkQueue.md`
-  (Q1: п.1 rootfs FAIL, п.2 subpack МЕХАНИКА ГОТОВА, п.3 apktool УДАЛЁН,
-  п.4 OPEN; очередь 2 — пп.5–7).
+  dialog `RemoteAnnouncementDialog.kt`. Avatar initials, badges, usernames
+  deliberately untranslated (identifiers).
+- Terminal WORKS (broken in all fork builds since `bf48f418`, resurrected
+  05.10): PM extracts 41 .so (`useLegacyPackaging=true`, `cddb9906`) +
+  sleeping APK-extraction fallback in the submodule (`26d4964`, doesn't
+  fire under `true`, harmless). Terminal setup CLOSED 11.10 (poll
+  `accept_term7.log` round 3 "Granted", PASS=4 FAIL=0): red
+  "Operit Terminal" line = `isOperitTerminalInstalled`
+  (`PermissionLevelCard.kt` → `ShizukuDemoScreen.kt:147` →
+  `DemoStateManager.kt:227,460`); green ONLY with pnpm AND python AND pip
+  (`DemoStateManager.kt:364-403`, check runs every Permissions entry,
+  log line `NodeJS环境检查`). DEFAULT-SELECTION TRAP (E13, live 11.10):
+  SetupScreen (`terminal/.../terminal/ui/SetupScreen.kt:143-207`)
+  preselects packages ONLY if found INSTALLED (found ones are then
+  skipped by the `!= INSTALLED` filter); missing ones are NOT selected —
+  Start Setup with defaults = near-no-op (only pip-mirror echos leave),
+  screen returns home instantly with eternal Interrupt, looks like success
+  but downloads nothing (proven: empty apt history.log, idle bash only).
+  RIGHT PATH (two entries): (a) Toolbox → Command Terminal → check
+  nodejs + python categories (Select All right side; verify checked=true
+  in dump — blind taps toggle!) → Start Setup → Notice OK → real
+  download under Interrupt; (b) shorter: DEBUGGER tab → "Configure
+  Terminal Environment" card (writes what's missing itself) → Expand →
+  "Go to Terminal Configuration" → same SetupScreen.
+- Shizuku v13.6.0 on the phone, Operit authorized, Debugger level active
+  (restart recipe after reboot — Shizuku section in ARCHIVE.md).
+- LLM I/O Log DONE (`1c0ed81d`, CI `37351728353`, APK `2026-10-05_17-52-47Z`):
+  table `llm_io_log` (migration v21→v22), hook in
+  `TokenTrackingAIService.sendMessage` writes request JSON + raw response +
+  tokens + latency + error; screen in Settings after Token Usage Statistics
+  (list + model filter + detail dialog + Copy/Share + Clear + toggle);
+  cap 500 rows / 8 MB.
+- Supervision Mode ACCEPTED 06.10 (`63dadf6e` + fixes, CI `37467783125`,
+  APK `2026-10-06_13-03-03Z`): toggle + card in FunctionalConfig by eye,
+  7 live SUPERVISION rows (6×ok). Toast CAUGHT live 08.10 (white card +
+  id=8, text matched) — no residual risk. Known v1 limit: digest has tool
+  NAMES without args/results (needs deeper hooks, separate task — never
+  filed; priority deliberately below size work).
+- Subpack Q1 mechanics DONE 08.10 (`a4fddb40`, CI `37709173132`,
+  APK `2026-10-08_01-06-04Z`, 247299182 B): `core/subpack/SubpackStorage.kt`
+  (leaf `subpack`, stage from assets with overwrite, `migrateTo`); staging
+  `ApkEditor.fromAsset`/`ExeEditor.fromAsset` moved from cacheDir to leaf
+  (cacheDir fallback kept); Settings → Data & Permissions has
+  `SubpackStorageSection` (same move mechanics as the STT model).
+  Acceptance: row renders with leaf path; internal → external → memory
+  card move clean, dir `/storage/5982-1724/.../files/subpack/` created.
+- Sizes honest: minified debug 08.10 — 247299182 B (CI `37709173132`).
+  R8 mapping of every green CI in artifact `operit-android-mapping-<run>`.
+  Installed NOT remeasured for current builds (epochs before revert:
+  435 MB at `true`, 369 MB at `false` — methodology in E2: BOTH trees,
+  package dir + `/data/data/<pkg>`, never guess). Size ledger
+  `docs/FORK-REGISTRY/research-size.md` — read BEFORE any new size work.
+- Unit tests: `Android Tests` green 07.10 (1310 tests, `55e18396`, run
+  `37682838742`). Rule for red: each new `e: file` in `--log-failed` →
+  `git log` the file: ours → fix code, upstream → minimally fix the test,
+  NEVER production. Keystore: RESOLVED 08.10, NOT NEEDED (no store
+  release; GitHub + hand-installed debug builds suffice).
+  Q2 hosting RESOLVED 08.10: same repo, GitHub Releases. Practice: release
+  per version tag (`vX.Y.Z`), one asset per payload, short note of
+  contents; never create empty releases (first appears with ready Q2
+  download code); all fork releases `--prerelease` + ALPHA banner
+  (100% vibe-coded, stability is upstream's).
 
-## Статус: что делать (порядок — решение пользователя; зависимость одна:
-супервизия пишется В лог, поэтому лог раньше неё; у каждой задачи — DoD)
+## §8. Open work (order matters not; each has a DoD)
 
-1. `llm-io-log` — ГОТОВ 2026-10-05 (`1c0ed81d`, CI `37351728353`,
-   приёмка на телефоне, APK-папка `2026-10-05_17-52-47Z`). Реализация:
-   сущность `LlmIoLogEntity` (`llm_io_log`, миграция v21→v22),
-   `LlmIoLogDao` + `LlmIoLogRepository` (крышка 500 строк / 8 МБ тел,
-   prune on insert, DataStore-тумблер, `formatRequest` через org.json),
-   хук в `TokenTrackingAIService.sendMessage` (общий `runCollectBridge`
-   для обоих stream-врапперов; пишет ПОСЛЕ последнего чанка; ошибки и
-   cancel тоже пишутся; пробы с `recordTokenUsage=false` не пишутся;
-   тела только в Room, в logcat — лишь исход). Метка функции —
-   construction-time `functionTag` (`MultiServiceManager` передаёт
-   `functionType.name`, ad-hoc — `AD_HOC`, остальное — `CHAT`; доказанная
-   точность: инстансы кешируются per-FunctionType). Экран
-   `ui/features/llmio/` (список + фильтр + диалог деталей с
-   копированием/шарингом + Clear), пункт после Token Usage Statistics.
-   Наблюдение приёмки: лог пишет СЫРОЙ ответ с `<think>`-блоками
-   (translateTexts режет их ниже по течению для показа, в лог идёт
-   сырьё — так и задумано для дебага).
- 2. `supervision-mode` — ПРИНЯТ 2026-10-06 (код `63dadf6e` + фиксы
-   `21e6e986`/`25540fdf`, аудит 0, CI `37467783125` зелёный, APK-папка
-   `2026-10-06_13-03-03Z` + `CHANGES.md`). Приёмка на телефоне (сборка
-   16:51Z, визард, тумблер ВКЛ): карточка Supervision Observer в
-   FunctionalConfig (бинд Default) + тумблер — глазами; 7 живых
-   SUPERVISION-строк в `llm_io_log` (1×parse_error до think-fix — JSON был
-   внутри `<think>`, затем 6×ok после `stripThinkBlocks`); 3 комментария
-   прошли через `showToastMessage`→`UiStateDelegate.showToast` (строки
-   79/83/85: вердикты ok + тексты). ОСТАТОЧНЫЙ РИСК вынесен в задачу 11
-   ниже (там метод ловли и DoD) — рендер
-   через stock `ChatToastHost` (смонтирован безусловно,
-    `AIChatScreen.kt:1459`), инстансы ядер сверены (один MAIN core,
-   один UiStateDelegate), но пиксельного пруфа нет. Детали и JSONL-формат —
-   в шапке `docs/TODO/supervision-mode/index.md`.
-   Уроки приёмки (не повторять): (а) БД тянуть ВМЕСТЕ с -wal/-shm, иначе
-   свежие строки не видны (ложный «хук не пишет»); (б) flash-lite-драйвер
-   на тул-ходах зацикливается (list_files/use_package/terminal/code_runner,
-   счётчик 39) и жрёт API — для приёмки только тривиальные безтуловые
-   ходы + Deny/X при зацикливании (отменённые ходы не судятся —
-   по дизайну); (в) permission-диалоги требуют ручных Allow (Standard).
-   `FunctionType.SUPERVISION` (маппинг/строка FunctionalConfig авто через
-   `values()`, + ветка connection-test + имя/описание + 4 строки);
-   промпт в `FunctionalPrompts` (EN-only, строгий JSON); новый
-   `services/core/SupervisionObserver.kt` (дайджест user+tools+final,
-   вызов напрямую `AIService.sendMessage` с `ServiceLease` от
-   `acquireServiceForFunction`, `recordTokenUsage=false`, одна обогащённая
-   строка в `llm_io_log`, тост только непустого comment, cooldown 30 с);
-   хук в `MessageProcessingDelegate` (конец main-flow после finalize,
-   имена тулов копятся рядом со счётчиком, cap 50); тост через новый
-   колбэк `showToastMessage` (прокинут из `ChatServiceCore` в
-   `UiStateDelegate.showToast`); тумблер `SupervisionPreferences`
-    (default OFF) + свитч в SettingsScreen; Room v22→v23 (5 nullable колонок
-    вердикта); `supervisionJsonl(limit)` API + вердикт в Share-тексте.
-    История приёмки 06.10 (сжато): диспатч до push собрал код без фичи
-    (`37443922062` впустую); `37447057893` поймал 3 ошибки компиляции
-    (починены в `21e6e986`/`25540fdf`); установка think-fix-сборки зависла
-    на streamed install + телефон выпадал из сети; со второго захода
-    (порт 38571) всё прошло. Рецепт живого чата — в окружении выше
-    («Рецепт живого чата»).
-    Известное ограничение v1: в дайджесте имена тулов БЕЗ аргументов
-    и результатов (нужны хуки глубже, отдельная задача).
-   3. Live-fire при случае (код готов, верифицирован конструкцией, не огнём):
-    (a) ПРЕФЕТЧ ДОКАЗАН ЖИВЬЁМ 07.10 на supervision-сборке: открыт Packages →
-    карточка `楼层限制器` сырым китайским → через ~12 с сама флипнулась в
-    "Message Limiter" (ноль тапов); в `llm_io_log` строка id=93 TRANSLATION
-    in=108/out=1062 @ 5133 мс с батчем `{"1":"楼层限制器","2":"截取最近..."}`.
-    CDN-ЛИСТИНГИ по-прежнему blocked (сервер): Market (розовая иконка-магазин
-    в Packages → диалог Agreement countdown → скролл до конца → кластер по
-    "I have read and agree") открылся, но список пуст после спиннера;
-    в logcat `UnifiedMarketBrowseVM: SocketTimeoutException ... static.operit
-    .app/188.114.97.0:443 after 15000ms` — при этом busybox-wget с телефона
-    до того же хоста дал HTTP 404 (резолв 188.114.96.3): разные edge-ноды,
-    одна отвечает, другая нет. Вывод: чинить в коде нечего, ждать сторону
-    сервера; CDN-путь использует тот же доказанный хелпер;
-   (b) Google-фалбэк без модели — ДОКАЗАН ЖИВЬЁМ 07.10 (ветка впервые
-    стрельнула в проде). Метод (вариант 2, без ломания пресета и без UI):
-    конфиг DataStore — JSON внутри `model_configs.preferences_pb`
-    (байты endpoint лежат открыто); бэкап `model_configs.pb` →
-    same-length замена endpoint (45→45 байт, protobuf-цел:
-    `http://192.168.1.55:20128/...` → `http://127.0.0.1:99999999/...`,
-    невалидный порт = мгновенный отказ) через
-    `run-as ... tee files/datastore/model_configs.preferences_pb` →
-    force-stop → Packages → китайская карточка → возврат бэкапа +
-    force-stop + проверка байтов. Побочно выяснено: вариант 1 (удалить
-    Default Config в UI) НЕВОЗМОЖЕН — конфиг один, кнопки удаления нет;
-    вариант с тапом в поле endpoint тоже мёртв — Compose-поле не
-    фокусируется тапами (ADB IME активна, клавиатуры нет, `input text`
-    некуда). Доказательства: `llm_io_log` id=4,5,6 TRANSLATION, ошибка
-    `Invalid URL port: "99999999"`, ~31 с (5 ретраев); карточка
-    `楼层限制器` при этом флипнулась в свежий "floor limiter" (НЕ кэш —
-    `translation_cache/v2.json` текста не содержит; НЕ primary —
-    утренний primary-вариант был "Message Limiter"). Значит, рендер пришёл
-    из `GoogleTranslateFallback`. DoD закрыт: primary-ошибка + успех
-    фалбэка + скрин (`/tmp/opencode/3b/s14_after.png`). Телефон возвращён
-    на живой пресет (байты сверены), чат-экран после рестарта на месте.
-  4. QuickJS keep-fix — ЭКСПЕРИМЕНТ УДАЛСЯ 07.10 (коммит `b4ff4a30`,
-    CI `37551624980` success 25m17s, APK-папка `2026-10-07_00-22-30Z` +
-    `CHANGES.md`). Найдено: жертва живёт в модуле `:quickjs`
-    (`quickjs/.../javascript/QuickJsNativeHostDispatcher.kt:21`, НЕ в app);
-    механизм — `quickjs_jni.cpp:296` `GetMethodID "onCall"` по имени, R8
-    слеп (E1 именно так и падал). Правило добавлено в `proguard-rules.pro`
-    рядом с JsToolCallInterface + поправлен вводящий в заблуждение коммент
-    в `build.gradle.kts` (тот самый «уже есть keep rules»). Замеры:
-    APK 287428400 → 247288710 (−40.1 МБ, −14%, как в E1 до байта класса
-    эффекта); dex 5 файлов (было 43), `onCall`×154 + имя класса×14 в пуле
-    строк; холодный старт чист (визард на английском, в logcat ни
-    NoSuchMethodError, ни FATAL).     Побочный выигрыш: release/nightly УЖЕ
-    были с minify=true и, видимо, падали так же — keep чинит и их (на
-    устройстве минифицированное до этого не гонялось НИ РАЗУ).
-    РЕШЕНИЕ 07.10 (пользователь: «реализуй лучший вариант»): minify в debug
-    ОСТАЁТСЯ навсегда. Доведено до ума тремя вещами: (а) mapping.txt грузится
-    в артефакты CI (`50dc014a`, отдельный `operit-android-mapping-<run>`,
-    проверен живьём на CI `37571249649`: 12503593 Б, retrace-рабочий —
-    в нём видно, что класс диспетчера kept, а лямбды обфусцированы);
-    (б) аудит `getIdentifier` по всему app: все 5 мест — системный
-    `status_bar_height/dimen/android` (шейкеру ресурсов недоступен, риск
-    shrinkResources НУЛЕВОЙ в текущем коде); (в) доказательство полноты
-    keep-fix: `GetMethodID "onCall"` резолвится в КОНСТРУКТОРЕ `QuickJsVm`
-    (`quickjs_jni.cpp:296`, т.е. в `nativeCreate` при старте движка) —
-    каждый чистый холодный старт исполняет ровно тот вызов, на котором
-    падал E1. Tool Test Center для live-fire JS→host не подошёл (тестирует
-    хост-тулы, не JS-движок) — и не нужен: резолв доказан, инвокейшн-путь
-    кодом не менялся. EXPERIMENT-коммент в build.gradle при следующей
-    правке этого места заменить на постоянный.
- 5. Мелкие follow-up — СДЕЛАНО 07.10, принято на финальной сборке
-    (CI `37555506347`, APK-папка `2026-10-07_01-07-20Z`):
-    визард пройден полностью до живого чата; PONG. и ACK. отвечены;
-    TRANSLATION-строка id=1 (announcement-батч на свежей установке);
-    Supervision включён тумблером + строка id=6 verdict=ok; терминал жив
-    (41 .so, `bash -c echo` → TERM_OK); в logcat ни NoSuchMethodError,
-    ни FATAL. Поведенческий пруф 5a (переезд на SD) и 5b (хвосты ANR)
-    не триггерился — принято конструкцией + аудит 0. Детали приёмки
-    (калибровки тапов, STOP-ловушка) — в чит-шите и E10 ниже.
-    Что сделано (по одному коммиту):
-    (a) пустые `stt_model`-папки после переезда: в `migrate()`
-    (`util/AppDataLocation.kt`, после `present.forEach { it.delete() }`) —
-    удаление опустевшего source dir (пустой `delete()` безопасен);
-    (b) `AnrMonitor` хардкод-китай в logcat: `:208` → "possible ANR!",
-    заодно `:219` → "warning" (тот же монитор, тот же китай);
-    (c) дропдаун языка диктовки (`SpeechToTextScreen.kt:126`) — БЕЗ ИЗМЕНЕНИЙ,
-    чинить персистом ТОЛЬКО если пользователь пожалуется.
-  6. Terminal-env setup (ЗАКРЫТА 11.10 ночью — CLOSE-OUT ниже;
-  МЕХАНИЗМ (выяснен чтением кода 11.10, не гадать): красная строка
-  «Operit Terminal» = `isOperitTerminalInstalled` (`PermissionLevelCard.kt`
-  → `ShizukuDemoScreen.kt:147` → `DemoStateManager.kt:227,460`); флаг
-  ставит `DemoStateManager.kt:364-403`: в общей proot-сессии выполняются
-  `command -v pnpm`, `command -v python|python3`, `command -v pip|pip3` —
-  зелёная ТОЛЬКО когда есть все три (pnpm И python И pip). Проверка бежит
-  при каждом входе на Permissions-экран (видно в logcat как
-  «NodeJS环境检查 - pnpm: …»).
-  ЛОВУШКА ДЕФОЛТОВ (E13, живьём 11.10): в SetupScreen
-  (`terminal/.../terminal/ui/SetupScreen.kt:143-207`) пакеты предвыбраны
-  ТОЛЬКО если checkPackageInstalled нашёл их (INSTALLED → selected=true,
-  и такие потом пропускаются фильтром `!= INSTALLED`); отсутствующие
-  НЕ выбраны. Start Setup без ручного выбора = почти no-op (уходят
-  только echo-настройки pip-зеркал), экран мгновенно возвращается домой
-  с вечной кнопкой Interrupt — выглядит как «установка прошла», на деле
-  не качалось ничего (доказано: apt history.log пуст после upgrade,
-  в процессах только idle bash, см. E13).
-  ПРАВИЛЬНЫЙ ПУТЬ (два входа): (а) Toolbox → Command Terminal →
-  выбрать чекбоксы категорий nodejs + python (Select All справа,
-  y~509 и ~782 — проверить checked=true в дампе, слепые тапы тогглят!) →
-  Start Setup → Notice OK → терминал с Interrupt (качает по-настоящему);
-  (б) короче: DEBUGGER-таб → карточка «Configure Terminal Environment»
-  (сама пишет чего нет: «Need to configure NodeJS and pip») → Expand →
-  «Go to Terminal Configuration» → тот же SetupScreen. Подтверждение
-  выбора команд — диалог showSetupDialog (перед отправкой).
-  ИСТОРИЯ (как закрыли 11.10): первая «установка» была холостой (E13),
-  настоящая с выбранными nodejs+python шла ~40 мин; опрос
-  `ci/script/accept_terminal_setup.sh` — раунд 3 «Granted», PASS=4 FAIL=0.
-  CLOSE-OUT 6 (11.10 ночь, опрос `accept_term7.log`): раунд 3 —
-  «Operit Terminal = [Granted]», PASS=4 FAIL=0. Флаг выставился сам
-  по `command -v pnpm+python+pip` — установка с выбранными категориями
-  доставила всё недостающее. ЗАКРЫТА.
-  DoD: строка зелёная. Запасной DoD (если зелёной не будет): точная
-  причина из apt/pty (какой пакет упал и почему) + запись сюда.
-  Старый скрин статуса (s20_debug2.png, /tmp 07.10) протух — не искать.
-  7. Инфра, по пунктам (код не трогать, пока не закрыт 7a):
-    (a) `Android Tests` падает на setup — ДИАГНОЗ ГОТОВ 07.10, чинить:
-    ран `37582044964` (ручной диспатч), шаг `Set up Android SDK`:
-    `Warning: Failed to find package 'tools'` → `sdkmanager failed with
-    exit code 1`. Причина известна: экшен `android-actions/setup-android@v4`
-    по дефолту ставит пакеты `"tools platform-tools"`, а пакет `tools`
-    удалён из SDK-репозитория. ФИКС УЖЕ ЕСТЬ В СОСЕДНЕМ ФАЙЛЕ:
-    `android-build.yml:104-111` переопределяет `packages: platform-tools`
-    с комментом-объяснением — скопировать тот же `with:` в
-    `android-tests.yml:88-90`, задиспатчить `Android Tests`, проверить
-    зелёный. РЕЗУЛЬТАТ 07.10: setup зелёный с первого рана (ран
-    `37638827764`) — фикс верен. Но workflow валится ДАЛЬШЕ на
-    `compileDebugUnitTestKotlin`: гниль апстрим-тестов, чинится по одному:
-    (1) `McpConfigImportParserTest` — НАША вина (форк-i18n `610d9f0b`
-    добавил парсеру `context: Context`, тест звал старый `parse(config)`;
-    починено `97ad4913` — stub `mock<Context>` с `getString→""`,
-    mockito-kotlin — штатный паттерн тестов); (2) `Deepseek...Test:244`
-    (зовёт protected `createRequestBody` — апстрим закрыл в `2ef5a013`;
-    починено exposed-сабклассом) + `XaiProviderReasoningTest` (ссылает
-    удалённые `XaiReasoningMapper/xaiModelSupportsReasoningEffort` —
-    3 мёртвых метода вырезаны, валидный тест дефолтов оставлен);
-    `a112091f`, ран `37678790496`. Тот ран скомпилировался, но уронил
-    6 тестов из 1310 — все шесть разобраны по стектрейсам из артефакта
-    `operit-android-test-reports-9` (HTML `<pre>`, качать
-    `gh run download <run> -n operit-android-test-reports-9`):
-    (i) ТРИ — одна болезнь «Method X in android.util.Log not mocked»:
-    ColdStream (наш `persistIoLog:549` → `AppLogger.e` маскирует
-    CancellationException), CachedTranslator-наш (`parseResponse:43`),
-    Xai-defaults (`getModelsListUrl:63` → `AppLogger.d`) — лечение везде
-    тест-стороной штатным паттерном (как `OpenAiToolCallHistoryTest`:
-    `@Before disable both flags / @After restore`), прод-код НЕ трогать
-    (в проде Log.e работает, семантика cancel-пути верна);
-    (ii) FunctionType — НАШЕ (`63dadf6e` добавил 12-й SUPERVISION, тест
-    ждал 11) — обновить счётчик+список тест-стороной;
-    (iii) ReleasedDecoder — upstream-тест документирует НЕреализованное
-    намерение (`1_migration_paths.md`: legacy без провайдера скипать):
-    `decode("FILE_BINDING")` давал provider FILE — прод-фикс
-    `require(known != null)` (прямых звателей `decode(` кроме
-    `decodeOrNull` нет; миграция `ApiPreferences.kt:513` скипает null
-    штатно с варнингом); (iv) JsToolPkg:62 — тест ждал старый стиль
-    `ToolPkg.registerX`, мост ушёл на method-table
-    (`registerX: toolPkgApi.method().since(`) — ассёрты за реальностью.
-    Коммит `55e18396`, ран `37682838742` — ЗЕЛЁНЫЙ 07.10 (success).
-    7a ЗАКРЫТА: setup починен, сюита выполняется (1310 тестов, 0 падений).
-    Если сюита покраснеет снова — правило то же: каждый новый `e: file`
-    в `--log-failed` → `git log` файла: наше → чинить код, апстрим →
-    чинить минимально тест, НЕ продакшн.
-    (b) Keystore — РЕШЕНО 08.10, НЕ НУЖЕН: публикации в магазине не будет,
-    жизнь — на гитхабе, туда встают и обычные debug-сборки (ставятся
-    вручную, для гитхаба этого достаточно). Пользователь разрешил сделать
-    ключ, но и разрешил не делать — не делаем (лишняя сущность без
-    пользы). Если позже захочется подписанных релизов — завести заново.
-    (c) Хостинг Q2 — РЕШЕНО 08.10: тот же репозиторий, GitHub Releases.
-    Практика: релиз на тег версии (`vX.Y.Z`), ассеты — по одному файлу
-    на payload (`subpack-android.apk`, `subpack-windows.zip`,
-    `apktool.toolpkg`, ...), к релизу — короткая записка что внутри.
-    Создавать релиз заранее без файлов бессмысленно — первый релиз
-    появится вместе с готовым Q2-кодом скачивания.
-  8. Совместное ручное тестирование (ОТКРЫТА ЧАСТИЧНО: 5a/5b делает
-  агент сам через root — решение 15.10; остальное ждёт пользователя —
-  начать только когда он скажет; агентская часть: держать этот список
-  полным и свежим). Что уже вычеркнуто без
-  референта (если всплывёт — заводить с именем скриншота и путём экрана):
-  dead button / U1 / D12; Market search icon проверен (открывает поиск).
-  Дальнее поле STT — только если пользователь пожалуется (M6 закрыта).
-  Отложенное агентское E2E (код готов и принят частично):
-  РЕШЕНИЕ ПОЛЬЗОВАТЕЛЯ 15.10: 5a/5b агент выполняет САМ через root
-  (раньше ждали палец пользователя — больше не ждут); Windows-экспорт
-  заблокирован — Windows-машины нет, не делать; переименование пакета
-  (D из задачи 18) — ЗАБЫТЬ, не делать вообще; Antigravity sign-in
-  пользователь сделает сам позже; STT-эталон дан (см. ниже), но
-  ПРОГОНЯТЬ ТОЛЬКО ПО КОМАНДЕ.
-  (а) файлы в subpack-leaf после РЕАЛЬНОГО экспорта — ДОКАЗАНО 10.10
-  (Android; Windows export не гонялся): HTML Packager → ExportPlatformDialog
-  → Android export до конца → `files/subpack/apk_editor_android.apk`
-  48139093 Б + sha `c56b23a8...` (size+sha сошлись), выходной APK ставится;
-  палец не понадобился (sendevent-тапы); подробности — CLOSE-OUT задачи 13;
-  (б) 5a/5b глазами — НЕ ДОКАЗАНО, делает агент сам через root
-  (решение 15.10), делать так (оба — walker-сценарий +
-  файловые пруфы, как seeds): 5a — переезд STT-модели на SD: чистая
-  установка (модели НЕТ — качать 225 МБ заново: согласие + докачка,
-  только с запасом батареи/сети) → Settings → SpeechToText → переезд на
-  memory card → глазами: строка пути + каталог на карте + модель поёт
-  (эталонная фраза — см. STT-эталон ниже, прогнать в рамках 5a можно:
-  запрет 15.10 касается только отдельного STT-регресса);
-  DoD: путь leaf + файлы + живое
-  распознавание. 5b — хвосты ANR: `AnrMonitor` пишет в logcat
-  «possible ANR!» (`:208`) и «warning» (`:219`); триггер — быстрый
-  скролл длинных списков (Settings/Packages) 30–60 с + чтение logcat
-  (`logcat -t N`, не полный `-d`); DoD: строки есть/нет + контекст
-  (что делали, сколько скроллили) записан сюда — важен сам факт, а не
-  «чисто»; (в) задача 6 — ЗАКРЫТА (см. п.6).
-  STT-эталон для регресса ORT 1.21.1 (дан пользователем 15.10,
-  ПРОГОНЯТЬ ТОЛЬКО ПО КОМАНДЕ): файл `~/operit-fork/wav/benchmark_v2.wav`
-  (моно, 48 кГц, 37.5 с, 3.6 МБ). Начитанный текст:
-  «В дистрибутиве Omarchy под Hyprland мы запустили браузер Helium
-  с аппаратным ускорением через VA-API и настроили Neovim под виндовые
-  хоткеи. Сейчас мы тестируем модель GigaAM в связке с PipeWire,
-  замеряя inference и потребление памяти в btop.»
-  Нечёткий зачёт (любой вариант из скобок = 100% попадание):
-  omarchy (омарчи, омачи); hyperland (хайперлэнд, хайперланд);
-  helium (хелиум, хилиум); pipewire (пайпваер, пайпвайр);
-  neovim (неовим); btop (битоп); inference (инференс).
-  ОТКРЫТЫЙ ВОПРОС МЕТОДИКИ (решить до прогона, не гадать): как подавать
-  wav движку. Кандидаты: (1) проиграть с ноутбука в микрофон телефона
-  (просто, но в recognise попадёт комната/динамик); (2) найти в коде
-  file-input распознавания (GigaAMRecognizer / SpeechToTextScreen —
-  проверить, умеет ли движок файл напрямую); (3) скормить через
-  Tool Tester, если там есть STT-ряд. Выбранный метод записать сюда
-  до прогона. Бэкапа эталона в репо НЕТ — файл не удалять, не двигать.
-  9–18. ЗАКРЫТЫ (тела — в `docs/FORK-REGISTRY/ARCHIVE.md`,
-  ниже только доказательства): 9 workspace-чат (поведение апстрима);
-  10 UX пустого чата (`f3ce47f1`+`5cb753fe`); 11 тост супервизии (пойман
-  живьём 08.10); 12 apktool+desktop удалены и замерены (08.10, CI
-  `37722980127`/`37726800230`); 13 subpack on-demand DoD (сборка
-  `2026-10-10_00-41-11Z`); 14 онбординг (accept10 на `20261010_215026Z`);
-  15 китайские интеграции (accept10 PASS=10); 16 install-size (решением
-  пользователя); 17 подпись-evct (`38089152700`, accept10 PASS=10);
-   18 B+C идентичность (`20261011_123918Z`, PASS=8; D снят 15.10).
+Joint manual testing with the user (OPEN PARTIALLY: 5a/5b done by the
+agent alone via root — decision 15.10; the rest waits for the user's
+word; agent part: keep this list full and fresh). Crossed out without a
+referee (if one resurfaces — file with screenshot name + screen path):
+dead button / U1 / D12; Market search icon verified (opens search).
+Far-field STT only if the user complains (M6 closed).
+(a) subpack-leaf files after a REAL export — PROVEN 10.10 (Android;
+Windows export never run): HTML Packager → ExportPlatformDialog →
+Android export to the end → `files/subpack/apk_editor_android.apk`
+48139093 B + sha `c56b23a8...` (size+sha matched), output APK installs;
+(CLOSE-OUT task 13 for details).
+(b) 5a/5b by eye — NOT PROVEN, agent does it alone via root (decision
+15.10); how (both — walker scenario + file proofs, like seeds): 5a —
+STT model move to SD: clean install (model ABSENT — re-download 225 MB:
+consent + resume, only with battery/network headroom) → Settings →
+SpeechToText → move to memory card → by eye: path row + dir on card +
+model sings (benchmark phrase — may run it inside 5a: the 15.10 ban
+covers only the standalone STT regression); DoD: leaf path + files +
+live recognition. 5b — ANR tails: `AnrMonitor` writes "possible ANR!"
+(`AnrMonitor.kt:208`) and "warning" (`:219`) to logcat; trigger — fast
+scroll of long lists (Settings/Packages) 30–60 s + `logcat -t N` read
+(never full `-d`); DoD: lines present/absent + context (what, how long
+scrolled) written here — the fact matters, not "clean". Task 6 CLOSED.
+STT benchmark for the ORT 1.21.1 regression (given by user 15.10, RUN
+ONLY ON COMMAND): file `~/operit-fork/wav/benchmark_v2.wav` (mono,
+48 kHz, 37.5 s, 3.6 MB). Spoken text: "В дистрибутиве Omarchy под
+Hyprland мы запустили браузер Helium с аппаратным ускорением через
+VA-API и настроили Neovim под виндовые хоткеи. Сейчас мы тестируем
+модель GigaAM в связке с PipeWire, замеряя inference и потребление
+памяти в btop." (Russian — the recognition target is Russian audio;
+this paragraph stays Russian on purpose.) Fuzzy scoring (any variant in
+parens = 100% hit): omarchy (омарчи, омачи); hyperland (хайперлэнд,
+хайперланд); helium (хелиум, хилиум); pipewire (пайпваер, пайпвайр);
+neovim (неовим); btop (битоп); inference (инференс).
+OPEN METHODOLOGY QUESTION (resolve before running, don't guess): how to
+feed the wav to the engine. Candidates: (1) play from the notebook into
+the phone mic (simple, but room/speaker leaks into recognition); (2)
+find file-input in code (`GigaAMRecognizer` / `SpeechToTextScreen` —
+check whether the engine takes files directly); (3) feed via Tool Tester
+if it has an STT row. Write the chosen method here before running.
+No backup of the benchmark in repo — never delete/move it.
+(c) Manual Google sign-in to Antigravity — user does it later alone.
+After: quotas, model list, chat via Antigravity (PORT_QUEUE.md).
+(d) Proxy tails (deliberate, not bugs): Antigravity `getModelsList`
+direct; login-over-proxy only if it fits the scheme (don't demand a user
+account for it).
 
-## Статус: окружение
+## Status: environment
 
-- APK каждой проверенной сборки: `/home/uzzzver/operit-fork/apk/<UTC-дата-старт-CI>/`
-   + `CHANGES.md` (3–6 строк дельты). Сейчас там ДВАДЦАТЬ ШЕСТЬ папок:
-  `2026-10-04_13-47-09Z` (R8-эксперимент, rejected),
-  `2026-10-05_10-51-45Z` (A-сборка, терминал), `2026-10-05_17-52-47Z`
-  (llm-io-log, 287387420 байт, CI `37351728353`),
-  `2026-10-06_13-03-03Z` (supervision, 287428400 байт, CI `37467783125`)
-  `2026-10-07_00-22-30Z` (minify-эксперимент: keep-fix, 247288710 байт,
-  CI `37551624980`, cold start clean), `2026-10-07_01-07-20Z` (финал 4+5:
-  247288542 байт, CI `37555506347`, ПОЛНАЯ приёмка),
-  `2026-10-07_06-31-03Z` (задача 10: 247288246 байт, CI `37581930601`,
-  e2e PONG), `2026-10-08_01-06-04Z` (subpack Q1: 247299182 байт,
-  CI `37709173132`, пикер+переезд приняты), `2026-10-08_03-29-43Z`
-  (12a apktool: 220307769 байт, CI `37722980127`),
-  `2026-10-08_04-17-45Z` (12b desktop: 214210621 байт, CI `37726800230`),
-  `2026-10-08_11-45-43Z` (Q2 subpack: 177474049 байт, CI `37772193743`),
-  `2026-10-09_17-58-51Z` (фикс репака: 177496617 байт, CI `37970071214`),
-  `2026-10-10_00-41-11Z` (фикс подписи: 179691879 байт, CI `38010108122`,
-  DoD 13 закрыт — ПОСЛЕДНЯЯ подписывающая сборка),
-  `20261010_094027Z` (онбординг+модалка маркета: 179672423 байт,
-  CI `38042218605`, подпись OK — A/B-доказательство),
-  `20261010_132740Z` (15-код: 179388168 байт, CI `38055794385`,
-  подпись СЛОМАНА — см. задачу 17),
-  `20261010_160304Z` (15-код без вставки-BC: 179389416 байт,
-  CI `38066077820`, подпись СЛОМАНА),
-  `20261010_170331Z` (вставка+итерация+диагностика: 179391088 байт,
-  CI `38070179633`, приёмка accept8 — подпись СЛОМАНА, зато дала
-  диагностику PBES2),
-  `20261010_203519Z` (та же диагностика, фикс компиляции javax.crypto:
-  179392124 байта, CI `38084332791`, приёмка accept9 — подпись СЛОМАНА,
-  лог и доказал корень),
-  `20261010_215026Z` (evict-фикс 17: 179391284 байта, CI `38089152700`,
-  accept10 PASS=10 FAIL=0 — закрыла 14/15/17),
-   `20261011_015941Z` (Q2 helper-APK on-demand: 175947764 байта,
-   CI `38103675524`, walker-приёмка PASS=6 FAIL=0 — историческая;
-   батарея ночью 8% — телефон спит на зарядке,
-   тяжёлую работу (задача 6) только после заряда),
-  `20261011_123918Z` (B+C идентичность: 175947900 байт, CI `38140082342`
-  зелёный; принят walker'ом PASS=8 FAIL=0),
-   `20261011_141729Z` (Q2 seeds: 167739638 байт, CI `38146579269`,
-   walker-приёмка PASS=8 FAIL=0).
-   `20261012_104102Z` (порты batch-1+2 + справка: 168064813 байт,
-   CI `38224488511`; screen_tour 102 шага PASS, OCR-baseline 5/5).
-   `20261013_025022Z` (Antigravity: 168086401 байт, CI `38332016760`;
-   OAuth доходит до Google; Default Config возвращён как был).
-   `20261014_025827Z` (PaddleOCR: 163082823 байта, CI `38499450049`
-   — на телефоне стояла она; приёмка 12/12 + русский).
-   `20261014_062241Z` (прокси провайдера: 163102271 байт, CI `38520434647`
-   — ТЕКУЩАЯ; на телефоне стоит она; приёмка DIRECT+HTTP+SOCKS5(+auth)+
-   мёртвый прокси, Default Config возвращён как был).
-  Диск `/` хронически 95–100%: `/tmp` чистит агент (протухшие
-  `gh-artifact.*.zip`, дубли моделей, свои скриншоты/дампы; тулкит и
-  `gigaam-model` не трогать), остальное — пользователь.
-  Удалённые докачиваются с CI без пересборки: T3
-  `gh run download 37201078764 --dir ...` (внутри
-  `operit-android-34/apk/debug/app-debug.apk`, 373487996 байт), T2
-  `37169808187`, T1-Market `37164035232` (имена каталогов внутри плывут —
-  искать `find -name "*.apk"`; качать с запасом таймаута: 287 МБ ~5+ мин).
-  Правило уже в `AGENTS.md`.
-- Workflow `Android Build` на push срабатывает ТОЛЬКО для `main`
-  (`on.push.branches: [main]`) — для feature-ветки запускать вручную:
+- Every build-checked APK: `/home/uzzzver/operit-fork/apk/<UTC-CI-start>/`
+  + `CHANGES.md` (3–6 delta lines). Recent (older — same dir, CHANGES.md
+  each):
+  `20261010_215026Z` (evict-fix 17: 179391284 Б, CI `38089152700`,
+  accept10 PASS=10 — closed 14/15/17; LAST signing build),
+  `20261011_015941Z` (Q2 helper-APK: 175947764 Б, CI `38103675524`,
+  walker PASS=6),
+  `20261011_123918Z` (B+C identity: 175947900 Б, CI `38140082342`, PASS=8),
+  `20261011_141729Z` (Q2 seeds: 167739638 Б, CI `38146579269`, PASS=8),
+  `20261012_104102Z` (ports batch-1+2 + help: 168064813 Б, CI
+  `38224488511`; tour 102 steps PASS, OCR baseline 5/5),
+  `20261013_025022Z` (Antigravity: 168086401 Б, CI `38332016760`;
+  OAuth reaches Google; Default Config restored),
+  `20261014_025827Z` (PaddleOCR: 163082823 Б, CI `38499450049`;
+  12/12 + Russian),
+  `20261014_062241Z` (provider proxy: 163102271 Б, CI `38520434647` —
+  CURRENT; on phone now; DIRECT+HTTP+SOCKS5(+auth)+dead-proxy acceptance,
+  Default Config restored).
+  Disk `/` chronically 95–100%: `/tmp` cleaned by agent (stale
+  `gh-artifact.*.zip`, model dupes, own screenshots/dumps; toolkit and
+  `gigaam-model` untouchable), rest — user. Artifacts re-downloadable
+  from CI without rebuild (`gh run download <run> -n <name> --dir ...`;
+  inner dir names drift — `find -name "*.apk"`; big timeouts).
+  Rule already in `AGENTS.md`.
+- Workflow `Android Build` fires on push ONLY for `main`
+  (`on.push.branches: [main]`) — feature branch needs manual:
   `gh workflow run "Android Build" --ref feat/english-only-build`.
-- Рецепт живого чата (доказан 06.10 дважды, старый лабиринт через счётчик
-  «0» больше не использовать): кнопка-«часы» в полоске под шапкой (~55,232)
-  → слайд-меню Chat History → + New Chat (~218,355) → чат с полем ввода
-  и модельным рядом готов к отправке. Свежая установка тоже сразу даёт
-  поле ввода (workspace-ловушка 05.10 там не воспроизвелась). Тап по «часам»
-  иногда не срабатывает с первого раза — повторить; свайп от левого края
-  открывает НЕ то меню (app drawer), не путать.
-- Старый лабиринт 05.10 (история, не повторять): пустое состояние → send
-  тостит «Please create a new chat»; счётчик «0» создаёт беседу; новая
-  беседа ТРЕБОВАЛА workspace (Create Default) и показывала ТОЛЬКО
-  WebView-превью без поля ввода; таб «Operit» задизейблен,
-  стрелки/свайпы/FAB-Unbind/BACK из превью не выводили. Тогда живой чат
-  для ручной отправки так и не был получен — строки в лог дали
-  ФУНКЦИОНАЛЬНЫЕ вызовы (T2-префетч), этого хватило для приёмки.
-- Телефон `R9TN601D6GJ` полностью под управлением агента (policy ниже в
-  силе); USB мёртв, adb только по WiFi; порт МЕНЯЕТСЯ при каждой смерти
-  отладки (45687 → 41599 → 36201 → 44657) — НИКОГДА не хардкодить, последнее
-   известное значение протухает. При обрыве — переспаривание (рецепт в
-   чит-шите, пользователя просить только порт+код). Пакеты:
-   `com.ai.assistance.operit.debug` (Operit), `moe.shizuku.privileged.api`.
-     (исторический срез утро 08.10 — НЕ правда на сейчас, оставлен
-     как точка отсчёта): сборка subpack Q1 (CI `37709173132`,
-    fresh install 04:13 после uninstall — новый debug-ключ, визард ПРОЙДЕН
-    полностью: agreement → тур → permissions через shell-гранты (см.
-    чит-шит) → Debug level → чат ПУСТ (кнопка + New Chat, задача 10 живьём).
-    Модельный пресет засидился (fresh state), supervision ВЫКЛ (дефолт
-    false, файл `supervision_preferences.xml` отсутствует — включать
-    только если тест требует: рецепт через `run-as tee` в задаче 11).
-    Телефон оставлен в Settings (строка subpack, location = memory card).
-    Батарея 81%, заряжается. Screensaver выключен + screen_off_timeout
-    30 мин. Порт 36255 (вечер 07.10 дал пользователь после смерти 38571).
-    Закрыты: 1–5a/5b, 7a (ран `37682838742` зелёный), 9, 10, 11, 3a/3b, 4,
-    subpack Q1-механика. Открыто: 6, 8, 12, 13 (см. шапку).
-   `192.168.1.63` `37000-45200`+`5555` пуст = wireless debugging выключена.
-   Только пользователь может включить (или дать новый IP).
-   День 06.10: порты менялись 4 раза (43874→43873→35449→38571); обрывы
-   (`offline`, `No route to host`) лечились переподключением/новым портом
-   от пользователя. Вечером связь стабильна (38571).
-- LAN gateway для тестов (модель, перевод): `http://192.168.1.55:20128/v1`,
-  ключ и модель зашиты пресетом ТОЛЬКО в debug (`ModelConfigManager`,
-  `BuildConfig.DEBUG`-ветка). В релиз не тащить.
-- Диск `/` 98% (08.10, было 96%) — КРИТИЧНО; `/tmp/opencode` чистить после сборок
-  (временные APK качать в `/tmp/opencode/<имя>`, удалять сразу после install).
+- Live-chat recipe (proven 06.10 twice): clock-button in the strip under
+  the header (~55,232) → Chat History slide-menu → + New Chat (~218,355)
+  → chat with input ready. Fresh install gives input immediately. Clock
+  tap sometimes misses first time — repeat; left-edge swipe opens the
+  WRONG menu (app drawer), don't confuse.
+- Test phone fully agent-managed (policy below in force); USB dead, WiFi
+  adb only; packages: `com.ai.assistance.operit.debug` (Operit),
+  `moe.shizuku.privileged.api`. NEVER hardcode the adb port (it dies in
+  idleness; re-ask/scan). Grants/state: model preset re-seeds on fresh
+  install (endpoint/key/model from `ModelConfigManager` DEBUG branch),
+  supervision OFF by default; battery check `dumpsys battery` FIRST;
+  brightness 1 for night work; heavy work only with charge headroom.
+- LAN gateway for tests (model, translation): `http://192.168.1.55:20128/v1`,
+  key+model baked into preset ONLY in debug (`ModelConfigManager`,
+  `BuildConfig.DEBUG` branch). Never carry to release.
+- Disk `/` ~98% — CRITICAL; `/tmp/opencode` cleaned after builds
+  (temp APKs to `/tmp/opencode/<name>`, delete right after install).
 
 ---
 
-## Чит-шит устройства и CI (читать перед любой приёмкой)
+## Device+CI cheat sheet (read before any acceptance)
 
-**adb.** USB мёртв (`lsusb` пуст), только WiFi. Порт меняется сам
-(45687 → 41599 → 36201 → 44657 → 43873 → 35449 → 38571 → 36255
-— 06.10 четырежды за день, 07.10 вечером 38571 умер, пользователь дал 36255) и отладка гаснет в простое — никогда не хардкодить
-порт. ЛОВУШКА 06.10: пользователь даёт pairing-порт (был 43874) —
-`adb connect` на него даёт `Connection refused`; настоящий adb-порт
-приходит отдельно (43873). Не гадать: пробовать connect, при отказе —
-переспросить/скан. Обрыв: попросить у пользователя pairing-порт + код
-с экрана телефона,
-`echo CODE | adb pair 192.168.1.63:PAIRPORT`, затем скан adb-порта
-(python+socket, `37000-45200` + `5555`) и `adb connect IP:PORT`. Скан пустой
-= отладка выключена, только пользователь может включить.
-09.10: root через Magisk ЕСТЬ (`su -c id` uid=0, полные capabilities).
-Включён классический ПОСТОЯННЫЙ ADB: `su -c 'setprop service.adb.tcp.port
-5555'` + `stop adbd; start adbd` → `adb connect 192.168.1.69:5555`
-(TLS-порт после этого отвалился сам — так и надо, лишний).
-10.10: автозагрузка РЕШЕНА через Termux + Termux:Boot (оба стоят;
-`~/.termux/boot/adb-tcp.sh`: sleep 15 + setprop 5555 + restart adbd;
-root для Termux выдан пользователем один раз; оба пакета в battery
-whitelist). ДОКАЗАНО перезагрузкой 10.10: 5555 вернулся сам через ~75 с,
-uptime 1 мин. Magisk `/data/adb/service.d` был тупиком (не пишется даже
-root — режет прошивка). Локальный трюк 09.10:
-порт открыт и пингуется, а `adb connect` висит — лечится
+**adb.** USB dead, WiFi only. Port changes on its own, debugging dies
+idle — never hardcode. TRAP: user gives the pairing port — `adb connect`
+to it gives `Connection refused`; the real adb port comes separately.
+Don't guess: try connect, on refuse re-ask/scan. Since 09.10: classic
+PERMANENT ADB via root (`su -c 'setprop service.adb.tcp.port 5555'` +
+`stop adbd; start adbd` → `adb connect 192.168.1.69:5555`); Termux:Boot
+re-raises it after reboot (`~/.termux/boot/adb-tcp.sh`, proven by reboot
+test). Local trick: port open and pingable but `adb connect` hangs —
 `adb kill-server; adb start-server` (stale server).
-**CI.** Push в feature-ветку workflow НЕ стартует — только ручной dispatch:
-`gh workflow run "Android Build" --ref feat/english-only-build`
-(для nightly-минификации добавить `-f gradle_task=":app:assembleNightly"`).
-ДИСПАТЧ ТОЛЬКО ПОСЛЕ PUSH: раннер чекаутит origin, локальные коммиты не
-видит (06.10: диспатч до push собрал старый код, зелёный CI впустую,
-перезапускали — `37443922062` vs `37447057893`).
-Ждать: `gh run watch <id> --exit-status --interval 60` (или фоновый
-протокол (аё) — поллер + `plab_wait_final`). Артефакт:
-`gh run download <id> --dir ...`, имя каталога внутри меняется
-(`operit-android-31/33/34`) — искать `find -name "*.apk"`. Папка APK =
-UTC `createdAt` рана + `CHANGES.md` (3–6 строк дельты).
-10.10: GitHub сам отключил Actions на форке (баннер «disabled because of
-its Actions usage», dispatch отвечал 422; расписаний у нас нет — сработал
-эвристика abuse-контроля на пачке долгих ручных ранов). Лечится ТОЛЬКО
-кнопкой подтверждения на вкладке Actions в браузере (владелец),
-программно не снимается (API говорит enabled, толку ноль).
-**Установка.** Каждый CI-билд с новым debug-ключом — сначала `uninstall`,
-потом `install`, проверить `dumpsys package ... | grep lastUpdateTime`.
-`&&`-цепочки скрывают пропущенный install — проверять время. Streamed
-install 287 МБ иногда не стартует с первого раза (пустой dumpsys —
-ставить заново с полным выводом, не `tail -1`); а иногда ЗАВИСАЕТ
-посередине (06.10: 10-мин таймаут, состояние пакета неизвестно) — после
-таймаута НЕ считать установленным, проверить `dumpsys`/переставить.
- Временные APK — только в `/tmp/opencode/`, удалять сразу после install
-(диск 98%).
-**Визард** (координаты 720x1560): WAKEUP + dismiss-keyguard, `monkey -p
+**CI.** Push to feature branch does NOT start the workflow — manual
+dispatch only: `gh workflow run "Android Build" --ref feat/english-only-build`.
+DISPATCH ONLY AFTER PUSH (runner checks out origin; 06.10: pre-push
+dispatch built stale code, green CI wasted). Wait: background protocol
+(N31), or `gh run watch <id> --exit-status --interval 60`. Artifact:
+`gh run download <id> -n <name> --dir ...`, inner dir name drifts —
+`find -name "*.apk"`. APK dir = run UTC `createdAt` + `CHANGES.md`.
+10.10: GitHub disabled Actions on the fork itself (abuse heuristic on a
+pile of long manual runs) — fixed ONLY by the owner button on the
+Actions tab, not programmatically.
+**Install.** Every CI build has a new debug key — `uninstall` first, then
+`install`, verify `dumpsys package ... | grep lastUpdateTime`. `&&`
+chains hide a skipped install — check the time. Streamed install of
+287 MB sometimes doesn't start first try (empty dumpsys — reinstall with
+full output, not `tail -1`) or HANGS midway — after a timeout do NOT
+count as installed, verify `dumpsys`/reinstall. Temp APKs only in
+`/tmp/opencode/`, delete right after install.
+**Wizard** (720x1560): WAKEUP + dismiss-keyguard, `monkey -p
 com.ai.assistance.operit.debug -c android.intent.category.LAUNCHER 1`,
-согласие (360,1371) после countdown, тур/приветствие next (650,1378),
-гранты по adb (см. ниже), Check (360,950), next (650,1378), Incomplete
-Continue (~500,905), Standard (100,465 или 360,461), Confirm (360,1206),
-ждать countdown объявления. Тач-таргет нижней стрелки — y~1378, НЕ глиф
-(~1416). Гранты: `pm grant READ_EXTERNAL_STORAGE + RECORD_AUDIO`,
+consent (360,1371) after countdown, tour/greeting next (650,1378), adb
+grants (below), Check (360,950), next (650,1378), Incomplete Continue
+(~500,905), Standard (100,465 or 360,461), Confirm (360,1206), wait out
+the announcement countdown. Bottom-arrow touch target y~1378, NOT the
+glyph (~1416). Grants: `pm grant READ_EXTERNAL_STORAGE + RECORD_AUDIO`,
 `appops set SYSTEM_ALERT_WINDOW + MANAGE_EXTERNAL_STORAGE allow`,
 `dumpsys deviceidle whitelist +PKG`, `pm grant FINE/COARSE_LOCATION`,
-`settings put secure location_mode 3` (иначе Location ✗), `screensaver_enabled 0`.
-Дополнение 08.10 (доказано на subpack-сборке): цикл «→ → Incomplete →
-Continue → список» БЕСКОНЕЧЕН без грантов — это не баг, визард требует
-разрешений. Выдать shell-набором (проверено достаточным):
+`settings put secure location_mode 3` (or Location ✗),
+`screensaver_enabled 0`. 08.10 addendum (proven): the "→ → Incomplete →
+Continue → list" loop is ENDLESS without grants — not a bug, the wizard
+wants permissions. Issue the shell set (proven sufficient):
 `pm grant PKG READ_EXTERNAL_STORAGE + WRITE_EXTERNAL_STORAGE +
 ACCESS_FINE_LOCATION + ACCESS_COARSE_LOCATION`,
 `appops set PKG MANAGE_EXTERNAL_STORAGE + SYSTEM_ALERT_WINDOW allow`,
-`dumpsys deviceidle whitelist +PKG`. После этого зайти В строку Storage
-(открывается системная «All files access» — там уже ВКЛ, так и должно
-быть), вернуться назад, тапнуть Check Permission Status — все 4 ✓
-(«All basic permissions granted»), дальше → идёт. UI до revisit+Check
-показывает × несмотря на выданные гранты — не пугаться, это stale,
-а не отказ.
-**Экран.** `uiautomator dump` дохнет с SIGKILL (exit 137, 0-байт xml) —
-не чинится. Только `screencap -p` + чтение PNG через Read (агент ВИДИТ
-скриншоты). Чёрный кадр = поймал переход анимации, не смерть: подождать
-3 с и переснять; одинаковые чёрные кадры имеют одинаковый md5 (7714 Б —
-можно сверять, не открывая). НО той же ночью: чёрный кадр 2 раза подряд =
-экран УСНУЛ посреди сессии (проверять `dumpsys display | grep mScreenState`):
-лечение `settings put secure screensaver_enabled 0` +
-`settings put system screen_off_timeout 1800000`, затем WAKEUP. На свежей
-установке грант screensaver из визарда может быть не применён — проверять
-первым делом при ночной приёмке. Экран спит — кадры протухают (часы стоят): WAKEUP первым
-делом и сравнивать md5. `run-as` — только одиночные команды (кавычки с `;`
-ненадёжны); НЕ забывать `adb shell` — голый `ls /storage/...` идёт на
-ноутбук, а не на телефон (дало ложную «потерю данных» в M6).
-**БД тянуть ТРИ файла:** `databases/app_database` + `-wal` + `-shm`
-(06.10: без WAL свежие строки `llm_io_log` НЕ ВИДНЫ — ложный «хук не
-пишет», полчаса впустую). Класть рядом с одинаковым basename, открывать
-sqlite3 основной файл. `logcat` —
-только `logcat -t N`, полный `-d` вешает shell. `adb pull` БЕЗ `-q`
-(такого флага нет — команда падает). `input text`: пробел — ТОЛЬКО `%s`;
-`%20` НЕ раскодируется и уходит литералом в поле ввода. Хитрее: `%sX`
-тоже опасно — `%PONG` ушёл литералом `%PONG` (валиден только `%s`);
-после `input text` ВСЕГДА скрин и чтение набранного глазами до send.
-**Ловля тостов** (`ChatToastHost`, верх по центру): длительность
-`estimateToastDurationMs` — ~5 с на короткий коммент; одиночными скринами
-не поймать (06.10: ~50 мимо). Метод: серия back-to-back `screencap`
-(без sleep, ~2 с/кадр, 20–30 шт), затем `md5sum` — одинаковые склеить,
-отличающиеся читать (тост = белый кард поверх стрипа). Время поста тоста
-= `timestampMs` + `latencyMs` строки в `llm_io_log` — считать окно оттуда.
-**Тапы.** В скролленных списках настроек и дропдаун-меню точка касания
-садится на ~75–100px ВЫШЕ запрошенного Y (доказано `settings put system
-pointer_location 1`: запрос (182,700) дал точку (182,625)). Симптомы: промах
-мимо Download в «Add from link», выбор не той строки переезда. Обход:
-целиться на +80..100 ниже визуального центра (проверено: запрос (182,765)
-попал в Download и стартовал закачку); меню выбирать клавишами
-`KEYCODE_DPAD_UP/DOWN + DPAD_CENTER` — детерминировано, без координат
- (так вернулся на internal). Drawer ВЕРХ (плитки Packages/Permissions,
- гамбургер, Settings внизу) — 1:1, компенсации не надо; НИЗ drawer
- (ряды AI Features: Memory Base ~745, Toolbox ~868) — садится НИЖЕ
- на ~70–120 (07.10: запрос 745 открыл Toolbox; поправка 05.10 «+70 вниз»
- подтверждается). Нижние ряды целить ВЫШЕ цели на ~100 и сверять
- результат. `pointer_location 1` показывает точку касания, после отладки
- выключить обратно в 0 (загрязняет скрины и сдвигает вёрстку вниз).
- Дополнение 05.10: смещение НЕСТАБИЛЬНО между экранами (drawer низ +70..120
- вниз, Setup −70 вверх, Terminal-home ~1:1/+35) — поправку НЕ переносить,
- на каждом экране калибровать заново; надёжно покрывает кластер из 3 тапов
- с шагом 70 через цель. Дополнение 08.10: экран Settings, низ списка (кнопка Change строки
- subpack) — тоже садится НИЖЕ на ~100 (5 тапов в глиф мимо, сработал
- прицел на 100 выше); выпадающее меню-попап при этом 1:1. Мелкие кнопки
- внизу списков целить выше сразу, не жечь 5 попыток.
- ВНИМАНИЕ, КОНФЛИКТ НАПРАВЛЕНИЙ (не сглаживать): M6 05.10 на ТОМ ЖЕ
- классе экранов намеряло ОБРАТНОЕ — касание ВЫШЕ запроса на 75–100
- (запрос (182,700) → точка (182,625), компенсация прицелом НИЖЕ).
- 08.10 — касание НИЖЕ запроса (~100). Направление дрейфа НЕСТАБИЛЬНО
- даже внутри Settings (разные дни/сборки/зоны экрана). Правило:
- направлению не верить вообще — на каждом экране и каждой сессии
- калибровать заново (pointer_location или 1 пробный тап с md5-сверкой),
- мелкие цели брать вертикальным кластером ±100 с шагом 50, попап-меню
- считать 1:1 пока не доказано обратное.
- Дополнение 07.10 (E11): НИЗ ЧАТ-экрана (send,
- кнопка New Chat) — хитбоксы живут на ~40–100px ВЫШЕ глифов (send: глиф
- 1447 → хит 1410; New Chat: глиф 1330, сработал один из прочёса 1150–1400);
- pointer_location при этом показывает 1:1 — верить ХИТБОКСУ, не координатам.
- Промах выглядит как «кнопка мертва» (нет ripple): не чинить код, а
- прочёсывать вертикаль шагом 50. Побочка: тап по ⌨ включает
- «ADB Keyboard {ON}»-полосу.
-Текст кнопок объявлений МЕНЯЕТСЯ между сборками («I see» / «Got it» /
-«Understood») — целиться по позиции, не по тексту.
- Кнопка Skip в Environment Setup = onBack (терминал НЕ стартует!); сессию
- создаёт «+» (рабочая точка 678,195). Сам SetupScreen при входе молча создаёт
- сессию `setup-check` — инициализация окружения (ссылки bin) идёт уже от
- открытия экрана.
-**Market:** путь — Packages → розовая иконка-магазин → диалог Agreement
-(сначала countdown «Please wait... (N)», кнопка неактивна) → дождаться
-активной кнопки → СКРОЛЛ текста до конца (секции 3–4) → кластер из 3 тапов
-с шагом 70 по кнопке (одиночные тапы дважды ушли в молоко 07.10).
-Согласие переживает перезапуск экрана (диалог не повторялся).
-**Тул-ходы на Standard (приёмка с моделью-драйвером):** КАЖДЫЙ вызов тула
-поднимает Permission Request (Deny / Allow / Always allow-ссылка);
-one-shot Allow не запоминается между разными тулами — каскад диалогов
-(list_files → use_package → super_admin:terminal → code_runner...).
-Для приёмки слать ТРИВИАЛЬНЫЕ безтуловые ходы («Say PONG.»); если драйвер
-ушёл в тул-цикл (счётчик 39, жрёт API) — Deny + красный X (стоп ходит
-мгновенно, даже из-под диалога: сначала Deny, потом X). Отменённый ход
-НЕ наблюдается супервизором (хук только на чистом finalize — по дизайну),
-в логе останется строка `error='cancelled'`.
-**Не доверяй виду `files/usr/bin`:** applet-ссылки (`ash`, `tar`...) создаются
-вслепую и висят даже когда самих бинарников нет — проверять ЦЕЛИ (`ls -la`),
-а не имена. Пустой `lib/arm64/` в установке = PM не извлекал .so
-(`useLegacyPackaging=false`) = терминал мёртв, смотри леджер ниже.
-`ls /data/app/...` — только точный путь из `pm path` (шаблон `~~*` через
-adb shell не раскрывается).
-`du` по proot-дереву врёт на маунт-стабах: `ubuntu/sdcard` (mode 000) и
-`ubuntu/storage/emulated/0` недоступны снаружи — это НОРМА (внутри proot
-с `-0` проходятся), не потеря данных и не баг. `cp -a` через них
-проскочит с ошибками — проверять размер итога, а не код выхода вслепую.
-**Stdout терминального bash через `adb shell run-as` ТЕРЯЕТСЯ** (07.10:
-`bash -c echo TERM_OK` → пусто при exit 0; редиректы в файл тоже
-съедаются кавычками через 3 слоя shell) — для пруфов использовать
-`adb exec-out run-as ...` (без pty): `TERM_OK` приходит чисто.
-**Состав APK смотреть ТОЛЬКО `python3 -c zipfile`** (08.10: `unzip -l`
-на 247-МБ APK вернул 0 строк без ошибки — молча ничего; python
-`ZipFile.namelist()` + `getinfo().file_size` работает всегда).
-**Стектрейсы упавших JVM-тестов — в HTML-артефакте:** workflow грузит
-`operit-android-test-reports-<N>` (имя узнать:
-`gh api repos/lagovi/Operit/actions/runs/<run>/artifacts --jq
-'.artifacts[].name'`), качать
-`gh run download <run> -n <имя> --dir ...`, трейсы — в
-`app/build/reports/tests/testDebugUnitTest/classes/<Class>.html`
-в тегах `<pre>` (доставать python+re+html.unescape; XML-результатов
-в артефакте НЕТ). `--log-failed` даёт только однострочники.
-**Fresh install = чистое поле:** чаты стёрты, supervision ВЫКЛ
-(`supervision_preferences.xml` отсутствует, дефолт false), модельный
-пресет засидился заново (endpoint/key/model из `ModelConfigManager`
-DEBUG-ветки), announcement-диалог вылезет поверх первого экрана
-(текст кнопки плывёт — целиться по позиции ~548,1113).
-Таймаут инициализации сессии 30 с ПРОТИВ минутной распаковки: `Session
-initialization timeout` убивает pty вместе с недокачанным деревом —
-ретраить и ЖДАТЬ, прогресс виден по `proot-distro/` через `run-as`.
-Батарея: проверять `dumpsys battery` ПЕРВЫМ делом; яркость в 1
-(`screen_brightness 1` + manual mode); тяжёлое (распаковка, копии) только
-с запасом — телефон умирал на 1% посреди работы (14:23, `No route to host`).
-Каждый CI debug-билд = новый ключ: uninstall → install → `lastUpdateTime` →
-визард заново. Визард ПЕРЕЖИВАЕТ ребут/смерть (согласие сохранилось).
-**Часы.** Дельтам статус-бара между далёкими командами НЕ верить: сессия
-может стоять на паузе 8–9 ч (лимиты модели), часы при этом идут верно —
-в M6 прыжок 18:1x -> 03:0x был именно паузой, подтверждено пользователем.
-Длительности — ТОЛЬКО по меткам времени в логах (`files/logs/operit.log`
-через `run-as cat`); `adb shell date` в начале сессии — для порядка.
-Батарея за сессию M6: 69 -> 39%.
-**Тесты без Gradle** (SDK нет): `/tmp/opencode/kotlinc/bin/kotlinc` +
+`dumpsys deviceidle whitelist +PKG`. Then open the Storage row (system
+"All files access" — already ON, as it should be), go back, tap Check
+Permission Status — all 4 ✓, then → goes. UI shows × until revisit+Check
+despite granted perms — stale, not refusal, don't flinch.
+**Screen.** `uiautomator dump` dies with SIGKILL (exit 137, 0-byte xml) —
+unfixable. Only `screencap -p` + PNG read via Read (the agent SEES
+screenshots). Black frame = caught a transition animation, not death:
+wait 3 s and reshoot; identical black frames share md5 (7714 B — compare
+without opening). BUT: black frame twice in a row = screen SLEPT
+mid-session (check `dumpsys display | grep mScreenState`): cure
+`settings put secure screensaver_enabled 0` +
+`settings put system screen_off_timeout 1800000`, then WAKEUP. On fresh
+install the wizard screensaver grant may not apply — check first on night
+acceptance. Sleeping screen = stale frames (clock stands): WAKEUP first,
+compare md5. `run-as` — single commands only (quoting with `;` is
+unreliable); don't forget `adb shell` — bare `ls /storage/...` runs on
+the notebook, not the phone (gave a false "data loss" in M6).
+**Pull DB as THREE files:** `databases/app_database` + `-wal` + `-shm`
+(06.10: without WAL the fresh `llm_io_log` rows are INVISIBLE — false
+"hook doesn't write", half an hour wasted). Same basename side by side,
+open the main file in sqlite3. `logcat` — only `logcat -t N`, full `-d`
+hangs the shell. `adb pull` has NO `-q` (command fails). `input text`:
+space is ONLY `%s`; `%20` is NOT decoded and lands literally. Worse:
+`%sX` is dangerous too — `%PONG` landed literally (only `%s` is valid);
+after `input text` ALWAYS screenshot and read eyes-on before send.
+**Toast hunting** (`ChatToastHost`, top center): duration
+`estimateToastDurationMs` — ~5 s for a short comment; single screenshots
+won't catch it (~50 misses 06.10). Method: back-to-back `screencap`
+series (no sleep, ~2 s/frame, 20–30), then `md5sum` — glue identical,
+read different (toast = white card over the strip). Post time =
+`timestampMs` + `latencyMs` of the log row — compute the window from it.
+**Taps.** In scrolled settings lists and dropdown menus the touch lands
+~75–100px ABOVE/BELOW the requested Y (proven with `pointer_location 1`;
+DIRECTION IS UNSTABLE across screens/days/builds — M6 measured up,
+08.10 measured down, chat bottom has its own geometry). Rule: never trust
+direction — recalibrate per screen/session (pointer_location or 1 probe
+tap with md5 check), take small targets with a vertical ±100 cluster at
+step 50, treat popup menus as 1:1 until proven otherwise. Bottom chat
+targets (send, New Chat): hitboxes ~40–100px ABOVE glyphs; a miss looks
+like a "dead button" (no ripple) — comb vertically, don't fix code.
+Tapping ⌨ enables the "ADB Keyboard {ON}" strip. Announcement button
+text CHANGES between builds ("I see" / "Got it" / "Understood") — aim by
+position, not text. Skip in Environment Setup = onBack (terminal does NOT
+start!); sessions are created by "+" (working point 678,195).
+**Market:** Packages → pink store icon → Agreement dialog (first a
+"Please wait... (N)" countdown, button inactive) → wait for active
+button → SCROLL text to the end → 3-tap cluster at step 70 on the button
+(single taps missed twice 07.10). Consent survives screen restart.
+**Tool runs on Standard (model-driver acceptance):** EVERY tool call
+raises Permission Request (Deny / Allow / Always-allow link); one-shot
+Allow is NOT remembered across different tools — dialog cascade. For
+acceptance send TRIVIAL tool-free turns ("Say PONG."); if the driver
+loops tools (counter 39, burns API) — Deny + red X (stop is instant even
+from under a dialog: Deny first, then X). A cancelled turn is NOT
+observed by supervision (hook only on clean finalize — by design), the
+log keeps `error='cancelled'`.
+**Don't trust `files/usr/bin` looks:** applet symlinks (`ash`, `tar`...)
+are created blind and dangle when binaries are absent — check TARGETS
+(`ls -la`), not names. Empty `lib/arm64/` in the install = PM didn't
+extract .so (`useLegacyPackaging=false`) = dead terminal, see ledger.
+`ls /data/app/...` — exact path from `pm path` only (`~~*` doesn't expand
+via adb shell). `du` on the proot tree lies on mount stubs:
+`ubuntu/sdcard` (mode 000) and `ubuntu/storage/emulated/0` are
+unreachable from outside — NORMAL (passable inside proot with `-0`), not
+data loss/bug. `cp -a` across them exits with errors — verify result
+size, not exit code blindly. **Terminal bash stdout via
+`adb shell run-as` is LOST** — use `adb exec-out run-as ...` (no pty)
+for proofs. **APK contents ONLY via `python3 -c zipfile`**. **Crashed
+JVM-test traces live in the HTML artifact:** workflow uploads
+`operit-android-test-reports-<N>` (name via
+`gh api repos/.../actions/runs/<run>/artifacts --jq '.artifacts[].name'`),
+`gh run download <run> -n <name> --dir ...`, traces in
+`app/build/reports/tests/testDebugUnitTest/classes/<Class>.html` in
+`<pre>` tags (python+re+html.unescape; NO XML results in the artifact).
+`--log-failed` gives one-liners only.
+**Fresh install = clean field:** chats wiped, supervision OFF
+(`supervision_preferences.xml` absent, default false), model preset
+re-seeded from the DEBUG branch, announcement dialog pops over the first
+screen (button text drifts — aim ~548,1113). Session-init timeout 30 s
+VS minute-long unpack: `Session initialization timeout` kills pty with a
+half-unpacked tree — retry and WAIT, progress visible via `proot-distro/`
+through `run-as`. Battery: `dumpsys battery` FIRST; brightness 1
+(`screen_brightness 1` + manual mode); heavy work (unpack, copies) only
+with headroom — the phone died at 1% mid-work. Every CI debug build =
+new key: uninstall → install → `lastUpdateTime` → wizard again. Wizard
+SURVIVES reboot/death (consent kept).
+**Clocks.** Don't trust status-bar deltas across far-apart commands: the
+session may pause 8–9 h (model limits) while clocks run true — the M6
+jump was exactly such a pause, user-confirmed. Durations ONLY from log
+stamps (`files/logs/operit.log` via `run-as cat`); `adb shell date` at
+session start for order. Battery over M6: 69 → 39%.
+**No-Gradle tests** (no SDK): `/tmp/opencode/kotlinc/bin/kotlinc` +
 `JAVA_HOME=/tmp/opencode/jdk`, cp: `json.jar junit.jar hamcrest.jar
 kotlinx-coroutines-core-jvm.jar kotlin-stdlib.jar (+ okhttp.jar okio.jar
-для translation-файлов)`, стабы из `/tmp/opencode/stubs`
-(`AppLogger.kt`; .java-стабы компилировать javac отдельно — kotlinc не
-даёт .class для .java). Запуск: `java -cp <out:jars> org.junit.runner.JUnitCore
-<TestClass>`. Тестовые Kotlin-файлы — только ASCII: `grep -nP '[^\x00-\x7F]'`
-обязан быть пуст (иначе CJK-NEW в аудите). `\uXXXX` в моих Edit-командах
-РАСКРЫВАЮТСЯ в литералы — писать тесты с CJK только через python-конвертер,
-в команде не должно быть подстроки backslash+u+hex (строить через
-`'\\u%04x' % ord`, проверять grep до и после).
-**Аудит** — ворота только `python3 ci/script/fork_audit.py` REAL exit code
-(не `$?` grep). CJK-NEW обязан быть 0 (китай даже в KDoc/тестах — на
-ревью); конкатенация `stringResource()+...` запрещена (LABEL-CONCAT) —
-только формат-ресурсы `%1$s`; якоря registry.json обязаны существовать
-(править вместе с кодом: ANCHOR-LOST).
+for translation files)`, stubs from `/tmp/opencode/stubs`
+(`AppLogger.kt`; compile .java stubs with javac separately — kotlinc
+emits no .class for .java). Run: `java -cp <out:jars>
+org.junit.runner.JUnitCore <TestClass>`. Test Kotlin files ASCII-only:
+`grep -nP '[^\x00-\x7F]'` must be empty (or CJK-NEW in audit).
+`\uXXXX` in Edit commands EXPANDS to literals — write CJK tests only via
+a python converter, no backslash+u+hex substring in the command (build
+via `'\\u%04x' % ord`, grep before and after).
+**Audit** — gate is the REAL exit code of
+`python3 ci/script/fork_audit.py` (not `$?` of grep). CJK-NEW must be 0
+(Chinese even in KDoc/tests fails review); `stringResource()+...`
+concatenation banned (LABEL-CONCAT) — format resources `%1$s` only;
+registry.json anchors must exist (edit with code: ANCHOR-LOST).
 
 ---
 
-## С чего начать читать проект, в таком порядке
+## Project reading order
 
-Не начинай с `AGENTS.md` и не начинай с кода. Порядок выбран так, чтобы к
-моменту, когда ты дойдёшь до конца, ты уже знал **почему** всё написано
-именно так, иначе будешь чинить не то.
+Don't start with `AGENTS.md` or code. The order is chosen so that by the
+end you know WHY everything is written the way it is, or you'll fix the
+wrong thing.
 
-| # | Файл | Зачем именно он |
+| # | File | Why this one |
 |---|---|---|
-| 1 | **этот файл** | состояние, решения, чит-шит устройства/CI, открытые пункты |
-| 2 | `docs/FORK-REGISTRY/index.md` | что запускать и что означает каждый код проверки |
-| 3 | `docs/FORK-REGISTRY/registry.json` | ~26 правок форка, у каждой `rationale` и `anchors` (счёт от 30.09 устарел) |
-| 4 | `docs/FORK-REGISTRY/re-audit-l10n.md` | **исправленный диагноз.** Главный документ, если что-то снова по-китайски |
-| 5 | `docs/FORK-REGISTRY/re-audit-prompts.md` | какие промпты видит пользователь, а какие нет |
-| 6 | `docs/FORK-REGISTRY/re-audit-layout.md` | почему английский ломает вёрстку и что ещё не починено |
-| 7 | `docs/TODO/fork-l10n-runbook.md` | механика CI и устройства. **Диагноз в нём неверен**, помечено в шапке |
-| 8 | `docs/TODO/remote_content_translation/index.md` | план про серверный китайский, **реализован полностью** (T1 + Market + T2 batch + T3 fallback, включая announcement) |
+| 1 | **this file** | state, decisions, device/CI cheat sheet, open items |
+| 2 | `docs/FORK-REGISTRY/index.md` | what to run and what each check code means |
+| 3 | `docs/FORK-REGISTRY/registry.json` | ~26 fork edits, each with `rationale` and `anchors` |
+| 4 | `docs/FORK-REGISTRY/re-audit-l10n.md` | **corrected diagnosis.** Main doc if Chinese reappears |
+| 5 | `docs/FORK-REGISTRY/re-audit-prompts.md` | which prompts the user sees and which not |
+| 6 | `docs/FORK-REGISTRY/re-audit-layout.md` | why English breaks layout and what's still unfixed |
+| 7 | `docs/TODO/fork-l10n-runbook.md` | CI+device mechanics. **Diagnosis inside is wrong**, marked in header |
+| 8 | `docs/TODO/remote_content_translation/index.md` | server-Chinese plan, **fully implemented** (T1 + Market + T2 batch + T3 fallback, incl. announcement) |
 
-Файлы, которые будешь править, когда дойдёшь до задач:
+Files you'll edit when you reach the tasks:
 
-> SUPERSEDED 2026-10-03: `SttModelRepository.kt` и `SherpaSpeechProvider.kt`
-> удалены (M5 `e763e8ef`). Актуальная карта: движок —
-> `api/speech/GigaAMSpeechProvider.kt`, распознаватель —
-> `api/speech/GigaAMRecognizer.kt`, конфиг чекпоинта —
-> `api/speech/CtcModelConfig.kt`, HF-резолв и реестр —
-> `data/speech/HfCtcModel.kt` + `data/speech/CustomSttModels.kt`, перевод —
-> `data/translation/CachedTranslator.kt`, места хранения —
-> `util/AppDataLocation.kt`, замер места — `util/AppStorageUsage.kt`.
+> SUPERSEDED 2026-10-03: `SttModelRepository.kt` and `SherpaSpeechProvider.kt`
+> deleted (M5 `e763e8ef`). Current map: engine —
+> `api/speech/GigaAMSpeechProvider.kt`, recognizer —
+> `api/speech/GigaAMRecognizer.kt`, checkpoint config —
+> `api/speech/CtcModelConfig.kt`, HF resolve + registry —
+> `data/speech/HfCtcModel.kt` + `data/speech/CustomSttModels.kt`,
+> translation — `data/translation/CachedTranslator.kt`, storage spots —
+> `util/AppDataLocation.kt`, space metering — `util/AppStorageUsage.kt`.
 
 ```
 app/src/main/java/com/ai/assistance/operit/
-  util/LocaleUtils.kt                     ← язык по умолчанию, здесь всё решение про English-only
-  util/RemoteAssetFetcher.kt              ← общий загрузчик: докачка, Range, SHA-256
-  data/speech/SttModelRepository.kt       ← УДАЛЁН, см. пометку выше
-  api/speech/SherpaSpeechProvider.kt      ← УДАЛЁН, см. пометку выше
-  api/speech/SpeechServiceFactory.kt      ← выбор движка
-  api/speech/SpeechService.kt             ← контракт, который надо соблюсти
-  ui/features/settings/screens/SpeechToTextScreen.kt   ← UI настроек распознавания
-app/src/main/res/values/strings.xml      ← единственный строковый бакет, здесь английский
-app/build.gradle.kts                      ← localeFilters, useLegacyPackaging=true (:528, cddb9906; см. E2 — НЕ флипать вслепую), зависимости
-terminal/                                 ← САБМОДУЛЬ, форк lagovi/OperitTerminalCore
+  util/LocaleUtils.kt                     ← default language, the whole English-only decision lives here
+  util/RemoteAssetFetcher.kt              ← shared downloader: resume, Range, SHA-256
+  data/speech/SttModelRepository.kt       ← DELETED, see note above
+  api/speech/SherpaSpeechProvider.kt      ← DELETED, see note above
+  api/speech/SpeechServiceFactory.kt      ← engine picker
+  api/speech/SpeechService.kt             ← contract to honor
+  ui/features/settings/screens/SpeechToTextScreen.kt   ← recognition settings UI
+  app/src/main/res/values/strings.xml     ← the only string bucket, English here
+  app/build.gradle.kts                    ← localeFilters, useLegacyPackaging=true (:528, cddb9906; see E2 — NEVER flip blindly), deps
+  terminal/                               ← SUBMODULE, fork lagovi/OperitTerminalCore
 ```
 
 ---
 
-## Что сделано, чтобы не переделывать — см. ARCHIVE.md
+## Closed work — see ARCHIVE.md
 
-## Отрицательные результаты — не повторять (ledger)
+## Negative results — do not repeat (ledger)
 
-Каждый пункт: гипотеза → метод (как проверяли) → улики → вердикт.
-Перепроверять только при новых фактах (другой телефон, другой Android,
-другая политика SELinux). Полные протоколы — по ссылкам, здесь минимум,
-достаточный чтобы НЕ делать заново.
+Each item: hypothesis → method (how verified) → evidence → verdict.
+Re-verify only on new facts (different phone, different Android,
+different SELinux policy). Full protocols — via links; here the minimum
+sufficient to NOT redo.
 
-- **E1. R8-минификация debug (FAIL).** Гипотеза: срезать ~40 МБ минификацией.
-  Метод: `isMinifyEnabled + isShrinkResources` в `debug` (`f37ff8a1`),
-  CI `37206856650` зелёный, APK 373487996 -> 333371794 (−40.1 МБ).
-  Улики с телефона: падение на старте `Application Error`,
+- **E1. R8-minified debug (FAIL).** Hypothesis: shave ~40 MB via minify.
+  Method: `isMinifyEnabled + isShrinkResources` in `debug` (`f37ff8a1`),
+  CI `37206856650` green, APK 373487996 → 333371794 (−40.1 MB).
+  Phone evidence: startup crash `Application Error`,
   `java.lang.NoSuchMethodError: ...QuickJsNativeHostDispatcher;.onCall
-  (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;` из
+  (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;` from
   `QuickJsNativeBridge.nativeCreate` (`QuickJsNativeRuntime.kt:55` ←
-  `OperitQuickJsEngine.kt:29`). В `app/proguard-rules.pro` для JNI-класса
-  keep НЕТ (есть только для `JsEngine$JsToolCallInterface`).
-  Вердикт: REJECTED, revert `ce29250f`. Бонус-улика: `release`/`nightly`
-   делят конфиг минификации — видимо, сломаны так же (на устройстве
-   минифицированное не гонялось НИ РАЗУ). Следующий шаг — задача 4 выше
-   (keep-fix), не «включить и посмотреть».
-   РАЗВЯЗКА 07.10: keep-fix (`b4ff4a30`) сработал — CI `37551624980`
-   success, APK −40.1 МБ, холодный старт чист, `onCall` в dex на месте.
-   Детали — в задаче 4; открытый вопрос там же (minify в debug навсегда?).
-- **E2. `useLegacyPackaging=false` ради installed (FAIL с пользой).**
-  Гипотеза: убрать 152 МБ извлечённых .so. Метод: флип (`bf48f418`),
-  CI `37086798853`: APK 293 -> 386 МБ (+93), installed 435 -> 369 МБ (−66).
-  Улика отложенная (05.10, Q1): `lib/arm64/` на телефоне ПУСТ,
-  `TerminalManager.linkNativeLibs()` ищет .so только в `nativeLibraryDir`
-  → ссылок ноль → `execve(.../files/usr/bin/bash) failed: No such file or
-  directory`, exit 1, чёрный экран. Ремонт B1 (сабмодуль `26d4964`,
-  извлечение 5 .so из APK в `files/usr/bin`, CI `37259656106` зелёный):
-  ссылки создались, но `execve bash: Permission denied` — файлы
-  `-rwx--x--x` `app_data_file`, `run-as` (домен `runas_app`) исполняет
-  (EXIT=0), приложение (`untrusted_app`) — нет; `/data` без `noexec`, avc
-  подавлены. Вердикт: Samsung запрещает exec из `files/`; терминальные
-  бинарники обязаны приходить из PM-извлечения. Revert `cddb9906`
-  (CI `37299257049`, APK 287 МБ), приёмка 15:12 — живой шелл. B1-коммит
-   оставлен в сабмодуле как спящий фалбэк. Следствие для размера: нативные
-   библиотеки неприкосновенны, пока терминал exec'ит пребилды; любой новый
-   `false`-флип сначала доказывает exec на этом Samsung.
-   МЕТОДОЛОГИЯ (важно для будущих замеров): эпохи 435/369 мерены
-   `adb shell du -sh` ТОЛЬКО по package dir (`/data/app/~~*/<pkg>`, точный
-   путь — из `pm path`; шаблон `~~*` через adb shell не раскрывается):
-   разбивка 435 = base.apk 297 + lib/arm64 152. `/data/data/<pkg>` (БД,
-   files, распакованное rootfs-дерево 358 МБ!) НЕ СЧИТАЛСЯ — настоящий
-   полный футпринт больше. Рецепт installed: `du -sh` ОБОИХ деревьев
-   (package dir + `/data/data/<pkg>`) на одной и той же установке и
-   цитировать оба числа раздельно, иначе сравнение с эпохами некорректно.
-- **E3. Rootfs на внешнее хранилище (FAIL, обе локации).** Гипотеза: дерево
-  358 МБ жить на SD. Метод: `busybox cp -a` (uid приложения, `run-as`) из
-  `files/usr/var/lib/proot-distro/installed-rootfs/ubuntu` в EXTERNAL_APP
-  (`/storage/emulated/0/...`, FUSE), затем `ln -s`-проба на SDCARD_APP
-  (`/storage/5982-1724/...`, карта 980 МБ). Улики: сотни `can't create
-  symlink ... Operation not permitted` (`etc/ssl/certs`, `etc/alternatives`,
-  merged-/usr `bin/lib/sbin`, `dev/std*`); на SD `ln: Permission denied`
-   сразу, каталог пуст. Обход `-L` отвергнут расчётом: ~700 МБ дублей
-   (ОЦЕНКА, не замер: размер дерева ×2 минус выгода от схлопывания —
-   в 980 МБ карты не влезет с запасом) + висячие ссылки (`dev/std*`,
-   `mtab`) всё равно мёртвы. Вердикт:
-  rootfs остаётся internal; SD-механика — только чистым данным
-  (subpack/apktool). Мусор (`q1_ubuntu_ext`, `qtest`) удалён с телефона.
-- **E4. `uiautomator dump` (FAIL, инструмент).** Метод: десятки вызовов —
-  стабильно SIGKILL, exit 137, 0-байт xml; не лечится сном/реконнектом.
-  Вердикт: только `screencap -p` + чтение PNG (агент видит скрины).
-- **E5. Dhizuku (SKIP).** Требует device-owner, падает на телефоне с
-  аккаунтами; Operit ждёт Shizuku API anyway. Взят Shizuku 13.6.0
-  напрямую, рецепт в разделе ниже.
-- **E6. Чужие архивы (WONTFIX).** `jniLibs.zip`/`subpack.zip` лежат на
-  Google Drive апстрима (`prepare_android_dependencies.py`) — добавить туда
-  файл нельзя; Q2-хостинг нужен свой. `sherpa-onnx` JNI оттуда же
-  недоступен — потому GigaAM гоняется напрямую через ORT, а не через
-  sherpa (вариант (б), M5).
-- **E7. Ловля 5-секундных тостов одиночными скринами (FAIL, метод).**
-  Гипотеза: «отправлю ход, подожду, сниму скрин — увижу тост». Метод 06.10:
-  ~50 `screencap` вокруг 3 доказанных постов (`llm_io_log` вердикты ok +
-  непустые комментарии, `timestampMs`+`latencyMs` дают точное окно) — 0
-  попаданий: длительность `estimateToastDurationMs` (~5 с на короткий
-  коммент) меньше типичного интервала между ручными скринами. Вердикт:
-  тосты ловятся только непрерывной серией back-to-back `screencap`
-  (~2 с/кадр, 20–30 шт) + `md5sum`-дедуп (одинаковые склеить, отличающиеся
-  читать). Окно поста вычислять из строки лога, не гадать.
-- **E8. Проверка `llm_io_log` без WAL (FAIL, метод).** Гипотеза: «стяну
-  `databases/app_database` и посмотрю строки». Метод 06.10: свежих строк
-  нет — ложный вывод «хук не пишет», полчаса отладки несуществующего бага.
-  Улика: Room в WAL-режиме, свежие коммиты живут в `-wal`/`-shm`. Вердикт:
-  тянуть всегда ТРИ файла одним basename (`app_database`, `-wal`, `-shm`),
-  открывать sqlite3 основной. Внесено в чит-шит.
-- **E9. Тул-ход flash-lite как приёмка супервизии (FAIL, поведение модели).**  Гипотеза: «ход с тулами даст богатый дайджест и верный corrected_call».
-  Метод 06.10: «What files are in the current directory?» → драйвер ушёл
-  в цикл list_files/use_package/super_admin:terminal/code_runner
-  (счётчик тул-вызовов 39, каждый новый тул — новый Permission Request,
-  one-shot Allow не запоминается); завершить удалось только Deny + X.
-  Отменённый ход НЕ наблюдается (хук только на чистом finalize). Улика:
-  строки `llm_io_log` function=CHAT с `<tool_*>` вызовами, `error=
-  'cancelled'` у оборванного. Вердикт: приёмку делать ТОЛЬКО тривиальными
-  безтуловыми ходами («Say PONG.»); тул-ходы — отдельная история с ручным
-  Allow-бабиситтингом и расходом API. Побочка для дизайна: дайджест v1
-  (имена тулов без аргументов) на таких ходах был бы слепым — аргументы
-   в хуках нужны тем более (см. ограничение v1 в задаче 2).
-- **E11. «Мёртвая» кнопка, которая жива (FAIL, калибровка).** Гипотеза:
-  «onClick не стреляет» (код textbook, тоггл-механизм доказан через
-  кнопку-«часы», состояние чистое — а меню не открывается). Метод 07.10:
-  ~15 тапов в глиф кнопки New Chat (центр/края/кластеры/лонг-пресс,
-  mid-touch захват доказал касание ровно (360,1330) Prs 1.0) — ноль
-  эффекта, ноль ripple; force-stop + свежий процесс — то же. Развязка:
-  вертикальное прочёсывание 1150–1400 — один из тапов создал чат
-  («Ping Test» + поле ввода + PONG e2e). Улика задним числом: у send та
-  же картина (глиф 1447, хит 1410). Вердикт: хитбоксы низа чат-экрана
-  живут на ~40–100px ВЫШЕ глифов; промах выглядит как мёртвая кнопка.
-  Правило: низ чата целить с запасом вверх; при «мертве» — прочёсывание
-  шагом 50, не разбор кода. Потрачено ~1.5 ч на ложный след.
-- **E10. Кластер по кнопке send (FAIL, механика кнопки).** Гипотеза:
-  «кластер из 3 тапов надёжнее одиночного». Метод 07.10: 3 тапа по send
-  (1410/1447/1480) — ход ушёл, но в `llm_io_log` строка CHAT с
-  `error='cancelled'` @403 мс + рядом TITLE_GENERATION тоже cancelled:
-  кнопка send превращается в STOP пока идёт стрим, и последующие тапы
-  кластера убивают только что отправленный ход. Вердикт: по send —
-  ТОЛЬКО один тап, затем руки прочь минимум 20 с; отменённый ход даёт
-  карточку Prompt с пустым Response (не путать с зависшим).
-- **Калибровка чата 07.10 (факт, не теория):** одиночные тапы в глиф
-  send (670,1447) стабильно мимо (4+ попыток), срабатывает (670,1410) —
-  на этом экране тапы садятся ~35px НИЖЕ цели (или хитбокс выше глифа).
-  Доказано pointer_location: запрос (670,1447) = касание (670,1447)
-  1:1, но кнопка не срабатывает — значит, дело не в сдвиге координат,
-  а в геометрии хитбокса. Метод захвата касания: `input swipe x y x y 800
-  & sleep 0.4; screencap` — крест и X:/Y: в кадре. Аномалия drawer той
-  же ночью: тап (150,745) (ряд Memory Base) открыл Toolbox — за низкие
-  ряды drawer целиться с запасом и сверять результат, не верить глазам.
-- **E12. A/B «094027Z подписывает, 132740Z — нет» (FAIL, артефакт).**
-  Гипотеза 10.10: 15-код сломал подпись (до-15 собирает, после — нет).
-  Метод: keytool -printcert выходного `WebApp_*.apk` после прогонов на
-  обеих сборках. Улики: «подписывающий» вердикт 094027Z получен БЕЗ
-  сверки имени/времени выходного файла — а `/sdcard/Download/Operit/
-  exports/` ПЕРЕЖИВАЕТ переустановки (memo (т)): keytool почти наверняка
-  проверил НЕСВЕЖИЙ подписанный файл прошлой эпохи и приписал успех
-  текущей сборке. Контрольный: ни один чистый прогон 094027Z с проверкой
-  именно свежего файла не проводился. Вердикт: A/B недействителен, 15-код
-  невиновен (доказано иначе — задачей 17: корень в `a2764e9c`, до 15-кода).
-  Правило: keytool — ТОЛЬКО файлу из текущего прогона (имя из лога +
-  ls -la время), иначе ловушка (т).
-- **E13. Start Setup с дефолтным выбором (FAIL, тихий no-op).** Гипотеза
-  11.10: «нажал Start Setup — значит, ставится» (терминал показывал
-  Interrupt, казалось — качает). Метод: после тапа — apt history.log +
-  `su -c ps` + побайтовый ls rootfs + лог `NodeJS环境检查`. Улики:
-  history.log кончается на `apt upgrade` 16:44 UTC (ещё до тапа —
-  это setup-check при ОТКРЫТИИ экрана); после тапа ни одной apt-строки;
-  в процессах только idle bash (apt/curl/node отсутствуют); лог проверок
-  20:13–22:30 стабильно `pnpm:false, python:true(предустановлен),
-  pip:false`. Причина в коде (`SetupScreen.kt:143-207`): selected=true
-  ставится ТОЛЬКО найденным пакетам, а найденные пропускаются фильтром
-  `!= INSTALLED` — с дефолтом в команды уходят лишь echo зеркал pip.
-  Экран при этом мгновенно возвращается домой с вечным Interrupt (флага
-  завершения нет — fire-and-forget `sendCommand`), неотличимо от успеха.
-  Вердикт: без ручного выбора чекбоксов (проверять checked=true в дампе —
-  слепые тапы тогглят!) setup — no-op; чинить выбором nodejs+python
-  категорий + реальным прогоном (задача 6).
-- **E14. JKS-keystore на Android (FAIL, платформы).** Гипотеза: «упал
-  PKCS12 — попробуем JKS». Метод: итерация `loadVerifiedKeystore` по
-  обоим типам + `Security.getProviders("KeyStore.JKS")` в живом процессе.
-  Улики: JKS не предлагает НИКТО (`offered by: null`, old-style «JKS not
-  found») — на Android этого провайдера нет в принципе, это норма, а не
-  ошибка. Вердикт: чинить только PKCS12-путь; JKS-ветку в коде оставить
-  как есть (не удалять — она документирует отсутствие), время не жечь.
-- **E15. «Вставка bundled-BC работает» (FAIL, допущение).** Гипотеза
-  (`a2764e9c`, 10.10): достаточно вставить bundled-BC первым, платформу
-  не трогать. Метод: лог return-кода вставки в живом процессе.
-  Улики: `insertProviderAt` → `-1` дважды (20:40, 00:36): пока платформа
-  держит имя «BC», вставка отклоняется — код работал на чистом
-  платформенном BC, у которого нет PBES2 (доказано прямым пробом
-  SecretKeyFactory + `openssl pkcs12 -info` файла: PBES2/AES-256).
-  Вердикт: исход вставки ВСЕГДА писать в лог + сверять класс в слоте
-  (`Security.getProvider("BC").javaClass`); занятое имя — только через
-  remove+insert (upstream-механика + keep-классов, задача 17).
-- **E16. Изолированный soname libc++_paddle (FAIL, 14.10).** Гипотеза:
-  процесс уже держит старый libc++ под тем же soname, поэтому dlopen
-  вяжет OpenCV к нему и падает на `__sfp_handle_exceptions` — изолируем
-  пару: побайтовый .dynstr-патч `libc++_shared.so`→`libc++_paddle.so`
-  (ровно 16→16 байт) в обоих .so. Метод: python-патч с assert'ом
-  единственного вхождения + ELF-проверка (DT_SONAME/DT_NEEDED честно
-  указывают друг на друга — доказано парсингом), заливка в релиз
-  `ocr-paddleocr-v1`, загрузка строго по порядку (cxx, затем opencv).
-  Улики: телефон упал ТЕМ ЖЕ `cannot locate symbol`; `maps` показал
-  `libc++_paddle.so` загруженным и исполняемым (загрузка сработала!);
-  полный скан dynsym обоих AAR-libc++ (2330 символов) — символа НЕТ
-  вообще (совпадение было в .comment, не в экспорте); системные
-  `libc++.so`/`libc.so` с телефона — тоже нет. Вердикт: провайдером
-  символа не был НИКАКОЙ libc++ — изолировать было некого; патч
-  откачен, ассеты удалены из релиза (`delete-asset`), взят официальный
-  4.5.5 (доказанный era-match). Урок: сначала доказать КТО экспортит,
-  потом изолировать импортера — не наоборот.
-- **E17. R8 против JNI-only ctor (FAIL→FIX, 14.10).** Гипотеза (молча):
-  раз `ai.onnxruntime` уже едет минифицированным для STT, keep не нужен
-  (SIZE-инстинкт). Метод: keep только `com.paddle.ocr.**`. Улики:
-  первый OCR-прогон — мгновенная смерть процесса БЕЗ FATAL и БЕЗ
-  Java-трейса; в logcat только `F/<pkg>` + `WIN DEATH`; первопричина в
-  первых строках DEBUG-дампа: `JNI DETECTED ERROR IN APPLICATION:
-  JNI NewObjectV called with pending exception
-  NoSuchMethodError: OrtException.<init>(ILjava/lang/String;)V` —
-  натив пытался построить исключение для managed-ошибки загрузки
-  (det IR 10 против ORT 1.17.1), а R8 снёс ctor как «неиспользуемый»
-  (из Java его никто не зовёт — только натив). Вердикт: дословный keep
-  SDK (`ai.onnxruntime.**`) + подъём ORT до 1.21.1 (нужен и сам по себе:
-  IR 10 требует ≥1.19). Правило: всё, что конструируется ТОЛЬКО из
-  натива, для R8 мёртво — keep без обсуждений; нативный abort без FATAL
-  искать как в (ац).
-- **E18. «Модель режет хвосты строк» (FALSE ALARM, 14.10).** Гипотеза:
-  Paddle детерминированно роняет концы (`1234567890`→`123456`,
-  `булок,`→`бул`) — дет-бокс жмёт края; кандидат-фикс `detUnclipRatio`
-  1.5→2.0. Метод до фикса: открыть картинки ГЛАЗАМИ (Read tool).
-  Улики: оба PNG обрезаны самим канвасом (1200px ширина, строка уходит
-  за край — пикселей `7890`/`ок,` в файле НЕТ); вывод модели ==
-  видимые пиксели побуквенно; 2x-апскейл ничего не меняет (дело не в
-  разрешении). Вердикт: модель права, крив truth — `.txt` поправлены
-  под пиксели, гипотеза unclip СНЯТА (записано, чтобы не «чинить»
-  снова); счёт Paddle — 12/12 + русский 3/3. Правило: фикстуры глазами
-  ДО настройки моделей; truth-файлы — производные от пикселей, не от
-  исходных строк.
-- **E19. Бинарники в корне репо (MISTAKE, 13.10).** Механизм: команда
-  `cd /tmp/opencode && curl -o det & curl -o rec & curl -o aar & wait` —
-  `&&` связал `cd` только с первым curl, остальные два скачали в cwd
-  (корень репо): `opencv.aar` 54 МБ + `paddle_rec.onnx` 8 МБ; `git add -A`
-  поставил их в коммит (`96e27adb`). Улика: `git status --short`
-  (читать всегда). Чистка: `git rm` + `git commit --amend` (пуша ещё не
-  было) + проверка `git show --stat HEAD | grep -E 'aar|onnx|\.so'`.
-  Правило: фоновые `&`-команды — только с абсолютными `-o`; бинарный
-  гард перед пушем — в привычку.
-- **E20. «SOCKS-тест идёт в DIRECT» (FALSE ALARM, 14.10).** Гипотеза:
-  Test Connection при SOCKS5-конфиге ходит напрямую (трейс упорно
-  показывал `route=192.168.1.55:20128`), т.е. фабрика/тестер игнорируют
-  прокси — candidate root cause: свой клиент в обход `AIServiceFactory`.
-  Метод: kill-тест (погасить 11081/11080 → смотреть ошибку). Улики:
-  тестер идёт ЧЕРЕЗ `AIServiceFactory.createService` (код), persisted
-  конфиг — SOCKS5/11081 (байты DataStore), а с мёртвым прокси UI честно
-  показывает `Failed: failed to connect to /192.168.1.55 (port 11080)` —
-  трафик идёт через прокси, утечки нет; `route=` для SOCKS-маршрутов в
-  этой версии OkHttp печатает адрес таргета, а не прокси (дисплейная
-  особенность, не маршрут). Вердикт: дисплейным полям не верить,
-  маршрутизацию доказывать kill-тестом + логом самого прокси (CONNECT).
-- **E21. Мусор в proxyHost (MISTAKE, 14.10).** Механизм: DataStore показал
-  `proxyHost = "192.168.1.55ýýþþþþ"` (поле руками не трогалось; раньше
-  там же поймано `⁹` в username). Вероятная причина: свайпы поверх
-  открытой клавиатуры вписали символы в сфокусированное поле.
-  Улика: побайтовый разбор `.preferences_pb` (внутри — JSON; дефолты
-  опущены — см. (б3)②). Чистка: поле очищено и вбито заново руками
-  через UI, итог — 0 proxy-полей в DataStore, конфиг как был.
-  Правило: IME гасить до свайпов (см. (б1)), значения полей сверять
-  глазами после каждой серии жестов.
-- **E22. Прокси лабы режут LAN (FAIL среды, 14.10).** Гипотеза (первая):
-  наш HTTP-клиент криво ходит через прокси (Test Connection через
-  .55:18080 дал `unexpected end of stream`, а DIRECT — Success).
-  Метод: тот же запрос curl'ом с бокса напрямую и через прокси.
-  Улики: напрямую — 401 (гейтвей жив, требует ключ); через :18080 —
-  000 за 0.07 с (не таймаут — сброс); verbose: на `example.com` прокси
-  отдаёт 200, а на `192.168.1.55:20128` — `Empty reply from server`;
-  SOCKS5 :10808 — та же картина (наружу 200, на LAN 000). Вердикт:
-  код невиновен — прокси фильтруют private-адреса (анти-SSRF политика);
-  чинить нечего, end-to-end доказывать своим стендом (см. (б4)).
-  Правило: «прокси работает» и «прокси пускает к цели» — два разных
-  факта, проверять оба до выводов о коде.
-- **E23. Свой стенд сломал no-auth (FAIL стенда, 14.10).** Гипотеза
-  (молча): форвардер, требующий auth при наличии 0x02 в офере, —
-  нормальный строгий прокси. Метод: обновлённый socks5_fwd (выбор
-  0x02 при наличии) + Test Connection без кредов. Улики: UI —
-  `Failed: SOCKS : authentication failed`; причина — JDK SOCKS ВСЕГДА
-  предлагает {0x00, 0x02} (см. (б3)③), а настоящий сервер обязан
-  предпочитать 0x00, если клиент его предлагает. Вердикт: стенд
-  починен (выбор 0x00 при наличии; REQUIRE_AUTH — только отдельным
-  флагом/портом для auth-теста); побочный выигрыш — UI-ошибка
-  дословно называет причину, диагностика годная.
+  `OperitQuickJsEngine.kt:29`). `app/proguard-rules.pro` had NO keep for
+  the JNI class (only `JsEngine$JsToolCallInterface`). Verdict: REJECTED,
+  revert `ce29250f`. Bonus: `release`/`nightly` share the minify config —
+  presumably broken the same way (minified never run on device, NOT ONCE).
+  Next step was task 4 (keep-fix), not "enable and see". RESOLVED 07.10:
+  keep-fix (`b4ff4a30`) worked — CI `37551624980` success, APK −40.1 MB,
+  clean cold start, `onCall` in dex. Details in ARCHIVE.md task 4.
+- **E2. `useLegacyPackaging=false` for installed size (FAIL, useful).**
+  Hypothesis: drop 152 MB of extracted .so. Method: flip (`bf48f418`),
+  CI `37086798853`: APK 293 → 386 MB (+93), installed 435 → 369 MB (−66).
+  Delayed evidence (05.10, Q1): phone `lib/arm64/` EMPTY,
+  `TerminalManager.linkNativeLibs()` looks for .so only in
+  `nativeLibraryDir` → zero links → `execve(.../files/usr/bin/bash)
+  failed: No such file or directory`, exit 1, black screen. Repair B1
+  (submodule `26d4964`, extract 5 .so from APK to `files/usr/bin`, CI
+  `37259656106` green): links created, but `execve bash: Permission
+  denied` — files `-rwx--x--x` `app_data_file`, `run-as` (domain
+  `runas_app`) executes (EXIT=0), the app (`untrusted_app`) doesn't;
+  `/data` has no `noexec`, avc suppressed. Verdict: Samsung forbids exec
+  from `files/`; terminal binaries must come from PM extraction. Revert
+  `cddb9906` (CI `37299257049`, APK 287 MB), acceptance 15:12 — live
+  shell. B1 commit kept in submodule as sleeping fallback. Consequence
+  for size: native libs untouchable while the terminal execs prebuilds;
+  any new `false` flip first proves exec on this Samsung. METHODOLOGY
+  (matters for future measurements): epochs 435/369 measured with
+  `adb shell du -sh` ONLY on the package dir (`/data/app/~~*/<pkg>`,
+  exact path from `pm path`; `~~*` doesn't expand via adb shell):
+  split 435 = base.apk 297 + lib/arm64 152. `/data/data/<pkg>` (DB,
+  files, unpacked rootfs tree 358 MB!) was NOT counted — the true full
+  footprint is bigger. Installed recipe: `du -sh` BOTH trees (package
+  dir + `/data/data/<pkg>`) on the same install, quote both numbers
+  separately, or epoch comparison is invalid.
+- **E3. Rootfs to external storage (FAIL, both locations).** Hypothesis:
+  358 MB tree lives on SD. Method: `busybox cp -a` (app uid, `run-as`)
+  from `files/usr/var/lib/proot-distro/installed-rootfs/ubuntu` to
+  EXTERNAL_APP (`/storage/emulated/0/...`, FUSE), then `ln -s` probe to
+  SDCARD_APP (`/storage/5982-1724/...`, 980 MB card). Evidence: hundreds
+  of `can't create symlink ... Operation not permitted` (`etc/ssl/certs`,
+  `etc/alternatives`, merged-/usr `bin/lib/sbin`, `dev/std*`); on SD
+  `ln: Permission denied` immediately, dir empty. `-L` workaround rejected
+  by math: ~700 MB dupes (ESTIMATE, not measured: tree size ×2 minus
+  dedup gain — won't fit 980 MB card with headroom) + dangling links
+  (`dev/std*`, `mtab`) dead anyway. Verdict: rootfs stays internal;
+  SD mechanics for clean data only (subpack/apktool). Garbage
+  (`q1_ubuntu_ext`, `qtest`) removed from phone.
+- **E4. `uiautomator dump` (FAIL, tooling).** Method: dozens of calls —
+  stable SIGKILL, exit 137, 0-byte xml; not fixed by sleep/reconnect.
+  Verdict: `screencap -p` + PNG read only (historical note: dumps work
+  from the current lab phone — E4 describes the OLD device).
+- **E5. Dhizuku (SKIP).** Needs device-owner, fails on a phone with
+  accounts; Operit expects the Shizuku API anyway. Took Shizuku 13.6.0
+  directly, recipe in ARCHIVE.md Shizuku section.
+- **E6. Others' archives (WONTFIX).** `jniLibs.zip`/`subpack.zip` on
+  upstream Google Drive (`prepare_android_dependencies.py`) — can't add a
+  file there; Q2 hosting must be ours. `sherpa-onnx` JNI unreachable the
+  same way — hence GigaAM runs direct via ORT, not sherpa (variant (b)).
+- **E7. Catching 5-second toasts with single screenshots (FAIL, method).**
+  Hypothesis: "send a turn, wait, screenshot — see the toast". Method
+  06.10: ~50 `screencap` around 3 proven posts (`llm_io_log` ok verdicts
+  + non-empty comments, `timestampMs`+`latencyMs` give the exact window)
+  — 0 hits: `estimateToastDurationMs` (~5 s per short comment) is shorter
+  than a typical manual-screenshot interval. Verdict: toasts catchable
+  only via a continuous back-to-back `screencap` series (~2 s/frame,
+  20–30) + `md5sum` dedup (identical glued, different read). Compute the
+  post window from the log row, don't guess.
+- **E8. Checking `llm_io_log` without WAL (FAIL, method).** Hypothesis:
+  "pull `databases/app_database` and read rows". Method 06.10: no fresh
+  rows — false "hook doesn't write", half an hour of debugging a
+  nonexistent bug. Evidence: Room in WAL mode, fresh commits live in
+  `-wal`/`-shm`. Verdict: always pull THREE files under one basename
+  (`app_database`, `-wal`, `-shm`), open the main one in sqlite3. In
+  cheat sheet.
+- **E9. flash-lite tool turn as supervision acceptance (FAIL, model
+  behavior).** Hypothesis: "a tool turn gives a rich digest and true
+  corrected_call". Method 06.10: "What files are in the current
+  directory?" → driver looped list_files/use_package/
+  super_admin:terminal/code_runner (tool-call counter 39, each new tool
+  a new Permission Request, one-shot Allow not remembered); finished only
+  via Deny + X. A cancelled turn is NOT observed (hook only on clean
+  finalize). Evidence: `llm_io_log` CHAT rows with `<tool_*>` calls,
+  `error='cancelled'` on the cut one. Verdict: acceptance with TRIVIAL
+  tool-free turns ONLY ("Say PONG."); tool turns are a separate story
+  with manual Allow-babysitting and API spend. Design side effect: v1
+  digest (tool names without args) would be blind on such turns — args in
+  hooks needed all the more (see v1 limit in supervision status).
+- **E10. Send-button cluster (FAIL, button mechanics).** Hypothesis:
+  "a 3-tap cluster is more reliable than one". Method 07.10: 3 taps on
+  send (1410/1447/1480) — the turn left, but `llm_io_log` shows CHAT with
+  `error='cancelled'` @403 ms + TITLE_GENERATION cancelled too: the send
+  button becomes STOP while streaming, and the cluster's later taps kill
+  the just-sent turn. Verdict: send gets EXACTLY one tap, then hands off
+  for 20+ s; a cancelled turn yields a Prompt card with empty Response
+  (don't confuse with a hang). (Old E11 "dead button" merged into N4.)
+- **E12. A/B "094027Z signs, 132740Z doesn't" (FAIL, artifact).**
+  Hypothesis 10.10: 15-code broke signing (pre-15 builds, post doesn't).
+  Method: keytool -printcert on the output `WebApp_*.apk` after runs on
+  both builds. Evidence: the "signing" verdict for 094027Z came WITHOUT
+  name/time check of the output file — and `/sdcard/Download/Operit/
+  exports/` SURVIVES reinstalls (memo N13): keytool almost surely checked
+  a STALE signed file from a past epoch and credited the current build.
+  Control: no clean 094027Z run checking exactly the fresh file ever ran.
+  Verdict: A/B invalid, 15-code innocent (proven otherwise — task 17:
+  root in `a2764e9c`, before 15-code). Rule: keytool ONLY on the file
+  from the current run (name from log + ls -la time), or trap (N13).
+- **E13. Start Setup with default selection (FAIL, silent no-op).**
+  Hypothesis 11.10: "pressed Start Setup — so it installs" (terminal
+  showed Interrupt, looked like downloading). Method: after tap —
+  apt history.log + `su -c ps` + byte-wise rootfs ls + `NodeJS环境检查`
+  log. Evidence: history.log ends at `apt upgrade` 16:44 UTC (before the
+  tap — that's setup-check on SCREEN OPEN); zero apt lines after the tap;
+  only idle bash in processes (no apt/curl/node); check log 20:13–22:30
+  stable `pnpm:false, python:true(preinstalled), pip:false`. Code cause
+  (`SetupScreen.kt:143-207`): selected=true is set ONLY for found
+  packages, and found ones are skipped by the `!= INSTALLED` filter —
+  with defaults only pip-mirror echos go into commands. The screen
+  instantly returns home with eternal Interrupt (no completion flag —
+  fire-and-forget `sendCommand`), indistinguishable from success.
+  Verdict: without manual checkbox choice (verify checked=true in dump —
+  blind taps toggle!) setup is a no-op; fix by choosing nodejs+python
+  categories + a real run (task 6).
+- **E14. JKS keystore on Android (FAIL, platform).** Hypothesis: "PKCS12
+  fell — try JKS". Method: `loadVerifiedKeystore` iteration over both
+  types + `Security.getProviders("KeyStore.JKS")` in a live process.
+  Evidence: NOBODY offers JKS (`offered by: null`, old-style "JKS not
+  found") — the provider doesn't exist on Android, period; that's normal,
+  not an error. Verdict: fix only the PKCS12 path; leave the JKS branch
+  in code as is (it documents the absence), burn no time.
+- **E15. "bundled-BC insert works" (FAIL, assumption).** Hypothesis
+  (`a2764e9c`, 10.10): inserting bundled-BC first is enough, don't touch
+  the platform. Method: log the insert's return code in a live process.
+  Evidence: `insertProviderAt` → `-1` twice (20:40, 00:36): while the
+  platform holds the "BC" name the insert is rejected — the code ran on
+  bare platform BC, which lacks PBES2 (proven by direct SecretKeyFactory
+  probe + `openssl pkcs12 -info` of the file: PBES2/AES-256). Verdict:
+  ALWAYS log the insert outcome + verify the slot class
+  (`Security.getProvider("BC").javaClass`); a taken name — only via
+  remove+insert (upstream mechanics + class keeps, task 17).
+- **E16. Isolated libc++_paddle soname (FAIL, 14.10).** Hypothesis: the
+  process already holds an old libc++ under the same soname, so dlopen
+  binds OpenCV to it and dies on `__sfp_handle_exceptions` — isolate the
+  pair: byte-wise .dynstr patch `libc++_shared.so`→`libc++_paddle.so`
+  (exactly 16→16 bytes) in both .so. Method: python patch asserting the
+  single occurrence + ELF check (DT_SONAME/DT_NEEDED honestly point at
+  each other — proven by parsing), upload to release `ocr-paddleocr-v1`,
+  strict load order (cxx first, then opencv). Evidence: phone died with
+  the SAME `cannot locate symbol`; `maps` showed `libc++_paddle.so`
+  loaded and executable (loading worked!); full dynsym scan of both
+  AAR libc++ (2330 symbols) — the symbol is NOWHERE (the match was in
+  .comment, not export); phone system `libc++.so`/`libc.so` — neither.
+  Verdict: NO libc++ exported the symbol — there was nobody to isolate;
+  patch reverted, assets deleted from the release (`delete-asset`),
+  official 4.5.5 taken (proven era-match). Lesson: first prove WHO
+  exports, then isolate the importer — not reverse.
+- **E17. R8 vs JNI-only ctor (FAIL→FIX, 14.10).** Hypothesis (silent):
+  since `ai.onnxruntime` already ships minified for STT, no keep needed
+  (SIZE instinct). Method: keep only `com.paddle.ocr.**`. Evidence:
+  first OCR run — instant process death with NO FATAL and NO Java trace;
+  logcat only `F/<pkg>` + `WIN DEATH`; root cause in the first lines of
+  the DEBUG dump: `JNI DETECTED ERROR IN APPLICATION: JNI NewObjectV
+  called with pending exception NoSuchMethodError:
+  OrtException.<init>(ILjava/lang/String;)V` — native tried to build an
+  exception for a managed load error (det IR 10 vs ORT 1.17.1), while R8
+  removed the ctor as "unused" (nobody calls it from Java — only
+  native). Verdict: verbatim SDK keep (`ai.onnxruntime.**`) + ORT bump
+  to 1.21.1 (needed anyway: IR 10 requires ≥1.19). Rule: anything
+  constructed ONLY from native is dead to R8 — keep without discussion;
+  hunt native aborts without FATAL as in (N26).
+- **E18. "Model clips line tails" (FALSE ALARM, 14.10).** Hypothesis:
+  Paddle deterministically drops endings (`1234567890`→`123456`,
+  `булок,`→`бул`) — det box squeezes edges; candidate fix
+  `detUnclipRatio` 1.5→2.0. Method before fixing: open the pictures WITH
+  EYES (Read tool). Evidence: both PNGs are clipped by the canvas itself
+  (1200px wide, the line runs off-edge — pixels `7890`/`ок,` are NOT in
+  the file); model output == visible pixels letter-exact; 2x upscale
+  changes nothing (not resolution). Verdict: model right, truth crooked
+  — `.txt` fixed to pixels, unclip hypothesis DROPPED (recorded so it
+  never gets "fixed" again); Paddle score 12/12 + Russian 3/3. Rule:
+  fixtures with eyes BEFORE tuning models; truth files derive from
+  pixels, not source strings.
+- **E19. Binaries in repo root (MISTAKE, 13.10).** Mechanism: `cd
+  /tmp/opencode && curl -o det & curl -o rec & curl -o aar & wait` —
+  `&&` bound `cd` only to the first curl, the other two downloaded into
+  cwd (repo root): `opencv.aar` 54 MB + `paddle_rec.onnx` 8 MB;
+  `git add -A` put them in the commit (`96e27adb`). Evidence:
+  `git status --short` (always read). Cleanup: `git rm` +
+  `git commit --amend` (not pushed yet) + `git show --stat HEAD |
+  grep -E 'aar|onnx|\.so'` check. Rule: background `&` commands only
+  with absolute `-o`; binary guard before push — habit.
+- **E20. "SOCKS test goes DIRECT" (FALSE ALARM, 14.10).** Hypothesis:
+  Test Connection under a SOCKS5 config goes direct (trace stubbornly
+  showed `route=192.168.1.55:20128`) — i.e. factory/tester ignore the
+  proxy; candidate root cause: own client bypassing `AIServiceFactory`.
+  Method: kill-test (drop 11081/11080 → read the error). Evidence: the
+  tester goes THROUGH `AIServiceFactory.createService` (code), persisted
+  config was SOCKS5/11081 (DataStore bytes), and with a dead proxy the UI
+  honestly shows `Failed: failed to connect to /192.168.1.55 (port
+  11080)` — traffic goes via proxy, no leak; `route=` for SOCKS routes in
+  this OkHttp version prints the target address, not the proxy (display
+  quirk, not routing). Verdict: don't trust display fields, prove routing
+  with kill-test + the proxy's own log (CONNECT).
+- **E21. Garbage in proxyHost (MISTAKE, 14.10).** Mechanism: DataStore
+  showed `proxyHost = "192.168.1.55ýýþþþþ"` (field never touched by hand;
+  earlier `⁹` caught in username). Likely cause: swipes over an open
+  keyboard typed chars into the focused field. Evidence: byte-wise parse
+  of `.preferences_pb` (JSON inside; defaults omitted — see (N34)②).
+  Cleanup: field cleared and retyped by hand via UI; result — 0 proxy
+  fields in DataStore, config as-was. Rule: kill IME before swipes (see
+  (N32)), verify field values by eye after every gesture series.
+- **E22. Lab proxies block LAN (ENV FAIL, 14.10).** Hypothesis (first):
+  our HTTP client goes through proxies crookedly (Test Connection via
+  .55:18080 gave `unexpected end of stream`, DIRECT — Success). Method:
+  same request with curl from the box, direct and via proxy. Evidence:
+  direct — 401 (gateway alive, wants key); via :18080 — 000 in 0.07 s
+  (not a timeout — reset); verbose: `example.com` via proxy gives 200,
+  but `192.168.1.55:20128` — `Empty reply from server`; SOCKS5 :10808 —
+  same picture (outside 200, LAN 000). Verdict: code innocent — proxies
+  filter private addresses (anti-SSRF policy); nothing to fix, prove
+  end-to-end with our own stand (see (N35)). Rule: "proxy works" and
+  "proxy admits the target" are two different facts — verify both before
+  blaming code.
+- **E23. Own stand broke no-auth (STAND FAIL, 14.10).** Hypothesis
+  (silent): a forwarder demanding auth when 0x02 is offered is a normal
+  strict proxy. Method: updated socks5_fwd (pick 0x02 when present) +
+  Test Connection without creds. Evidence: UI —
+  `Failed: SOCKS : authentication failed`; cause — JDK SOCKS ALWAYS
+  offers {0x00, 0x02} (see (N34)③), and a real server must prefer 0x00
+  when the client offers it. Verdict: stand fixed (pick 0x00 when
+  present; REQUIRE_AUTH only as a separate flag/port for the auth test);
+  side win — the UI error names the cause verbatim, diagnostics are good.
 
-## Открытые вопросы 1–2 — закрыты, история в ARCHIVE.md
-  (актуально: `docs/FORK-REGISTRY/research-size.md`).
+## Open questions 1–2 — closed, history in ARCHIVE.md
+  (live: `docs/FORK-REGISTRY/research-size.md`).
 
-## Правила, которые я соблюдал и которые ломают сборку
+## Rules I followed that break the build
 
-- `app/src/main/res/values/strings.xml` — **единственный** строковый бакет, и
-  он на английском. Квалифицированных локалей нет вообще. Ключ, добавленный
-  в `values-en/`, даст ссылку на несуществующий ресурс.
-- `stringResource` **нельзя** в `try/catch`, в лямбде `LazyListScope`, и
-  **нельзя передавать `Any?`** — принимает `Any`. Nullable разрешай на месте
-  через `?:`. Словил это уже дважды.
-- Метки собираются **формат-ресурсами**, не конкатенацией. Обе формы
-  (`stringResource(X) + ":"` и `"${stringResource(X)}: $v"`) проверяются
-  гейтом `LABEL-CONCAT`.
-- `localeFilters` живёт на `androidResources`, **не** на `defaultConfig` и не
-  на buildType. Я потратил на это два CI-цикла.
-- Проект запрещает fallback-логику. `runCatching {}` с молчаливым `""` в
-  порядке не считать «обработкой ошибки» — это ровно тот класс, что прячет
-  баги.
-- Правки комментариев — на английском, даже если соседние на китайском.
-- `out/` в `.gitignore`, не коммить APK.
+- `app/src/main/res/values/strings.xml` — the **only** string bucket, and
+  it's English. Qualified locales don't exist at all. A key added to
+  `values-en/` points at a nonexistent resource.
+- `stringResource` is banned in `try/catch`, in `LazyListScope` lambdas,
+  and must NOT take `Any?` — it takes `Any`. Resolve nullables in place
+  with `?:`. Caught this twice already.
+- Labels assemble via format resources, not concatenation. Both forms
+  (`stringResource(X) + ":"` and `"${stringResource(X)}: $v"`) are gate-
+  checked (LABEL-CONCAT).
+- `localeFilters` lives on `androidResources`, **not** `defaultConfig`,
+  not buildType. Cost two CI cycles.
+- The project bans fallback logic. `runCatching {}` with silent `""` does
+  not count as "error handling" — it's exactly the bug-hiding class.
+- Comment edits in English, even next to Chinese ones.
+- `out/` is gitignored, never commit APKs.
 
-## Чего не делать
+## Don't
 
-- Не запускай `check_strings.py` в ожидании «英文: 完整» — такого ярлыка
-  больше нет, источник называется `default`.
-- Не верь `count_ui_strings.py`: он не обходит модуль `:terminal`, из-за чего
-  65 строк там прожили незамеченными. Замена — проверка `CJK-NEW` в аудите.
-- Не форкай `terminal` submodule обратно на апстрим. Он уже на
-  `lagovi/OperitTerminalCore`; внутри есть remote `upstream` для мержей.
-- Не коммить, пока `python3 ci/script/fork_audit.py` не зелёный.
+- Don't run `check_strings.py` expecting "英文: 完整" — that label is gone,
+  the source is called `default`.
+- Don't trust `count_ui_strings.py`: it doesn't walk `:terminal`, which is
+  why 65 strings lived there unnoticed. Replacement — the `CJK-NEW` audit
+  check.
+- Don't fork the `terminal` submodule back to upstream. It's on
+  `lagovi/OperitTerminalCore`; it has an `upstream` remote for merges.
+- Don't commit until `python3 ci/script/fork_audit.py` is green.
 
 ---
 
@@ -1477,4 +1039,6 @@ LLM agent. Anything may be done with it without asking the user first:
 uninstall (wiping data), install, change settings, download models, run
 acceptance. Do not ask for confirmation for device operations on this phone.
 
-## Истории приёмок T1–R8, CTC, deferred/dropped — см. ARCHIVE.md
+## Acceptance histories T1–R8, CTC, deferred/dropped — see ARCHIVE.md
+
+

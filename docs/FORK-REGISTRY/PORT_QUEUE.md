@@ -1,188 +1,190 @@
-# Port queue: upstream → fork (заведена 11.10, решение пользователя)
+# Port queue: upstream → fork (opened 11.10, user decision)
 
-Практика для долгоживущего localization/size-форка: wholesale-merge НЕ
-делаем (воскресит удалённые локали/ассеты/CN-провайдеры), rebase 200
-коммитов НЕ делаем (ломает протестированную линейку). Только точечные
-порты. Fork-point: `1ed8687d` (07.09). Статусы: TODO / PORTED / MANUAL
-(ручной перенос) / REJECTED (сознательно не берём) / BLOCKED (ждёт другой порт).
+> **Language rule (user directive, 15.10): talk to the user in Russian.
+> All agent-internal docs are in English.**
 
-## Batch 1 — чистые (файлы не пересекаются с нашими)
+Practice for a long-lived localization/size fork: NO wholesale merge
+(resurrects deleted locales/assets/CN providers), NO rebase of 200
+commits (breaks the tested line). Spot ports only. Fork-point: `1ed8687d`
+(07.09). Statuses: TODO / PORTED / MANUAL (hand-carried) / REJECTED
+(deliberately skipped) / BLOCKED (waits on another port).
 
-| Upstream | Что | Статус |
+## Batch 1 — clean (files don't intersect ours)
+
+| Upstream | What | Status |
 |---|---|---|
 | `43858cdf` ANR thinking-regex (`ChatUtils.kt`) | PORTED 11.10 |
 | `7d1b7274` SQLite bind limit (`ChatContentDao.kt`) | PORTED 11.10 |
 | `04eaa397` JS MIME (`WebChatHttpBridge.kt`) | PORTED 11.10 |
-| `37696251` xAI draw URL rename (покрывает `5ffa0cf4`) | PORTED 11.10 |
-| `671b8081` video_url Responses (`OpenAIResponsesProvider.kt` + тест) | PORTED 11.10 |
-| `6152d820` версия 51/1.12.2 (руками, 2 строки) | PORTED 11.10 |
-| `af743726` CI `packages: ''` | ЭКВИВАЛЕНТ: у нас уже `packages: platform-tools` с комментом — не трогать |
+| `37696251` xAI draw URL rename (covers `5ffa0cf4`) | PORTED 11.10 |
+| `671b8081` video_url Responses (`OpenAIResponsesProvider.kt` + test) | PORTED 11.10 |
+| `6152d820` version 51/1.12.2 (by hand, 2 lines) | PORTED 11.10 |
+| `af743726` CI `packages: ''` | EQUIVALENT: we already have `packages: platform-tools` with a comment — don't touch |
 
-## Batch 2 — ручной перенос (пересечение с нашими файлами)
+## Batch 2 — hand-carried (intersects our files)
 
-| Upstream | Что | Статус |
+| Upstream | What | Status |
 |---|---|---|
-| `45d63331` clipboard-gate (ручной перенос + тесты) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `1ee5dbb4` порядок tool-результатов (cherry-pick -n, чистый) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `72c1216b` DB health repair (cherry-pick + AppDatabase резолв + 55 строк в EN) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `19b50643` DB health collapse + `907a4c77` weight-import fix (cherry-pick + EN) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `f2414493` config repair (cherry-pick + 14 rewords + 15 строк в EN) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `40081a2a` DataStore domain repair (cherry-pick -n, чистый) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `62ea0c3e` perf-мониторы (cherry-pick + обе строки Settings + 50 строк EN + terminal-submodule PTY pid) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `4e6ae68a` CPU sampling поверх | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `6d5e8ae8` floating crash-protection (cherry-pick -n, auto-merge чистый) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `567f245a` group-orchestration дубли (ручной, threaded через sendMessageInternal) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `21212530` dialogue review (cherry-pick + 4 строки EN) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `1e89d4f2` composedsl курсор (cherry-pick -n, чистый) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `a19d7ef8` unpaired toolcalls (cherry-pick, мёртвые провайдеры отброшены) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `6bb2a245` unmatched tool history ( wholesale 6 файлов + EN, через промежуточные переименования) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `2112033a`+`9cf8283e` copy-preview (cherry-pick + ручной резолв конфликта) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `72731683` copy-preview read-only field (cherry-pick + ручной резолв) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `99830874` tool round markup (ручной + тест) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `e295a82a` summary-секции (cherry-pick + строки вручную в EN) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `863fb0d8` message_persisted (файл создан самим коммитом; cherry-pick -n, чистый) | PORTED 11.10 (CI зелёные, подтверждено сборкой `20261012_104102Z`) |
-| `a7676fa3` (dev) Antigravity OAuth | DONE 13.10 (`92b4cc63`+`d2246757`, CI `38332016760` green, сборка `20261013_025022Z`) |
-## Antigravity приёмка 13.10 (телефон, сборка 20261013_025022Z)
-- PASS: `Antigravity (Google)` в диалоге провайдеров; блок входа
-  (Sign in with Google + fixed endpoint + `gemini-3.7-flash` по умолчанию);
-  OAuth доходит до accounts.google.com (лого Antigravity, скриншот);
-  loopback+PKCE в logcat; падений нет.
-- По пути: наш `GeminiProvider` держал `modelName/apiEndpoint/apiKeyProvider/JSON/customHeaders` в private (апстрим protected) + не имел `unwrapStreamingPayload` — расширено до апстримного вида, оба parse-сайта завернуты в хук.
-- Пропущен осознанно дрейф (provider-groups, DeepSeek/Moonshot, isEmbeddedLocalProvider, юнит-тесты — их CI не гоняет).
-- Телефон возвращён как был: Default Config = OPENAI_GENERIC + 192.168.1.55 + ключ цел (сейв в logcat).
-- РУЧНОЙ ШАГ ПОЛЬЗОВАТЕЛЯ (сделает сам позже, решение 15.10): завершить Google sign-in, проверить квоты/список моделей/чат через Antigravity.
-## Бэклог (решения пользователя 12.10)
-- **Antigravity**: DONE 13.10 (см. приёмку выше). Остался только ручной
-  шаг пользователя (завершить Google sign-in — сделает сам позже,
-  решение 15.10).
-- **PaddleOCR**: DONE 14.10 (`96e27adb`+фиксы, CI `38499450049` green,
-  сборка `20261014_025827Z`, APK 163082823 Б = −5.0 МБ: ML Kit .so выкинут).
-  26 файлов SDK скопированы в `com.paddle.ocr` (форк 3 точек: модели/yml
-  с диска, OpenCV `System.load`), движок `PaddleOcrEngine` + реестр
-  `OfflinePayload.PADDLE_OCR` (релиз `ocr-paddleocr-v1`, ~36 МБ).
-  Приёмка Tool Tester (та же методика): clean/small/noisy/rotated/darkui +
-  русский — 12/12 строк побуквенно (русский был мусор).
-  ЛОЖНАЯ ТРЕВОГА 14.10: «обрезанные хвосты» (`123456`, `бул`) — не модель,
-  а сами картинки шире канваса (видно глазами); Paddle читает ровно
-  видимые пиксели, truth-файлы поправлены. Гипотеза detUnclipRatio снята.
-  Холод 1.2 с, прогон ~3–4 с.
-  По пути: quickbird `.so` требовал `__sfp_handle_exceptions` (нет ни в
-  одном libc++ на устройстве) → официальный 4.5.5, era-matched (все 377
-  UND-символов резолвятся); R8 ел JNI-ctor OrtException → keep;
-  det IR 10 требует ORT ≥1.19 → 1.21.1 для всех.
-- **Прокси провайдера** (решение пользователя 13.10): DONE 14.10
-  (`2c245bf4`+фикс `bd47afae`, CI `38520434647` green, сборка
-  `20261014_062241Z` 163102271 Б = +19 КБ).
-  Что сделано: поля `proxyMode/proxyHost/proxyPort/proxyUsername/proxyPassword`
-  в `ModelConfigData` (дефолт DIRECT + запечённые lab host/ports);
-  `data/model/ProviderProxy.kt` (HTTP нативно + 407-auth; SOCKS5 без auth
-  нативно, с auth — `Socks5TunnelSocketFactory` RFC 1928/1929; кеш
-  per-base-клиент); `AIServiceFactory.buildService` — весь чат через
-  `ProviderProxyClients.forConfig`; `fetchUsage/fetchQuota/fetchModels`
-  Codex/Antigravity — опциональный `proxy: ProxySettings? = null`
-  (зовётся из секции с правками конфига); login/refresh — прямые
-  сознательно (account-level, без контекста конфига); UI-блок +
-  диалог режима в `ModelApiSettingsSection` (скрыт для MNN/llama,
-  смена типа меняет порт только пока там чужой baked-дефолт);
-  10 EN-строк `provider_proxy_*`.
-  Приёмка глазами (Test Connection → гейтвей .55:20128): DIRECT Success;
-  HTTP Success (`route=...:18888`); SOCKS5 Success; SOCKS5+auth Success
-  (`SOCKS5 tunnel ... established`, форвардер: `auth ok` + CONNECT);
-  мёртвый прокси — чистая `Failed: failed to connect to ...:11080`
-  за connectTimeout. Default Config возвращён как был (0 proxy-полей).
-  ВАЖНО: прокси лабы 192.168.1.55:18080/10808 БЛОКИРУЮТ LAN-таргеты
-  политикой (curl: наружу 200, на гейтвей — пустой ответ/000) —
-  end-to-end шёл через permissive форвардеры `/tmp/opencode/testproxy/`
-  (в репо НЕ коммитить, тест-инфра сессии) на том же боксе.
-  Остаток: `AntigravityProvider.getModelsList` ходит напрямую через
-  authManager (дефолт null) — кнопка списка моделей в секции прокси
-  передаёт (там ок); login через прокси — только если ляжет в ту же
-  схему (шаг пользователя не требовать).
-  (Спека ниже — выполнена дословно, оставлена как документ решения.)
+| `45d63331` clipboard-gate (manual + tests) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `1ee5dbb4` tool-result order (cherry-pick -n, clean) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `72c1216b` DB health repair (cherry-pick + AppDatabase resolve + 55 EN lines) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `19b50643` DB health collapse + `907a4c77` weight-import fix (cherry-pick + EN) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `f2414493` config repair (cherry-pick + 14 rewords + 15 EN lines) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `40081a2a` DataStore domain repair (cherry-pick -n, clean) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `62ea0c3e` perf monitors (cherry-pick + both Settings lines + 50 EN lines + terminal-submodule PTY pid) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `4e6ae68a` CPU sampling on top | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `6d5e8ae8` floating crash-protection (cherry-pick -n, clean auto-merge) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `567f245a` group-orchestration dupes (manual, threaded via sendMessageInternal) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `21212530` dialogue review (cherry-pick + 4 EN lines) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `1e89d4f2` composedsl cursor (cherry-pick -n, clean) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `a19d7ef8` unpaired toolcalls (cherry-pick, dead providers dropped) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `6bb2a245` unmatched tool history (wholesale 6 files + EN, via intermediate renames) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `2112033a`+`9cf8283e` copy-preview (cherry-pick + manual conflict resolve) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `72731683` copy-preview read-only field (cherry-pick + manual resolve) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `99830874` tool round markup (manual + test) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `e295a82a` summary sections (cherry-pick + lines by hand into EN) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `863fb0d8` message_persisted (file created by the commit itself; cherry-pick -n, clean) | PORTED 11.10 (CIs green, confirmed by build `20261012_104102Z`) |
+| `a7676fa3` (dev) Antigravity OAuth | DONE 13.10 (`92b4cc63`+`d2246757`, CI `38332016760` green, build `20261013_025022Z`) |
+## Antigravity acceptance 13.10 (phone, build 20261013_025022Z)
+- PASS: `Antigravity (Google)` in the provider dialog; login block
+  (Sign in with Google + fixed endpoint + `gemini-3.7-flash` by default);
+  OAuth reaches accounts.google.com (Antigravity logo, screenshot);
+  loopback+PKCE in logcat; no crashes.
+- En route: our `GeminiProvider` held `modelName/apiEndpoint/apiKeyProvider/JSON/customHeaders` private (upstream protected) + had no `unwrapStreamingPayload` — widened to upstream shape, both parse sites wrapped in the hook.
+- Deliberately skipped drift (provider-groups, DeepSeek/Moonshot, isEmbeddedLocalProvider, unit tests — their CI doesn't run them).
+- Phone returned as-was: Default Config = OPENAI_GENERIC + 192.168.1.55 + key intact (save in logcat).
+- USER MANUAL STEP (user does it alone later, decision 15.10): finish Google sign-in, check quotas/model list/chat via Antigravity.
+## Backlog (user decisions 12.10)
+- **Antigravity**: DONE 13.10 (acceptance above). Only the user manual
+  step left (finish Google sign-in — user does it alone later, decision
+  15.10).
+- **PaddleOCR**: DONE 14.10 (`96e27adb`+fixes, CI `38499450049` green,
+  build `20261014_025827Z`, APK 163082823 B = −5.0 MB: ML Kit .so out).
+  26 SDK files copied to `com.paddle.ocr` (3 fork points: models/yml
+  from disk, OpenCV `System.load`), engine `PaddleOcrEngine` + registry
+  `OfflinePayload.PADDLE_OCR` (release `ocr-paddleocr-v1`, ~36 MB).
+  Acceptance via Tool Tester (same method): clean/small/noisy/rotated/
+  darkui + Russian — 12/12 lines letter-exact (Russian was garbage).
+  FALSE ALARM 14.10: "clipped tails" (`123456`, `бул`) — not the model,
+  the pictures are wider than the canvas (visible by eye); Paddle reads
+  exactly the visible pixels, truth files fixed. detUnclipRatio hypothesis
+  dropped. Cold 1.2 s, run ~3–4 s. En route: quickbird `.so` demanded
+  `__sfp_handle_exceptions` (in no libc++ on device) → official 4.5.5,
+  era-matched (all 377 UND symbols resolve); R8 ate the JNI ctor of
+  OrtException → keep; det IR 10 needs ORT ≥1.19 → 1.21.1 for all.
+- **Provider proxy** (user decision 13.10): DONE 14.10
+  (`2c245bf4`+fix `bd47afae`, CI `38520434647` green, build
+  `20261014_062241Z` 163102271 B = +19 KB).
+  Done: `proxyMode/proxyHost/proxyPort/proxyUsername/proxyPassword` fields
+  in `ModelConfigData` (DIRECT default + baked lab host/ports);
+  `data/model/ProviderProxy.kt` (native HTTP + 407-auth; SOCKS5 no-auth
+  native, with-auth — `Socks5TunnelSocketFactory` RFC 1928/1929; cache
+  per base client); `AIServiceFactory.buildService` — all chat via
+  `ProviderProxyClients.forConfig`; Codex/Antigravity
+  `fetchUsage/fetchQuota/fetchModels` — optional `proxy: ProxySettings?
+  = null` (called from the section with the edited config); login/refresh
+  stay direct deliberately (account-level, no config context); UI block +
+  mode dialog in `ModelApiSettingsSection` (hidden for MNN/llama, type
+  switch swaps the port only while it holds the other baked default);
+  10 EN strings `provider_proxy_*`.
+  Eyes-on acceptance (Test Connection → gateway .55:20128): DIRECT
+  Success; HTTP Success (`route=...:18888`); SOCKS5 Success; SOCKS5+auth
+  Success (`SOCKS5 tunnel ... established`, forwarder: `auth ok` +
+  CONNECT); dead proxy — clean `Failed: failed to connect to ...:11080`
+  within connectTimeout. Default Config restored as-was (0 proxy fields).
+  IMPORTANT: lab proxies 192.168.1.55:18080/10808 BLOCK LAN targets by
+  policy (curl: outside 200, to gateway — empty reply/000) — end-to-end
+  ran via permissive forwarders `/tmp/opencode/testproxy/` (never commit
+  to repo, session test infra) on the same box.
+  Remainder: `AntigravityProvider.getModelsList` goes direct via
+  authManager (default null) — the model-list button in the proxied
+  section passes proxy (fine there); login-over-proxy only if it fits the
+  same scheme (don't demand a user account for it).
+  (Spec below — executed verbatim, kept as the decision record.)
 
-  **Что пользователь хочет (дословно):** у каждого API-провайдера в
-  настройках можно указать, что подключение идёт через прокси; типы —
-  SOCKS5 и HTTP/HTTPS (оба — с логином/паролем и без).
+  **What the user wants (verbatim):** each API provider's settings can say
+  the connection goes through a proxy; types — SOCKS5 and HTTP/HTTPS
+  (both — with and without login/password).
 
-  **Карта кода (проверена 14.10, номера обновлены 15.10; спека выполнена —
-  ниже дословный план, по которому строили):**
-  - Чат-провайдеры висят на ОДНОМ синглтоне
-    `SharedHttpClient.instance` (`api/chat/llmprovider/AIServiceFactory.kt:198`;
-    пул/таймауты/listener — там). `AIServiceFactory.createService`
-    (`:272`, стройка — `:286`, клиент — `:301`) раздаёт его всем
-    провайдерам. Клиент immutable —
-    per-config вариант делать через `instance.newBuilder()` (пул и
-    dispatcher общие — это хорошо) + `.proxy(...)` (+ `.proxyAuthenticator`
-    для HTTP 407), кешировать per-base-клиент (реализовано ключом
-    `Pair<base, ProxySettings>`, не голым `ProxyKey`).
-  - OAuth/model-list/quota строят СВОИ клиенты, не Shared (номера — уже
-    с прокси-правками: `data/api/CodexAuthManager.kt:24` + `clientFor`
-    `:31`, `data/api/AntigravityAuthManager.kt:39` + `clientFor` `:49`,
+  **Code map (verified 14.10, line numbers refreshed 15.10; the spec is
+  DONE — below is the verbatim plan it was built from):**
+  - Chat providers hang off ONE singleton `SharedHttpClient.instance`
+    (`api/chat/llmprovider/AIServiceFactory.kt:198`; pool/timeouts/
+    listener there). `AIServiceFactory.createService` (`:272`, build —
+    `:286`, client — `:301`) hands it to all providers. Client is
+    immutable — per-config variant via `instance.newBuilder()` (pool and
+    dispatcher shared — good) + `.proxy(...)` (+ `.proxyAuthenticator`
+    for HTTP 407), cache per base client (implemented with a
+    `Pair<base, ProxySettings>` key, not a bare `ProxyKey`).
+  - OAuth/model-list/quota build THEIR OWN clients, not Shared (numbers
+    already include the proxy edits: `data/api/CodexAuthManager.kt:24` +
+    `clientFor` `:31`, `data/api/AntigravityAuthManager.kt:39` +
+    `clientFor` `:49`,
     `ui/features/antigravity/AntigravityOAuthCoordinator.kt:27` —
-    координаторский клиент login-времени, прямой сознательно).
-    Менеджеры — синглтоны на пользователя, а прокси — per-config:
-    семантика такая — вызовы fetchModels/fetchQuota/login берут прокси
-    РЕДАКТИРУЕМОГО конфига (пробросить опциональным параметром из
-    `ModelApiSettingsSection`, дефолт — прямое соединение).
-  - Хранение: `ModelConfigData` (`data/model/ModelConfigData.kt:80`,
-    поля прокси — `:98+`, `@Serializable`, все поля с дефолтами —
-    DataStore переживает новые поля молча, а дефолты НЕ пишет вообще
-    (`encodeDefaults=false` — отсутствие ключа = дефолт). Поля:
-    `proxyMode` (`DIRECT`/`HTTP`/`SOCKS5`), `proxyHost`,
-    `proxyPort`, `proxyUsername`, `proxyPassword` (чувствительность
-    как у apiKey — лежит в том же конфиге, это осознанно).
-  - Сейв: `ModelConfigManager.updateApiSettingsFull` (`:798` — номер
-    устоял) — у него ЯВНЫЕ параметры под каждую настройку: добавить +
-    `copy()` + обновить ВСЕХ звателей (их всего два места:
-    `ModelApiSettingsSection.kt` — `persist`/`buildAutoSaveState`/
-    `ApiAutoSaveState` (`:307+`) — и сама `ModelConfigManager.kt`).
-  - UI: блок в `ModelApiSettingsSection.kt` (селектор режима + host/port/
-    user/pass), СКРЫВАТЬ для локальных (`isMnnProvider || isLlamaProvider`
-    — переменные уже есть в файле, `:511–512`; MNN/llama ходят в localhost,
-    прокси им бессмысленен). Строки — новые EN-ключи в `values/strings.xml`
-    (формат-аргументы только `%1$s`-стиль, LABEL-CONCAT-гейт).
-  - SOCKS5 с auth OkHttp НЕ умеет нативно (только без auth через
-    `Proxy(Proxy.Type.SOCKS, addr)`) → свой `SocketFactory`: handshake
+    coordinator login-time client, direct deliberately).
+    Managers are per-user singletons, proxy is per-config: semantics —
+    fetchModels/fetchQuota/login calls take the EDITED config's proxy
+    (optional param from `ModelApiSettingsSection`, default = direct).
+  - Storage: `ModelConfigData` (`data/model/ModelConfigData.kt:80`, proxy
+    fields `:98+`, `@Serializable`, all fields defaulted — DataStore
+    survives new fields silently, and defaults are NEVER written
+    (`encodeDefaults=false` — missing key = default). Fields: `proxyMode`
+    (`DIRECT`/`HTTP`/`SOCKS5`), `proxyHost`, `proxyPort`, `proxyUsername`,
+    `proxyPassword` (sensitive like apiKey — lives in the same config,
+    deliberate).
+  - Save: `ModelConfigManager.updateApiSettingsFull` (`:798` — number
+    held) — EXPLICIT params per setting: add + `copy()` + update ALL
+    callers (exactly two places: `ModelApiSettingsSection.kt` —
+    `persist`/`buildAutoSaveState`/`ApiAutoSaveState` (`:307+`) — and
+    `ModelConfigManager.kt` itself).
+  - UI: block in `ModelApiSettingsSection.kt` (mode selector + host/port/
+    user/pass), HIDE for local (`isMnnProvider || isLlamaProvider` —
+    vars already in file, `:511–512`; MNN/llama talk to localhost,
+    proxy is pointless). Strings — new EN keys in `values/strings.xml`
+    (format args `%1$s`-style only, LABEL-CONCAT gate).
+  - SOCKS5 with auth OkHttp CANNOT do natively (no-auth only via
+    `Proxy(Proxy.Type.SOCKS, addr)`) → own `SocketFactory`: handshake
     RFC1928 (greeting + method; `0x00` no-auth / `0x02` user-pass) +
-    при `0x02` RFC1929 (user/pass) + CONNECT к таргету, вернуть сокет;
-    сажать через `.socketFactory(...)`. Без auth — голый Proxy(SOCKS).
-    HTTP/HTTPS — `Proxy(Proxy.Type.HTTP, addr)` (+ Authenticator на 407).
-  - ВНЕ скоупа (осознанно, не «забыл»): `RemoteAssetFetcher` (пейлоады
-    обязаны качаться, даже когда прокси провайдера набит криво),
-    STT/TTS/перевод/тулы. Если пользователь попросит шире — отдельной задачей.
+    on `0x02` RFC1929 (user/pass) + CONNECT to target, return socket;
+    plant via `.socketFactory(...)`. No-auth — bare Proxy(SOCKS).
+    HTTP/HTTPS — `Proxy(Proxy.Type.HTTP, addr)` (+ Authenticator on 407).
+  - OUT of scope (deliberately, not "forgotten"): `RemoteAssetFetcher`
+    (payloads must download even when the provider proxy is mistyped),
+    STT/TTS/translation/tools. Wider only as a separate task on request.
 
-  **Шаг 0 (исторический: на 14.10 инфры не было; UPDATE: прокси в лабе
-  ЕСТЬ — 192.168.1.55:18080/10808 от пользователя, — но режут LAN
-  политикой, см. E22 в HANDOFF; end-to-end шёл через свои permissive
-  форвардеры `/tmp/opencode/testproxy/`, рецепт восстановления —
-  memo (б4) в HANDOFF):**
-  Поднять на ноутбуке (телефон в том же LAN 192.168.1.x, достучится):
-  минимальный python CONNECT-прокси для HTTP/HTTPS-теста (порт 8888) и
-  минимальный SOCKS5 (порт 1080: RFC1928 no-auth + user/pass по RFC1929).
-  Оба ~80 строк вместе, запускать руками на время приёмки, в репо НЕ
-  коммитить (тест-инфра сессии) — или в `/tmp/opencode/`, не в репо.
+  **Step 0 (historical: no infra on 14.10; UPDATE: lab HAS proxies —
+  192.168.1.55:18080/10808 from the user — but they block LAN by policy,
+  see E22 in HANDOFF; end-to-end ran via our permissive forwarders
+  `/tmp/opencode/testproxy/`, restore recipe — memo (N35) in HANDOFF):**
+  Raise on the notebook (phone on the same LAN 192.168.1.x, reaches it):
+  minimal python CONNECT-proxy for HTTP/HTTPS tests (port 8888) and
+  minimal SOCKS5 (port 1080: RFC1928 no-auth + RFC1929 user/pass).
+  ~80 lines together, run by hand for acceptance, NEVER commit to repo
+  (session test infra) — or to `/tmp/opencode/`, not the repo.
 
-  **DoD (глазами на телефоне):** чат-ответ через HTTP-прокси, через
-  SOCKS5 без auth, через SOCKS5 с auth (цель — LAN-gateway
-  `192.168.1.55:20128`, он живёт в том же LAN и виден через прокси);
-  негатив: кривой прокси (мертвый порт) даёт чистую ошибку за
-  connectTimeout, а не вечный вис. OAuth-логин через прокси — только
-  если просто ложится в ту же схему (не требовать аккаунт специально).
-  Регресс: прямой режим (DIRECT) работает как раньше.
+  **DoD (eyes on the phone):** chat reply via HTTP proxy, via SOCKS5
+  no-auth, via SOCKS5 with auth (target — LAN gateway
+  `192.168.1.55:20128`, same LAN, reachable via proxy); negative: crooked
+  proxy (dead port) gives a clean error within connectTimeout, not an
+  eternal hang. OAuth login via proxy — only if it fits the same scheme
+  (don't demand an account specially). Regression: direct mode (DIRECT)
+  works as before.
 
-## Не берём (REJECTED, сознательно)
+## Not taking (REJECTED, deliberate)
 
-- Все `values*/strings.xml`-добавления апстрима — только через ручной порт в наш `values/` (строки тащить по мере портов выше, не скопом).
-- `ea819096` README-раскладка (противоречит нашей; наш README остаётся).
-- woff2 Material Symbols bundle (`f9eded98`, `808c76d2`) — против SIZE-целей.
-- `83acf075`/`c2333185` apk_reverse тулкит, `33f8ff7c` apktool-артефакты — удалённый нами инструмент.
-- `92327665` proxy-история (трогает удалённые Deepseek/Kimi + model_logos-svg; брать только если портируем соседние провайдерные фиксы; свой прокси сделан с нуля 14.10 — не путать, это про апстримный код).
-- i18n-коммиты (`a51f23b4`, `a46e0c62`, `d1a28473`, `98241209`, `f72b20f6`, `2f31888b`) — нечего локализовывать, форк English-only.
-- Dev draw-пакеты (`29d67812`, `ef1bf4b6`, `14c8afdc`) — draw не трогаем.
+- All `values*/strings.xml` upstream additions — only via manual port into
+  our `values/` (pull strings along with the ports above, never in bulk).
+- `ea819096` README layout (contradicts ours; our README stays).
+- woff2 Material Symbols bundle (`f9eded98`, `808c76d2`) — against SIZE goals.
+- `83acf075`/`c2333185` apk_reverse toolkit, `33f8ff7c` apktool artifacts — our deleted tool.
+- `92327665` proxy history (touches deleted Deepseek/Kimi + model_logos-svg; take only when porting neighboring provider fixes; our own proxy built from scratch 14.10 — don't confuse, that's about upstream code).
+- i18n commits (`a51f23b4`, `a46e0c62`, `d1a28473`, `98241209`, `f72b20f6`, `2f31888b`) — nothing to localize, fork is English-only.
+- Dev draw packages (`29d67812`, `ef1bf4b6`, `14c8afdc`) — don't touch draw.
 
-## Долг: terminal-подмодуль (не блокирует)
-- Указатель `26d4964a`→`04586898` (нужен `pty.pid` для perf-монитора) принёс
-  49 hardcoded CN-строк (SSH-экраны, имена зеркал). Это код чужого репозитория
-  (сабмодуль) — править там нельзя (CI пересоберёт чистое). Внесены в
-  `cjk-allowlist.json` как upstream-долг. Полный EN-проход terminal — отдельной
-  задачей, когда будем форкать terminal (апстрим сам начал values-en).
+## Debt: terminal submodule (non-blocking)
+- Pointer `26d4964a`→`04586898` (`pty.pid` needed for the perf monitor)
+  brought 49 hardcoded CN strings (SSH screens, mirror names). It's
+  someone else's repo (submodule) — can't edit there (CI rebuilds clean).
+  Allowlisted in `cjk-allowlist.json` as upstream debt. Full EN pass of
+  terminal — separate task, when we fork terminal (upstream started
+  values-en itself).

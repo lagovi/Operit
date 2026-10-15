@@ -1,719 +1,672 @@
-# HANDOFF Archive (вынесено из HANDOFF при чистке 11.10)
+# HANDOFF Archive (moved out of HANDOFF in the 11.10 cleanup)
 
-Закрытые разделы полностью. В HANDOFF остались только
-однострочные статусы со ссылкой сюда. Не удалять: леджер
-отрицательных результатов живёт в HANDOFF.
+> **Language rule (user directive, 15.10): talk to the user in Russian.
+> All agent-internal docs are in English.**
 
----
-
-## Закрытые задачи 9–18 (тела из HANDOFF)
-
-   9. Workspace-чат — ЗАКРЫТ 07.10 как поведение апстрима (расследование
-    чтением кода, установка не понадобилась). Механизм: workspace — это
-    ПОЛНОЭКРАННЫЙ оверлей (`AIChatScreen.kt:1243` `isWorkspaceVisible` +
-    Layout ниже, `fillMaxSize` поверх всего, включая поле ввода) при
-    `showWebView=true`; включается ТОЛЬКО кнопкой-иконкой Code/CodeOff
-    в топбаре (блок `AIChatScreen.kt:818-843`, вызов
-    `onWorkspaceButtonClick`→`toggleWebView` в `:821` — единственный
-    вход в коде). Ответы: (1) апстрим, не регрессия (вся машинерия —
-    нетронутый upstream-код с китайскими комментариями, в registry правок
-    форка по workspace ноль); (2) выход ЕСТЬ — та же иконка Code в топбаре
-    (топбар живёт выше оверлея, доступен); НЕ работает: BACK (нет
-    BackHandler в AIChatScreen вообще), смена чатов (оверлей держится
-    специально, `ChatViewModel.kt:689`), стрелки/свайпы/FAB — всё это
-    ПОД оверлеем; (3) чат без workspace — да, норма (доказано приёмками;
-    `isWorkspaceOpen` выводится из `history.workspace.isNotBlank()`,
-    `ChatViewModel.kt:383-387`). Что было 05.10: агент, видимо, тапнул
-    иконку CodeOff и получил фулскрин-превью без видимого выхода —
-    классическая ловушка отсутствия BACK-хендлера. Фикс не требуется
-    (апстрим), но если ловушка повторится у пользователя — завести задачу
-    на BACK-хендлер для оверлея, якоря здесь.
-  10. UX пустого чата — ПРИНЯТ 07.10 (коммиты `f3ce47f1`+`5cb753fe`,
-    CI `37581930601` success, APK-папка `2026-10-07_06-31-03Z` + `CHANGES.md`).
-    Реализация: в bottom bar `AIChatScreen.kt:1094` ветвь по
-    `currentChatId.isNullOrBlank()` — вместо `ChatInputBottomBar` кнопка
-    `+ New Chat` (`R.string.new_chat`, существует), один тап — сразу
-    `createNewChat()` (setAsCurrentChat по дефолту) → появляется поле ввода.
-    ОТКЛОНЕНИЕ ОТ СПЕКИ (осознанно): в задаче было «кнопка открывает
-    Chat History-меню», сделано прямое создание (меньше тапов, метка
-    честнее); меню доступно через кнопку-«часы». Оба гарда send
-    (`AIChatScreen.kt:1822`, waifu `:1693`) оставлены как safety nets — решение
-    зафиксировано здесь. Приёмка: пустое состояние без ложных контролов
-    (скрин), тап → чат «Ping Test» + поле ввода, Say PONG. → PONG.
-    ЛОВУШКА ПРИЁМКИ (E11): хитбокс кнопки заметно ВЫШЕ глифа (тапы в центр
-    1330 и кластер 1295–1365 — мимо; сработал один из 1150–1400 при
-    прочёсывании; у send та же история: глиф 1447, хит 1410). Правило для
-    низа чат-экрана: целиться на ~40–100px выше визуального центра;
-    промахи выглядят как «кнопка мертва» (без ripple), чинится только
-    прочёсыванием, не силой. Потрачено ~1.5 ч на ложный след «onClick
-    не стреляет» — механика та же, что калибровка: pointer_location
-    показывает 1:1, а хитбокс живёт выше.
-  11. Тост супервизии — ПОЙМАН ЖИВЬЁМ 08.10, ЗАКРЫТА. Ход: supervision
-    была ВЫКЛ (свежая установка задачи 10) — тапы по тумблеру
-    (`Settings` → Supervision Mode) ТРИЖДЫ не сработали (тапы по экрану
-    при этом доходят — соседняя строка открывается; сам свитч тапом не
-    берётся, причина не выяснена — НЕ чинить UI, обход ниже). Обход:
-    тумблер — это SharedPreferences `supervision_preferences.xml`, ключ
-    `SupervisionPreferences.kt` (`supervision_enabled`, дефолт false;
-    в DataStore его НЕТ — `functional_configs` хранит только биндинги);
-    XML записан через `run-as ... tee` при убитом приложении, после
-    рестарта тумблер фиолетовый (скрин). Ход «Say» → ответ
-    «What would you like me to say?» → burst 25 кадров: кадры 3–7 —
-    белый кард «The driver correctly asked for clarification.» с ×,
-    кадр 8 — полупрозрачное гашение, дальше чистое поле. В БД
-    (`app_database` + `-shm` + `-wal` все три!) строка id=8 SUPERVISION
-    verdict=ok, комментарий совпадает с кардом один в один. DoD закрыт:
-    PNG (`/tmp/opencode/t11/toast_proof.png`, гашение
-    `toast_fading.png`) + id=8. Пруфы лежат в /tmp (не переживёт ребут
-    ноутбука — при нужде перестянуть: тост висит ~5 с, метод бурста
-    воспроизводим). Историческая справка (как ловили): рендер — stock
-    `ChatToastHost` (`AIChatScreen.kt:1459`, верх по центру, монтируется
-    безусловно), длительность ~5 с (`estimateToastDurationMs`); метод —
-    burst-серия back-to-back `screencap` ~2 с/кадр 20–30 шт +
-    `md5sum`-дедуп (E7 + «Ловля тостов» в чит-шите); НЕ каждый ход даёт
-    комментарий (пустой = нечего сказать = тоста нет по дизайну).
-  12. Q1 п.3–4: apktool.toolpkg и desktop/helper/templates (ОТКРЫТА;
-    порядок внутри: сначала п.3(a), потом п.4(b);
-    CI ~25 мин на круг, приёмка — телефон с зарядом).
-    (a) apktool.toolpkg (~26 МБ): РЕШЕНИЕ ПРИНЯТО 08.10 — УДАЛИТЬ
-    (не переезжать). Разведка показала: чтение только из assets
-    (`PackageManager.scanAssetPackages:1261` →
-    `loadToolPkgFromAsset:2029` с распаковкой ВСЕГО архива в кэш
-    `prepareToolPkgAssetCache:1993` — т.е. ~27 МБ в APK + ~27 МБ кэша
-    за фичу `enabled_by_default: false`); внешний `.toolpkg`-импорт
-    уже работает (`PackageManagerScreen:320` +
-    `scanExternalPackages:1276`); `reconcileToolPkgCaches:902-944`
-    сам удаляет stale-кэш старых установок; кодовых ссылок на
-    бандл — ноль (`OfflinePayloads.kt:19` был единственной),
-    тестов — ноль. Ход: `apktool` вычеркнут из
-    `tools/example_packages/packages_whitelist.txt` (CI sync
-    `normal`-режим больше не пакует; stale-выходы скрипт удаляет сам;
-    `test`-режим pr-check пакует всё по построению — не ломается;
-    `npm run build:examples:github` трогает только пример github).
-    `examples/apktool/` НЕ тронут. DoD ЗАКРЫТ 08.10: CI `37722980127`
-    success, APK 247299182 → 220307769 Б (−26991413 Б — сошлось с
-    26985716 Б `apktool.toolpkg` до байта точности), `assets/packages/`
-    теперь только .js (1429723 Б), `apktool`-вхождений в APK ноль
-    (`python3 zipfile`). Папка:
-    `/home/uzzzver/operit-fork/apk/2026-10-08_03-29-43Z/` + `CHANGES.md`.
-    На телефоне не ставилась (удаление из APK ломать нечему:
-    кодовых ссылок ноль, приёмка отсутствия — опционально при
-    следующем install).
-    (b) desktop.apk (6.5 МБ) + helper APKs (shizuku/accessibility ~3–5 МБ)
-    + templates/emoji/js (~14 МБ): РАЗОБРАНО 08.10, решения разные.
-    `desktop.apk`+`desktop_version.txt` — МЁРТВЫЙ ВЕС (ноль ссылок
-    во всём репозитории кроме таблиц размеров; `assets/README.md`
-    документирует только shizuku): удалены `git rm`, DoD ЗАКРЫТ —
-    CI `37726800230` success, APK 220307769 → 214210621 Б (−6097148),
-    `desktop*`-вхождений остался один виджет-xml (не оно). Папка
-    `2026-10-08_04-17-45Z/` + `CHANGES.md`.
-    shizuku.apk/accessibility.apk — ЖИВЫЕ (читаются по требованию:
-    `ShizukuInstaller.extractApkFromAssets:37` → cacheDir → install
-    intent; `UIHierarchyManager:89-91` так же; версии из
-    `*_version.txt`): в Q1 не выносятся (без хостинга APK не похудеет,
-    код под 5 МБ несоразмерен) — идут в Q2 on-demand (задача 13),
-    карта читателей уже здесь. templates (9.8 МБ, 187 файлов) —
-    сид проектов: `WorkspaceUtils.copyTemplateFiles:682` копирует
-    `templates/$name` из assets в workspaceDir при создании (рантайм
-    читает файлы, не assets) — тоже Q2 (скачать сид вместо бандла).
-    emoji (3.6 МБ) — `CustomEmojiRepository:298` (`emoji`-каталог
-    assets) — Q2. js/ (1.4 МБ: pako/CryptoJS/Jimp/UINode/OkHttp3/
-    katex/terser — `JsAssetLoader`, `JsEmbeddedLibraryLoader`,
-    `LatexMathMlConverter:10`, `ToolPkgJsAstMinifier:50`) — ГОРЯЧИЙ
-    рантайм JS-движка, offline: НЕ ТРОГАТЬ вообще (ни Q1, ни Q2).
-    ЗАПРЕТ исполнен: `examples/apktool/` не тронут (это было (a)).
-    (c) НЕ трогать (действует дальше): OCR/движки (решение отдельно),
-    `lib/` и dex (неприкосновенны — E2), rootfs (FAIL — E3, только Q2),
-    aapt2-дубли (wontfix — ломает `setup_android_env.sh`, SIZE-006),
-    js/ assets (горячий рантайм, см. выше).
-    Вскрытие desktop.apk 08.10 (из архива `2026-10-08_03-29-43Z`,
-    распакован в `/tmp`, в репо не возвращался): 161 entry, 6.5 МБ;
-    classes.dex 13.5 МБ + classes2.dex 4 МБ (некомпакт), обфусцированные
-    res-имена (`Qr.xml`, `-6.webp` — R8), Kotlin+Compose, из нативного
-    только `libandroidx.graphics.path.so` (4 ABI); dex-строки:
-    `com.ai.assistance.operit.desktop` (`DesktopScreen`, `AppIconCard`,
-    `OperitDesktopTheme`) — апстримный companion-лаунчер, ни к чему
-    не пришитый: ни инсталлера, ни интента, ни документации.
-    Удаление подтверждено повторно — не восстанавливать.
-  13. Q2 on-demand: убрать payload из APK совсем (ОТКРЫТА, после 12;
-    хостинг РЕШЁН 08.10 — GitHub Releases в ТОМ ЖЕ репозитории, см. 7c).
-    SUBPACK ГОТОВ 08.10 (коммит `a8d61d75`, CI `37772193743` success):
-    `OfflinePayload.SUBPACK_ANDROID/WINDOWS` (`util/OfflinePayloads.kt`,
-    URL `.../releases/download/v1.12.1+4/...`, size+sha с APK
-    CI `37726800230`), `SubpackStorage.ensureTemplate` (leaf,
-    `RemoteAssetFetcher`, Q1-копии узнаются по size+sha — докачки нет,
-    отказ возвращается в `onComplete`, фалбэка на assets НЕТ);
-    `ExportDialogs` оба flow переведены на provision-then-use
-    (android: `fromAsset`→`fromFile`, прогресс 0.05–0.30;
-    windows: staged-копия в `windows_export_temp`, остальной flow
-    не тронут); CI больше не тянет `subpack.zip` с Drive
-    (`download_android_dependencies.sh` + `prepare_android_dependencies.py`
-    вычищены, кэш-ключи хешируют скрипты — пересоберутся сами);
-    релиз `v1.12.1+4` создан ВМЕСТЕ с кодом (оба файла залиты,
-    sha сошлись с зашитыми); APK 214210621 → 177474049 Б (−36736572,
-    `assets/subpack` пуст — проверено `zipfile`), папка
-    `2026-10-08_11-45-43Z/` + `CHANGES.md`. НЕ ЗАКРЫТ DoD: чистая
-    установка + экспорт до конца (телефон 08.10 днём НЕДОСТУПЕН:
-    порты 36255/38571/5555/37000–45200 закрыты — нужен свежий порт
-    от пользователя). Остаток Q2: helper APK (карта в 12b),
-    templates/emoji — отдельными заходами по тому же лекалу
-    (payload-объект → ensure → caller → релиз → замер);
-    `apktool.toolpkg` из APK уже удалён (12a) — хостить его как
-    скачиваемый опционально, для размера не нужно. Rootfs — последним
-    и только если proot с внешнего leaf стартует (E3 против;
-    отдельный эксперимент с откатом). Лекало для остальных payload
-    (отработано на subpack, повторять буквально): (а) объект
-    `OfflinePayload` (имя файла В leaf = имя staged-копии, если была, —
-    тогда миграция бесплатна; size+sha снять `python3 zipfile`+sha256
-    с последнего APK где файл ещё был); (б) `ensureX` suspend
-    в Storage-классе через `RemoteAssetFetcher` (отказ — наружу,
-    фалбэка нет); (в) caller на provision-then-use (прогресс
-    прокинуть, вызывать внутри уже-suspend контекста); (г) убрать
-    источник из CI/prepare (кэш-ключи сами пересоберутся);
-    (д) `gh release create` — ТОЛЬКО с файлами, пустых не делать
-    (7c: тег версии `vX.Y.Z`, по файлу на payload, короткая записка);
-    в начало записки — ALPHA-плашка (100% vibe-coded, стабильность —
-    апстрим) + флаг `--prerelease` (решение пользователя 10.10,
-    действует для всех релизов форка);
-    (е) CI → замер `zipfile` → папка+`CHANGES.md` → приёмка закачки
-    на чистой установке (телефон+порт). Порядок: helper APK →
-    templates/emoji (карта читателей в 12b).
-    Образец: `OfflinePayload.GIGAAM` (`util/OfflinePayloads.kt`) +
-    качалка `util/RemoteAssetFetcher.kt` (докачка, Range, SHA-256) +
-    регистрация в `OfflinePayload.all`. Шаги: (а) описать каждый payload
-    (`subpack-android.apk`, `subpack-windows.zip`, `apktool.toolpkg`,
-    далее по очереди) с URL/size/sha — URL появятся только после (б);
-    (б) создать ПЕРВЫЙ релиз вручную (`gh release create vX.Y.Z`,
-    практика именования — в 7c) и залить файлы; пустых релизов не делать;
-    (в) удалить файлы из `app/src/main/assets` (и из Drive-зависимого
-    prepare-шага, если он их кладёт) + перевести чтение на File/leaf
-    (Q1-механика уже даёт leaf — переиспользовать `SubpackStorage` /
-    наследников, не плодить вторую); (г) миграция для существующих
-    установок: staged-копии из Q1-leaf подхватываются без повторной
-    закачки (сверить размер/sha, докачать недостающее). DoD: APK следующей
-    сборки МИНУС payload-МБ (замерить `python3 -c zipfile`, не `unzip -l` —
-    ловушка в чит-шите) + чистая установка качает payload с релиза
-    и работает offline после. Порядок payload: subpack → apktool →
-    desktop/helpers → templates. Rootfs (61 МБ тарболл) — последним и
-     только если proot с внешнего leaf стартует (E3 говорит «нет» для
-     дерева; тарболл≠дерево — pre-seed в internal может и пройти, но это
-     отдельный эксперимент с откатом).
-    LIVE-FIRE 09.10 (сборка `2026-10-08_11-45-43Z`, чистая установка;
-    телефон после разблокировки bootloader, `192.168.1.69:42323`
-    (далее связь — постоянный `192.168.1.69:5555`, root, см. чит-шит),
-    батарея 61–67%): ЗАКАЧКА ДОКАЗАНА — `files/subpack/
-    apk_editor_android.apk` 48139093 Б + sha256 `c56b23a8...` сошлись
-    с зашитыми (`SUBPACK_ANDROID`); телефон дотянулся до GitHub
-    Releases сам. РЕПАК УПАЛ: `ExceptionInInitializerError`
-    `ExtraFieldUtils.<clinit>` — у `AsiExtraField` нет `<init>`
-    (R8 вычистил конструктор; падает `copyZipEntry:339`
-    `outEntry.time = ...`, flow `ExportDialogs.kt:875`).
-    ФИКС — keep конструкторов (`app/proguard-rules.pro`, коммит
-    `b54dffbe` запушен): настоящая причина, не фолбэк; аудит пути —
-    другой рефлексии нет (apksig/apkparser/zip4j уже `{ *; }`,
-    sevenz на export-пути нет). CI НЕ ЗАПУЩЕН: 422 «Actions has been
-    disabled for this repository» на оба workflow; repo-флаг
-    enabled=true, репо не disabled/archived — блок выше репозитория,
-    нужен владелец (Settings → Actions). Локального SDK нет
-    (в `/opt` только platform-tools) — собрать негде.
-    Остаток приёмки после починки CI: install `-r`, в HTML Packager
-    перепоказать папку ПАЛЬЦЕМ, экспорт до конца + offline-повтор
-    при выключенном WiFi (leaf уже с шаблоном — докачки быть
-    не должно). SAF-ВЫВОД ДЛЯ ЧИТ-ШИТА: строки папок и кнопка USE
-    в DocumentsUI глухи к adb (`tap`/ENTER/SPACE/CENTER —
-    проверено прочёсыванием; фокус TAB/DPAD ходит, тулбар/диалоги/
-    тапы по файлам работают). Рабочее: «Создать папку» тулбаром
-    (тап/ENTER) — пикер сам входит в новую папку; USE — только
-    пальцем. Подтверждение пользователя 09.10: «панелька живая,
-    через adb просто нельзя».
-    CLOSE-OUT 10.10: DoD ЗАКРЫТ полностью. Сборка `2026-10-10_00-41-11Z`
-    (CI `38010108122`, APK 179691879 Б): чистый install → закачка 48 МБ
-    → репак → zipalign → подпись → `Download/Operit/exports/
-    WebApp_*.apk` 48094313 Б → `adb install` УСПЕШНО
-    (`com.example.webproject`); offline-повтор (интернет закрыт только
-    приложению через iptables owner-match — `svc wifi` НЕЛЬЗЯ, он убивает
-    ADB) успешен за секунды, в logcat ни одной докачки, размер
-    байт-в-байт тот же. Палец больше НЕ НУЖЕН ВООБЩЕ: root-тапы через
-    sendevent (`/dev/input/event3`, MT-B, 1:1 к координатам дампа)
-    неотличимы от пальца — доказано на USE+Allow (`ci/script/
-    phone_lab.sh`, приёмка закодирована в `ci/script/
-    accept_q2_export.sh`, синтаксис проверен, первый полный прогон —
-    на следующем payload).
-  14. Onboarding: один экран вместо трёх (РЕАЛИЗОВАНО в коде 10.10,
-  приёмка на устройстве — pending; решение пользователя: длинные тексты
-  соглашения долой, тур за отдельной кнопкой). Новый
-  `ui/features/permission/screens/OnboardingScreen.kt`: сверху карточка
-  «Your responsibility» (`onboarding_liability_*`: всё хорошее и плохое —
-  ответственность пользователя, разработчик не отвечает ни за что) +
-  кнопка «What can it do?» (тур — `FeatureTourDialog`, 3 intro-страницы,
-  вне флоу); дальше 4 базовых разрешения карточками (те же интент-обработчики);
-  дальше 4 уровня (STANDARD/ACCESSIBILITY/DEBUGGER/ROOT, ADMIN в UI не
-  предлагался и раньше); внизу всегда активный Continue — без выбора
-  пишется STANDARD. `MainActivity`: ветки Agreement/Guide заменены одной
-  (`!accepted || level==null → OnboardingScreen`, onComplete пишет
-  `acceptCurrentAgreement()` + `checkPermissionLevelSet()` + дальше как
-  раньше). Удалены: `PermissionGuideScreen.kt`, мёртвые строки
-  (welcome_*, warning_*, complete, confirm, step-метки); `AgreementScreen.kt`
-  ОСТАВЛЕН (показ соглашения из Toolbox, `OperitScreens.kt:686`).
-  Якорь UI-001 переведён на новый файл. Добивка 10.10 (решение
-  пользователя): модалка маркета `MarketAgreementDialog` (блок на первом
-  входе в маркет + пункт «Market Agreement» в Mine) УДАЛЕНА целиком —
-  файлы диалога и `MarketAgreementPreferences.kt`, строки
-  `market_agreement_*`, ветка в `UnifiedMarketScreen.kt`; вместо неё одно
-  предложение в карточке онбординга (`onboarding_plugins_note`: сторонние
-  плагины выполняют код своих авторов — установка на свой риск).
-  Скрипт приёмки адаптирован: шаг 3 теперь ждёт «Your responsibility»,
-  свайпами доводит «Continue» до видимости, тапает, ждёт «New Chat».
-  Первый живой прогон 10.10 (APK `20261010_094027Z`, CI 38042218605):
-  root/install/grants/onboarding — OK (новый онбординг работает);
-  дальше два бага, оба в скрипте/флоу, не в приложении: (1) `cd` в скрипте
-  вёл не в корень репо — починен; (2) всплывшая Announcement-модалка
-  уводила тапы мимо — по решению пользователя модалка УДАЛЕНА целиком
-  (`RemoteAnnouncementDialog` + `RemoteAnnouncementRepository` +
-  `RemoteAnnouncementPreferences` + ветка в `OperitApp`; в скрипте оставлена
-  защита от «Got it» на всякий случай); (3) picker: `Select Folder`
-  иногда не открывается с первого тапа (sendevent-флак, известный) —
-  в скрипте повтор до 3 раз. Состояние приёмки 14 к ночи 10.10:
-  ДОКАЗАНО тремя прогонами (APK 094027Z, 132740Z, 160304Z):
-  onboarding (Continue → чат), picker, folder-pick, download 48 МБ,
-  repack. НЕ ДОКАЗАНО (нужен зелёный билд): диалог тура
-  (открыть/листать/закрыть), выбор уровней, строки разрешений тапами,
-  отсутствие модалки маркета и Announcement на первом входе.
-  Скрипт к ночи: модель ожиданий (`plab_expect_text` — каждый этап
-  заявляет ожидаемый экран, провал печатает экран + FAIL, висения нет),
-  heartbeat в долгих ожиданиях, wake + screen_off_timeout с restore-trap,
-  install с причиной + повтор, basename выходного APK.
-  CLOSE-OUT 14, ночь 10.10 (APK `20261010_215026Z`, ручная сессия,
-  батарея 34→~28%): тур — открыть/1-2-3/Close (возврат на онбординг);
-  уровни — Debug выбран ВИДНО (пурпурная рамка + залитое радио, скрин
-  `/tmp/opencode/t14_levels.png`), затем Standard + Continue → чат,
-  в `android_permission_preferences.preferences_pb` записано
-  `preferred_permission_level=STANDARD`, согласие
-  `accepted_agreement_version` на месте; строка Storage Permission тапом
-  открывает системную «All files access» (тумблер Вкл. — appops переживает
-  `pm clear`); маркет — розовая FAB (хитбокс (643,1280), не глиф!) ведёт
-  СРАЗУ в ленту без Agreement/countdown (первый вход); Announcement на
-  свежей установке не вылезал ни разу (×2 прогона — сразу онбординг).
-  DoD ЗАКРЫТ полностью. Попутно: рантайм-перевод жив на 15-коде
-  (`楼层限制器`→«Floor Limiter»+EN-описание). Телефон оставлен: свежая
-  установка 215026Z, онбординг пройден, STANDARD, чат готов.
-  Прогон 10.10 вечером (APK `20261010_132740Z`, CI 38055794385, 15-код):
-  скрипт доведён до ума (шаги видны, adb-timeout 90с, install с причиной+
-  повтор), но приёмка встала: install-флап (вручную ок) → повторный прогон
-  умер на транспорте (`error: closed`), телефон 192.168.1.69 не пингуется,
-  adb offline, скана LAN по 5555 (.2–.254) — пусто. Нужен пользователь:
-  проверить телефон (питание/WiFi/IP). Следом: CI-билд (announcement-
-  removal + логотипы + скрипт) и полная приёмка.
-  ПРИЁМКА 15 (APK `20261010_132740Z`, CI 38055794385): onboarding/picker/
-  folder/download/repack — OK, но подпись упала: PKCS12 unwrap
-  (SecretKeyFactory PBES2 unavailable) + JKS getInstance fail. A/B против
-  APK 094027Z (подписывает OK) + сравнение dex (BC-классы 5433=5433, refs
-  7913=7913) + keystore md5 совпал → дело не в контенте, а в first-match:
-  вставленный bundled-BC затеняет платформенный, его сервис инстанцируется,
-  но на load падает, остальных JCA уже не пробует. Фикс: `KeyStoreHelper`
-  переписан на loadVerifiedKeystore (итерация по провайдерам типа с
-  проверкой aliases, итоговая ошибка как раньше), insert/remove провайдеров
-  убраны вовсе, `ApkReverseEngineer` переведён на новый лоадер. Это не
-  fallback: верификация обязательна, тотальный провал виден как раньше. DoD: чистая установка → Continue
-  → сразу чат; отдельно: тур открывается/листается/закрывается, уровни
-  выбираются, разрешения тапаются в системные настройки.
-  15. Китайские интеграции — вынести ВСЁ (КОД ГОТОВ 10.10 вечером,
-  решение пользователя «убрать всё» выполнено; осталось: зелёный CI-билд
-  уже есть — `20261010_170331Z` (CI `38070179633`, включает insert+iterate
-  и диагностику), нужна ПОЛНАЯ приёмка скриптом на нём + проверка
-  пунктов «НЕ ДОКАЗАНО» из задачи 14. Ниже — инвентарь (как было до
-  выноса) и запись реализации в конце пункта.
-  (все пути — от корня репо, размеры — байты в APK `2026-10-10_00-41-11Z`
-  через `python3 zipfile`, если не сказано иное):
-  (а) QQ Bot (Tencent QQ OpenAPI, только CN-рынок: нужны QQ-credentials):
-  `examples/qqbot/` (исходники ~520 КБ), в whitelist
-  `tools/example_packages/packages_whitelist.txt` → пакуется в
-  `assets/packages/` + ставится в toolpkg_cache; UI — плитка Toolbox
-  «QQ Bot Settings». Путь — как 12a (apktool): вычеркнуть из whitelist,
-  stale-кэш чистит сам `reconcileToolPkgCaches`, DoD — замер CI
-  (`python3 zipfile`, `*qqbot*` ноль). НЕЯСНО: точный размер .toolpkg
-  (собрать sync-скриптом и взвесить до решения);
-  (б) Пресеты CN-провайдеров — УБРАТЬ (размера ноль, чистый интерфейс):
-  `provider_baidu/provider_alipay_bailing/provider_aliyun` (`app/.../res/
-  values/strings.xml:4138+`), endpoints Baidu/Xiaomi
-  (`ApiProviderConfigCollect.kt:90,152`, `ModelConfigData.kt:24`,
-  `MimoProvider.kt`, `MimoVoiceProvider.kt`), тестовый URL baidu.com
-  (`ToolTesterScreen.kt:326`), схема alipay: в Token-WebView
-  (`TokenConfigWebViewScreen.kt:108`, `WebViewConfig.kt:126`), строки
-  test_desc (`strings.xml:3045`). Убрать полностью: типы из
-  `ApiProviderType`, ветки UI, строки, дефолтные endpoints;
-  (в) Карта CN-приложений — УБРАТЬ (`StandardUITools.kt:65-123,248-249`):
-  微信/QQ/微博/淘宝/百度地图/bilibili/腾讯视频/QQ音乐/QQ邮箱/腾讯新闻 →
-  package names. Убрать целиком (EN-пользователю открывалки китайских
-  приложений не нужны); проверить, не упадёт ли инструмент без карты
-  (дефолтная ветка/ошибка вместо CN-списка);
-  (г) HuaweiCloud-maven в шаблонах экспорта — УБРАТЬ
-  (`assets/templates/{android,flutter}/.../settings.gradle.kts`,
-  `build.gradle.kts`): зеркало для CN; перед удалением доказать на
-  сборке экспортного проекта без него (иначе откат);
-  (д) Проверено НЕ китайское (не трогать): OCR-движок — Google MLKit
-  `com.google.mlkit:text-recognition:16.0.0` (`gradle/libs.versions.toml:18`,
-  `app/build.gradle.kts:649`, `libmlkit_google_ocr_pipeline.so` 9.5 МБ,
-  скриптовых пакетов zh/ja/ko в зависимостях НЕТ; активная модель —
-  ТОЛЬКО латинская (`OCRUtils.kt:31,52`: `latinRecognizer`,
-  `TextRecognizerOptions.DEFAULT_OPTIONS`; CJK-распознаватели — отдельные
-  артефакты, не подключены; подтверждено чтением кода 10.10); шрифтов CJK в assets
-  НЕТ (только `terminal/.../jetbrains_mono_nerd_font_regular.ttf`);
-  `res/` — только `values`+`values-night` (values-zh НЕТ); MNN
-  (`libMNN.so` 20.9 МБ + Wrapper 5.3 МБ) грузит ЖИВОЙ `llm/mnn`
-  (`MNNLibraryLoader.kt:33,37`, `MNNModule.kt`) — удаление только
-  вместе с фичей MNN-LLM (решение пользователя, НЕ free win;
-  мёртвого MNN-STT в коде не осталось — проверено grep 10.10);
-  push-SDK (Huawei/Xiaomi/Oppo/Vivo/JPush) в зависимостях НЕТ.
-  РЕАЛИЗАЦИЯ 10.10 (код, в отдельном CI-билде после приёмки 14):
-  enum `ApiProviderType` −16 (BAIDU/ALIYUN/XUNFEI/ZHIPU/BAICHUAN/MOONSHOT/
-  MIMO/DEEPSEEK/SILICONFLOW/IFLOW/INFINIAI/ALIPAY_BAILING/DOUBAO/PPINFRA/
-  NOVITA/MINIMAX); удалены файлы Deepseek/Kimi/Mimo/Qwen/Doubao-провайдеров
-  + их TTS-четвёрка (SiliconFlow/MiniMax/Mimo/DoubaoVoiceProvider) и типы
-  SILICONFLOW_TTS/MINIMAX_TTS/MIMO_TTS/DOUBAO_TTS; фабрики (`AIServiceFactory`,
-  `VoiceServiceFactory`, `ModelListFetcher`) — ветки вырезаны (там где был
-  else — тихо, где exhaustive — правилось по компилятору); коллекты:
-  `ApiProviderConfigCollect` −16 пресетов, `ModelPricingDefaultsCollect`
-  (set+map), `ScrapedModelPricingRowsCollect` −142 строки + пустые блоки,
-  `ModelThinkingConfigDefaultsCollect` −CN-правила (DEEPSEEK/MOONSHOT/MIMO/
-  DOUBAO/ALIYUN/SILICONFLOW/ZHIPU/opencode-zhipu) + minimax-хвосты;
-  QQBot: строка whitelist + `examples/qqbot/`; `AutoGlmOneClickToolScreen`
-  (Zhipu one-click) + роут + Toolbox-пункт + строки; DeepSeek token-webview
-  кластер (`DeepseekApiConstants/JsScripts/DeepseekJsInterface`, мёртвый);
-  alipay:/weixin:-схемы в обоих webview-клиентах; baidu-URL и desc в
-  ToolTester; карта CN-приложений в `StandardUITools` (весь CN-блок + QQ/
-  WeChat/TikTok/Temu/bilibili/keep); зеркала aliyun/huaweicloud/tuna/bfsu/
-  tencent из шаблонов экспорта (gradle + setup-скрипты, остался официальный
-  upstream); дефолты → OpenAI (`ApiPreferences`, `ModelConfigManager`,
-  `ApiConfigDelegate`, `UrlConfig`, `ModelConfigData`); старые конфиги
-  мигрируются в OPENAI_GENERIC персистентно (`migratePreferencesFromVersionFour`,
-  версия стора 4→5, ключи/эндпоинты сохраняются); TTS-тип читается через
-  runCatching→SIMPLE_TTS; `saveDeepSeekConfiguration` обобщена в
-  `saveInitialConfiguration`; `enableDeepSeekWebSearch` удалён по всей
-  цепочке; строки provider_*/speech_services_cn_*/enable_deepseek_* стёрты;
-  тесты поправлены (ThinkingQuality — CN-кейсы удалены, third-party теперь
-  UNSUPPORTED; остальные фикстуры DEEPSEEK→OPENAI); логотипы провайдеров
-  `assets/model_logos/` −16 CN-папок; PROMPT-002 и 5 его
-  allowlist-записей удалены (файл мёртв); 3 укороченные CN-строки промптов
-  до-allowlistены. НЕ тронуто: комментарии про wire-протоколы, model-name
-  триггер free-модели в чате, minimax-ветка роутинга OpenCode (машинерия
-  агрегатора), не-whitelist примеры в `examples/` (в APK не пакуются).
-  16. Install-size раунд 2 — ЗАКРЫТА решением пользователя 10.10
-  (не трогаем); инвентарь ниже оставлен как справка, не план. База: APK 179.7 МБ, installed_linux: assets ~155 МБ stored
-  + копии в `files/` (rootfs 61 МБ тарболл + распаковка ~358 МБ,
-  toolpkg_cache ~31 МБ) — цифры research-size, перед работой перемерить
-  на настроенном устройстве (`run-as ... du` по `files/*`: objectbox,
-  translation_cache, media_pool, skill_repo_zip_pool, image_pool,
-  custom_emoji, logs — сколько реально весят, записать сюда).
-  Кандидаты delete (все — решение пользователя, цифры из APK 10.10):
-  avatar-стек ~14.5 МБ (`libfilament-jni`+`libgltfio-jni` 5.2,
-  `libdragonbones_native` 2.6, `libMmdWrapper` 5.1, `libFbxWrapper` 1.6)
-  — только вместе с фичей аватаров; FFmpeg ~26 МБ (`libavcodec` 15.7,
-  `libavfilter` 5.2, `libavformat` 5.1) — только вместе с Toolbox
-  «FFmpeg Toolbox» + `ffmpeg.js` toolpkg; llama-стек ~23 МБ
-  (`libllama-common` 12.6, `libllama` 7.9, `libggml-*` 3.1) — только
-  вместе с GGUF-инференсом; MNN ~26 МБ — см. 15(д); MLKit 9.5 МБ —
-  только вместе с OCR (фича живая: `OCRUtils`, screen-OCR во флоатере).
-  Кандидаты на SD/out-of-APK (технические, без убийства фич):
-  helper APK (`assets/shizuku.apk` 2.5 + `accessibility.apk` 2.7 МБ,
-  читатели `ShizukuInstaller:37`, `UIHierarchyManager:89-91`) и
-  templates (11 МБ, `WorkspaceUtils.copyTemplateFiles:682`) + emoji
-  (3.7 МБ, `CustomEmojiRepository:298`) — тем же Q2-лекалом задачи 13;
-  toolpkg_cache (переезд вслед за SubpackStorage-механикой);
-  aapt2-дубли в templates (2×4.5 МБ) — НЕ ТРОГАТЬ (ломает экспорт,
-  SIZE-006). НЕ ТРОГАТЬ ВООБЩЕ: rootfs (E3: proot с внешнего leaf не
-  стартует — эксперимент с преддоказательством и откатом, отдельно),
-  `lib/`+dex кроме перечисленного (E2), `assets/js` 1.4 МБ (горячий
-  рантайм JS), keystore assets, `bridge/`, `operit_shell_exec`.
-  DoD раунда: таблица «модуль → МБ в APK → МБ installed → решение»
-  здесь + по каждому взятому — как 12a (удаление+замер) или 13
-  (on-demand+приёмка `accept_q2_export.sh`-стилем).
-  ПРИЁМКА 15 ЗАКРЫТА ночью 10.10: `accept10` на `20261010_215026Z`
-  (15-код + evict-фикс) — PASS=10 FAIL=0: install/grants/onboarding/
-  picker/folder/download 48 МБ/repack/sign (`WebApp_1791671054137.apk`
-  48094313 Б)/leaf-intact/offline-без-докачки. A/B «094027Z подписывает»
-  больше не нужно (механизм доказан прямо).
-  17. Регрессия подписи экспорта (ЗАКРЫТА 10.10 ночью; БЛОКЕР снят).
-  Симптом был: `Export Failed` — `Unable to load keystore`,
-  `JKS not found`; выходной `WebApp_*.apk` остаётся НЕподписанным
-  (`keytool -printcert -jarfile` → `Not a signed jar file`).
-  ДОКАЗАНО (замеры, не догадки): (а) keystore побайтово цел (md5 device ==
-  md5 `app/src/main/assets/pkcs12.keystore`); (б) BC-классы в dex
-  идентичны (5433=5433, refs 7913=7913 — только через `python3 zipfile`,
-  `unzip` в системе НЕТ);   (в) [ОТМЕНЕНО закрытием 17: вероятно, keytool проверял несвежий файл,
-  ловушка (т) — не цитировать] APK 094027Z якобы подписывал, 132740Z/
-  160304Z — нет; (г) пароли/алиас — константы
-  (`ExportDialogs.kt:862-870`: файл из `getOrCreateKeystore`, `android`/
-  `androidkey`/`android` — код не менялся); (д) вставка bundled-BC
-  отклоняется системой (`insertProviderAt` → −1, дубликат имени «BC»
-  запрещён — значит вставка из a2764e9c всегда была no-op, работал
-  платформенный BC); (е) итерация показала: `KeyStore.PKCS12` предлагает
-  только один «BC» (платформенный), JKS не предлагает никто (на Android
-  норма, не ошибка).
-  НЕ ДОКАЗАНО (ядро загадки): один и тот же платформенный BC, файл,
-  пароль — в старых сборках открывает ключ, в новых нет. Опровергнуто:
-  порча файла, вырезанные классы, JKS, пароль/алиас, шаблоны, скачивание.
-  Под вопросом: отличие состояния процесса (какие провайдеры реально
-  стоят — в старых сборках логов не было); флейк платформы через
-  перезагрузки (телефон вечером пропадал из LAN и вернулся).
-  Открытые концы: (1) RESOLVED 10.10 ночью: строка `inserted at −1`
-  в 20:40 — это был accept8 на `170331Z` (код со вставкой), никакой
-  аномалии: сборка ДО 170331Z такой строки не содержит (проверено grep
-  точной фразы по dex всех APK); путаница была из моей ошибки —
-  я дважды писал что accept8 едет на 160304Z; (2) JKS-путь мёртв всегда
-  (на Android провайдера нет) — чинить только PKCS12.
-  КОРЕНЬ НАЙДЕН 10.10 ночью (диагностика `20261010_203519Z`, CI
-  `38084332791`, прогон accept9: onboarding/picker/folder/download/
-  repack — OK, подпись — нет; лог `files/logs/operit.log` через run-as):
-  keystore — PBES2/PBKDF2/AES-256-CBC (проверено локально `openssl pkcs12
-  -info`, файл от 09.09), а на телефоне НЕТ PBES2 SecretKeyFactory
-  ВО ВСЁМ JCA (прямой проб — unavailable; `KeyStore.PKCS12` предлагает
-  только платформенный BC 1.61; old-style резолвится туда же). Вставка
-  bundled-BC отклоняется (−1, имя «BC» занято платформой). История:
-  до-`a2764e9c` код делал remove+insert (upstream-механика) и подпись
-  работала; `a2764e9c` убрал remove («не возвращать» — memo (ж) был
-  НЕВЕРЕН) + добавил keep — с тех пор только платформа → PBES2
-  мёртв. A/B «094027Z подписывает» — ПОДОЗРИТЕЛЬНО (возможно, keytool
-  проверял несвежий `WebApp_*.apk`, ловушка (т)): переподтвердить
-  чистым прогоном. ФИКС (коммит после диагностики, CI `38089152700`):
-  `registerBouncyCastleProvider` снова remove+insert (evict платформы
-  из «BC»-слота + вставка bundled на 1 + лог класса в слоте); keep
-  `org.bouncycastle.**` на месте (`proguard-rules.pro:77`); итерация
-  `loadVerifiedKeystore` остаётся верификацией. DoD по зелёному:
-  чистый прогон + keytool ТОЧНО свежего файла (имя+время) + install.
-  ЗАКРЫТИЕ 17 (APK `20261010_215026Z`, CI `38089152700`, accept10
-  PASS=10 FAIL=0): в логе `BC/1.78` первый (платформа evicted),
-  `PBES2 SecretKeyFactory offered by BC`, `PKCS12 loaded via BC` ×2;
-  свежий `WebApp_1791671054137.apk` (01:24, 48094313 Б): keytool —
-  Signer #1 самоподпись CN=1, `adb install` — Success.   15-коммит
-  невиновен (бисектить нечего); A/B 094027Z — артефакт несвежего файла,
-  больше не цитировать.
-  18. Идентичность форка (решение пользователя 10.10: B+C сейчас, D позже).
-  B — строка атрибуции `fork_attribution` («English-only community fork
-  of Operit (upstream: github.com/AAswordman/Operit). ALPHA build, use at
-  your own risk.»): в карточке онбординга (после plugins-note, мелким
-  кеглем) + в About под версией (там упоминания форка не было вообще).
-  C — debug-ярлык «Operit Debug» → «Operit EN» (`app/build.gradle.kts`
-  resValue; clone-флейвор не тронут). D (переименование пакета
-  `...operit.*` ради сосуществования с апстримом) — СНЯТ 15.10
-  (решение пользователя: забыть, не делать вообще).
-  CLOSE-OUT 18 (APK `20261011_123918Z`, `accept_bc_identity.sh` + `scen/
-  bc_identity.uaw`): PASS=8 FAIL=0 — атрибуция на онбординге и в About,
-  ярлык «Operit EN» в лаунчере, старого ярлыка нет. По пути чинен тап
-  Continue (цикл свайп→тап→проверка чата).
-
+Closed sections in full. HANDOFF keeps only one-line statuses pointing
+here. Do not delete: the negative-results ledger lives in HANDOFF.
 
 ---
 
-## Что сделано, чтобы не переделывать
+## Closed tasks 9–18 (bodies from HANDOFF)
 
-## Что сделано, чтобы не переделывать
-
-Диагноз предыдущего агента был **неверен**, и это главное, что нужно знать.
-Он объяснял остатки китайского хардкод-литералами. На деле `values-en` был
-полон (7659/7659), хардкод в `:app` вычищен — а китайский всё равно появлялся.
-Четыре независимые причины, каждая выглядит как «незаполненный перевод»:
-
-1. **Неподдерживаемая системная локаль** протекала в `Configuration` → Android
-   откатывался на дефолтный бакет, который был китайским. Теперь дефолтный
-   бакет — английский, и всё, что не поддерживается, резолвится в `en`.
-2. **Сервисы читали строки из application context**, который на Android <13 не
-   переконфигурируется при смене языка. Читают через `getLocalizedContext`.
-3. **Значения, записанные в DataStore при первом запуске**, остаются на языке
-   того запуска. Отсюда `默认配置`, `小欧`. При чистой установке чинится само.
-4. **Плагин ToolPkg** не получал `useEnglish` в payload → падал в `zh`.
-
-Пятая, найденная уже на устройстве: **имя канала уведомлений не лечится
-ресурсом.** Система захватывает его при первом создании навсегда. Лечится
-только версионным суффиксом в id канала.
-
-Подтверждено на устройстве SM-A207F при системной локали `ru-RU`:
-первый экран английский, CJK = 0 во всём UI и во всех уведомлениях телефона.
-
-**Размер:** 439 → 296 МБ. Основное — STT-модель (141 МБ) вынесена в онлайн,
-локали (7 МБ), нелатинские OCR-модели и китайский токенизатор (4.8 МБ).
-
-**Что проверено, а что нет:**
-
-- Debug-сборка компилируется, R8 (`minifyNightlyWithR8`) проходит в CI.
-- R8 под минификацией **не прогонялся на устройстве** — нет подписанного APK.
-- `check_strings.py` и `check_localizations.py` починены, но по-настоящему
-  начнут что-то значить только когда появится вторая локаль.
+   9. Workspace chat — CLOSED 07.10 as upstream behavior (code-reading
+   investigation, no install needed). Mechanism: workspace is a
+   FULLSCREEN overlay (`AIChatScreen.kt:1243` `isWorkspaceVisible` +
+   layout below, `fillMaxSize` over everything incl. the input) at
+   `showWebView=true`; enabled ONLY by the Code/CodeOff icon button in
+   the topbar (`AIChatScreen.kt:818-843` block, `onWorkspaceButtonClick`→
+   `toggleWebView` at `:821` — the only entry in code). Answers:
+   (1) upstream, not a regression (all machinery untouched upstream code
+   with Chinese comments, zero fork-registry edits on workspace);
+   (2) an exit EXISTS — the same Code icon in the topbar (topbar lives
+   above the overlay, reachable); do NOT work: BACK (no BackHandler in
+   AIChatScreen at all), switching chats (overlay held deliberately,
+   `ChatViewModel.kt:689`), arrows/swipes/FAB — all UNDER the overlay;
+   (3) chat without workspace — yes, normal (proven by acceptances;
+   `isWorkspaceOpen` derives from `history.workspace.isNotBlank()`,
+   `ChatViewModel.kt:383-387`). What happened 05.10: the agent apparently
+   tapped the CodeOff icon and got a fullscreen preview with no visible
+   exit — the classic no-BackHandler trap. No fix needed (upstream), but
+   if the trap repeats for the user — file a task for a BACK handler on
+   the overlay, anchors here.
+   10. Empty-chat UX — ACCEPTED 07.10 (commits `f3ce47f1`+`5cb753fe`,
+   CI `37581930601` success, APK dir `2026-10-07_06-31-20Z` + `CHANGES.md`).
+   Implementation: bottom bar `AIChatScreen.kt:1094` branches on
+   `currentChatId.isNullOrBlank()` — instead of `ChatInputBottomBar` a
+   `+ New Chat` button (`R.string.new_chat`, exists), one tap → straight
+   `createNewChat()` (setAsCurrentChat by default) → input appears.
+   DELIBERATE SPEC DEVIATION: the task said "button opens the Chat
+   History menu", built direct creation (fewer taps, honester label);
+   menu available via the clock button. Both send guards
+   (`AIChatScreen.kt:1822`, waifu `:1693`) stay as safety nets — decision
+   recorded here. Acceptance: empty state without false controls
+   (screenshot), tap → "Ping Test" chat + input, Say PONG. → PONG.
+   ACCEPTANCE TRAP: button hitbox notably ABOVE the glyph (center taps
+   at 1330 and cluster 1295–1365 — misses; one of 1150–1400 worked while
+   combing; send same story: glyph 1447, hit 1410). Rule for chat-screen
+   bottom: aim ~40–100px above visual center; misses look like a "dead
+   button" (no ripple), fixed only by combing, not force. ~1.5 h burned
+   on the false "onClick doesn't fire" trail — same mechanics as
+   calibration: pointer_location shows 1:1, but the hitbox lives higher.
+   11. Supervision toast — CAUGHT LIVE 08.10, CLOSED. Turn: supervision
+   was OFF (fresh install of task 10) — taps on the toggle (`Settings` →
+   Supervision Mode) missed THREE times (taps reach the screen — the
+   neighbor row opens; the switch itself untappable, cause unknown — do
+   NOT fix the UI, bypass below). Bypass: the toggle is SharedPreferences
+   `supervision_preferences.xml`, key `SupervisionPreferences.kt`
+   (`supervision_enabled`, default false; NOT in DataStore —
+   `functional_configs` holds only bindings); XML written via
+   `run-as ... tee` with the app killed, after restart the toggle is
+   purple (screenshot). "Say" turn → reply "What would you like me to
+   say?" → 25-frame burst: frames 3–7 — white card "The driver correctly
+   asked for clarification." with ×, frame 8 — translucent fade, then
+   clean field. In DB (`app_database` + `-shm` + `-wal` — all three!)
+   row id=8 SUPERVISION verdict=ok, comment matches the card verbatim.
+   DoD closed: PNGs (`/tmp/opencode/t11/toast_proof.png`, fade
+   `toast_fading.png`) + id=8. Proofs in /tmp (won't survive a notebook
+   reboot — re-pull if needed: toast lasts ~5 s, burst method
+   reproducible). History (how we caught it): render — stock
+   `ChatToastHost` (`AIChatScreen.kt:1459`, top center, always mounted),
+   ~5 s duration (`estimateToastDurationMs`); method — back-to-back
+   `screencap` burst ~2 s/frame, 20–30 frames + `md5sum` dedup (E7 + "Toast
+   hunting" cheat sheet); NOT every turn yields a comment (empty = nothing
+   to say = no toast by design).
+   12. Q1 items 3–4: apktool.toolpkg and desktop/helper/templates (was
+   OPEN; internal order: 3(a) first, then 4(b); CI ~25 min per round,
+   acceptance — charged phone).
+     (a) apktool.toolpkg (~26 MB): DECISION 08.10 — DELETE (not move).
+     Recon showed: reads from assets only
+     (`PackageManager.scanAssetPackages:1261` →
+     `loadToolPkgFromAsset:2029` unpacking the WHOLE archive to cache
+     `prepareToolPkgAssetCache:1993` — i.e. ~27 MB in APK + ~27 MB cache
+     for a feature `enabled_by_default: false`); external `.toolpkg`
+     import already works (`PackageManagerScreen:320` +
+     `scanExternalPackages:1276`); `reconcileToolPkgCaches:902-944`
+     deletes stale cache of old installs itself; zero code refs to the
+     bundle (`OfflinePayloads.kt:19` was the only one), zero tests. Move:
+     `apktool` crossed out of
+     `tools/example_packages/packages_whitelist.txt` (CI sync `normal`
+     mode no longer packs; the script deletes stale outputs itself;
+     `test`-mode pr-check packs everything by construction — unbroken;
+     `npm run build:examples:github` touches only the github example).
+     `examples/apktool/` untouched. DoD CLOSED 08.10: CI `37722980127`
+     success, APK 247299182 → 220307769 B (−26991413 B — matched the
+     26985716 B `apktool.toolpkg` to byte precision), `assets/packages/`
+     now .js only (1429723 B), zero `apktool` occurrences in APK
+     (`python3 zipfile`). Dir:
+     `/home/uzzzver/operit-fork/apk/2026-10-08_03-29-43Z/` + `CHANGES.md`.
+     Never installed on the phone (nothing in APK deletion can break:
+     zero code refs, absence acceptance optional at next install).
+     (b) desktop.apk (6.5 MB) + helper APKs (shizuku/accessibility ~3–5 MB)
+     + templates/emoji/js (~14 MB): DISSECTED 08.10, different decisions.
+     `desktop.apk`+`desktop_version.txt` — DEAD WEIGHT (zero refs in the
+     whole repo except size tables; `assets/README.md` documents only
+     shizuku): deleted via `git rm`, DoD CLOSED — CI `37726800230`
+     success, APK 220307769 → 214210621 B (−6097148), one `desktop*`
+     occurrence left is a widget xml (not it). Dir `2026-10-08_04-17-45Z/`
+     + `CHANGES.md`. shizuku.apk/accessibility.apk — ALIVE (read on
+     demand: `ShizukuInstaller.extractApkFromAssets:37` → cacheDir →
+     install intent; `UIHierarchyManager:89-91` same; versions from
+     `*_version.txt`): not moved in Q1 (no hosting = APK doesn't shrink,
+     code out of proportion to 5 MB) — go to Q2 on-demand (task 13),
+     reader map already here. templates (9.8 MB, 187 files) — project
+     seed: `WorkspaceUtils.copyTemplateFiles:682` copies `templates/$name`
+     from assets to workspaceDir on creation (runtime reads files, not
+     assets) — Q2 too (download seed instead of bundle). emoji (3.6 MB) —
+     `CustomEmojiRepository:298` (`emoji` assets dir) — Q2. js/ (1.4 MB:
+     pako/CryptoJS/Jimp/UINode/OkHttp3/katex/terser — `JsAssetLoader`,
+     `JsEmbeddedLibraryLoader`, `LatexMathMlConverter:10`,
+     `ToolPkgJsAstMinifier:50`) — HOT JS-engine runtime, offline: do NOT
+     touch at all (neither Q1 nor Q2). BAN honored: `examples/apktool/`
+     untouched (that was (a)). (c) Do NOT touch (standing): OCR/engines
+     (separate decision), `lib/` and dex (untouchable — E2), rootfs
+     (FAIL — E3, Q2 only), aapt2 doubles (wontfix — breaks
+     `setup_android_env.sh`, SIZE-006), js/ assets (hot runtime, above).
+     desktop.apk dissection 08.10 (from archive `2026-10-08_03-29-43Z`,
+     unpacked to `/tmp`, never returned to repo): 161 entries, 6.5 MB;
+     classes.dex 13.5 MB + classes2.dex 4 MB (non-compact), obfuscated res
+     names (`Qr.xml`, `-6.webp` — R8), Kotlin+Compose, only native is
+     `libandroidx.graphics.path.so` (4 ABIs); dex strings:
+     `com.ai.assistance.operit.desktop` (`DesktopScreen`, `AppIconCard`,
+     `OperitDesktopTheme`) — an upstream companion launcher attached to
+     nothing: no installer, no intent, no docs. Deletion re-confirmed —
+     do not restore.
+   13. Q2 on-demand: payload out of APK entirely (was OPEN, after 12;
+   hosting RESOLVED 08.10 — GitHub Releases in THE SAME repo, see 7c).
+   SUBPACK DONE 08.10 (commit `a8d61d75`, CI `37772193743` success):
+   `OfflinePayload.SUBPACK_ANDROID/WINDOWS` (`util/OfflinePayloads.kt`,
+   URL `.../releases/download/v1.12.1+4/...`, size+sha from APK CI
+   `37726800230`), `SubpackStorage.ensureTemplate` (leaf,
+   `RemoteAssetFetcher`, Q1 copies recognized by size+sha — no re-download,
+   refusal returned into `onComplete`, NO fallback to assets);
+   `ExportDialogs` both flows moved to provision-then-use (android:
+   `fromAsset`→`fromFile`, progress 0.05–0.30; windows: staged copy to
+   `windows_export_temp`, rest of flow untouched); CI no longer pulls
+   `subpack.zip` from Drive (`download_android_dependencies.sh` +
+   `prepare_android_dependencies.py` cleaned, cache keys hash the scripts
+   — they rebuild themselves); release `v1.12.1+4` created TOGETHER with
+   the code (both files uploaded, sha matched the baked ones); APK
+   214210621 → 177474049 B (−36736572, `assets/subpack` empty — verified
+   `zipfile`), dir `2026-10-08_11-45-43Z/` + `CHANGES.md`. DoD NOT closed:
+   clean install + export to the end (phone 08.10 daytime UNAVAILABLE:
+   ports 36255/38571/5555/37000–45200 closed — need a fresh port from the
+   user). Q2 remainder: helper APK (map in 12b), templates/emoji — separate
+   passes with the same template (payload object → ensure → caller →
+   release → measure); `apktool.toolpkg` already out of APK (12a) —
+   hosting it as a download is optional, unneeded for size. Rootfs — last
+   and only if proot starts from an external leaf (E3 against; separate
+   experiment with rollback). Template for the rest (worked on subpack,
+   repeat literally): (a) `OfflinePayload` object (leaf filename = staged
+   copy name if there was one — then migration is free; size+sha via
+   `python3 zipfile`+sha256 from the last APK that still had the file);
+   (b) `ensureX` suspend in the Storage class via `RemoteAssetFetcher`
+   (refusal outward, no fallback); (c) caller to provision-then-use
+   (pass progress, call inside an already-suspend context); (d) remove the
+   source from CI/prepare (cache keys rebuild themselves); (e)
+   `gh release create` — ONLY with files, never empty (7c: version tag
+   `vX.Y.Z`, one file per payload, short note); note starts with the ALPHA
+   banner (100% vibe-coded, stability is upstream's) + `--prerelease`
+   flag (user decision 10.10, stands for all fork releases); (f) CI →
+   `zipfile` measure → dir+`CHANGES.md` → download acceptance on clean
+   install (phone+port). Order: helper APK → templates/emoji (reader map
+   in 12b). Reference: `OfflinePayload.GIGAAM` (`util/OfflinePayloads.kt`)
+   + downloader `util/RemoteAssetFetcher.kt` (resume, Range, SHA-256) +
+   registration in `OfflinePayload.all`.
+   LIVE-FIRE 09.10 (build `2026-10-08_11-45-43Z`, clean install; phone
+   after bootloader unlock, `192.168.1.69:42323`, root, see cheat sheet),
+   battery 61–67%: DOWNLOAD PROVEN — `files/subpack/apk_editor_android.apk`
+   48139093 B + sha256 `c56b23a8...` matched the baked ones
+   (`SUBPACK_ANDROID`); the phone reached GitHub Releases itself. REPACK
+   FAILED: `ExceptionInInitializerError` `ExtraFieldUtils.<clinit>` —
+   `AsiExtraField` has no `<init>` (R8 cleaned the constructor; crashes at
+   `copyZipEntry:339` `outEntry.time = ...`, flow `ExportDialogs.kt:875`).
+   FIX — constructor keep (`app/proguard-rules.pro`, commit `b54dffbe`
+   pushed): true cause, not fallback; path audit — no other reflection
+   (apksig/apkparser/zip4j already `{ *; }`, sevenz not on the export
+   path). CI NOT STARTED: 422 "Actions has been disabled for this
+   repository" on both workflows; repo flag enabled=true, repo not
+   disabled/archived — block above the repo, owner needed (Settings →
+   Actions). No local SDK (`/opt` has only platform-tools) — nowhere to
+   build. Acceptance remainder after CI fix: install `-r`, re-show the
+   folder with a FINGER in HTML Packager, export to the end + offline
+   repeat with WiFi off (leaf already templated — no re-download owed).
+   SAF LESSON FOR THE CHEAT SHEET: folder rows and the USE button in
+   DocumentsUI are deaf to adb (`tap`/ENTER/SPACE/CENTER — proven by
+   combing; TAB/DPAD focus walks, toolbar/dialogs/file taps work).
+   Working: "Create folder" via toolbar (tap/ENTER) — the picker enters
+   the new folder itself; USE — finger only. User confirmation 09.10:
+   "the panel is alive, adb just can't".
+   CLOSE-OUT 10.10: DoD FULLY CLOSED. Build `2026-10-10_00-41-11Z` (CI
+   `38010108122`, APK 179691879 B): clean install → 48 MB download →
+   repack → zipalign → sign → `Download/Operit/exports/WebApp_*.apk`
+   48094313 B → `adb install` SUCCESS (`com.example.webproject`);
+   offline repeat (internet closed to the app only via iptables
+   owner-match — `svc wifi` FORBIDDEN, it kills ADB) successful in
+   seconds, logcat shows zero re-downloads, byte-identical size. Finger
+   NO LONGER NEEDED AT ALL: root taps via sendevent (`/dev/input/event3`,
+   MT-B, 1:1 to dump coordinates) indistinguishable from a finger —
+   proven on USE+Allow (`ci/script/phone_lab.sh`, acceptance encoded in
+   `ci/script/accept_q2_export.sh`, syntax checked, first full run — on
+   the next payload).
+   syntax checked, first full run — on
+   the next payload).
+   14. Onboarding: one screen instead of three (IMPLEMENTED in code 10.10,
+   on-device acceptance pending; user decision: long agreement texts out,
+   tour behind a separate button). New
+   `ui/features/permission/screens/OnboardingScreen.kt`: top card "Your
+   responsibility" (`onboarding_liability_*`: all good and bad is the
+   user's responsibility, the developer answers for nothing) + "What can
+   it do?" button (tour — `FeatureTourDialog`, 3 intro pages, out of
+   flow); then 4 base permissions as cards (same intent handlers); then 4
+   levels (STANDARD/ACCESSIBILITY/DEBUGGER/ROOT; ADMIN was never offered in
+   UI before either); always-active Continue at the bottom — no choice
+   writes STANDARD. `MainActivity`: Agreement/Guide branches replaced by
+   one (`!accepted || level==null → OnboardingScreen`, onComplete writes
+   `acceptCurrentAgreement()` + `checkPermissionLevelSet()` + as before).
+   Deleted: `PermissionGuideScreen.kt`, dead strings (welcome_*, warning_*,
+   complete, confirm, step labels); `AgreementScreen.kt` KEPT (agreement
+   display from Toolbox, `OperitScreens.kt:686`). UI anchor UI-001 moved to
+   the new file. Top-up 10.10 (user decision): market modal
+   `MarketAgreementDialog` (block on first market entry + "Market
+   Agreement" item in Mine) DELETED whole — dialog files and
+   `MarketAgreementPreferences.kt`, `market_agreement_*` strings, branch
+   in `UnifiedMarketScreen.kt`; instead one sentence in the onboarding
+   card (`onboarding_plugins_note`: third-party plugins execute their
+   authors' code — install at your own risk). Acceptance script adapted:
+   step 3 now waits for "Your responsibility", swipes "Continue" into
+   view, taps, waits for "New Chat". First live run 10.10 (APK
+   `20261010_094027Z`, CI 38042218605): root/install/grants/onboarding —
+   OK (new onboarding works); then two bugs, both in script/flow, not the
+   app: (1) `cd` in the script pointed out of repo root — fixed;
+   (2) a popped Announcement modal stole taps — by user decision the modal
+   DELETED whole (`RemoteAnnouncementDialog` + `RemoteAnnouncementRepository`
+   + `RemoteAnnouncementPreferences` + branch in `OperitApp`; the script
+   keeps a "Got it" guard just in case); (3) picker: `Select Folder`
+   sometimes doesn't open on first tap (sendevent flake, known) — script
+   retries up to 3. Acceptance state by night 10.10: PROVEN in three runs
+   (APKs 094027Z, 132740Z, 160304Z): onboarding (Continue → chat), picker,
+   folder-pick, 48 MB download, repack. NOT PROVEN (needs a green build):
+   tour dialog (open/page/close), level choice, permission rows via taps,
+   no market/Announcement modal on first entry. Script by night: expectation
+   model (`plab_expect_text` — each stage declares the expected screen,
+   failure prints screen + FAIL, no hangs), heartbeat in long waits, wake
+   + screen_off_timeout with restore-trap, install with cause + retry,
+   output-APK basename. CLOSE-OUT 14, night 10.10 (APK `20261010_215026Z`,
+   manual session, battery 34→~28%): tour — open/1-2-3/Close (back to
+   onboarding); levels — Debug visibly selected (purple frame + filled
+   radio, screenshot `/tmp/opencode/t14_levels.png`), then Standard +
+   Continue → chat, `android_permission_preferences.preferences_pb`
+   records `preferred_permission_level=STANDARD`, consent
+   `accepted_agreement_version` in place; Storage Permission row via tap
+   opens system "All files access" (toggle ON — appops survives
+   `pm clear`); market — pink FAB (hitbox (643,1280), not the glyph!)
+   leads STRAIGHT to the feed with no Agreement/countdown (first entry);
+   Announcement never popped on fresh installs (×2 runs — straight
+   onboarding). DoD FULLY CLOSED. Side: runtime translation alive on
+   15-code (`楼层限制器`→"Floor Limiter"+EN description). Phone left: fresh
+   215026Z install, onboarding passed, STANDARD, chat ready. Evening run
+   10.10 (APK `20261010_132740Z`, CI 38055794385, 15-code): script brought
+   to shape (visible steps, adb-timeout 90s, install with cause+retry),
+   but acceptance stalled: install flake (manual OK) → rerun died on
+   transport (`error: closed`), phone 192.168.1.69 unpingable, adb
+   offline, LAN scan for 5555 (.2–.254) empty. Need the user: check the
+   phone (power/WiFi/IP). Next: CI build (announcement-removal + logos +
+   script) and full acceptance.
+   ACCEPTANCE 15 (APK `20261010_132740Z`, CI 38055794385): onboarding/
+   picker/folder/download/repack — OK, but signing fell: PKCS12 unwrap
+   (SecretKeyFactory PBES2 unavailable) + JKS getInstance fail. A/B vs APK
+   094027Z (signs OK) + dex compare (BC classes 5433=5433, refs 7913=7913)
+   + keystore md5 matched → not content but first-match: inserted
+   bundled-BC shadows the platform one, its service instantiates but falls
+   on load, JCA never tries the rest. Fix: `KeyStoreHelper` rewritten to
+   loadVerifiedKeystore (per-type provider iteration with alias check,
+   final error as before), provider insert/remove gone entirely,
+   `ApkReverseEngineer` moved to the new loader. Not a fallback:
+   verification mandatory, total failure visible as before. DoD: clean
+   install → Continue → chat at once; separately: tour opens/pages/
+   closes, levels selectable, permissions tap into system settings.
+   15. Chinese integrations — remove ALL (CODE DONE evening 10.10, user
+   decision "remove everything" executed; left: green CI build already
+   there — `20261010_170331Z` (CI `38070179633`, incl. insert+iterate and
+   diagnostics), needs FULL script acceptance on it + the "NOT PROVEN"
+   items from task 14. Below — inventory (as before removal) and the
+   implementation record at the item end. (All paths from repo root, sizes
+   — bytes in APK `2026-10-10_00-41-11Z` via `python3 zipfile` unless
+   stated):
+   (a) QQ Bot (Tencent QQ OpenAPI, CN-market only: needs QQ credentials):
+   `examples/qqbot/` (~520 KB sources), in whitelist
+   `tools/example_packages/packages_whitelist.txt` → packed into
+   `assets/packages/` + installed to toolpkg_cache; UI — Toolbox tile
+   "QQ Bot Settings". Path — like 12a (apktool): cross out of whitelist,
+   stale cache cleaned by `reconcileToolPkgCaches` itself, DoD — CI
+   measure (`python3 zipfile`, `*qqbot*` zero). UNCLEAR: exact .toolpkg
+   size (build with the sync script and weigh before deciding);
+   (b) CN-provider presets — REMOVE (zero size, clean interface):
+   `provider_baidu/provider_alipay_bailing/provider_aliyun` (`app/.../res/
+   values/strings.xml:4138+`), Baidu/Xiaomi endpoints
+   (`ApiProviderConfigCollect.kt:90,152`, `ModelConfigData.kt:24`,
+   `MimoProvider.kt`, `MimoVoiceProvider.kt`), baidu.com test URL
+   (`ToolTesterScreen.kt:326`), alipay: scheme in Token-WebView
+   (`TokenConfigWebViewScreen.kt:108`, `WebViewConfig.kt:126`), test_desc
+   strings (`strings.xml:3045`). Remove fully: types from
+   `ApiProviderType`, UI branches, strings, default endpoints;
+   (c) CN-app map — REMOVE (`StandardUITools.kt:65-123,248-249`):
+   WeChat/QQ/Weibo/Taobao/Baidu-maps/bilibili/Tencent-video/QQ-music/
+   QQ-mail/Tencent-news → package names. Remove whole (an EN user doesn't
+   need Chinese-app openers); verify the tool doesn't fall without the map
+   (default branch/error instead of the CN list);
+   (d) HuaweiCloud-maven in export templates — REMOVE
+   (`assets/templates/{android,flutter}/.../settings.gradle.kts`,
+   `build.gradle.kts`): a CN mirror; before deleting prove an export-
+   project build without it (or roll back);
+   (e) Verified NOT Chinese (don't touch): OCR engine — Google MLKit
+   `com.google.mlkit:text-recognition:16.0.0` (`gradle/libs.versions.toml:18`,
+   `app/build.gradle.kts:649`, `libmlkit_google_ocr_pipeline.so` 9.5 MB,
+   NO zh/ja/ko script packs in deps; active model — LATIN ONLY
+   (`OCRUtils.kt:31,52`: `latinRecognizer`,
+   `TextRecognizerOptions.DEFAULT_OPTIONS`; CJK recognizers are separate
+   artifacts, not linked; confirmed by code read 10.10); NO CJK fonts in
+   assets (only `terminal/.../jetbrains_mono_nerd_font_regular.ttf`);
+   `res/` — only `values`+`values-night` (no values-zh); MNN
+   (`libMNN.so` 20.9 MB + Wrapper 5.3 MB) loads a LIVE `llm/mnn`
+   (`MNNLibraryLoader.kt:33,37`, `MNNModule.kt`) — removal only together
+   with the MNN-LLM feature (user decision, NOT a free win; no dead
+   MNN-STT left in code — verified by grep 10.10); NO push SDKs
+   (Huawei/Xiaomi/Oppo/Vivo/JPush) in deps.
+   IMPLEMENTATION 10.10 (code, in a separate CI build after acceptance
+   14): enum `ApiProviderType` −16 (BAIDU/ALIYUN/XUNFEI/ZHIPU/BAICHUAN/
+   MOONSHOT/MIMO/DEEPSEEK/SILICONFLOW/IFLOW/INFINIAI/ALIPAY_BAILING/
+   DOUBAO/PPINFRA/NOVITA/MINIMAX); deleted Deepseek/Kimi/Mimo/Qwen/Doubao
+   provider files + their TTS four (SiliconFlow/MiniMax/Mimo/DoubaoVoice
+   Provider) and SILICONFLOW_TTS/MINIMAX_TTS/MIMO_TTS/DOUBAO_TTS types;
+   factories (`AIServiceFactory`, `VoiceServiceFactory`,
+   `ModelListFetcher`) — branches cut (silent where else was, fixed by
+   compiler where exhaustive); collects: `ApiProviderConfigCollect` −16
+   presets, `ModelPricingDefaultsCollect` (set+map),
+   `ScrapedModelPricingRowsCollect` −142 lines + empty blocks,
+   `ModelThinkingConfigDefaultsCollect` −CN rules (DEEPSEEK/MOONSHOT/
+   MIMO/DOUBAO/ALIYUN/SILICONFLOW/ZHIPU/opencode-zhipu) + minimax tails;
+   QQBot: whitelist line + `examples/qqbot/`; `AutoGlmOneClickToolScreen`
+   (Zhipu one-click) + route + Toolbox item + strings; DeepSeek
+   token-webview cluster (`DeepseekApiConstants/JsScripts/
+   DeepseekJsInterface`, dead); alipay:/weixin: schemes in both webview
+   clients; baidu URL and desc in ToolTester; CN-app map in
+   `StandardUITools` (whole CN block + QQ/WeChat/TikTok/Temu/bilibili/
+   keep); aliyun/huaweicloud/tuna/bfsu/tencent mirrors from export
+   templates (gradle + setup scripts, official upstream left); defaults →
+   OpenAI (`ApiPreferences`, `ModelConfigManager`, `ApiConfigDelegate`,
+   `UrlConfig`, `ModelConfigData`); old configs migrate to OPENAI_GENERIC
+   persistently (`migratePreferencesFromVersionFour`, store version 4→5,
+   keys/endpoints kept); TTS type read via runCatching→SIMPLE_TTS;
+   `saveDeepSeekConfiguration` generalized to `saveInitialConfiguration`;
+   `enableDeepSeekWebSearch` deleted along the whole chain; provider_* /
+   speech_services_cn_* / enable_deepseek_* strings wiped; tests fixed
+   (ThinkingQuality — CN cases deleted, third-party now UNSUPPORTED; other
+   fixtures DEEPSEEK→OPENAI); provider logos `assets/model_logos/` −16 CN
+   folders; PROMPT-002 and its 5 allowlist entries deleted (file dead);
+   3 shortened CN prompt lines pre-allowlisted. UNTOUCHED: wire-protocol
+   comments, free-model chat trigger, minimax routing branch of OpenCode
+   (aggregator machinery), non-whitelist `examples/` (not packed to APK).
+   16. Install-size round 2 — CLOSED by user decision 10.10 (don't touch);
+   inventory below kept as reference, not a plan. Base: APK 179.7 MB,
+   installed_linux: assets ~155 MB stored + copies in `files/` (rootfs
+   61 MB tarball + ~358 MB unpack, toolpkg_cache ~31 MB) — research-size
+   numbers, remeasure on a provisioned device before work (`run-as ...
+   du` over `files/*`: objectbox, translation_cache, media_pool,
+   skill_repo_zip_pool, image_pool, custom_emoji, logs — weigh what they
+   really are, write here). Delete candidates (all — user decision,
+   numbers from 10.10 APK): avatar stack ~14.5 MB (`libfilament-jni`+
+   `libgltfio-jni` 5.2, `libdragonbones_native` 2.6, `libMmdWrapper` 5.1,
+   `libFbxWrapper` 1.6) — only with the avatar feature; FFmpeg ~26 MB
+   (`libavcodec` 15.7, `libavfilter` 5.2, `libavformat` 5.1) — only with
+   Toolbox "FFmpeg Toolbox" + `ffmpeg.js` toolpkg; llama stack ~23 MB
+   (`libllama-common` 12.6, `libllama` 7.9, `libggml-*` 3.1) — only with
+   GGUF inference; MNN ~26 MB — see 15(e); MLKit 9.5 MB — only with OCR
+   (live feature: `OCRUtils`, screen-OCR in the floater). SD/out-of-APK
+   candidates (technical, no feature kill): helper APK
+   (`assets/shizuku.apk` 2.5 + `accessibility.apk` 2.7 MB, readers
+   `ShizukuInstaller:37`, `UIHierarchyManager:89-91`) and templates
+   (11 MB, `WorkspaceUtils.copyTemplateFiles:682`) + emoji (3.7 MB,
+   `CustomEmojiRepository:298`) — same Q2 template as task 13;
+   toolpkg_cache (move after the SubpackStorage mechanics); aapt2 doubles
+   in templates (2×4.5 MB) — DO NOT TOUCH (breaks export, SIZE-006). NEVER
+   TOUCH AT ALL: rootfs (E3: proot from external leaf won't start —
+   experiment with pre-proof and rollback, separate), `lib/`+dex except
+   listed (E2), `assets/js` 1.4 MB (hot JS runtime), keystore assets,
+   `bridge/`, `operit_shell_exec`. Round DoD: "module → MB in APK → MB
+   installed → decision" table here + per taken item — like 12a
+   (delete+measure) or 13 (on-demand+`accept_q2_export.sh`-style
+   acceptance). ACCEPTANCE 15 CLOSED night 10.10: `accept10` on
+   `20261010_215026Z` (15-code + evict-fix) — PASS=10 FAIL=0:
+   install/grants/onboarding/picker/folder/48 MB download/repack/sign
+   (`WebApp_1791671054137.apk` 48094313 B)/leaf-intact/offline-no-redownload.
+   A/B "094027Z signs" no longer needed (mechanism proven directly).
+   17. Export-signing regression (CLOSED night 10.10; BLOCKER lifted).
+   Symptom was: `Export Failed` — `Unable to load keystore`, `JKS not
+   found`; output `WebApp_*.apk` stays UNSIGNED (`keytool -printcert
+   -jarfile` → `Not a signed jar file`). PROVEN (measurements, not
+   guesses): (a) keystore byte-intact (md5 device == md5
+   `app/src/main/assets/pkcs12.keystore`); (b) BC classes in dex identical
+   (5433=5433, refs 7913=7913 — only via `python3 zipfile`, no `unzip` on
+   the box); (c) [CANCELLED by close-out 17: keytool probably checked a
+   stale file, trap (N13) — do not quote] APK 094027Z allegedly signed,
+   132740Z/160304Z — not; (d) passwords/alias are constants
+   (`ExportDialogs.kt:862-870`: file from `getOrCreateKeystore`,
+   `android`/`androidkey`/`android` — code unchanged); (e) bundled-BC
+   insert rejected by the system (`insertProviderAt` → −1, duplicate "BC"
+   name forbidden — so the a2764e9c insert was always a no-op, platform BC
+   did the work); (f) iteration showed: `KeyStore.PKCS12` offers only one
+   "BC" (platform), nobody offers JKS (normal on Android, not an error).
+   NOT PROVEN (the mystery core): same platform BC, file, password — old
+   builds open the key, new ones don't. Refuted: file corruption, cut
+   classes, JKS, password/alias, templates, download. Open: process state
+   (which providers really stand — old builds had no logs); platform flake
+   across reboots (phone vanished from LAN in the evening and came back).
+   Loose ends: (1) RESOLVED night 10.10: the `inserted at −1` line at 20:40
+   was accept8 on `170331Z` (code with insert), no anomaly: pre-170331Z
+   builds lack the line (verified by grepping dex of all APKs for the exact
+   phrase); the confusion was my error — I twice wrote accept8 rides
+   160304Z; (2) JKS path always dead (no provider on Android) — fix PKCS12
+   only. ROOT FOUND night 10.10 (diagnostics `20261010_203519Z`, CI
+   `38084332791`, accept9 run: onboarding/picker/folder/download/repack —
+   OK, signing — no; log `files/logs/operit.log` via run-as): keystore is
+   PBES2/PBKDF2/AES-256-CBC (verified locally with `openssl pkcs12 -info`,
+   file dated 09.09), and the phone has NO PBES2 SecretKeyFactory in all
+   of JCA (direct probe — unavailable; `KeyStore.PKCS12` offers only
+   platform BC 1.61; old-style resolves to the same). Bundled-BC insert
+   rejected (−1, name "BC" taken by platform). History: pre-`a2764e9c`
+   code did remove+insert (upstream mechanics) and signing worked;
+   `a2764e9c` removed remove ("don't return" — old memo item was WRONG) +
+   added keep — since then platform only → PBES2 dead. A/B "094027Z signs"
+   — SUSPICIOUS (keytool may have checked a stale `WebApp_*.apk`, trap
+   (N13)): re-verify with a clean run. FIX (commit after diagnostics, CI
+   `38089152700`): `registerBouncyCastleProvider` does remove+insert again
+   (evict platform from the "BC" slot + insert bundled at 1 + log the slot
+   class); keep `org.bouncycastle.**` in place (`proguard-rules.pro:77`);
+   `loadVerifiedKeystore` iteration stays verification. DoD on green:
+   clean run + keytool on EXACTLY the fresh file (name+time) + install.
+   CLOSE-OUT 17 (APK `20261010_215026Z`, CI `38089152700`, accept10
+   PASS=10 FAIL=0): log shows `BC/1.78` first (platform evicted),
+   `PBES2 SecretKeyFactory offered by BC`, `PKCS12 loaded via BC` ×2;
+   fresh `WebApp_1791671054137.apk` (01:24, 48094313 B): keytool —
+   self-signed Signer #1 CN=1, `adb install` — Success. 15-commit innocent
+   (nothing to bisect); A/B 094027Z — stale-file artifact, never quote.
+   18. Fork identity (user decision 10.10: B+C now, D later — D DROPPED
+   15.10, forget it). B — attribution string `fork_attribution`
+   ("English-only community fork of Operit (upstream:
+   github.com/AAswordman/Operit). ALPHA build, use at your own risk."):
+   in the onboarding card (after plugins-note, small type) + in About
+   under the version (no fork mention there at all before). C — debug
+   label "Operit Debug" → "Operit EN" (`app/build.gradle.kts` resValue;
+   clone flavor untouched).
+   CLOSE-OUT 18 (APK `20261011_123918Z`, `accept_bc_identity.sh` + `scen/
+   bc_identity.uaw`): PASS=8 FAIL=0 — attribution on onboarding and About,
+   "Operit EN" label in launcher, old label gone. En route fixed Continue
+   tap (swipe→tap→chat-check cycle).
+   bc_identity.uaw`): PASS=8 FAIL=0 — attribution on onboarding and About,
+   "Operit EN" label in launcher, old label gone. En route fixed Continue
+   tap (swipe→tap→chat-check cycle).
 
 ---
 
+## What was done, so it never redos
+
+The previous agent's diagnosis was **wrong**, and that's the main thing
+to know. It blamed leftover Chinese on hardcoded literals. In fact
+`values-en` was full (7659/7659), `:app` hardcode cleaned — yet Chinese
+kept appearing. Four independent causes, each looking like "missing
+translation":
+
+1. **Unsupported system locale** leaked into `Configuration` → Android
+   fell back to the default bucket, which was Chinese. Now the default
+   bucket is English, and everything unsupported resolves to `en`.
+2. **Services read strings from the application context**, which below
+   Android 13 doesn't reconfigure on language change. They read via
+   `getLocalizedContext`.
+3. **Values written to DataStore on first launch** stay in that launch's
+   language. Hence `默认配置`, `小欧`. Heals itself on clean install.
+4. **ToolPkg plugin** didn't get `useEnglish` in the payload → fell to `zh`.
+
+Fifth, found on-device: **notification channel names can't be fixed by
+resource.** The system captures them at first creation forever. Fixed
+only by a versioned suffix in the channel id.
+
+Confirmed on SM-A207F at system locale `ru-RU`: first screen English,
+CJK = 0 across UI and all phone notifications.
+
+**Size:** 439 → 296 MB. Mainly — STT model (141 MB) moved online, locales
+(7 MB), non-Latin OCR models and Chinese tokenizer (4.8 MB).
+
+**Verified vs not:**
+
+- Debug build compiles, R8 (`minifyNightlyWithR8`) passes in CI.
+- R8-minified build **never run on device** — no signed APK.
+- `check_strings.py` and `check_localizations.py` fixed, but mean
+  anything real only once a second locale appears.
 
 ---
 
-## Открытые вопросы 1–2 (SUPERSEDED/CLOSED, история)
+## Open questions 1–2 (SUPERSEDED/CLOSED, history)
 
-## Открытый вопрос 1: дальнейшее урезание дистрибутива (SUPERSEDED 2026-10-03)
+## Open question 1: further distribution trimming (SUPERSEDED 2026-10-03)
 
-Таблица ниже — состояние на 30.09 (APK 296 МБ). Актуально:
-`docs/FORK-REGISTRY/research-size.md` + план `docs/TODO/offline-assets-move/`.
-OCR-решение ниже устарело частично: нелатинский ML Kit удалён (SIZE-002),
-латинский OCR жив (`OCRUtils`), движок+модель остаются.
+Table below — state on 30.09 (APK 296 MB). Live:
+`docs/FORK-REGISTRY/research-size.md` + plan `docs/TODO/offline-assets-move/`.
+OCR verdict below partly outdated: non-Latin ML Kit removed (SIZE-002),
+Latin OCR alive (`OCRUtils`), engine+model stay.
 
-296 МБ, из них в APK крупнейшие блоки:
+296 MB, biggest blocks in APK:
 
-| блок | МБ | что это | мой взгляд |
+| block | MB | what | my view |
 |---|---|---|---|
-| dex | 72 | вся логика + 3 HTTP-стека | R8 включён, реальный выигрыш не измерен |
-| rootfs Ubuntu | 64 | proot-образ для терминала | кандидат в онлайн, но ломает «работает из коробки» |
-| lib | 57 | нативные библиотеки | уже arm64-only, ужать нечем |
-| `subpack/` | 37 | `android.apk` + `windows.zip` для фичи экспорта | кандидат в онлайн |
-| `packages/` | 28 | из них 27 — `apktool.toolpkg` | кандидат в онлайн |
-| **OCR (ML Kit)** | **5.5** | см. ниже | кандидат на удаление целиком |
-| assets прочее | 20 | emoji-гифки, MathJax, шрифты | |
+| dex | 72 | all logic + 3 HTTP stacks | R8 on, real win unmeasured |
+| rootfs Ubuntu | 64 | proot image for terminal | online candidate, breaks "works out of the box" |
+| lib | 57 | native libs | already arm64-only, nothing to squeeze |
+| `subpack/` | 37 | `android.apk` + `windows.zip` for the export feature | online candidate |
+| `packages/` | 28 | of which 27 is `apktool.toolpkg` | online candidate |
+| **OCR (ML Kit)** | **5.5** | see below | full-removal candidate |
+| other assets | 20 | emoji gifs, MathJax, fonts | |
 
-**Про OCR — неочевидный вывод, проверь перед решением.** Он состоит из
-**весов 1.49 МБ** (модель реально такая маленькая — квантованный MobileNet +
-LSTM) и **движка 10 МБ**, который универсальный: я нашёл в нём код для 23
-письменностей, включая Devanagari, для которого модель я удалил. Движок
-бесполезен без модели, модель бесполезна без движка — **частичного выигрыша
-нет**. Либо весь ML Kit (5.5 МБ в APK, 11.3 МБ на устройстве), либо ничего.
-Распознавание при этом полностью локальное, облака нет, в фоне не работает.
-Четыре потребителя, все по явному действию: вложение-скриншот, плавающее
-OCR-окно, инструмент агента «прочитать картинку», скан-PDF.
+**On OCR — a non-obvious conclusion, verify before deciding.** It is
+**1.49 MB of weights** (the model really is that small — quantized
+MobileNet + LSTM) plus a **10 MB engine**, which is universal: I found
+code for 23 scripts in it, including Devanagari, whose model I deleted.
+The engine is useless without the model, the model without the engine —
+**no partial win**. Either all of ML Kit (5.5 MB in APK, 11.3 MB
+on-device) or nothing. Recognition is fully local, no cloud, doesn't run
+in background. Four consumers, all on explicit action: attachment
+screenshot, floating OCR window, agent "read the picture" tool, PDF scan.
 
-**Осторожно с `useLegacyPackaging = true`** в `app/build.gradle.kts:517`.
-Из-за него `.so` сжаты в APK и распаковываются при установке. APK станет
-больше, расход места на устройстве меньше. Это развилка «уменьшить загрузку»
-против «уменьшить установку» — выбирай осознанно.
+**Careful with `useLegacyPackaging = true`** in `app/build.gradle.kts:528`.
+It keeps `.so` compressed in the APK, unpacked at install. APK gets
+bigger, on-device footprint smaller. An "shrink download" vs "shrink
+install" fork — choose deliberately.
 
-Порядок работы, если браться: сначала прогон
-`python3 ci/script/fork_audit.py` (увидишь hotspot-файлы — где форк и апстрим
-конфликтуют), потом решай по одному блоку, каждый раз меряя APK заново.
+Work order if taken up: first run `python3 ci/script/fork_audit.py`
+(you'll see hotspot files — where fork and upstream conflict), then
+decide block by block, remeasuring APK each time.
 
 ---
 
-## Открытый вопрос 2: замена STT на GigaAM-Multilingual (CLOSED 2026-10-03)
+## Open question 2: GigaAM-Multilingual STT replacement (CLOSED 2026-10-03)
 
-Реализовано: провайдер `GigaAMSpeechProvider`, прямой ORT-рантайм вместо
-sherpa (вариант (б) ниже), VAD-чанкер вместо стриминга (фразы, не поток),
-модель 225 МБ в on-demand с consent. Остаток — M6-приёмка (см. статус
-сверху), не реализация.
+Implemented: `GigaAMSpeechProvider`, direct ORT runtime instead of sherpa
+(variant (b) below), VAD chunker instead of streaming (phrases, not a
+stream), 225 MB model on-demand with consent. Remainder — M6 acceptance
+(see status above), not implementation.
 
-Пользователь выбрал `fussraider/GigaAM-Multilingual-sherpa-onnx-ctc`.
-Я проверил — выбор правильный, но **это не замена ссылки, а замена движка**,
-и вот три вещи, которые сломают «просто поменять»:
+User picked `fussraider/GigaAM-Multilingual-sherpa-onnx-ctc`. I verified —
+the pick is right, but **it's not a link swap, it's an engine swap**, and
+three things break "just swap it":
+**1. The app has no runtime.** It ships `libsherpa-ncnn-jni.so` (5.1 MB)
+and Kotlin API `com.k2fsa.sherpa.ncnn.*`. The model is **sherpa-onnx**
+format — a different JNI (`libsherpa-onnx-jni.so`) and API
+(`com.k2fsa.sherpa.onnx.*`). Both `.so` come from the `jniLibs.zip`
+archive downloaded by `ci/script/download_android_dependencies.sh` from
+Google Drive — i.e. **an upstream artifact I cannot add a file to**.
+Options: (a) ask upstream to add sherpa-onnx JNI — slow, out of our
+control; (b) run ONNX directly through the already-present
+`com.microsoft.onnxruntime:onnxruntime-android:1.17.1`. There is a sample:
+`OnnxSileroVad.kt` already works via onnxruntime. CTC with a 71-symbol
+vocab → greedy decode is trivial: argmax → collapse repeats → drop blank.
+Features: 16 kHz, 64 mels, n_fft=320, win=320, hop=160, subsampling=4.
+This is the **preferred path**, it drops the upstream dependency;
+(c) build `libsherpa-onnx-jni.so` locally and vendor it into an
+`llm/mnn`-like module, as done with `libsherpa-mnn-jni.so`.
+**2. The model is offline, the app streams.** Current
+`SherpaSpeechProvider` is an `OnlineModelConfig` with encoder/decoder/
+joiner, pushing partials via `recognitionResultFlow`
+(`partialResults = true`). The export README says outright: *NeMo-CTC
+**offline** format*. So either write a separate
+`OfflineRecognizer.fromTransducer`/`fromCTC` wrapper and switch the UI to
+"record → recognize", or live with end-of-utterance delay: live chat
+transcription arrives in chunks, the user is used to seeing text as they
+speak. This is a product decision — **ask the user** before implementing.
+**3. The model is bigger than what it replaces.**
 
-**1. Рантайма в приложении нет.** Сейчас в APK `libsherpa-ncnn-jni.so` (5.1 МБ)
-и Kotlin API `com.k2fsa.sherpa.ncnn.*`. Модель в формате **sherpa-onnx** —
-это другой JNI (`libsherpa-onnx-jni.so`) и другой API
-(`com.k2fsa.sherpa.onnx.*`). Оба `.so` приезжают из архива `jniLibs.zip`,
-который качает `ci/script/download_android_dependencies.sh` с Google Drive —
-то есть **это артефакт апстрима, и добавить туда файл я не могу**. Варианты:
-- (а) просить апстрим добавить sherpa-onnx JNI — долго, вне нашего контроля;
-- (б) гонять ONNX напрямую через уже присутствующий
-  `com.microsoft.onnxruntime:onnxruntime-android:1.17.1`. Образец есть:
-  `OnnxSileroVad.kt` уже работает через onnxruntime. CTC с 71-символьным
-  словарём → greedy decode тривиален: argmax → схлопывание повторов → выкинуть
-  blank. Фичи: 16 кГц, 64 мела, n_fft=320, win=320, hop=160, subsampling=4.
-  Это **предпочтительный путь**, он снимает зависимость от апстрима;
-- (в) собрать `libsherpa-onnx-jni.so` локально и вендорить в `llm/mnn`-подобный
-  модуль, как уже сделано с `libsherpa-mnn-jni.so`.
-
-**2. Модель офлайновая, приложение стриминговое.** Текущий
-`SherpaSpeechProvider` — `OnlineModelConfig` с encoder/decoder/joiner,
-пушит частичные результаты через `recognitionResultFlow`
-(`partialResults = true`). В README экспорта прямо сказано:
-*NeMo-CTC **offline** format*. Значит либо
-- писать отдельный `OfflineRecognizer.fromTransducer`/`fromCTC`-обвязку и
-  менять UI на «запись → распознавание», либо
-- мириться с задержкой в конце высказывания: живая расшифровка в чате
-  раздаётся по кускам, пользователь привык видеть текст по мере речи.
-
-Это продуктовое решение, **спроси у пользователя** перед реализацией.
-
-**3. Модель больше той, что заменяет.**
-
-| вариант | размер | против текущих 141 МБ |
+| variant | size | vs current 141 MB |
 |---|---|---|
-| `model.int8.onnx` (220M, 16 layer, d_model 768) | **225 МБ** | +84 МБ |
-| `large/model.int8.onnx` (600M, 24 layer) | **592 МБ** | +451 МБ |
-| `model.onnx` fp32 | 885 МБ | не для мобилы |
+| `model.int8.onnx` (220M, 16 layer, d_model 768) | **225 MB** | +84 MB |
+| `large/model.int8.onnx` (600M, 24 layer) | **592 MB** | +451 MB |
+| `model.onnx` fp32 | 885 MB | not mobile |
 
-То есть **качество на русском растёт, а размер дистрибутива тоже растёт.**
-Это прямо конфликтует с открытым вопросом 1. Скажи пользователю явно.
-Хорошая новость: модель уже в онлайне (я вынес STT в онлайн), так что это
-скачивание, а не вес APK. И она **первоклассно работает по-русски**: WER 7.1%
-на Common Voice против 9.1% у Whisper large v3, 4.4% на FLEURS против 3.1%
-(Whisper тут лучше). Токенизатор символьный, а не sentence-piece — русский не
-приклеен сбоку, а в словаре наравне с латиницей: `a-z`, `а-я` + `ё` +
-казахские `і ғ қ ң ү ұ һ ә ө`. Всего 71 токен, `<blk>` последний.
-
-Закрепить ревизию, как принято в `SttModelRepository`:
-`9f5a77e8975211abe8511693accd3a63ee1e9f43`, файлы `model.int8.onnx` + `tokens.txt`.
-
-**Учти:** `libsherpa-ncnn-jni.so` (5.1 МБ) после перехода станет не нужен —
-это отдельный выигрыш, но только если `SherpaMnnSpeechProvider` его не делит
-(посмотри `llm/mnn/src/main/jniLibs/arm64-v8a/libsherpa-mnn-jni.so` — это
-другая библиотека, она останется).
+So **Russian quality grows, and so does distribution size.** Directly
+conflicts with open question 1. Tell the user explicitly. Good news: the
+model is already online (I moved STT online), so it's a download, not APK
+weight. And it **works first-class in Russian**: WER 7.1% on Common Voice
+vs 9.1% Whisper large v3, 4.4% on FLEURS vs 3.1% (Whisper better there).
+Symbol tokenizer, not sentence-piece — Russian is a first-class vocab
+citizen with Latin: `a-z`, `а-я` + `ё` + Kazakh `і ғ қ ң ү ұ һ ә ө`.
+71 tokens total, `<blk>` last. Pin the revision as done in
+`SttModelRepository`:
+`9f5a77e8975211abe8511693accd3a63ee1e9f43`, files `model.int8.onnx` +
+`tokens.txt`. **Note:** `libsherpa-ncnn-jni.so` (5.1 MB) becomes unneeded
+after the switch — a separate win, but only if `SherpaMnnSpeechProvider`
+doesn't share it (see `llm/mnn/src/main/jniLibs/arm64-v8a/
+libsherpa-mnn-jni.so` — a different lib, it stays).
 
 ---
 
-
----
-
-## Истории приёмок T1–R8, CTC, deferred/dropped
+## Acceptance histories T1–R8, CTC, deferred/dropped
 
 ## Custom CTC checkpoint acceptance (2026-10-03, device R9TN601D6GJ)
 
-- Feature commits: `a5d60d76` (CtcModelConfig core) + `b1312e43` (HF add flow)
-  + fixes `9676e3d5` (prefs brace), `dfc4c873` (Hub ?blobs=true + sha256 field).
-  CI `37081015984` green, APK ~293 MB reinstalled (uninstall first: every CI
-  build signs with a fresh debug key).
+- Feature commits: `a5d60d76` (CtcModelConfig core) + `b1312e43` (HF add
+  flow) + fixes `9676e3d5` (prefs brace), `dfc4c873` (Hub ?blobs=true +
+  sha256 field). CI `37081015984` green, APK ~293 MB reinstalled
+  (uninstall first: every CI build signs with a fresh debug key).
 - Accepted on device: picker renders, add-dialog resolves
-  `i2z1/gigaam-multilingual-ctc-onnx-int8` (failed before the blobs fix with
-  "no content digest", which is how the bug was found), full pipeline
+  `i2z1/gigaam-multilingual-ctc-onnx-int8` (failed before the blobs fix
+  with "no content digest" — that's how the bug was found), full pipeline
   (tokens pin, 225 MB verified download, graph-vocab handshake on the
   phone's ORT), auto-select "In use", delete with fallback to built-in,
   registry back to `[]` with no leftover files.
-- Wizard replay cheat-sheet: agreement tap, tour next x3, welcome next, grant
-  perms via adb (READ_MEDIA_AUDIO + SYSTEM_ALERT_WINDOW appop + battery
-  whitelist matter), Check status, Continue through Incomplete, Standard
-  level, Confirm, wait out the 公告 countdown. Keyguard: swipe alone does not
-  unlock, use KEYCODE_WAKEUP + `wm dismiss-keyguard`; dreaming re-locks, and
-  `settings put secure screensaver_enabled 0` stops it.
+- Wizard replay cheat-sheet: agreement tap, tour next x3, welcome next,
+  grant perms via adb (READ_MEDIA_AUDIO + SYSTEM_ALERT_WINDOW appop +
+  battery whitelist matter), Check status, Continue through Incomplete,
+  Standard level, Confirm, wait out the announcement countdown. Keyguard:
+  swipe alone doesn't unlock, use KEYCODE_WAKEUP + `wm dismiss-keyguard`;
+  dreaming re-locks, and `settings put secure screensaver_enabled 0`
+  stops it.
 
 ## Deferred item decoder (2026-10-03, from /home/uzzzver/operit-fork/screenshots2/)
 
-Screenshots 1-8 reviewed frame by frame. Internal labels T1/U1/D12 exist in
-no artifact (registry, HANDOFF, user notes, git log); what follows is
-reconstructed from the screenshots, with unknowns marked as unknowns.
+Screenshots 1-8 reviewed frame by frame. Internal labels T1/U1/D12 exist
+in no artifact (registry, HANDOFF, user notes, git log); what follows is
+reconstructed from screenshots, unknowns marked as unknowns.
 
 - RAW TOOL JSON (fixed `0add89c4`): AI Chat renders a tool call as a row;
-  tapping it opens `ToolResultDetailDialog` in
+  tapping opens `ToolResultDetailDialog` in
   `app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/part/ToolResultDisplay.kt`,
-  which showed the result string verbatim. Screenshot
+  showing the result string verbatim. Screenshot
   `Screenshot_20261001-015352_Operit Debug.jpg` shows
   `daily_life:device_status Execution Successful` with a single-line
-  `{"success":true,"message":"获取设备状态成功",...}` dump. Fixed by
+  `{"success":true,"message":"...Chinese...",...}` dump. Fixed by
   `splitEnvelope()` in the new `ToolResultFormat.kt` (same package): the
   message line heads the dialog, the same JSON follows indented, non-JSON
   passes through untouched. Unit-tested (`ToolResultFormatTest`, 4 tests).
-- T1 NETWORK CHINESE (CLOSED 2026-10-04, см. T1/T2/T3 разделы ниже): перевод
-  дефолтной LLM + кэш по SHA-256 источника + batch-prefetch +
-  Google-фалбэк. Префикс `工具执行时发生意外错误` живёт в
-  `examples/*.ts|*.js` (рантайм тулов, не код приложения) — покрыт
-  переводом failure body, править examples не надо.
-- DRAWER OVERLAP (already fixed, not U1): screenshot `..._012728...` shows the
-  `Not Running` badge landing on the `Permissions` label in the drawer. Fixed
-  earlier: `DrawerContent.kt` (~line 81 comment) replaced the word badge with
-  a dot. If the overlap is still visible on a new build, reopen with a fresh
-  screenshot; otherwise closed.
-- MARKET NO-RETRY (CLOSED 2026-10-04): the top-right search icon was tapped
-  on device and opens plugin search ("Search plugins"). Pull-to-refresh
-  remains the only list recovery, which matches the empty-state copy — not
-  a dead button. The same empty state seen 04.10 with a real
+- T1 NETWORK CHINESE (CLOSED 2026-10-04, see T1/T2/T3 sections below):
+  default-LLM translation + SHA-256 source cache + batch prefetch +
+  Google fallback. The `工具执行时发生意外错误` prefix lives in
+  `examples/*.ts|*.js` (tool runtime, not app code) — covered by
+  failure-body translation, never edit examples.
+- DRAWER OVERLAP (already fixed, not U1): screenshot `..._012728...`
+  shows the `Not Running` badge landing on the `Permissions` label in the
+  drawer. Fixed earlier: `DrawerContent.kt` (~line 81 comment) replaced
+  the word badge with a dot. If the overlap still shows on a new build,
+  reopen with a fresh screenshot; otherwise closed.
+- MARKET NO-RETRY (CLOSED 2026-10-04): the top-right search icon was
+  tapped on device and opens plugin search ("Search plugins").
+  Pull-to-refresh remains the only list recovery, matching the empty-state
+  copy — not a dead button. Same empty state seen 04.10 with a real
   `SocketTimeoutException` to `static.operit.app:443` (phone-network side,
   transient).
-- U1 / D12 (unknown): no referent found in any file, screenshot, or note.
-  Do not treat the drawer overlap or the market screen as U1/D12 without
-  user confirmation. Ask the user with the screenshot filenames above.
-- Announcement 公告 (`..._011954...`): first-run dialog text comes from the
-  network (upstream notice), not from app resources; was out of scope,
+- U1 / D12 (unknown): no referent in any file, screenshot, or note. Do
+  not treat the drawer overlap or market screen as U1/D12 without user
+  confirmation. Ask the user with the screenshot filenames above.
+- Announcement notice (`..._011954...`): first-run dialog text comes from
+  the network (upstream notice), not app resources; was out of scope,
   TRANSLATED 2026-10-04 (T2: prefetch in `OperitApp.kt` + `TranslatedText`
   in `RemoteAnnouncementDialog.kt`, countdown split). Accepted on device
   twice, fully English.
@@ -723,102 +676,108 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
 - Dead network IconButton: no referent confirmed in code or screenshots
   (Market has pull-to-refresh; search support is wired). Dropped.
 - U1 / D12: no referent in any artifact. Dropped. If either resurfaces in
-  manual testing, file it with a screenshot filename and screen path.
+  manual testing, file with a screenshot filename and screen path.
 
 ## T1 runtime translation (2026-10-03, commit aa4234a5, CI 37089771706)
 
-- Decision (user): translate via the default LLM model, cache translations,
-  hash detects updates. Applies to all runtime Chinese the app can meet.
+- Decision (user): translate via the default LLM model, cache
+  translations, hash detects updates. Applies to all runtime Chinese the
+  app can meet.
 - Implemented: `data/translation/CachedTranslator.kt` (SHA-256 key, CJK
   detect, JSON file store capped at 2000 entries, in-memory store for
-  tests) + first surface: the tool result dialog message line in
+  tests) + first surface: tool-result dialog message line in
   `ToolResultDisplay.kt` via `EnhancedAIService.translateText` (the
-  TRANSLATION functional model, i.e. the default model unless the user set a
-  dedicated one). Envelope body stays byte-identical for copy-paste.
-- Tests: `CachedTranslatorTest` 6/6 standalone (passthrough, translate-once,
-  key stability/uniqueness, CJK detect, file roundtrip).
+  TRANSLATION functional model, i.e. the default model unless the user set
+  a dedicated one). Envelope body stays byte-identical for copy-paste.
+- Tests: `CachedTranslatorTest` 6/6 standalone (passthrough,
+  translate-once, key stability/uniqueness, CJK detect, file roundtrip).
 - Open surfaces (same pattern: `CachedTranslator.containsCjk` gate +
   LaunchedEffect + cached translate): plugin names/descriptions DONE
   (`d54af436`), Market listings NOT done. Tool error prefix lives in
   `examples/*.ts|*.js`, covered by failure-body translation, no action.
-- Trap met: a `Write` of `\uXXXX` escapes produced literal CJK chars plus a
-  stray U+263A widening the regex range; fixed via python with pure escapes,
-  verified by non-ASCII grep. Second trap: constructor param named
-  `translate` shadowed the member `fun translate` = infinite recursion;
+- Traps met: a `Write` of `\uXXXX` escapes produced literal CJK chars plus
+  a stray U+263A widening the regex range; fixed via python with pure
+  escapes, verified by non-ASCII grep. Second trap: constructor param
+  named `translate` shadowed member `fun translate` = infinite recursion;
   renamed to `fetchFresh`.
 
 ## T1 acceptance (2026-10-03, CI 37096445114, apk 2026-10-03_04-24-40Z)
 
-- Packages card `楼层限制器` renders as `Floor Limiter` + `Slice the latest N
-  context layers, ...` on the phone; cache `files/translation_cache/v2.json`
-  holds clean entries, no think blocks.
-- Trap log: a `Write` of `\uXXXX` escapes produced literal CJK + stray U+263A
-  (fixed via python, verified by non-ASCII grep); ctor param named
-  `translate` shadowed member `fun translate` = infinite recursion (renamed to
-  `fetchFresh`); `run-as "a; b"` multi-command quoting is unreliable, verify
-  state with single commands; `&&` chains stop on failed `cp` when the disk
-  is full (an install was silently skipped this way — always check
-  `lastUpdateTime` after install); uiautomator regex parsing breaks on
-  quotes/newlines in text, use a real XML parser.
+- Packages card `楼层限制器` renders as `Floor Limiter` + `Slice the
+  latest N context layers, ...` on the phone; cache
+  `files/translation_cache/v2.json` holds clean entries, no think blocks.
+- Trap log: `Write` of `\uXXXX` escapes produced literal CJK + stray
+  U+263A (fixed via python, verified by non-ASCII grep); ctor param named
+  `translate` shadowed member `fun translate` = infinite recursion
+  (renamed to `fetchFresh`); `run-as "a; b"` multi-command quoting is
+  unreliable, verify state with single commands; `&&` chains stop on
+  failed `cp` when disk is full (an install was silently skipped this way
+  — always check `lastUpdateTime` after install); uiautomator regex
+  parsing breaks on quotes/newlines in text, use a real XML parser.
 - Disk: / at 96%, /tmp/opencode/apk* cleaned; keep an eye on it.
 
 ## T1-Market acceptance (2026-10-04, CI 37164035232, apk 2026-10-04_00-08-59Z)
 
-- Commit `ca511255`: Market cards (title+description), detail header title,
-  About body via new `TranslatedMarkdown` (same CJK gate + cache, markdown
-  renderer kept; code blocks excluded at call site), comment bodies,
-  installed `PackageItem`, `MarketManageItemCard`, MCP descriptions.
-  `TranslatedText` gained `onTextLayout` passthrough (comment expand/collapse).
-  APK 373 MB, size unchanged. `fork_audit` green (0 new CJK).
-- Accepted on device (fresh install, wizard replay, 公告 countdown waited):
-  Packages `楼层限制器` -> `Floor Limiter` live, screen CJK=0; Market list
-  loads over network, English entries byte-intact, no overlap; detail screen
-  (header, badges, metrics, About markdown, Comments(22)) renders, no crash;
-  `files/translation_cache/v2.json` written (3 KB); logcat has no FATAL.
+- Commit `ca511255`: Market cards (title+description), detail header
+  title, About body via new `TranslatedMarkdown` (same CJK gate + cache,
+  markdown renderer kept; code blocks excluded at call site),
+  `TranslatedText` gained `onTextLayout` passthrough (comment
+  expand/collapse). APK 373 MB, size unchanged. `fork_audit` green
+  (0 new CJK).
+- Accepted on device (fresh install, wizard replay, announcement
+  countdown waited): Packages `楼层限制器` -> `Floor Limiter` live, screen
+  CJK=0; Market list loads over network, English entries byte-intact, no
+  overlap; detail screen (header, badges, metrics, About markdown,
+  Comments(22)) renders, no crash; `files/translation_cache/v2.json`
+  written (3 KB); logcat has no FATAL.
 - Known-accepted, by design: avatar initials stay CJK (single-glyph
   identifiers derived from title, like usernames); badges (type/category/
   version) untranslated; review reasons are resource-based.
-- Coverage gap, assessed ~zero risk: Market listings seen were all English,
-  so the Market-card CJK branch did not fire live — but it is the identical
-  `TranslatedText` proven on Packages cards in the same build.
+- Coverage gap, assessed ~zero risk: Market listings seen were all
+  English, so the Market-card CJK branch never fired live — but it's the
+  identical `TranslatedText` proven on Packages cards in the same build.
 - Device traps new: wireless debugging died mid-session (port closed, full
   37000-45200 scan empty); fix = re-pair from the phone (user reads
-  pairing port + code), `echo CODE | adb pair IP:PAIRPORT`, then rescan for
-  the adb port (this time `41599`). `uiautomator dump` started dying with
-  SIGKILL (exit 137, 0-byte xml) after many dumps — sleep/wakeup +
-  adb reconnect did NOT help; fallback that works: `screencap -p` + visual
-  read of the PNG (the agent CAN see screenshots via the Read tool).
+  pairing port + code), `echo CODE | adb pair IP:PAIRPORT`, then rescan
+  for the adb port (this time `41599`). `uiautomator dump` started dying
+  with SIGKILL (exit 137, 0-byte xml) after many dumps — sleep/wakeup +
+  adb reconnect did NOT help; fallback that works: `screencap -p` +
+  visual PNG read (the agent CAN see screenshots via Read).
 
 ## T2 batch acceptance (2026-10-04, CI 37169808187, apk 2026-10-04_02-02-07Z)
 
-- Commit `03d51d5f`: `translateTexts` batch (JSON in/out, ~6000-char chunks),
-  `prefetchRuntimeTranslations` triggers (Market page, detail + all comments,
-  installed plugins, announcement),   `TranslationPrefetch` marks so batch and
-  per-item never duplicate, sync cache peek in TranslatedText/Markdown (no
-  Chinese flash on hit), announcement dialog translated (countdown split so
-  no request fires per second). Tests 16/16 standalone, `fork_audit` exit 0.
-- Accepted on device (fresh install): post-onboarding notice fully English
-  ("Announcement ... Got it", batch visible in logcat thinking), Packages
-  `楼层限制器` flipped to Floor Limiter with zero taps after the batch
-  landed, `v2.json` written (1.2 KB), 0 FATAL in last 300 logcat lines.
+- Commit `03d51d5f`: `translateTexts` batch (JSON in/out, ~6000-char
+  chunks), `prefetchRuntimeTranslations` triggers (Market page, detail +
+  all comments, installed plugins, announcement), `TranslationPrefetch`
+  marks so batch and per-item never duplicate, sync cache peek in
+  TranslatedText/Markdown (no Chinese flash on hit), announcement dialog
+  translated (countdown split so no request fires per second). Tests
+  16/16 standalone, `fork_audit` exit 0.
+- Accepted on device (fresh install): post-onboarding notice fully
+  English ("Announcement ... Got it", batch visible in logcat thinking),
+  Packages `楼层限制器` flipped to Floor Limiter with zero taps after the
+  batch landed, `v2.json` written (1.2 KB), 0 FATAL in last 300 logcat
+  lines.
 - Gap: upstream `static.operit.app:443` timed out from the phone network
-  (`SocketTimeoutException`, VM log), so Market listings were empty and the
-  list/detail prefetch did not fire live. Same helper as the proven
+  (`SocketTimeoutException`, VM log), so Market listings were empty and
+  the list/detail prefetch never fired live. Same helper as the proven
   Packages/announcement prefetches; live-fire when the CDN is reachable.
-- Device traps new: screen sleep freezes screencap (status-bar clock stands
-  still — always WAKEUP first and compare md5); wizard bottom-arrow touch
-  target is at y~1378, not on the glyph (~1416); location check needs the
+- Device traps new: screen sleep freezes screencap (status-bar clock
+  stands still — always WAKEUP first and compare md5); wizard bottom-arrow
+  touch target is y~1378, not the glyph (~1416); location check needs the
   master switch (`settings put secure location_mode 3`), grants alone show
   ✗; `logcat -d` unfiltered hangs the shell — always `logcat -t N`.
 - Audit lesson: `fork_audit.py` exit code is the gate, not grep output —
   earlier "green" claims read grep's `$?`. Also fixed while here: two
-  LABEL-CONCAT violations (About storage subtitle, custom-STT status line,
-  both mine) and two ANCHOR-LOST registry anchors (SIZE-004 now points at
-  `CustomSttModels.ensureAcoustic`, SIZE-008 anchor updated to the Location
-  enum). CJK-NEW stays 0 — new Chinese prompt text goes through review.
+  LABEL-CONCAT violations (About storage subtitle, custom-STT status
+  line, both mine) and two ANCHOR-LOST registry anchors (SIZE-004 now
+  points at `CustomSttModels.ensureAcoustic`, SIZE-008 anchor updated to
+  the Location enum). CJK-NEW stays 0 — new Chinese prompt text goes
+  through review.
 - R8 experiment: `:app:assembleNightly` compiles + minifies fine; the run
   failed only at `signRotatedNightlyApk` (no RELEASE_STORE_FILE in CI =
-  known keystore gap). Minified-debug measurement still open, runs after T2.
+  known keystore gap). Minified-debug measurement still open, runs after
+  T2.
 
 ## T3 fallback acceptance (2026-10-04, CI 37201078764, apk 2026-10-04_12-08-20Z)
 
@@ -827,12 +786,13 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   endpoint, JSON sentence parser) + `fetchWithFallback` wiring in single
   and batch paths (primary error rethrown when both fail, nothing masked).
   Tests 19/19 standalone, `fork_audit` exit 0.
-- Accepted on device (fresh install): announcement again fully English with
-  split countdown, Packages batch flip with zero taps ("Turn Limiter"),
-  0 FATAL. Fallback branch did NOT fire (primary healthy) — verified by
-  construction: gtx reachable from the phone and returns exactly the parsed
-  shape (`[[["test","测试",...]],null,"zh-CN",...]` via phone curl),
-  parser unit-tested. Live-fire pending a no-model scenario.
+- Accepted on device (fresh install): announcement again fully English
+  with split countdown, Packages batch flip with zero taps ("Turn
+  Limiter"), `v2.json` written (1.2 KB), 0 FATAL. Fallback branch did NOT
+  fire (primary healthy) — verified by construction: gtx reachable from
+  the phone and returns exactly the parsed shape
+  (`[[["test","测试",...]],null,"zh-CN",...]` via phone curl), parser
+  unit-tested. Live-fire pending a no-model scenario.
 
 ## Shizuku on the test phone (2026-10-04, user suggestion)
 
@@ -840,14 +800,14 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
   `rikkaapps/Shizuku` releases via `gh release download`). Dhizuku was
   skipped: it needs device-owner, which fails on a provisioned phone with
   accounts; Operit expects the Shizuku API anyway.
-- Started WITHOUT in-app pairing: Shizuku app shows the exact starter under
-  "View command" — `adb shell <apk-dir>/lib/arm64/libshizuku.so`, apk dir
-  from `pm path moe.shizuku.privileged.api`. Result: "Shizuku is running,
-  Version 13.5, adb".
+- Started WITHOUT in-app pairing: Shizuku app shows the exact starter
+  under "View command" — `adb shell <apk-dir>/lib/arm64/libshizuku.so`,
+  apk dir from `pm path moe.shizuku.privileged.api`. Result: "Shizuku is
+  running, Version 13.5, adb".
 - Authorized Operit: drawer Permissions tile (= ShizukuDemoScreen) ->
-  DEBUGGER tab -> "Grant Shizuku Permission" -> system dialog "Allow Operit
-  Debug to access Shizuku?" -> "Allow all the time". Status now "Shizuku
-  Service Granted", Debugger level "Currently in Use".
+  DEBUGGER tab -> "Grant Shizuku Permission" -> system dialog "Allow
+  Operit Debug to access Shizuku?" -> "Allow all the time". Status now
+  "Shizuku Service Granted", Debugger level "Currently in Use".
 - After a reboot Shizuku dies; restart = re-run the same libshizuku.so
   command over adb (no pairing needed). Re-check "Shizuku is running" in
   the Shizuku app afterwards.
@@ -856,78 +816,83 @@ reconstructed from the screenshots, with unknowns marked as unknowns.
 
 ## M6 speech acceptance (2026-10-05, T3 build 12-08-20Z, audiobook via user)
 
-- Dictation: Toolbox -> Speech Recognition, language `ru`, ~31 мин аудиокниги
-  через комнату: **497 фраз + 93 blank, 0 `Utterance decode failed`**, движок
-  не упал, сессия остановлена кнопкой. Скорость из `files/logs/operit.log`
-  (`Phrase (X s audio in Y ms)`): 1046.3 с аудио за 993.2 с стены = **RTF
-  1.05**, медиана 948 мс на 1 с аудио, p90 1006 мс. Живую речь держит с
-  небольшим запасом.
-- Качество: дальнее поле + `Microphone processing = Calls (echo
-  cancellation)` — грубовато, но связный русский нарратив (скрин m6_39).
-  Без эталонного текста книги WER не посчитать; если качество важно —
-  попробовать дефолтную обработку микрофона вместо Calls.
-- Поле языка: дропдаун `ru/en` работает; на дефолте `en`, при каждом входе на
-  экран сбрасывается в `en` (состояние экрана, не баг).
-- Consent: кнопка Download в настройках качает СРАЗУ без диалога; consent
-  (`GigaAMConsentDialog`) живёт в toolbox-диктовке — так задумано (консент
-  там, где нажали «говорить»).
-- SD туда-обратно: internal -> emulated -> **SD-карта** -> emulated ->
-  internal. Все копии побайтово (`model.int8.onnx` 224762512, `tokens.txt`
-  391). Инит движка С КАРТЫ доказан: `GigaAM initialized` 03:33 при пустом
-  internal и без `Model files absent`. Файлы источника удаляются, но ПУСТЫЕ
-  папки `stt_model` остаются на старом месте (minor, кандидат в follow-up).
-- Ловушка тапов (НОВАЯ): в скролленных списках настроек и дропдаун-меню тапы
-  садятся на ~75–100px ВЫШЕ запрошенного (доказано `pointer_location`:
-  запрос (182,700) -> точка (182,625)). Дважды промахнулся мимо Download в
-  «Add from link», один переезд ушёл не на ту строку. Обход: целиться на
-  +80..100 ниже визуала (+компенсация проверена: запрос (182,765) попал в
-  Download и СТАРТОВАЛ закачку) либо меню выбирать DPAD_UP/DOWN+CENTER —
-  детерминировано (так вернулся на internal). Drawer/табы/кнопки — 1:1,
-  не трогать. `pointer_location 1` показывает точку, не забыть выключить.
-- Время в сессии (РАЗРЕШЕНО 2026-10-05, подтвердил пользователь): прыжок
-  часов 18:1x -> 03:0x — это 8–9 ч паузы на восстановление лимитов модели,
-  часы телефона шли ВЕРНО всё время. Тишина в логе 18:43 -> 03:06 — книга
-  кончилась, телефон idle. Сама диктовка по меткам лога 18:12:56 ->
-  18:43:53 (~31 мин, 497 фраз). Батарея 69 -> 39% за всё время (экран +
-  225 МБ + ORT + простой).
-- Бонус-находка (не UI, только logcat, pre-existing): `E/AnrMonitor: Main
-  thread not responding: 1230ms - 可能发生ANR!` — хардкод-китай в логе
-  апстрима. На UI не влияет; кандидат в отдельный follow-up, не M6.
+- Dictation: Toolbox -> Speech Recognition, language `ru`, ~31 min of
+  audiobook over the room: **497 phrases + 93 blanks, 0 `Utterance decode
+  failed`**, engine never fell, session stopped by button. Speed from
+  `files/logs/operit.log` (`Phrase (X s audio in Y ms)`): 1046.3 s audio
+  in 993.2 s wall = **RTF 1.05**, median 948 ms per 1 s audio, p90
+  1006 ms. Holds live speech with a small margin.
+- Quality: far field + `Microphone processing = Calls (echo
+  cancellation)` — rough but coherent Russian narrative (screenshot
+  m6_39). Without the book's reference text WER is uncountable; if quality
+  matters — try default mic processing instead of Calls.
+- Language field: `ru/en` dropdown works; defaults to `en`, resets to
+  `en` on every screen entry (screen state, not a bug).
+- Consent: Download button in settings downloads AT ONCE with no dialog;
+  consent (`GigaAMConsentDialog`) lives in toolbox dictation — by design
+  (consent where "speak" was pressed).
+- SD round-trip: internal -> emulated -> **SD card** -> emulated ->
+  internal. All copies byte-exact (`model.int8.onnx` 224762512,
+  `tokens.txt` 391). Engine init FROM CARD proven: `GigaAM initialized`
+  03:33 with empty internal and no `Model files absent`. Source files
+  deleted, but EMPTY `stt_model` folders stay behind at the old place
+  (minor, follow-up candidate).
+- Tap trap (NEW): in scrolled settings lists and dropdown menus taps land
+  ~75–100px ABOVE requested (proven with `pointer_location`: request
+  (182,700) -> point (182,625)). Missed Download in "Add from link"
+  twice, one move went to the wrong row. Workaround: aim +80..100 below
+  the visual (+compensation verified: request (182,765) hit Download and
+  STARTED the download) or pick menus with DPAD_UP/DOWN+CENTER —
+  deterministic (returned to internal that way). Drawer/tabs/buttons —
+  1:1, don't touch. `pointer_location 1` shows the point, remember to
+  switch off.
+- Session time (AUTHORIZED 2026-10-05, user confirmed): clock jump 18:1x
+  -> 03:0x is an 8–9 h pause for model-limit recovery, phone clocks ran
+  TRUE all along. Log silence 18:43 -> 03:06 — book ended, phone idle.
+  Dictation itself per log stamps 18:12:56 -> 18:43:53 (~31 min, 497
+  phrases). Battery 69 -> 39% for everything (screen + 225 MB + ORT +
+  idle).
+- Bonus find (not UI, logcat only, pre-existing): `E/AnrMonitor: Main
+  thread not responding: 1230ms - ...ANR!` — hardcoded upstream Chinese
+  in the log. Doesn't affect UI; separate follow-up candidate, not M6.
 
 ## R8 experiment verdict: REJECTED (2026-10-05, CI 37206856650)
 
-- Эксперимент: `isMinifyEnabled + isShrinkResources` в `debug` (`f37ff8a1`),
-  сборка зелёная, APK 373487996 -> 333371794 байт (−40.1 МБ, −10.7%).
-- На телефоне минифицированный debug ПАДАЕТ НА СТАРТЕ: `Application Error`,
+- Experiment: `isMinifyEnabled + isShrinkResources` in `debug`
+  (`f37ff8a1`), green build, APK 373487996 -> 333371794 bytes (−40.1 MB,
+  −10.7%).
+- Minified debug CRASHES ON START on the phone: `Application Error`,
   `java.lang.NoSuchMethodError: no non-static method
   "Lcom/ai/assistance/operit/core/tools/javascript/
   QuickJsNativeHostDispatcher;.onCall(Ljava/lang/String;Ljava/lang/String;)
-  Ljava/lang/String;"` из `QuickJsNativeBridge.nativeCreate` <-
+  Ljava/lang/String;"` from `QuickJsNativeBridge.nativeCreate` <-
   `QuickJsNativeRuntime$Companion.create (QuickJsNativeRuntime.kt:55)` <-
   `OperitQuickJsEngine.runtime$lambda$0 (OperitQuickJsEngine.kt:29)`. R8
-  вычистил/переименовал метод, который зовёт нативный код через JNI;
-  keep-правил для QuickJS в `app/proguard-rules.pro` НЕДОСТАТОЧНО
-  (комментарий в build.gradle про «уже есть keep rules» — неверен).
-- Хуже: `release {}` и `create("nightly")` в том же файле используют ТУ ЖЕ
-  минификацию — релизные и nightly-сборки, видимо, сломаны так же (на
-  устройстве минифицированное не гонялось НИ РАЗУ). Отдельной задачей:
-  дописать keep для QuickJS JNI (класс + сигнатура onCall), затем повторить
-  эксперимент; до этого минификацию не включать нигде.
-- Revert влит (`ce29250f`, дерево = принятое T3), на телефон возвращён T3
-  (скачан заново с CI 37201078764 — папку `apk/2026-10-04_12-08-20Z`
-  пользователь удалил с диска; установлен 04:04:38, визард пройден,
-  стартует без ошибок). В `apk/` осталась только R8-папка (остальные удалил
-  пользователь).
+  cleaned/renamed the method the native code calls via JNI; keep rules
+  for QuickJS in `app/proguard-rules.pro` INSUFFICIENT (the build.gradle
+  comment about "existing keep rules" is wrong).
+- Worse: `release {}` and `create("nightly")` in the same file use THE
+  SAME minification — release and nightly builds are presumably broken
+  the same way (minified never run on device, NOT ONCE). Separate task:
+  write keeps for QuickJS JNI (class + onCall signature), then repeat the
+  experiment; no minification anywhere until then.
+- Revert merged (`ce29250f`, tree = accepted T3), phone got T3 back
+  (re-downloaded from CI 37201078764 — user deleted the
+  `apk/2026-10-04_12-08-20Z` dir from disk; installed 04:04:38, wizard
+  passed, starts clean). Only the R8 dir left in `apk/` (user deleted the
+  rest).
 
 ## Size work acceptance (2026-10-03)
 
-- Model to SD: location preset to card before download, 225 MB downloaded to
-  `/storage/5982-1724/.../stt_model` (214 MB on disk), engine initialized
-  from SD (`GigaAM initialized` in logcat), dictation session started and
-  stopped cleanly. Internal `/data/data` has no `stt_model`.
+- Model to SD: location preset to card before download, 225 MB downloaded
+  to `/storage/5982-1724/.../stt_model` (214 MB on disk), engine
+  initialized from SD (`GigaAM initialized` in logcat), dictation session
+  started and stopped cleanly. Internal `/data/data` has no `stt_model`.
 - tflite+mediapipe removal (CI 37127299796, apk 2026-10-03_13-46-05Z):
   APK 386 -> 373 MB, lib 43 -> 41 .so, neither .so in the new APK.
 - About storage card on device: Total 472 MB, internal 472 used / 15191
   free, card 0 used / 1028 free (fresh install, model not re-downloaded).
 - Trap: kotlinc resolves .java stubs but emits no .class for them; runtime
-  needs them compiled with javac (with coroutines on cp for prefs stub).
+  needs javac compilation (with coroutines on cp for the prefs stub).
+
+

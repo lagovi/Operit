@@ -32,10 +32,8 @@ OPEN (full breakdown in §8; summary here):
 (b) joint manual testing with the user — waits for their word;
 (c) manual Google sign-in to Antigravity — user will do it later
 (what to verify after — PORT_QUEUE.md, Antigravity acceptance);
-(d) STT regression after ORT 1.17.1→1.21.1 — HOLD: benchmark
-`~/operit-fork/wav/benchmark_v2.wav` + scoring rules in §8,
-run ONLY on command (open question: how to feed a wav to the engine —
-see §8);
+(d) STT regression after ORT 1.17.1→1.21.1 — DONE 16.10 night (3/7
+absolute reference, RTF 1.12, close-out in §8);
 (e) deliberate proxy tails (not bugs): Antigravity `getModelsList` goes
 direct (`AntigravityProvider.getModelsList`; the model-list button in the
 settings section passes proxy); login-over-proxy only if it fits the same
@@ -507,9 +505,10 @@ stays 19:46). Historical (fact, not "clean"): 111 stall lines total —
 unattended — before this session, unattributed). Monitor's own strings
 still hardcoded Chinese (`检测到ANR!`, `检测到重复的ANR` — known M6
 follow-up, unchanged). Task 6 CLOSED.
-STT benchmark for the ORT 1.21.1 regression (given by user 15.10, RUN
-ONLY ON COMMAND): file `~/operit-fork/wav/benchmark_v2.wav` (mono,
-48 kHz, 37.5 s, 3.6 MB). Spoken text: "В дистрибутиве Omarchy под
+STT benchmark for the ORT 1.17.1→1.21.1 regression (given by user 15.10;
+RAN 16.10 night on command — close-out below). File
+`~/operit-fork/wav/benchmark_v2.wav` (mono, 48 kHz, 37.5 s, 3.6 MB).
+Spoken text: "В дистрибутиве Omarchy под
 Hyprland мы запустили браузер Helium с аппаратным ускорением через
 VA-API и настроили Neovim под виндовые хоткеи. Сейчас мы тестируем
 модель GigaAM в связке с PipeWire, замеряя inference и потребление
@@ -518,13 +517,32 @@ this paragraph stays Russian on purpose.) Fuzzy scoring (any variant in
 parens = 100% hit): omarchy (омарчи, омачи); hyperland (хайперлэнд,
 хайперланд); helium (хелиум, хилиум); pipewire (пайпваер, пайпвайр);
 neovim (неовим); btop (битоп); inference (инференс).
-OPEN METHODOLOGY QUESTION (resolve before running, don't guess): how to
-feed the wav to the engine. Candidates: (1) play from the notebook into
-the phone mic (simple, but room/speaker leaks into recognition); (2)
-find file-input in code (`GigaAMRecognizer` / `SpeechToTextScreen` —
-check whether the engine takes files directly); (3) feed via Tool Tester
-if it has an STT row. Write the chosen method here before running.
-No backup of the benchmark in repo — never delete/move it.
+METHODOLOGY ANSWER (was the open question; resolved by implementation,
+not guessing): the mic path cannot take files and nothing on either
+box can play audio (no players on box/phone/Termux; tinyplay/cplay
+blocked — E24 below). Implemented the file path instead: `transcribe_file`
+tool (`17007bad`: strict `WavFileReader` PCM16-mono + `PcmResampler` to
+16 kHz + the SAME 512-frame VAD walk and chunker the mic uses, one
+`transcribe()` per chunk) + Tool Tester row "STT Transcribe" (mirrors
+OCR Read; test file `$testBaseDir/test_audio.wav` =
+`/sdcard/Download/Operit/test/`, pushed via adb — NOT
+`/sdcard/Operit/test/`, that was a wrong first push). No backup of the
+benchmark in repo — never delete/move it.
+RESULT 16.10 (APK `20261015_194503Z`, CI `38796418126` green, headSha
+match; fresh install + wizard + 225 MB re-download; transcript:
+"дистрибутивы у матче под хайплнд мы запустили браузер хилиум с
+аппаратным ускорением через эй эйпиай и настроили невим подвиндовые
+хокке сейчас мы тестируем модель гигаээм в связке с пайа замеряя
+инференс и потребление памяти в битоп"; log: 6 non-blank of 6 chunks,
+37.5 s audio in 42185 ms = RTF 1.12): strict score 3/7 — HIT helium
+(хилиум), btop (битоп), inference (инференс); MISS omarchy ("у матче"),
+hyperland ("хайплнд", near), neovim ("невим", near), pipewire
+("пайа" — cut mid-word, VAD chunk boundary). VERDICT: engine healthy
+under ORT 1.21.1 (no crash, no decode failure, sane timing); misses are
+rare-word model quality (near-misses + one boundary cut), NOT ORT
+breakage — and breakage is unprovable either way: no 1.17.1 baseline
+exists (benchmark postdates the bump) and 1.17.1 cannot load this IR-10
+model at all (E17). This 3/7 is the absolute reference for future runs.
 (c) Manual Google sign-in to Antigravity — user does it later alone.
 After: quotas, model list, chat via Antigravity (PORT_QUEUE.md).
 (d) Proxy tails (deliberate, not bugs): Antigravity `getModelsList`
@@ -1015,14 +1033,25 @@ sufficient to NOT redo.
   "proxy admits the target" are two different facts — verify both before
   blaming code.
 - **E23. Own stand broke no-auth (STAND FAIL, 14.10).** Hypothesis
-  (silent): a forwarder demanding auth when 0x02 is offered is a normal
-  strict proxy. Method: updated socks5_fwd (pick 0x02 when present) +
-  Test Connection without creds. Evidence: UI —
-  `Failed: SOCKS : authentication failed`; cause — JDK SOCKS ALWAYS
-  offers {0x00, 0x02} (see (N34)③), and a real server must prefer 0x00
-  when the client offers it. Verdict: stand fixed (pick 0x00 when
-  present; REQUIRE_AUTH only as a separate flag/port for the auth test);
-  side win — the UI error names the cause verbatim, diagnostics are good.
+(silent): a forwarder demanding auth when 0x02 is offered is a normal
+strict proxy. Method: updated socks5_fwd (pick 0x02 when present) +
+Test Connection without creds. Evidence: UI —
+`Failed: SOCKS : authentication failed`; cause — JDK SOCKS ALWAYS
+offers {0x00, 0x02} (see (N34)③), and a real server must prefer 0x00
+when the client offers it. Verdict: stand fixed (pick 0x00 when
+present; REQUIRE_AUTH only as a separate flag/port for the auth test);
+side win — the UI error names the cause verbatim, diagnostics are good.
+- **E24. Playing audio into the phone mic (DEAD END, 15–16.10).**
+Hypothesis: play benchmark_v2.wav from the notebook/phone speaker into
+the mic (methodology candidate 1 for the STT benchmark). Method:
+checked every player: box has none (`aplay/paplay/ffplay` absent);
+phone has no music player (VIEW intent offers only Operit EN +
+Termux); Termux has none (`mpv/ffplay/sox` absent); `tinyplay` cannot
+open PCM (`cannot open device '/dev/snd/pcmC0D0p'` — AudioFlinger owns
+it); `cplay` permission-denied. Verdict: speaker playback needs a
+player installed first (`pkg install sox` in Termux is the cheapest
+path) — until then, file input goes through code (`transcribe_file`,
+`17007bad`), not air.
 
 ## Open questions 1–2 — closed, history in ARCHIVE.md
   (live: `docs/FORK-REGISTRY/research-size.md`).

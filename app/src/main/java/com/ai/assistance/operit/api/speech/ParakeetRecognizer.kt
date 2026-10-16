@@ -53,7 +53,7 @@ class ParakeetRecognizer private constructor(
         val features = ParakeetFrontend.extract(pcm)
         if (features.validFrames == 0) return ""
         val encoded = encode(features)
-        if (encoded.frames == 0) return ""
+        if (encoded.count == 0) return ""
         val ids = decodeGreedy(encoded)
         return vocabulary.decode(ids)
     }

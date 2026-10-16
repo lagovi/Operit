@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.util
 
 import com.ai.assistance.operit.data.speech.GigaAMModelFiles
+import com.ai.assistance.operit.data.speech.ParakeetModelFiles
 import java.io.File
 
 /**

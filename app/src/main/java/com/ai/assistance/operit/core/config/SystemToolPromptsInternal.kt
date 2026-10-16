@@ -1937,7 +1937,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "stt_service_type",
                                         type = "string",
-                                        description = "optional, LOCAL_GIGAAM/OPENAI_STT/DEEPGRAM_STT",
+                                        description = "optional, LOCAL_GIGAAM/LOCAL_PARAKEET/OPENAI_STT/DEEPGRAM_STT",
                                         required = false
                                     ),
                                     ToolParameterSchema(

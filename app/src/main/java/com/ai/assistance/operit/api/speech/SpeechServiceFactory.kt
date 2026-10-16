@@ -13,8 +13,10 @@ object SpeechServiceFactory {
 
     /** 语音识别服务类型 */
     enum class SpeechServiceType {
-        /** GigaAM offline plus Silero VAD; the only on-device engine. */
+        /** GigaAM offline plus Silero VAD. */
         LOCAL_GIGAAM,
+        /** Parakeet TDT offline plus Silero VAD. */
+        LOCAL_PARAKEET,
         OPENAI_STT,
         DEEPGRAM_STT,
     }
@@ -65,6 +67,7 @@ object SpeechServiceFactory {
     ): SpeechService {
         return when (type) {
             SpeechServiceType.LOCAL_GIGAAM -> acquireLocalSpeechService(context, type)
+            SpeechServiceType.LOCAL_PARAKEET -> acquireLocalSpeechService(context, type)
             SpeechServiceType.OPENAI_STT -> {
                 runBlocking {
                     OpenAISttProvider(
@@ -132,6 +135,7 @@ object SpeechServiceFactory {
                     val service =
                         when (type) {
                             SpeechServiceType.LOCAL_GIGAAM -> GigaAMSpeechProvider(appContext)
+                            SpeechServiceType.LOCAL_PARAKEET -> ParakeetSpeechProvider(appContext)
                             else -> throw IllegalArgumentException("Not a local SpeechService type: $type")
                         }
                     LocalEntry(type = type, service = service, refCount = 1).also { localEntry = it }

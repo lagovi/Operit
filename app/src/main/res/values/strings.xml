@@ -2744,6 +2744,7 @@
     
     <!-- STT Service Types -->
     <string name="speech_services_stt_type_gigaam">GigaAM (Local, offline)</string>
+    <string name="speech_services_stt_type_parakeet">Parakeet (Local, offline)</string>
     <!-- One-time GigaAM download. Declining stores nothing: settings keeps
          offering the download until the files exist. -->
     <string name="gigaam_model_title">Offline speech model</string>
@@ -2753,6 +2754,14 @@
     <string name="gigaam_absent_summary">Not downloaded · about %1$s</string>
     <string name="gigaam_ready_summary">Ready · %1$s · %2$s</string>
     <string name="gigaam_download_failed_summary">Download failed: %1$s</string>
+    <!-- One-time Parakeet download. Same contract as GigaAM: declining stores
+         nothing, settings keeps offering the download until files exist. -->
+    <string name="parakeet_model_title">Offline Parakeet model</string>
+    <string name="parakeet_consent_title">Download the Parakeet speech model?</string>
+    <string name="parakeet_consent_text">Speech recognition runs fully on your device. The model is about %1$s and will be stored %2$s. You can also download it later in Settings.</string>
+    <string name="parakeet_absent_summary">Not downloaded · about %1$s</string>
+    <string name="parakeet_ready_summary">Ready · %1$s · %2$s</string>
+    <string name="parakeet_download_failed_summary">Download failed: %1$s</string>
     <!-- Local engine tuning. Defaults reproduce the shipped behavior. -->
     <string name="stt_tuning_title">Local engine tuning</string>
     <string name="stt_tuning_vad">Split speech into phrases</string>
@@ -3031,6 +3040,10 @@
     <string name="file_exists_test">File Exists</string>
     <string name="ocr_read_test">OCR Read</string>
     <string name="transcribe_file_test">STT Transcribe</string>
+    <string name="stt_transcribe_whole_test">STT Transcribe Whole</string>
+    <string name="para_transcribe_test">Para Transcribe</string>
+    <string name="para_transcribe_whole_test">Para Transcribe Whole</string>
+    <string name="para_transcribe_en_test">Para Transcribe EN</string>
     <string name="chunk_read_test">Chunk Read</string>
     <string name="file_info_test">File Info</string>
     <string name="find_files_test">Find Files</string>
@@ -3068,6 +3081,10 @@
     <string name="file_exists_test_desc">Check if test file exists</string>
     <string name="ocr_read_test_desc">Read test image content</string>
     <string name="transcribe_file_test_desc">Transcribe test audio file with on-device STT</string>
+    <string name="stt_transcribe_whole_test_desc">Transcribe test audio file whole, no chunking</string>
+    <string name="para_transcribe_test_desc">Transcribe test audio file with Parakeet</string>
+    <string name="para_transcribe_whole_test_desc">Transcribe test audio file with Parakeet, no chunking</string>
+    <string name="para_transcribe_en_test_desc">Transcribe English test audio with Parakeet</string>
     <string name="chunk_read_test_desc">Read first part of test file</string>
     <string name="file_info_test_desc">Get test file information</string>
     <string name="find_files_test_desc">Find files in test directory</string>
@@ -5799,7 +5816,7 @@
     <string name="toolreg_get_chat_messages_desc">Get chat messages: %1$s%2$s%3$s</string>
     <string name="toolreg_list_files_desc">List directory: %1$s%2$s</string>
     <string name="toolreg_read_file_desc">Read file: %1$s%2$s</string>
-    <string name="toolreg_transcribe_file_desc">Transcribe audio file with on-device STT: %1$s%2$s</string>
+    <string name="toolreg_transcribe_file_desc">Transcribe audio file with on-device STT: %1$s%2$s (params: engine gigaam|parakeet, mode chunk|whole)</string>
     <string name="toolreg_read_file_part_range_lines">lines %1$s-%2$s</string>
     <string name="toolreg_read_file_part_range_from">from line %1$s</string>
     <string name="toolreg_read_file_part_desc">Read file (%1$s): %2$s%3$s</string>

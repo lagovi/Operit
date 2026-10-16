@@ -82,6 +82,7 @@ import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.features.settings.sections.GigaAMModelSection
+import com.ai.assistance.operit.ui.features.settings.sections.ParakeetModelSection
 import com.ai.assistance.operit.ui.features.settings.sections.LocalSttTuningSection
 import com.ai.assistance.operit.api.voice.OpenAIRealtimeVoiceProvider
 import com.ai.assistance.operit.api.voice.OpenAIVoiceProvider
@@ -1706,6 +1707,7 @@ fun SpeechServicesSettingsScreen(
                             OutlinedTextField(
                                 value = when(sttServiceTypeInput) {
                                                                         SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM -> stringResource(R.string.speech_services_stt_type_gigaam)
+                                    SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET -> stringResource(R.string.speech_services_stt_type_parakeet)
                                     SpeechServiceFactory.SpeechServiceType.OPENAI_STT -> stringResource(R.string.speech_services_stt_type_openai)
                                     SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT -> stringResource(R.string.speech_services_stt_type_deepgram)
                                 },
@@ -1727,6 +1729,7 @@ fun SpeechServicesSettingsScreen(
                                             Text(
                                                 text = when(type) {
                                                                                                         SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM -> stringResource(R.string.speech_services_stt_type_gigaam)
+                                                    SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET -> stringResource(R.string.speech_services_stt_type_parakeet)
                                                     SpeechServiceFactory.SpeechServiceType.OPENAI_STT -> stringResource(R.string.speech_services_stt_type_openai)
                                                     SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT -> stringResource(R.string.speech_services_stt_type_deepgram)
                                                 },
@@ -1746,6 +1749,14 @@ fun SpeechServicesSettingsScreen(
                         AnimatedVisibility(visible = sttServiceTypeInput == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM) {
                             Column(modifier = Modifier.padding(top = 16.dp)) {
                                 GigaAMModelSection()
+                                Spacer(modifier = Modifier.height(16.dp))
+                                LocalSttTuningSection()
+                            }
+                        }
+
+                        AnimatedVisibility(visible = sttServiceTypeInput == SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET) {
+                            Column(modifier = Modifier.padding(top = 16.dp)) {
+                                ParakeetModelSection()
                                 Spacer(modifier = Modifier.height(16.dp))
                                 LocalSttTuningSection()
                             }

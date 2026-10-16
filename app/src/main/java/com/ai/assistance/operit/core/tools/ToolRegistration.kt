@@ -4,6 +4,8 @@ import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.api.speech.transcribeLocalSpeechFile
+import com.ai.assistance.operit.api.speech.SttFileEngine
+import com.ai.assistance.operit.api.speech.SttFileMode
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.core.tools.defaultTool.ToolGetter
@@ -1810,7 +1812,29 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             executor = { tool ->
                 runBlocking(Dispatchers.IO) {
                     val path = tool.parameters.find { it.name == "path" }?.value ?: ""
-                    transcribeLocalSpeechFile(context, path)
+                    val engine = when (
+                        tool.parameters.find { it.name == "engine" }?.value
+                            ?.trim()?.lowercase()
+                    ) {
+                        null, "", "gigaam" -> SttFileEngine.GIGAAM
+                        "parakeet" -> SttFileEngine.PARAKEET
+                        else -> throw IllegalArgumentException(
+                            "unknown transcribe_file engine: " +
+                                tool.parameters.find { it.name == "engine" }?.value,
+                        )
+                    }
+                    val mode = when (
+                        tool.parameters.find { it.name == "mode" }?.value
+                            ?.trim()?.lowercase()
+                    ) {
+                        null, "", "chunk" -> SttFileMode.CHUNK
+                        "whole" -> SttFileMode.WHOLE
+                        else -> throw IllegalArgumentException(
+                            "unknown transcribe_file mode: " +
+                                tool.parameters.find { it.name == "mode" }?.value,
+                        )
+                    }
+                    transcribeLocalSpeechFile(context, path, engine, mode)
                 }
             }
     )

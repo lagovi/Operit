@@ -117,6 +117,8 @@ class SpeechServicesPreferences(private val context: Context) {
 
         const val BUILTIN_GIGAAM_ID = "gigaam"
 
+        const val BUILTIN_PARAKEET_ID = "parakeet"
+
         const val DEFAULT_TTS_SPEECH_RATE = 1.0f
         const val DEFAULT_TTS_PITCH = 1.0f
 
@@ -306,6 +308,8 @@ class SpeechServicesPreferences(private val context: Context) {
 
             when (serviceType) {
                 SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM -> {
+                }
+                SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET -> {
                 }
                 SpeechServiceFactory.SpeechServiceType.OPENAI_STT -> {
                     httpConfig?.let { prefs[STT_HTTP_CONFIG] = serializerJson.encodeToString(it) }

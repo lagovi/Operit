@@ -31,6 +31,9 @@ import com.ai.assistance.operit.api.speech.SpeechService
 import com.ai.assistance.operit.api.speech.SpeechServiceFactory
 import com.ai.assistance.operit.data.speech.GigaAMModelDownload
 import com.ai.assistance.operit.data.speech.GigaAMModelFiles
+import com.ai.assistance.operit.data.speech.ParakeetModelDownload
+import com.ai.assistance.operit.data.speech.ParakeetModelFiles
+import com.ai.assistance.operit.data.speech.ParakeetModelStorage
 import com.ai.assistance.operit.data.speech.SttModelStorage
 import com.ai.assistance.operit.ui.features.settings.sections.formatMegabytes
 import kotlinx.coroutines.launch
@@ -133,6 +136,16 @@ fun SpeechToTextScreen(navController: NavController) {
     // enabled in that case because it leads to the consent dialog, not to the
     // microphone.
     var modelMissing by remember { mutableStateOf(false) }
+
+    // Each on-device engine has its own checkpoint.
+    fun isLocalModelMissing(mode: SpeechServiceFactory.SpeechServiceType): Boolean =
+        when (mode) {
+            SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM ->
+                SttModelStorage(context).isDownloaded() == null
+            SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET ->
+                ParakeetModelStorage(context).isDownloaded() == null
+            else -> false
+        }
     
     // recognitionMode 是驱动服务实例创建的唯一状态源
     var recognitionMode by remember { mutableStateOf(SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM) }
@@ -167,9 +180,7 @@ fun SpeechToTextScreen(navController: NavController) {
     // 当服务实例改变时，执行初始化
     LaunchedEffect(speechService) {
         error = null // 清理旧的错误信息
-        modelMissing =
-            recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM &&
-                SttModelStorage(context).isDownloaded() == null
+        modelMissing = isLocalModelMissing(recognitionMode)
         val success = speechService.initialize()
         if (success) {
             val supported = speechService.getSupportedLanguages()
@@ -207,17 +218,17 @@ fun SpeechToTextScreen(navController: NavController) {
         error = null
         // The model downloads only with explicit consent. Declining stores no
         // flag; settings keeps offering the download until the files exist.
-        if (recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM &&
-            SttModelStorage(context).isDownloaded() == null
-        ) {
+        if (isLocalModelMissing(recognitionMode)) {
             showModelConsent = true
             return
         }
         coroutineScope.launch {
             try {
                 // 对于本地引擎，启用连续模式和部分结果
-                val continuousMode = recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM
-                val partialResults = recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM
+                val isLocal = recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM ||
+                    recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET
+                val continuousMode = isLocal
+                val partialResults = isLocal
                 speechService.startRecognition(selectedLanguage, continuousMode, partialResults)
             } catch (e: Exception) {
                 error = context.getString(R.string.start_recognition_error, e.message ?: "")
@@ -240,6 +251,8 @@ fun SpeechToTextScreen(navController: NavController) {
     fun switchRecognitionMode() {
         recognitionMode = when (recognitionMode) {
             SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM ->
+                SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET
+            SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET ->
                 SpeechServiceFactory.SpeechServiceType.OPENAI_STT
             SpeechServiceFactory.SpeechServiceType.OPENAI_STT ->
                 SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT
@@ -252,6 +265,7 @@ fun SpeechToTextScreen(navController: NavController) {
     fun getEngineName(mode: SpeechServiceFactory.SpeechServiceType): String {
         return when (mode) {
             SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM -> context.getString(R.string.speech_services_stt_type_gigaam)
+            SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET -> context.getString(R.string.speech_services_stt_type_parakeet)
             SpeechServiceFactory.SpeechServiceType.OPENAI_STT -> context.getString(R.string.speech_services_stt_type_openai)
             SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT -> context.getString(R.string.speech_services_stt_type_deepgram)
         }
@@ -616,14 +630,25 @@ fun SpeechToTextScreen(navController: NavController) {
     }
 
     if (showModelConsent) {
-        GigaAMConsentDialog(
-            onDismiss = { showModelConsent = false },
-            onReady = {
-                showModelConsent = false
-                modelMissing = false
-                startRecognition()
-            },
-        )
+        if (recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET) {
+            ParakeetConsentDialog(
+                onDismiss = { showModelConsent = false },
+                onReady = {
+                    showModelConsent = false
+                    modelMissing = false
+                    startRecognition()
+                },
+            )
+        } else {
+            GigaAMConsentDialog(
+                onDismiss = { showModelConsent = false },
+                onReady = {
+                    showModelConsent = false
+                    modelMissing = false
+                    startRecognition()
+                },
+            )
+        }
     }
 }
 
@@ -687,6 +712,102 @@ private fun GigaAMConsentDialog(
                         Text(
                             text = stringResource(
                                 R.string.gigaam_download_failed_summary,
+                                failed.message,
+                            ),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            when {
+                downloading != null -> {
+                    TextButton(onClick = { downloads.cancel() }) {
+                        Text(stringResource(R.string.floating_cancel))
+                    }
+                }
+                failed != null -> {
+                    TextButton(onClick = { downloads.download() }) {
+                        Text(stringResource(R.string.action_retry))
+                    }
+                }
+                else -> {
+                    TextButton(onClick = { downloads.download() }) {
+                        Text(stringResource(R.string.update_download))
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            if (downloading == null) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.gigaam_not_now))
+                }
+            }
+        },
+    )
+}
+/**
+ * Consent before the one-time Parakeet download. Same contract as
+ * [GigaAMConsentDialog]: accepting downloads with progress, declining
+ * dismisses and stores nothing.
+ */
+@Composable
+private fun ParakeetConsentDialog(
+    onDismiss: () -> Unit,
+    onReady: () -> Unit,
+) {
+    val context = LocalContext.current
+    val downloads = remember { ParakeetModelDownload.getInstance(context) }
+    val storage = remember { ParakeetModelStorage(context) }
+    val state by downloads.state.collectAsState()
+
+    LaunchedEffect(Unit) { downloads.refresh() }
+    val ready = state is ParakeetModelDownload.State.Ready
+    LaunchedEffect(ready) {
+        if (ready) onReady()
+    }
+    if (ready) return
+
+    val sizeLabel = remember { formatMegabytes(ParakeetModelFiles.TOTAL_BYTES) }
+    val locationLabel = remember { storage.describe(storage.currentLocation()) }
+    val downloading = state as? ParakeetModelDownload.State.Downloading
+    val failed = state as? ParakeetModelDownload.State.Failed
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.parakeet_consent_title)) },
+        text = {
+            Column {
+                if (downloading != null) {
+                    val fraction =
+                        if (downloading.totalBytes > 0) {
+                            downloading.downloadedBytes.toFloat() / downloading.totalBytes
+                        } else {
+                            0f
+                        }
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        stringResource(
+                            R.string.stt_model_downloading,
+                            (fraction * 100).toInt(),
+                        ),
+                    )
+                } else {
+                    Text(
+                        stringResource(
+                            R.string.parakeet_consent_text,
+                            sizeLabel,
+                            locationLabel,
+                        ),
+                    )
+                    if (failed != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(
+                                R.string.parakeet_download_failed_summary,
                                 failed.message,
                             ),
                             color = MaterialTheme.colorScheme.error,

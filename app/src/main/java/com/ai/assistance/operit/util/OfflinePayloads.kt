@@ -62,6 +62,19 @@ class OfflinePayload(
         )
 
         /**
+         * The 670 MB parakeet-tdt-0.6b-v3 int8 checkpoint. Own leaf
+         * (`stt_parakeet`), so it never shares files with GigaAM; the
+         * location setting itself is global and shared.
+         */
+        val PARAKEET = OfflinePayload(
+            id = "stt-parakeet",
+            title = "Parakeet speech model",
+            leaf = "stt_parakeet",
+            assets = ParakeetModelFiles.ASSETS,
+            unpackedBytes = ParakeetModelFiles.TOTAL_BYTES
+        )
+
+        /**
          * APK export template, provisioned from the fork's own release into the
          * `subpack` leaf on first export. The staged file keeps the Q1 name
          * (`apk_editor_android.apk`), so copies staged by earlier builds are
@@ -245,7 +258,7 @@ class OfflinePayload(
         )
 
         val all: List<OfflinePayload> = listOf(
-            GIGAAM, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU, HELPER_A11Y,
+            GIGAAM, PARAKEET, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU, HELPER_A11Y,
             SEED_TEMPLATES, SEED_EMOJI, PADDLE_OCR
         )
     }

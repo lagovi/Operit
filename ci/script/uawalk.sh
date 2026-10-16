@@ -20,7 +20,8 @@
 #                         foreground window must belong to <pkg-substring>
 #                         (locale-independent screen tracking: the installer
 #                         speaks Russian on this phone, the package does not)
-#   TYPE <text>           adb `input text` (%s for spaces, as usual)
+#   TYPE <text>           adb `input text` (plain spaces auto-encoded
+#                         to %s, as usual)
 #   BACK                  KEYCODE_BACK
 #   HIDEKB                BACK only when the soft keyboard is shown
 #   SWIPE_UP              swipe 360,1200 -> 360,300
@@ -190,7 +191,9 @@ uaw_run() {
                 ;;
             TYPE)
                 [ -n "$rest" ] || uaw_abort "TYPE needs text"
-                adb -s "$PHONE" shell "input text '$rest'"
+                # `input text` wants %s for spaces (%20 stays literal —
+                # burned once 16.10); encode plain spaces automatically.
+                adb -s "$PHONE" shell "input text '${rest// /%s}'"
                 echo "  type($UA_STEP) ${#rest} chars"
                 sleep 2
                 ;;

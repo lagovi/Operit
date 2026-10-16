@@ -105,8 +105,24 @@ plab_dump() {
     _adb shell cat /sdcard/window_dump.xml
 }
 
-# All visible texts, one per line.
-plab_texts() { plab_dump | grep -o 'text="[^"]*"' | sed 's/^text="//; s/"$//' | grep -v '^$'; }
+# All visible texts, one per line — text= AND content-desc= (Compose
+# exposes some rendered content, e.g. chat message bodies, as
+# content-desc only; text-only search misses it — proven 16.10).
+plab_texts() { plab_dump | grep -o '\(text\|content-desc\)="[^"]*"' | sed 's/^[a-z-]*="//; s/"$//' | grep -v '^$'; }
+
+# Screenshot to a local file (for canvas-rendered screens like the
+# terminal, which expose nothing to uiautomator — proven 16.10).
+# Usage: plab_shot /tmp/opencode/term.png
+plab_shot() {
+    local dest="$1" tmp
+    [ -n "$dest" ] || { echo "plab_shot: need a destination path" >&2; return 1; }
+    tmp="/sdcard/plab_shot.png"
+    _adb shell "screencap -p $tmp" >/dev/null 2>&1 \
+        && _adb pull "$tmp" "$dest" >/dev/null 2>&1 \
+        && _adb shell "rm -f $tmp" >/dev/null 2>&1 \
+        || { echo "plab_shot: failed" >&2; return 1; }
+    echo "  shot  $dest"
+}
 
 # Bounds "x1,y1-x2,y2" (as "x1 y1 x2 y2") of the clickable ancestor of a text.
 plab_bounds_of() {

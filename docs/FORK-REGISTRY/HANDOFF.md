@@ -6,8 +6,8 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-16 (night, Parakeet preset + benchmark matrix),
-HEAD `5c4c627e`,
+**Date:** 2026-10-16 (HANDOFF self-revision: rakes, task clarity,
+negative detail), HEAD `f4009f75`,
 branch `feat/english-only-build`
 
 > **Language rule (user directive, 15.10): talk to the user in Russian.
@@ -16,9 +16,12 @@ branch `feat/english-only-build`
 > is English-only).**
 
 Stack since 08.10: ports batch-1+2 + Antigravity `92b4cc63` + PaddleOCR
-`96e27adb` + proxy `2c245bf4`+`bd47afae` + docs; details — PORT_QUEUE.md,
-APK dirs `20261012_104102Z`/`20261013_025022Z`/`20261014_025827Z`/
-`20261014_062241Z`.
+`96e27adb` + proxy `2c245bf4`+`bd47afae` + `transcribe_file` `17007bad` +
+Parakeet `82bac318` + fixes `f0ad404a`/`5c4c627e` + docs; details —
+PORT_QUEUE.md, APK dirs `20261012_104102Z`/`20261013_025022Z`/
+`20261014_025827Z`/`20261014_062241Z`/`20261015_194503Z`/
+`20261016_034748Z`/`20261016_085455Z`/`20261016_104352Z` (CURRENT, on
+phone now).
 (Code: `1c0ed81d` llm-io-log + `63dadf6e` supervision + fixes +
 `b4ff4a30` QuickJS keep + `c8bda3c4`/`acc9eb3a` 5a/5b + `50dc014a`
 R8-mapping + `f3ce47f1`/`5cb753fe` task 10 + `cddb9906` revert +
@@ -29,7 +32,14 @@ docs-only commits on top.)
 OPEN (full breakdown in §8; summary here):
 (a) 5a/5b — CLOSED 15.10 night by the agent alone via root (decision
 15.10; close-outs in §8); Windows export blocked — no Windows machine;
-(b) joint manual testing with the user — waits for their word;
+(b) joint manual testing with the user — NO checklist exists and none
+is owed right now (clarified with the user 16.10: the phrase meant
+"poke at the polished whole when the agent says ready" + far-field STT
+quality judgment ONLY if the user complains about dictation). What the
+user owes at this moment: NOTHING. Later, on call: Antigravity sign-in
+(c) + exploratory testing of a build the agent declares ready. Agent
+part: keep this list truthful; say "ready" only after a green
+CI + install + wizard + smoke (chat opens, no FATAL).
 (c) manual Google sign-in to Antigravity — user will do it later
 (what to verify after — PORT_QUEUE.md, Antigravity acceptance);
 (d) STT regression after ORT 1.17.1→1.21.1 — DONE 16.10 night (3/7
@@ -41,7 +51,7 @@ guard; close-out in §8);
 direct (`AntigravityProvider.getModelsList`; the model-list button in the
 settings section passes proxy); login-over-proxy only if it fits the same
 scheme; lab proxies .55:18080/10808 block LAN — end-to-end only via our
-own stand (restore recipe — memo (N41)).
+own stand (restore recipe — memo (N35)).
   CLOSED 11–12.10: 19 (queue `PORT_QUEUE.md`: batch-1 + 17 manual/
   cherry-pick ports; CIs green), 20 (help: 12 offline topics + `?` in the
   appbar; tour `screen_tour.uaw` 102 steps PASS on `20261012_104102Z`),
@@ -79,13 +89,14 @@ hashes against `git log` — docs commits change no behavior.
 
 ## Fresh-session memo (read second — everything to not step on again)
 
-**Link.** Only `adb -s 192.168.1.69:5555` (classic ADB-TCP, raised by root
+** Link.** Only `adb -s 192.168.1.69:5555` (classic ADB-TCP, raised by root
 `su -c 'setprop service.adb.tcp.port 5555; stop adbd; start adbd'`).
 Survives reboots: Termux + Termux:Boot run the same script
 (`~/.termux/boot/adb-tcp.sh`, root granted once) — proven by 10.10 reboot
-test (port back after ~75 s). USB dead (`lsusb` empty). Port open and
-pingable but `adb connect` hangs — `adb kill-server; adb start-server`
-(stale server, 09.10). Pairing port ≠ adb port: connect to pairing gives
+test (port back after ~75 s). USB dead (`lsusb` empty). `device not
+found` after idleness is normal — first `adb connect 192.168.1.69:5555`,
+it reconnects (16.10). Port open and pingable but `adb connect` hangs —
+`adb kill-server; adb start-server` (stale server, 09.10). Pairing port ≠ adb port: connect to pairing gives
 refused/hang — ask the user for the real one or take 5555. The wireless-
 debugging TLS port is dead since 5555 was enabled (as intended).
 **(N1) Root.** Magisk `su` works (`su -c id` → uid=0), incl. from Termux
@@ -116,7 +127,13 @@ with SIGKILL — fall back to screenshots. Bottom drift (E11): hitboxes
 40–100px ABOVE glyphs — on misses comb upward, don't hammer one spot.
 **(N5) Files on the phone.** Only `adb exec-out run-as PKG` (no other way
 in); pull DB as three files (`app_database`+`-wal`+`-shm`); `input text`
-— only `%s`-safe strings; `/sdcard` survives reinstalls.
+— only `%s`-safe strings; `/sdcard/Download` (shared) survives
+reinstalls, but `Android/data/<pkg>` on the card does NOT (wiped on
+uninstall — E26: models must be re-downloaded after every install, always
+re-verify with `ls`). The app uid changes per install (`u0_a286` →
+`u0_a287` → `u0_a288` observed): for file ops use `run-as`, never
+root `cp`/`chown`. Root-owned adb pushes read fine through FUSE anyway
+(`chmod` display on sdcardfs lies, ignore it).
 **(N6) CI/builds.** Workflow is manual-dispatch ONLY and ONLY AFTER PUSH
 (runner checks out origin). Every CI build = new debug key: `uninstall`
 before every install (`-r` gives UPDATE_INCOMPATIBLE). APK dir =
@@ -181,7 +198,6 @@ by `.keep` via `git checkout`) — verify rm paths with `git status`
 IMMEDIATELY; `if (false)` and stubs forbidden even temporarily — delete
 the block whole; EXIT trap doesn't fire on `kill -9`: if the screen
 stops dimming — check `settings get system screen_off_timeout` and
-restore by hand.
 restore by hand.
 **(N14) UI walker (10.10 night, no more hand taps — unreproducible):**
 engine `ci/script/uawalk.sh` + scenarios `ci/script/scen/*.uaw`
@@ -338,8 +354,6 @@ call 2 — `setsid nohup bash -c 'poll-loop' & disown` (poller writes
 `plab_wait_final <file> <timeout>` (30 s chunks, early-wake on FINAL).
 Call timeout = wait timeout (up to 2400000). Status filenames per task
 (`pd_ci<N>.status`), delete stale ones.
-Call timeout = wait timeout (up to 2400000). Status filenames per task
-(`pd_ci<N>.status`), delete stale ones.
 **(N32) Gestures 14.10:** `input swipe` on the lab phone is DEAD (content
 doesn't move, though `input tap/keyevent/text` work) — scroll only with
 a sendevent finger (`/tmp/opencode/se_swipe2.py`: slot 0, tracking id,
@@ -374,16 +388,122 @@ REQUIRE_AUTH flag for the auth test). The stand lived in
 across box reboots is NOT guaranteed: before the next proxy acceptance
 check the ports, if lost rewrite in 15 minutes (gist above; CONNECT /
 auth-ok logs are the positive routing proof).
+**(N41) Does not exist — number retired.** Old revisions referenced
+"memo (N41)" for the proxy-stand restore recipe; that recipe always
+lived here at (N35). The pointer is fixed; the number stays empty so
+old commit messages don't collide with a new item.
+**(N36) Dump-driven taps (primary method since 16.10).** Recipe that
+replaced all coordinate guessing: `uiautomator dump /sdcard/ui.xml` →
+pull → python `ElementTree` → find node by exact text → tap the CENTER
+of its bounds → sleep → re-dump → verify the new screen. One-liner
+pattern per step (dump+pull+parse in one bash call, tap in the next).
+Pointer_location is only for one-off drift calibration, DISABLE right
+after (`settings put system pointer_location 0`) — it overlays the
+screen and spams toasts. Row positions shift after every swipe and
+dialog buttons move per dialog: a tap that worked a minute ago can land
+in a neighboring row (Functional instead of Speech, Add-from-link
+instead of Download — both caught live 15–16.10).
+**(N37) Tool Tester heavy rows (16.10).** All five `transcribe_file`
+rows share the tool id: the results map is keyed by id, so run rows ONE
+AT A TIME and read the dialog right after its own run. NEVER "Test all"
+with model rows: the file group runs rows IN PARALLEL and parallel
+225/670 MB decodes will OOM the 2.8 GB phone. Fixed row paths: the wav
+must be at the row's path — to run other content, `cp` it over
+`test_audio.wav` (backup first, e.g. `test_audio_ru.wav`) and restore
+after; reinstalls never touch `/sdcard/Download`, so files persist.
+Transcribe timing in `operit.log` INCLUDES the model open (652 MB load
+~20 s): short-file RTF is load-dominated, say so when quoting.
+**(N38) ORT dtype traps (16.10, caught by box validation first).** The
+Parakeet joint wants `targets`/`target_length` as INT32 (`IntBuffer`),
+not int64 — ORT throws `InvalidArgument` otherwise. Encoder
+`audio_signal` float `[1,128,T]` + `length` int64 is fine. Validate any
+new ORT graph on the box BEFORE the CI cycle: `/tmp/opencode/venv`
+has numpy+onnx+onnxruntime (box python is PEP 668
+externally-managed — never `pip install` into system). Validation
+scratch lives in `/tmp/opencode/`, NEVER in the repo.
+**(N39) Kotlin `.format` binds to ONE literal (16.10).** `"a %d " +
+"b".format(x)` formats only `"b"` — placeholders in the first literal
+stay raw (shipped once, caught on device: guard message showed
+`%.1f`). Parenthesize the concatenation first, or use templates.
+**(N40) NeMo frontend numbers (16.10, all verified against onnx-asr).**
+Encoder output is `[1,1024,F]` — transpose defensively, the code does.
+Vocab decode must mirror the reference exactly (join pieces, trim,
+collapse spaces — NO special-token filtering, or device text diverges
+from validation). Preemph keeps sample 0 (`y[0]=x[0]`, the ONNX
+variant, not NumPy's `0.03*x[0]` — one sample, but match the shipped
+preprocessor). The 128-mel bank is GENERATED by the published
+`melscale_fbanks` slaney/slaney formula at runtime — `fbanks.npz` is
+build-generated, NOT in git (GitHub contents API 404s on the data dir;
+don't hunt it).
+**(N49) Box web/research traps (16.10).** HF `resolve/main/<file>`
+needs the EXACT filename — guessed `test_wavs/0.wav` 404d, real is
+`en.wav` (list via the `/api/models/<repo>/tree/main?recursive=true`
+endpoint first). `curl` works for HF/GitHub raw; GitHub code search
+needs auth (don't bother). `WebFetch` of huge generated sources is
+fine (nemo.py, asr.py, preprocessors) — read the decode loop from the
+reference, don't reconstruct from memory (the blank-state-discard rule
+was the subtle part).
+**(N42) `gh` CLI shapes that work (16.10).** Artifact names DRIFT per
+run (`operit-android-99` → `-101/-102/-103`): always list first via
+`gh api repos/.../actions/runs/<run>/artifacts --jq
+'.artifacts[].name'`. Multi-field `--json a,b --jq '{.a} {.b}'` is
+INVALID jq — use one `--json X --jq .X` call per field. The N31
+poller template works only with the single-field form inside the loop.
+**(N43) Silent phone death diagnostics (16.10, E25).** LMK kill
+signature: launcher on screen + `ps` shows 0 + NO dropbox entry + app
+log ends mid-run. Not a crash — don't hunt FATAL. Confirm with
+`monkey -p PKG ...` + `ps | grep -c` (1 = alive). logcat rotates:
+`-t 200` is useless 25 min later — use `-t 2000` or better the
+persistent `files/logs/operit.log` via `run-as cat`. Transcribe rows
+log one line per run (`transcribed %s (%s/%s): %d non-blank of %d
+chunks, %.1f s audio in %d ms`) — grep it instead of re-opening the
+dialog.
+**(N44) Guard behavior (16.10).** Parakeet whole mode over 20 s throws
+loudly → Tool Tester shows FAILED with the message as content
+(`runTest` maps any exception to FAILED). A guard or error path is
+verified by: FAILED text on screen + `ps` alive + no new model output.
+**(N45) Fresh-install wizard on 16.10 builds.** Same flow as the cheat
+sheet, but drive it with dump bounds (Check / Standard radio /
+Continue all found by text). Grants via the full shell set BEFORE
+monkey-launch; all 4 ✓ on first Check. No announcement modal on recent
+builds — don't wait for one, go straight to chat.
+**(N46) Disk triage (16.10, `/` 99%).** Mine to delete freely:
+/tmp status files, poll logs, validation scripts, downloaded
+scratch `.onnx`, `/tmp/opencode/para_apk*`, `pd_apk*`, seed zips.
+NEVER touch: `~/operit-fork/apk/` archive (~1.7 GB, user's), toolkit
+(`jdk/kotlinc/venv`), `gigaam-model`. Mapping artifact is REQUIRED
+per build (rule) — when the disk refuses the unzip, clean MY scratch
+first, then escalate to the user, never the archive.
+**(N47) Phone truth (16.10 close).** Build `20261016_104352Z`
+(`lastUpdateTime` 14:13); location SD; Parakeet 670 MB on SD
+downloaded; GigaAM NOT downloaded (wiped by the last reinstall, never
+re-pulled); chat ready, Default Config reseeded, untouched.
+`/sdcard/Download/Operit/test/`: `test_audio.wav` = RU benchmark
+(3.6 MB), `test_audio_en.wav` = EN Kennedy (185 KB),
+`test_audio_ru.wav` = RU spare.
+**(N48) Deferred, do NOT pick up spontaneously.** Supervision v1 digest
+has tool NAMES without args/results (needs deeper hooks); terminal
+submodule full-EN pass (49 CN strings, someone else's repo); fp16/int4
+Parakeet quants; Parakeet custom-checkpoint branch (provider is
+preset-only by decision). All wait for an explicit user task.
 
 ## Status: what exists
 
-- STT = GigaAM (sherpa fully removed, M5 `e763e8ef`); engine accepted
-  (M6: 497 phrases, RTF 1.05); custom CTC via HF link. The GigaAM model
-  is NOT on the phone now (clean installs 13–15.10 never pulled it;
-  before 5a re-download 225 MB — consent + resume, SD proven in M6).
-  STT benchmark for the ORT 1.21.1 regression is ready, OUTSIDE the repo:
-  `~/operit-fork/wav/benchmark_v2.wav` (mono 48 kHz, 37.5 s; no backup in
-  repo — do not delete); text and scoring rules — §8.
+- STT = two on-device engines. GigaAM (sherpa fully removed, M5
+  `e763e8ef`; M6: 497 phrases, RTF 1.05; custom CTC via HF link) and
+  Parakeet TDT (`82bac318`: int8 670 MB, leaf `stt_parakeet`,
+  `LOCAL_PARAKEET` preset). Benchmarks, all on device: GigaAM chunk 3/7
+  RTF 1.08 / whole 3/7 RTF 1.47; Parakeet chunk 4/7 RTF 1.83; Parakeet
+  EN chunk+whole perfect; Parakeet whole over 20 s refused loudly
+  (E25). Tool Tester rows: STT Transcribe (giga/chunk), STT Transcribe
+  Whole, Para Transcribe, Para Transcribe Whole, Para Transcribe EN —
+  all on `transcribe_file` with engine/mode params (N37). Benchmark
+  files OUTSIDE the repo: `~/operit-fork/wav/benchmark_v2.wav` (RU,
+  mono 48 kHz, 37.5 s; no backup — do not delete); EN sample lives on
+  the phone only (sherpa `en.wav`, Kennedy, 3.8 s). Scoring: GigaAM
+  renders Cyrillic, Parakeet Latin — same semantic rubric,
+  script-aware (§8). Re-run benchmarks ONLY on: ORT bump, model-rev
+  change, frontend/loop edit — otherwise the numbers stand.
 - Runtime Chinese translation fully done: T1 (cache + surfaces), T1-Market
   (`ca511255`), T2 batch prefetch (`03d51d5f`), T3 Google fallback
   (`5a76aa4d`, user-approved). Layer map: batch
@@ -459,9 +579,10 @@ auth-ok logs are the positive routing proof).
 
 ## §8. Open work (order matters not; each has a DoD)
 
-Joint manual testing with the user (OPEN PARTIALLY: 5a/5b done by the
-agent alone via root — decision 15.10; the rest waits for the user's
-word; agent part: keep this list full and fresh). Crossed out without a
+Joint manual testing with the user (NO checklist exists and none is
+owed right now — clarified with the user 16.10; see OPEN (b). Agent
+part: keep this list truthful; "ready" only after green CI + install
++ wizard + smoke). Crossed out without a
 referee (if one resurfaces — file with screenshot name + screen path):
 dead button / U1 / D12; Market search icon verified (opens search).
 Far-field STT only if the user complains (M6 closed).
@@ -496,8 +617,9 @@ has no music player (chooser offers only Operit EN + Termux), Termux
 has none, `tinyplay` can't open PCM (`cannot open device`), `cplay`
 permission-denied. Recorded for the STT-benchmark methodology question:
 candidate (1) "play into mic" needs a player first (`pkg install sox`
-in Termux via RUN_COMMAND is the cheapest path). Phone left: STT model
-on SD, dictation idle, Default Config untouched.
+in Termux via RUN_COMMAND is the cheapest path). Phone at 5a time: STT
+model on SD, dictation idle, Default Config untouched. (Phone truth
+has moved on since — always read (N47), never this line.)
 5b — ANR tails: `AnrMonitor` thresholds (`AnrMonitor.kt:47-48`):
 warning >500 ms, "possible ANR!" >1000 ms. Scroll load 15.10 21:30–
 21:33 (6 fast sendevent swipes over the 25-item Packages list, ~40 s):
@@ -580,7 +702,9 @@ Latin-script terms (Helium/Pipewire/BTOP), GigaAM Cyrillic — same
 semantic rubric, script-aware. VERDICT: Parakeet wins this benchmark
 (4 vs 3) and takes English perfectly; int8 quant confirmed as the phone
 quant (only viable one); whole mode capped at 20 s by guard (E25).
-Phone left: both models on SD, location SD, chat ready.
+Phone state at matrix time: both models on SD, location SD. NOTE 16.10
+later: the guard-fix reinstall wiped the card app folders (E26) — phone
+truth moved to (N47): Parakeet on SD only, GigaAM not downloaded.
 (c) Manual Google sign-in to Antigravity — user does it later alone.
 After: quotas, model list, chat via Antigravity (PORT_QUEUE.md).
 (d) Proxy tails (deliberate, not bugs): Antigravity `getModelsList`
@@ -604,10 +728,18 @@ account for it).
   OAuth reaches Google; Default Config restored),
   `20261014_025827Z` (PaddleOCR: 163082823 Б, CI `38499450049`;
   12/12 + Russian),
-  `20261014_062241Z` (provider proxy: 163102271 Б, CI `38520434647` —
-  CURRENT; on phone now; DIRECT+HTTP+SOCKS5(+auth)+dead-proxy acceptance,
-  Default Config restored).
-  Disk `/` chronically 95–100%: `/tmp` cleaned by agent (stale
+  `20261014_062241Z` (provider proxy: 163102271 Б, CI `38520434647`;
+  DIRECT+HTTP+SOCKS5(+auth)+dead-proxy acceptance, Default Config
+  restored),
+  `20261015_194503Z` (transcribe_file: 163105731 Б, CI `38796418126`;
+  GigaAM 3/7 file benchmark),
+  `20261016_034748Z` (Parakeet preset: 163162083 Б, CI `38847296082`;
+  matrix build),
+  `20261016_085455Z` (move/guard fixes: 163163419 Б, CI `38876872783`),
+  `20261016_104352Z` (guard message fix: 163163615 Б, CI `38889147136` —
+  CURRENT; on phone now: Parakeet on SD, guard verified).
+  Disk `/` 99% CRITICAL (N46: clean MY scratch first, then escalate —
+  never the `apk/` archive): `/tmp` cleaned by agent (stale
   `gh-artifact.*.zip`, model dupes, own screenshots/dumps; toolkit and
   `gigaam-model` untouchable), rest — user. Artifacts re-downloadable
   from CI without rebuild (`gh run download <run> -n <name> --dir ...`;
@@ -622,16 +754,18 @@ account for it).
   tap sometimes misses first time — repeat; left-edge swipe opens the
   WRONG menu (app drawer), don't confuse.
 - Test phone fully agent-managed (policy below in force); USB dead, WiFi
-  adb only; packages: `com.ai.assistance.operit.debug` (Operit),
+  adb only (N42 for the reconnect recipe); packages:
+  `com.ai.assistance.operit.debug` (Operit),
   `moe.shizuku.privileged.api`. NEVER hardcode the adb port (it dies in
   idleness; re-ask/scan). Grants/state: model preset re-seeds on fresh
   install (endpoint/key/model from `ModelConfigManager` DEBUG branch),
   supervision OFF by default; battery check `dumpsys battery` FIRST;
   brightness 1 for night work; heavy work only with charge headroom.
+  Phone truth 16.10 close — see (N47).
 - LAN gateway for tests (model, translation): `http://192.168.1.55:20128/v1`,
   key+model baked into preset ONLY in debug (`ModelConfigManager`,
   `BuildConfig.DEBUG` branch). Never carry to release.
-- Disk `/` ~98% — CRITICAL; `/tmp/opencode` cleaned after builds
+- Disk `/` 99% — CRITICAL (N46); `/tmp/opencode` cleaned after builds
   (temp APKs to `/tmp/opencode/<name>`, delete right after install).
 
 ---
@@ -659,12 +793,15 @@ pile of long manual runs) — fixed ONLY by the owner button on the
 Actions tab, not programmatically.
 **Install.** Every CI build has a new debug key — `uninstall` first, then
 `install`, verify `dumpsys package ... | grep lastUpdateTime`. `&&`
-chains hide a skipped install — check the time. Streamed install of
-287 MB sometimes doesn't start first try (empty dumpsys — reinstall with
+chains hide a skipped install — check the time. A reinstall wipes
+`Android/data/<pkg>` on the SD card too (E26): every on-card model must
+be re-downloaded after every install — never assume, always `ls` first.
+Streamed install of 287 MB sometimes doesn't start first try (empty dumpsys — reinstall with
 full output, not `tail -1`) or HANGS midway — after a timeout do NOT
 count as installed, verify `dumpsys`/reinstall. Temp APKs only in
 `/tmp/opencode/`, delete right after install.
-**Wizard** (720x1560): WAKEUP + dismiss-keyguard, `monkey -p
+**Wizard** (720x1560; dump-driven variant in (N45) is primary since
+16.10 — fixed coords below are fallback): WAKEUP + dismiss-keyguard, `monkey -p
 com.ai.assistance.operit.debug -c android.intent.category.LAUNCHER 1`,
 consent (360,1371) after countdown, tour/greeting next (650,1378), adb
 grants (below), Check (360,950), next (650,1378), Incomplete Continue
@@ -684,9 +821,15 @@ ACCESS_FINE_LOCATION + ACCESS_COARSE_LOCATION`,
 "All files access" — already ON, as it should be), go back, tap Check
 Permission Status — all 4 ✓, then → goes. UI shows × until revisit+Check
 despite granted perms — stale, not refusal, don't flinch.
-**Screen.** `uiautomator dump` dies with SIGKILL (exit 137, 0-byte xml) —
-unfixable. Only `screencap -p` + PNG read via Read (the agent SEES
-screenshots). Black frame = caught a transition animation, not death:
+**Screen.** `uiautomator dump` to `/sdcard/ui.xml` + pull + python XML
+parsing is PRIMARY since 15–16.10 (works reliably on the lab phone —
+E4 describes the OLD device, ignore its verdict): texts AND bounds,
+tap the CENTER of the dumped bounds, re-dump after every tap, never
+reuse coordinates across screens or dialogs (Retest moves per dialog —
+two misses 16.10 from stale coords). Screenshots (`screencap -p` +
+Read) are visuals-only backup. Dump dying with SIGKILL (exit 137,
+0-byte xml) still happens occasionally — then fall back to screenshots.
+Black frame = caught a transition animation, not death:
 wait 3 s and reshoot; identical black frames share md5 (7714 B — compare
 without opening). BUT: black frame twice in a row = screen SLEPT
 mid-session (check `dumpsys display | grep mScreenState`): cure
@@ -714,7 +857,9 @@ read different (toast = white card over the strip). Post time =
 **Taps.** In scrolled settings lists and dropdown menus the touch lands
 ~75–100px ABOVE/BELOW the requested Y (proven with `pointer_location 1`;
 DIRECTION IS UNSTABLE across screens/days/builds — M6 measured up,
-08.10 measured down, chat bottom has its own geometry). Rule: never trust
+08.10 measured down, chat bottom has its own geometry). Since 16.10 the
+primary method is dump-bounds tapping (N36) — no guessing at all; the
+cluster-combing below is fallback. Rule: never trust
 direction — recalibrate per screen/session (pointer_location or 1 probe
 tap with md5 check), take small targets with a vertical ±100 cluster at
 step 50, treat popup menus as 1:1 until proven otherwise. Bottom chat
@@ -810,13 +955,23 @@ wrong thing.
 Files you'll edit when you reach the tasks:
 
 > SUPERSEDED 2026-10-03: `SttModelRepository.kt` and `SherpaSpeechProvider.kt`
-> deleted (M5 `e763e8ef`). Current map: engine —
-> `api/speech/GigaAMSpeechProvider.kt`, recognizer —
-> `api/speech/GigaAMRecognizer.kt`, checkpoint config —
-> `api/speech/CtcModelConfig.kt`, HF resolve + registry —
-> `data/speech/HfCtcModel.kt` + `data/speech/CustomSttModels.kt`,
-> translation — `data/translation/CachedTranslator.kt`, storage spots —
-> `util/AppDataLocation.kt`, space metering — `util/AppStorageUsage.kt`.
+> deleted (M5 `e763e8ef`). Current map: engines —
+> `api/speech/GigaAMSpeechProvider.kt` + `api/speech/ParakeetSpeechProvider.kt`
+> (both full SpeechService clones), recognizers —
+> `api/speech/GigaAMRecognizer.kt` (CTC) + `api/speech/ParakeetRecognizer.kt`
+> (TDT: encoder + fused joint, greedy loop) + `api/speech/ParakeetFrontend.kt`
+> (nemo128 mel) + `api/speech/ParakeetVocabulary.kt`, checkpoint config —
+> `api/speech/CtcModelConfig.kt` (generic), built-in manifests + storage +
+> download — `data/speech/GigaAMModelFiles.kt` / `SttModelStorage.kt` /
+> `GigaAMModelDownload.kt` and the `Parakeet*` triple (leaf
+> `stt_parakeet`), HF resolve + registry —
+> `data/speech/HfCtcModel.kt` + `data/speech/CustomSttModels.kt` (CTC
+> custom checkpoints only; Parakeet is preset-only), file transcription —
+> `api/speech/LocalSpeechTranscriber.kt` (engine/mode params) +
+> `api/speech/WavFileReader.kt`, translation —
+> `data/translation/CachedTranslator.kt`, storage spots —
+> `util/AppDataLocation.kt` (+ `migrateFrom`), space metering —
+> `util/AppStorageUsage.kt`.
 
 ```
 app/src/main/java/com/ai/assistance/operit/

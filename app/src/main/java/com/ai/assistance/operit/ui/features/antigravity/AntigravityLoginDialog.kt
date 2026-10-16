@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.model.ProxySettings
 import com.ai.assistance.operit.data.preferences.AntigravityAuthState
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.CancellationException
@@ -42,6 +43,7 @@ import kotlinx.coroutines.withTimeout
 fun AntigravityLoginDialog(
     onDismissRequest: () -> Unit,
     onLoginSuccess: ((AntigravityAuthState) -> Unit)? = null,
+    proxy: ProxySettings?,
 ) {
     val context = LocalContext.current
     val coordinator = remember { AntigravityOAuthCoordinator(context) }
@@ -77,7 +79,7 @@ fun AntigravityLoginDialog(
             }
             isCompleting = true
             stage = "exchanging_token_and_loading_account"
-            val state = coordinator.completeLogin(loginSession, Uri.parse(callbackUrl))
+            val state = coordinator.completeLogin(loginSession, Uri.parse(callbackUrl), proxy)
             Toast.makeText(
                 context,
                 context.getString(R.string.antigravity_login_success),

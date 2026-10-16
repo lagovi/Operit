@@ -6,6 +6,8 @@ import com.ai.assistance.operit.data.api.AntigravityAuthManager
 import com.ai.assistance.operit.data.api.AntigravityOAuthClient
 import com.ai.assistance.operit.data.api.AntigravityOAuthProtocol
 import com.ai.assistance.operit.data.api.AntigravityPkceCodes
+import com.ai.assistance.operit.data.model.ProviderProxyClients
+import com.ai.assistance.operit.data.model.ProxySettings
 import com.ai.assistance.operit.data.preferences.AntigravityAuthState
 import com.ai.assistance.operit.util.AppLogger
 import java.io.IOException
@@ -23,15 +25,23 @@ internal data class AntigravityOAuthLoginSession(
 
 internal class AntigravityOAuthCoordinator(context: Context) {
     private val authManager = AntigravityAuthManager.getInstance(context)
-    private val oauthClient = AntigravityOAuthClient(
-        client = okhttp3.OkHttpClient.Builder()
-            .protocols(listOf(okhttp3.Protocol.HTTP_1_1))
-            .connectionPool(okhttp3.ConnectionPool(2, 30, java.util.concurrent.TimeUnit.SECONDS))
-            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .build(),
-    )
+
+    // Intent: the loopback callback server below stays direct (phone-local
+    // listener, not provider traffic). Everything addressed TO the provider —
+    // token exchange, email, project discovery, onboarding — goes through
+    // the caller's config proxy.
+    private val baseHttpClient = okhttp3.OkHttpClient.Builder()
+        .protocols(listOf(okhttp3.Protocol.HTTP_1_1))
+        .connectionPool(okhttp3.ConnectionPool(2, 30, java.util.concurrent.TimeUnit.SECONDS))
+        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
+
+    private fun oauthClient(proxy: ProxySettings?): AntigravityOAuthClient =
+        AntigravityOAuthClient(
+            client = if (proxy == null) baseHttpClient else ProviderProxyClients.forBase(baseHttpClient, proxy),
+        )
 
     suspend fun startLogin(): AntigravityOAuthLoginSession {
         val callbackServer = AntigravityOAuthLoopbackCallbackServer.open()
@@ -59,6 +69,7 @@ internal class AntigravityOAuthCoordinator(context: Context) {
     suspend fun completeLogin(
         session: AntigravityOAuthLoginSession,
         callbackUri: Uri,
+        proxy: ProxySettings?,
     ): AntigravityAuthState {
         val callbackState = callbackUri.getQueryParameter("state")
         if (callbackState != session.state) {
@@ -72,13 +83,13 @@ internal class AntigravityOAuthCoordinator(context: Context) {
         val code = callbackUri.getQueryParameter("code")
             ?: throw IOException("Antigravity OAuth callback has no authorization code")
         AppLogger.d(TAG, "OAuth callback received; exchanging authorization code")
-        val tokens = oauthClient.exchangeAuthorizationCode(
+        val tokens = oauthClient(proxy).exchangeAuthorizationCode(
             code = code,
             redirectUri = session.redirectUri,
             verifier = session.pkce.verifier,
         )
         AppLogger.d(TAG, "OAuth token exchange succeeded; loading account metadata")
-        return authManager.saveLoginTokens(tokens)
+        return authManager.saveLoginTokens(tokens, proxy)
     }
 
     companion object {

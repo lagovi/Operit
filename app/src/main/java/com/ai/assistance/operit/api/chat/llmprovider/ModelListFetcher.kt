@@ -7,6 +7,8 @@ import com.ai.assistance.operit.data.collects.ApiProviderConfigs
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.model.ProviderProxyClients
+import com.ai.assistance.operit.data.model.ProxySettings
 import java.io.File
 import java.io.IOException
 import java.net.SocketTimeoutException
@@ -171,7 +173,8 @@ object ModelListFetcher {
             context: Context,
             apiKey: String,
             apiEndpoint: String,
-            apiProviderType: ApiProviderType = ApiProviderType.OPENAI
+            apiProviderType: ApiProviderType = ApiProviderType.OPENAI,
+            proxy: ProxySettings? = null
     ): Result<List<ModelOption>> {
         AppLogger.d(TAG, "开始获取模型列表: 端点=${sanitizeUrlForLog(apiEndpoint, apiKey)}, 提供商=${apiProviderType.name}")
 
@@ -250,7 +253,12 @@ object ModelListFetcher {
                     val request = requestBuilder.get().build()
 
                     AppLogger.d(TAG, "发送HTTP请求: ${sanitizeUrlForLog(request.url.toString(), apiKey)}")
-                    val response = client.newCall(request).execute()
+                    // Intent: the model-list probe is provider traffic — it honors
+                    // the config proxy like chat does. If skipped: listing models
+                    // goes direct even when the user configured a proxy.
+                    val callClient =
+                        if (proxy == null) client else ProviderProxyClients.forBase(client, proxy)
+                    val response = callClient.newCall(request).execute()
 
                     if (!response.isSuccessful) {
                         val errorBody = response.body?.string() ?: context.getString(R.string.model_fetch_no_error_details)
@@ -261,7 +269,7 @@ object ModelListFetcher {
                             val fallbackUrl = modelsUrl.removeSuffix("/v1/models") + "/models"
                             AppLogger.w(TAG, "API请求失败，尝试兼容路径: $fallbackUrl")
                             val fallbackRequest = request.newBuilder().url(fallbackUrl).get().build()
-                            val fallbackResponse = client.newCall(fallbackRequest).execute()
+                            val fallbackResponse = callClient.newCall(fallbackRequest).execute()
                             if (fallbackResponse.isSuccessful) {
                                 val fallbackBody = fallbackResponse.body?.string()
                                 if (fallbackBody.isNullOrEmpty()) {

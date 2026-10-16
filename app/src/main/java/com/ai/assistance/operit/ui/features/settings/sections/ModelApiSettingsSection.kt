@@ -541,7 +541,7 @@ fun ModelApiSettingsSection(
 
     suspend fun fetchAvailableModels(): Result<List<ModelOption>> {
         return when {
-            isCodexProvider -> CodexModelListFetcher.getModelsList()
+            isCodexProvider -> CodexModelListFetcher.getModelsList(proxy = currentProxySettings())
             isAntigravityProvider -> antigravityAuthManager.fetchModels(currentProxySettings())
                 .map { models ->
                     models.ifEmpty {
@@ -591,7 +591,8 @@ fun ModelApiSettingsSection(
                     context,
                     apiKeyInput,
                     apiEndpointInput,
-                    selectedApiProvider ?: ApiProviderType.OPENAI_GENERIC
+                    selectedApiProvider ?: ApiProviderType.OPENAI_GENERIC,
+                    currentProxySettings()
                 )
         }
     }
@@ -720,13 +721,13 @@ fun ModelApiSettingsSection(
                      onLogin = { showCodexLoginDialog = true },
                      onRefreshUsage = ::refreshCodexUsage,
                      onLogout = {
-                         scope.launch {
-                             codexAuthManager.logout()
-                             codexUsageError = false
-                             EnhancedAIService.refreshAllServices(configManager.appContext)
-                             showNotification(context.getString(R.string.codex_logout_success))
-                         }
-                    },
+                          scope.launch {
+                              codexAuthManager.logout(currentProxySettings())
+                              codexUsageError = false
+                              EnhancedAIService.refreshAllServices(configManager.appContext)
+                              showNotification(context.getString(R.string.codex_logout_success))
+                          }
+                     },
                 )
                 SettingsTextField(
                     title = stringResource(R.string.api_endpoint),
@@ -1162,6 +1163,7 @@ fun ModelApiSettingsSection(
                     refreshAntigravityQuota()
                 }
             },
+            proxy = currentProxySettings(),
         )
     }
 
@@ -1175,6 +1177,7 @@ fun ModelApiSettingsSection(
                     showNotification(context.getString(R.string.codex_login_success))
                 }
             },
+            proxy = currentProxySettings(),
         )
     }
 

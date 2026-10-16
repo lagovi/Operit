@@ -18,15 +18,16 @@ import okhttp3.OkHttpClient
 
 class CodexAuthManager private constructor(context: Context) {
     private val preferences = CodexAuthPreferences.getInstance(context)
-    // NOTE: login/token-refresh use this direct client on purpose
-    // (account-level flows with no config context); only the explicit
-    // fetchUsage call honors a config proxy passed by the caller.
+    // NOTE: every account-level flow (token exchange/refresh, revocation)
+    // honors the caller's config proxy — when a proxy is configured, ALL
+    // provider traffic goes through it, no direct bits.
     private val baseHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
-    private val oauthClient = CodexOAuthClient(client = baseHttpClient)
+
+    private fun oauthClient(proxy: ProxySettings?) = CodexOAuthClient(client = clientFor(proxy))
 
     private fun clientFor(proxy: ProxySettings?): OkHttpClient =
         if (proxy == null) baseHttpClient else ProviderProxyClients.forBase(baseHttpClient, proxy)
@@ -63,7 +64,7 @@ class CodexAuthManager private constructor(context: Context) {
         return state
     }
 
-    suspend fun getValidAccessToken(): String {
+    suspend fun getValidAccessToken(proxy: ProxySettings? = null): String {
         val current = preferences.currentState()
             ?: throw IOException("Codex is not logged in")
         if (current.expiresAtMillis - System.currentTimeMillis() > REFRESH_WINDOW_MILLIS) {
@@ -76,13 +77,13 @@ class CodexAuthManager private constructor(context: Context) {
             if (latest.expiresAtMillis - System.currentTimeMillis() > REFRESH_WINDOW_MILLIS) {
                 latest.accessToken
             } else {
-                refreshAccessToken(latest).accessToken
+                refreshAccessToken(latest, proxy).accessToken
             }
         }
     }
 
-    suspend fun refreshAccessToken(current: CodexAuthState): CodexAuthState {
-        val response = oauthClient.refreshAccessToken(current.refreshToken)
+    suspend fun refreshAccessToken(current: CodexAuthState, proxy: ProxySettings? = null): CodexAuthState {
+        val response = oauthClient(proxy).refreshAccessToken(current.refreshToken)
         val accessToken = response.accessToken
             ?: throw IOException("Codex refresh response has no access token")
         val accessClaims = CodexOAuthProtocol.parseJwtClaims(accessToken)
@@ -104,11 +105,11 @@ class CodexAuthManager private constructor(context: Context) {
         return updated
     }
 
-    suspend fun logout() {
+    suspend fun logout(proxy: ProxySettings? = null) {
         val current = preferences.currentState()
         try {
             if (current != null) {
-                oauthClient.revokeToken(current.refreshToken, "refresh_token")
+                oauthClient(proxy).revokeToken(current.refreshToken, "refresh_token")
             }
         } catch (error: Exception) {
             AppLogger.e(TAG, "Failed to revoke Codex OAuth token", error)
@@ -123,7 +124,7 @@ class CodexAuthManager private constructor(context: Context) {
 
     suspend fun fetchUsage(proxy: ProxySettings? = null): Result<CodexUsageSnapshot> {
         return try {
-            val accessToken = getValidAccessToken()
+            val accessToken = getValidAccessToken(proxy)
             val accountId = currentAccountId()
                 ?: throw IOException("Codex account ID is unavailable")
             val result = usageClient(proxy).fetch(

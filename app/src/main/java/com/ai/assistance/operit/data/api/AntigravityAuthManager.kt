@@ -33,9 +33,9 @@ class AntigravityAuthManager private constructor(context: Context) {
 
     // Intent: force HTTP/1.1 with max 2 connections per host (30s idle timeout).
     // If skipped: native Antigravity avoids HTTP/2 without proxy/special directives, and long-idle connections trip the GFE 240s reset.
-    // NOTE: login/token-refresh helpers below use this direct client on purpose
-    // (account-level flows with no config context); only the explicit
-    // fetchModels/fetchQuota calls honor a config proxy passed by the caller.
+    // NOTE: every account-level flow (token exchange/refresh, email, project
+    // discovery, onboarding) honors the caller's config proxy — when a proxy
+    // is configured, ALL provider traffic goes through it, no direct bits.
     private val baseHttpClient = OkHttpClient.Builder()
         .protocols(listOf(Protocol.HTTP_1_1))
         .connectionPool(ConnectionPool(2, 30, TimeUnit.SECONDS))
@@ -44,7 +44,7 @@ class AntigravityAuthManager private constructor(context: Context) {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    private val oauthClient = AntigravityOAuthClient(client = baseHttpClient)
+    private fun oauthClient(proxy: ProxySettings?) = AntigravityOAuthClient(client = clientFor(proxy))
 
     private fun clientFor(proxy: ProxySettings?): OkHttpClient =
         if (proxy == null) baseHttpClient else ProviderProxyClients.forBase(baseHttpClient, proxy)
@@ -58,7 +58,7 @@ class AntigravityAuthManager private constructor(context: Context) {
     val authState: StateFlow<AntigravityAuthState?> = preferences.authState
     val quotaSnapshotFlow: Flow<AntigravityStoredQuotaSnapshot?> = quotaPreferences.snapshotFlow
 
-    suspend fun saveLoginTokens(tokens: AntigravityOAuthTokenResponse): AntigravityAuthState {
+    suspend fun saveLoginTokens(tokens: AntigravityOAuthTokenResponse, proxy: ProxySettings? = null): AntigravityAuthState {
         val accessToken = tokens.accessToken
             ?: throw IOException("Antigravity OAuth response has no access token")
         val refreshToken = tokens.refreshToken
@@ -66,13 +66,13 @@ class AntigravityAuthManager private constructor(context: Context) {
         val expiresIn = tokens.expiresInSeconds
             ?: throw IOException("Antigravity OAuth response has no expiration")
         AppLogger.d(TAG, "Fetching account email after token exchange")
-        val email = fetchEmail(accessToken)
+        val email = fetchEmail(accessToken, proxy)
             ?: throw IOException("Antigravity account email is unavailable")
         AppLogger.d(TAG, "Discovering project after account email lookup")
 
         // Intent: resolve the real GCP project id first; for a fresh unactivated account run the onboardUser activation flow.
         // If skipped: no fabricated local-UUID fallback is allowed — generate requests without a real project id are rejected upstream.
-        val projectId = discoverProjectId(accessToken)
+        val projectId = discoverProjectId(accessToken, proxy)
         val state = AntigravityAuthState(
             accessToken = accessToken,
             refreshToken = refreshToken,
@@ -87,7 +87,7 @@ class AntigravityAuthManager private constructor(context: Context) {
         return state
     }
 
-    suspend fun getValidAccessToken(): String {
+    suspend fun getValidAccessToken(proxy: ProxySettings? = null): String {
         val current = preferences.currentState()
             ?: throw IOException("Antigravity is not logged in")
         if (current.expiresAtMillis - System.currentTimeMillis() > REFRESH_WINDOW_MILLIS) {
@@ -99,21 +99,21 @@ class AntigravityAuthManager private constructor(context: Context) {
             if (latest.expiresAtMillis - System.currentTimeMillis() > REFRESH_WINDOW_MILLIS) {
                 latest.accessToken
             } else {
-                refreshAccessToken(latest).accessToken
+                refreshAccessToken(latest, proxy).accessToken
             }
         }
     }
 
     fun currentProjectId(): String? = preferences.currentState()?.projectId
 
-    suspend fun refreshAccessToken(current: AntigravityAuthState): AntigravityAuthState {
-        val response = oauthClient.refreshAccessToken(current.refreshToken)
+    suspend fun refreshAccessToken(current: AntigravityAuthState, proxy: ProxySettings? = null): AntigravityAuthState {
+        val response = oauthClient(proxy).refreshAccessToken(current.refreshToken)
         val accessToken = response.accessToken
             ?: throw IOException("Antigravity refresh response has no access token")
         val expiresIn = response.expiresInSeconds
             ?: throw IOException("Antigravity refresh response has no expiration")
         val projectId = current.projectId.ifBlank {
-            discoverProjectId(accessToken)
+            discoverProjectId(accessToken, proxy)
         }
         val updated = current.copy(
             accessToken = accessToken,
@@ -132,7 +132,7 @@ class AntigravityAuthManager private constructor(context: Context) {
 
     suspend fun fetchQuota(proxy: ProxySettings? = null): Result<AntigravityQuotaSnapshot> {
         return try {
-            val accessToken = getValidAccessToken()
+            val accessToken = getValidAccessToken(proxy)
             val projectId = currentProjectId()
                 ?: throw IOException("Antigravity project id is unavailable")
             val result = quotaClient(proxy).fetch(accessToken = accessToken, projectId = projectId)
@@ -148,7 +148,7 @@ class AntigravityAuthManager private constructor(context: Context) {
 
     suspend fun fetchModels(proxy: ProxySettings? = null): Result<List<ModelOption>> {
         return try {
-            val accessToken = getValidAccessToken()
+            val accessToken = getValidAccessToken(proxy)
             val projectId = currentProjectId()
                 ?: throw IOException("Antigravity project id is unavailable")
             modelClient(proxy).fetch(accessToken = accessToken, projectId = projectId)
@@ -158,7 +158,7 @@ class AntigravityAuthManager private constructor(context: Context) {
         }
     }
 
-    private suspend fun fetchEmail(accessToken: String): String? = withContext(Dispatchers.IO) {
+    private suspend fun fetchEmail(accessToken: String, proxy: ProxySettings?): String? = withContext(Dispatchers.IO) {
         val request = Request.Builder()
             .url(AntigravityOAuthProtocol.USERINFO_URL)
             .header("Authorization", "Bearer $accessToken")
@@ -166,7 +166,7 @@ class AntigravityAuthManager private constructor(context: Context) {
             .header("Accept", "application/json")
             .get()
             .build()
-        baseHttpClient.newCall(request).execute().use { response ->
+        clientFor(proxy).newCall(request).execute().use { response ->
             if (!response.isSuccessful) return@withContext null
             val body = response.body?.string().orEmpty()
             JSONObject(body).optString("email").takeIf { it.isNotBlank() }
@@ -211,7 +211,7 @@ class AntigravityAuthManager private constructor(context: Context) {
 
     // Intent: for accounts with no GCP project yet, poll onboardUser to finish Google-side init and get the real project id.
     // If skipped: first-time Google accounts have no project in loadCodeAssist, so inference is impossible without activation.
-    private suspend fun onboardUser(accessToken: String, tierId: String): String = withContext(Dispatchers.IO) {
+    private suspend fun onboardUser(accessToken: String, tierId: String, proxy: ProxySettings?): String = withContext(Dispatchers.IO) {
         AppLogger.i(TAG, "Antigravity: onboarding user with tier: $tierId")
         val requestBody = JSONObject()
             .put("tier_id", tierId)
@@ -238,7 +238,7 @@ class AntigravityAuthManager private constructor(context: Context) {
                 .header("X-Goog-Api-Client", AntigravityOAuthProtocol.ONBOARD_GOOG_API_CLIENT)
                 .build()
 
-            val bodyText = baseHttpClient.newCall(request).execute().use { response ->
+            val bodyText = clientFor(proxy).newCall(request).execute().use { response ->
                 val body = response.body?.string().orEmpty()
                 if (!response.isSuccessful) {
                     throw IOException("Antigravity onboardUser failed with HTTP ${response.code}: $body")
@@ -264,7 +264,7 @@ class AntigravityAuthManager private constructor(context: Context) {
         throw IOException("Antigravity onboardUser did not complete after $maxAttempts attempts")
     }
 
-    private suspend fun discoverProjectId(accessToken: String): String = withContext(Dispatchers.IO) {
+    private suspend fun discoverProjectId(accessToken: String, proxy: ProxySettings?): String = withContext(Dispatchers.IO) {
         val body = JSONObject().put(
             "metadata",
             JSONObject().put("ideType", "ANTIGRAVITY"),
@@ -279,7 +279,7 @@ class AntigravityAuthManager private constructor(context: Context) {
             .header("User-Agent", AntigravityOAuthProtocol.USER_AGENT)
             .build()
 
-        val responseBody = baseHttpClient.newCall(request).execute().use { response ->
+        val responseBody = clientFor(proxy).newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
                 throw IOException("Antigravity loadCodeAssist failed with HTTP ${response.code}: $text")
@@ -295,7 +295,7 @@ class AntigravityAuthManager private constructor(context: Context) {
 
         // When loadCodeAssist returns no project id, onboard the user against the current available tier
         val tierId = defaultTierId(json)
-        onboardUser(accessToken, tierId)
+        onboardUser(accessToken, tierId, proxy)
     }
 
     companion object {

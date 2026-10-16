@@ -5,6 +5,7 @@ import com.ai.assistance.operit.data.api.AntigravityAuthManager
 import com.ai.assistance.operit.data.api.AntigravityOAuthProtocol
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.model.ProxySettings
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -20,8 +21,9 @@ import org.json.JSONObject
 
 private class AntigravityAccessTokenProvider(
     private val authManager: AntigravityAuthManager,
+    private val proxy: ProxySettings?,
 ) : ApiKeyProvider {
-    override suspend fun getApiKey(): String = authManager.getValidAccessToken()
+    override suspend fun getApiKey(): String = authManager.getValidAccessToken(proxy)
 
     override suspend fun getCandidateKeyCount(): Int =
         if (authManager.authState.value == null) 0 else 1
@@ -36,9 +38,10 @@ class AntigravityProvider(
     enableToolCall: Boolean = false,
     thinkingConfigurations: String = "",
     thinkingOptionId: String = "",
+    private val proxy: ProxySettings? = null,
 ) : GeminiProvider(
     apiEndpoint = apiEndpoint.ifBlank { AntigravityOAuthProtocol.DEFAULT_ENDPOINT },
-    apiKeyProvider = AntigravityAccessTokenProvider(authManager),
+    apiKeyProvider = AntigravityAccessTokenProvider(authManager, proxy),
     modelName = modelName,
     // Intent: mirror the native client per CLIProxyAPI — HTTP/1.1 with a dedicated short-lived pool.
     client = client.newBuilder()
@@ -116,7 +119,7 @@ class AntigravityProvider(
     }
 
     override suspend fun getModelsList(_context: Context): Result<List<ModelOption>> {
-        return authManager.fetchModels().map { models ->
+        return authManager.fetchModels(proxy).map { models ->
             models.ifEmpty {
                 AntigravityOAuthProtocol.defaultModels.map { (id, name) ->
                     ModelOption(id = id, name = name)

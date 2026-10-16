@@ -5,6 +5,7 @@ import com.ai.assistance.llama.LlamaSession
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ProviderProxyClients
+import com.ai.assistance.operit.data.model.proxySettings
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistry
 import com.ai.assistance.operit.util.AppLogger
@@ -400,6 +401,7 @@ object AIServiceFactory {
                     enableToolCall = enableToolCall,
                     thinkingConfigurations = config.thinkingConfigurations,
                     thinkingOptionId = config.thinkingOptionId,
+                    proxy = config.proxySettings(),
                 )
 
             ApiProviderType.OPENAI_CODEX ->
@@ -416,6 +418,7 @@ object AIServiceFactory {
                     enableWebSearch = config.enableCodexWebSearch,
                     thinkingConfigurations = config.thinkingConfigurations,
                     thinkingOptionId = config.thinkingOptionId,
+                    proxy = config.proxySettings(),
                 )
 
             // Claude格式，支持Anthropic Claude系列

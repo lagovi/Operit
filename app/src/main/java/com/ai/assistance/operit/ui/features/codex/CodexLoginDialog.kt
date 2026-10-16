@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.data.model.ProxySettings
 import com.ai.assistance.operit.data.preferences.CodexAuthState
 import com.ai.assistance.operit.util.AppLogger
 import kotlinx.coroutines.CancellationException
@@ -46,6 +47,7 @@ import kotlinx.coroutines.withTimeout
 fun CodexLoginDialog(
     onDismissRequest: () -> Unit,
     onLoginSuccess: ((CodexAuthState) -> Unit)? = null,
+    proxy: ProxySettings?,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -74,7 +76,7 @@ fun CodexLoginDialog(
                 activeSession.callbackServer.awaitCallback()
             }
             isCompleting = true
-            val state = coordinator.completeLogin(activeSession, callbackUri)
+            val state = coordinator.completeLogin(activeSession, callbackUri, proxy)
             Toast.makeText(
                 context,
                 context.getString(R.string.codex_login_success),

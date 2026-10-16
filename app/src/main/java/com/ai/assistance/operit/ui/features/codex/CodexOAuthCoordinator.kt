@@ -6,6 +6,8 @@ import com.ai.assistance.operit.data.api.CodexAuthManager
 import com.ai.assistance.operit.data.api.CodexOAuthClient
 import com.ai.assistance.operit.data.api.CodexOAuthProtocol
 import com.ai.assistance.operit.data.api.CodexPkceCodes
+import com.ai.assistance.operit.data.model.ProviderProxyClients
+import com.ai.assistance.operit.data.model.ProxySettings
 import com.ai.assistance.operit.data.preferences.CodexAuthState
 import java.io.IOException
 
@@ -22,13 +24,20 @@ internal data class CodexOAuthLoginSession(
 
 internal class CodexOAuthCoordinator(context: Context) {
     private val authManager = CodexAuthManager.getInstance(context)
-    private val oauthClient = CodexOAuthClient(
-        client = okhttp3.OkHttpClient.Builder()
-            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .build(),
-    )
+
+    // Intent: the loopback callback server below stays direct (phone-local
+    // listener, not provider traffic). The token exchange goes through the
+    // caller's config proxy.
+    private val baseHttpClient = okhttp3.OkHttpClient.Builder()
+        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
+
+    private fun oauthClient(proxy: ProxySettings?): CodexOAuthClient =
+        CodexOAuthClient(
+            client = if (proxy == null) baseHttpClient else ProviderProxyClients.forBase(baseHttpClient, proxy),
+        )
 
     suspend fun startLogin(): CodexOAuthLoginSession {
         val callbackServer = CodexOAuthLoopbackCallbackServer.open()
@@ -51,6 +60,7 @@ internal class CodexOAuthCoordinator(context: Context) {
     suspend fun completeLogin(
         session: CodexOAuthLoginSession,
         callbackUri: Uri,
+        proxy: ProxySettings?,
     ): CodexAuthState {
         val callbackState = callbackUri.getQueryParameter("state")
         if (callbackState != session.state) {
@@ -65,7 +75,7 @@ internal class CodexOAuthCoordinator(context: Context) {
 
         val code = callbackUri.getQueryParameter("code")
             ?: throw IOException("Codex OAuth callback has no authorization code")
-        val tokens = oauthClient.exchangeAuthorizationCode(
+        val tokens = oauthClient(proxy).exchangeAuthorizationCode(
             code = code,
             redirectUri = session.redirectUri,
             verifier = session.pkce.verifier,
@@ -73,8 +83,8 @@ internal class CodexOAuthCoordinator(context: Context) {
         return authManager.saveLoginTokens(tokens)
     }
 
-    suspend fun logout() {
-        authManager.logout()
+    suspend fun logout(proxy: ProxySettings? = null) {
+        authManager.logout(proxy)
     }
 
     fun cancel(session: CodexOAuthLoginSession) {

@@ -6,6 +6,8 @@ import com.ai.assistance.operit.data.api.CodexAuthManager
 import com.ai.assistance.operit.data.api.CodexOAuthProtocol
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.model.ProviderProxyClients
+import com.ai.assistance.operit.data.model.ProxySettings
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,8 +18,9 @@ import org.json.JSONObject
 
 private class CodexAccessTokenProvider(
     private val authManager: CodexAuthManager,
+    private val proxy: ProxySettings?,
 ) : ApiKeyProvider {
-    override suspend fun getApiKey(): String = authManager.getValidAccessToken()
+    override suspend fun getApiKey(): String = authManager.getValidAccessToken(proxy)
 
     override suspend fun getCandidateKeyCount(): Int =
         if (authManager.authState.value == null) 0 else 1
@@ -36,9 +39,10 @@ class CodexProvider(
     private val enableWebSearch: Boolean = false,
     thinkingConfigurations: String = "",
     thinkingOptionId: String = "",
+    private val proxy: ProxySettings? = null,
 ) : OpenAIResponsesProvider(
     responsesApiEndpoint = CodexOAuthProtocol.CODEX_RESPONSES_ENDPOINT,
-    apiKeyProvider = CodexAccessTokenProvider(authManager),
+    apiKeyProvider = CodexAccessTokenProvider(authManager, proxy),
     modelName = modelName,
     client = httpClient,
     customHeaders = customHeaders,
@@ -118,7 +122,7 @@ class CodexProvider(
     }
 
     override suspend fun getModelsList(_context: Context): Result<List<ModelOption>> {
-        return CodexModelListFetcher.getModelsList(httpClient)
+        return CodexModelListFetcher.getModelsList(httpClient, proxy)
     }
 
     private fun appendWebSearchTool(requestObject: JSONObject) {
@@ -237,8 +241,11 @@ internal object CodexModelVariant {
 object CodexModelListFetcher {
     suspend fun getModelsList(
         httpClient: OkHttpClient = SharedHttpClient.instance,
+        proxy: ProxySettings? = null,
     ): Result<List<ModelOption>> {
         return try {
+            val callClient =
+                if (proxy == null) httpClient else ProviderProxyClients.forBase(httpClient, proxy)
             val request = Request.Builder()
                 .url(CodexOAuthProtocol.MODEL_CATALOG_ENDPOINT)
                 .get()
@@ -246,7 +253,7 @@ object CodexModelListFetcher {
                 .header("Accept", "application/json")
                 .build()
             val responseBody = withContext(Dispatchers.IO) {
-                httpClient.newCall(request).execute().use { response ->
+                callClient.newCall(request).execute().use { response ->
                     val body = response.body?.string().orEmpty()
                     if (!response.isSuccessful) {
                         throw IllegalStateException("OpenCode model catalog request failed with HTTP ${response.code}")

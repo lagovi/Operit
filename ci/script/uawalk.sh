@@ -116,6 +116,9 @@ uaw_abort() {
 uaw_run() {
     local scenario="$1" line cmd arg rest
     [ -f "$scenario" ] || { echo "uaw_run: no scenario $scenario" >&2; exit 2; }
+    local run_start step_start step_end step_ms
+    run_start=$(date +%s)
+    UA_STEP=0
     # NOTE: the scenario is read on fd 3, NOT stdin: `adb shell` consumes
     # stdin and would otherwise swallow the remaining steps (lost a full
     # run to this: only step 1 executed, silently).
@@ -123,6 +126,7 @@ uaw_run() {
         line="${line%%#*}"
         [ -z "${line//[[:space:]]/}" ] && continue
         UA_STEP=$((UA_STEP+1))
+        step_start=$(date +%s%N)
         cmd="${line%% *}"
         rest="${line#* }"
         [ "$cmd" = "$line" ] && rest=""
@@ -249,10 +253,22 @@ uaw_run() {
             DUMP)
                 echo "  dump($UA_STEP) $(uaw_where)"
                 ;;
+            SAVEDUMP)
+                [[ "$rest" =~ ^[A-Za-z0-9_-]+$ ]] \
+                    || uaw_abort "SAVEDUMP needs an alphanumeric name"
+                mkdir -p "$UA_DUMP_DIR"
+                plab_dump > "$UA_DUMP_DIR/${rest}.xml" 2>/dev/null \
+                    || uaw_abort "dump failed"
+                echo "  savedump($UA_STEP) $rest.xml"
+                sleep 1
+                ;;
             *)
                 uaw_abort "unknown command '$cmd'"
                 ;;
         esac
+        step_end=$(date +%s%N)
+        step_ms=$(( (step_end - step_start) / 1000000 ))
+        echo "  time($UA_STEP) ${step_ms}ms [$cmd]"
     done 3< "$scenario"
-    echo "uawalk: $UA_STEP steps done, scenario $scenario"
+    echo "uawalk: $UA_STEP steps done, scenario $scenario, total $(( $(date +%s) - run_start ))s"
 }

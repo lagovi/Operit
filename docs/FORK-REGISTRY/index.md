@@ -1,8 +1,11 @@
 # Fork registry
 
 **Starting fresh? Read [`HANDOFF.md`](HANDOFF.md) first.** It says what state
-this work is in, what is deliberately unfinished, and which two topics are next:
-further distribution-size reduction, and replacing the local speech recogniser.
+this work is in and what is deliberately unfinished. For the current
+backlog (manual Antigravity sign-in, joint exploratory testing on call,
+deferred ideas) see OPEN in `HANDOFF.md` — there is no standing
+"next topics" list here; both historical ones (distribution size, local
+speech recogniser) are done.
 
 This directory is the fork's answer to "what did we change, and what has to be
 re-done after the next upstream merge?"

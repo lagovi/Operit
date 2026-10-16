@@ -102,8 +102,10 @@ private fun runEngine(
         val audioSeconds = pcm16k.size / TARGET_RATE.toDouble()
         if (wholeLimitSeconds != null && audioSeconds > wholeLimitSeconds) {
             throw IllegalStateException(
-                "file is %.1f s, whole mode supports up to %d s on this phone; " +
-                    "use chunk mode".format(audioSeconds, wholeLimitSeconds),
+                "file is %.1f s, whole mode supports up to %d s on this phone; use chunk mode".format(
+                    audioSeconds,
+                    wholeLimitSeconds,
+                ),
             )
         }
         val text = transcribe(pcm16k)

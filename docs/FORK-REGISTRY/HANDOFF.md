@@ -480,12 +480,44 @@ downloaded; GigaAM NOT downloaded (wiped by the last reinstall, never
 re-pulled); chat ready, Default Config reseeded, untouched.
 `/sdcard/Download/Operit/test/`: `test_audio.wav` = RU benchmark
 (3.6 MB), `test_audio_en.wav` = EN Kennedy (185 KB),
-`test_audio_ru.wav` = RU spare.
+`test_audio_ru.wav` = RU spare. Day 16.10 added: "Ping Test" chat
+(LLM proof) + terminal env setup skipped (3 setup-check sessions).
 **(N48) Deferred, do NOT pick up spontaneously.** Supervision v1 digest
 has tool NAMES without args/results (needs deeper hooks); terminal
 submodule full-EN pass (49 CN strings, someone else's repo); fp16/int4
 Parakeet quants; Parakeet custom-checkpoint branch (provider is
 preset-only by decision). All wait for an explicit user task.
+**(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
+`ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
+113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in
+run dir only (`/tmp/uaw/`, NOT archived — element lists live in the
+16.10 test report, not here). Timing profile: TAP ~12 s avg (dump +
+search + tap + sleeps dominate), EXPECT ~3.7 s, BACK ~3.6 s,
+SCROLL_TO ~8.2 s, SAVEDUMP ~4.2 s. Speedups, if ever needed: smart
+waits instead of fixed `sleep 2`, not fewer checks.
+**(N51) Chat/UI text traps (16.10, all burned once).** `adb input text`
+wants `%s` for spaces — `%20` lands LITERALLY in the field (TYPE now
+auto-encodes spaces — uawalk.sh). Chat Send shows `clickable=false` in
+dumps but taps fine (Compose quirk, don't "fix" the scenario by
+skipping it). Assistant message bodies expose as `content-desc`, NOT
+`text` — `plab_texts` now collects both (phone_lab.sh); any future
+EXPECT on chat content relies on this. Terminal canvas exposes NOTHING
+to uiautomator (no command, no output) — verify via `plab_shot`
+screenshot (phone_lab.sh), read the pixels.
+**(N52) Live function proofs 16.10 day (same build).** LLM: prompt sent
+from chat, title req 200 in 22.5 s ("Ping Test"), message stream 200 /
+2969 bytes in ~24 s, reply rendered; Default Config =
+OPENAI_GENERIC → `http://192.168.1.55:20128` model
+`gemini/gemini-flash-lite-latest` (gateway thinking time, not app
+latency). Terminal: Ubuntu proot `root@localhost`, `echo T2-OK` →
+`T2-OK` (screenshot). STT: Tool Tester "Para Transcribe EN" re-ran
+TODAY — Kennedy quote exact; live mic: GigaAM→Parakeet switch works,
+Start = "engine initialized / Recognizing...", Stop = "Not
+recognizing...". TTS: screen only (audio unverifiable without ears).
+File Manager lists `/sdcard`. Permissions Refresh re-reads statuses
+(Terminal row Not Granted = expected). About updates = "Already on the
+latest version: 1.12.2". GigaAM demo shows "not initialized" (model
+not downloaded — N47, not a bug).
 
 ## Status: what exists
 

@@ -6,8 +6,8 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-15 (evening, EN rewrite + 15.10 decisions + 5a/5b
-close-out 21:33), HEAD `eb3a5630`,
+**Date:** 2026-10-16 (night, Parakeet preset + benchmark matrix),
+HEAD `5c4c627e`,
 branch `feat/english-only-build`
 
 > **Language rule (user directive, 15.10): talk to the user in Russian.
@@ -34,7 +34,10 @@ OPEN (full breakdown in §8; summary here):
 (what to verify after — PORT_QUEUE.md, Antigravity acceptance);
 (d) STT regression after ORT 1.17.1→1.21.1 — DONE 16.10 night (3/7
 absolute reference, RTF 1.12, close-out in §8);
-(e) deliberate proxy tails (not bugs): Antigravity `getModelsList` goes
+(e) Parakeet preset — DONE 16.10 night (int8, full preset, matrix:
+GigaAM 3/7+3/7, Parakeet chunk 4/7, EN perfect, whole-RU OOM → 20 s
+guard; close-out in §8);
+(f) deliberate proxy tails (not bugs): Antigravity `getModelsList` goes
 direct (`AntigravityProvider.getModelsList`; the model-list button in the
 settings section passes proxy); login-over-proxy only if it fits the same
 scheme; lab proxies .55:18080/10808 block LAN — end-to-end only via our
@@ -543,6 +546,41 @@ rare-word model quality (near-misses + one boundary cut), NOT ORT
 breakage — and breakage is unprovable either way: no 1.17.1 baseline
 exists (benchmark postdates the bump) and 1.17.1 cannot load this IR-10
 model at all (E17). This 3/7 is the absolute reference for future runs.
+PARAKEET PRESET (user task 16.10, DONE night 16.10). Model:
+nvidia/parakeet-tdt-0.6b-v3 — FastConformer+TDT, 25 European languages
+incl. ru (NOT English-only), vocab 8193 (blank 8192). Quant verdict:
+int8 (user's tested quant — correct: Q8 LS-clean 1.94 vs 1.95 F32; fp16
+is 2x bytes with no ARM CPU win; fp32 2.5 GB uninstallable; int4
+unverified). Files from `istupakov/parakeet-tdt-0.6b-v3-onnx` @
+`8f23f0c0` (fused decoder_joint = 1 ORT session): encoder int8
+652183999 B (sha 6139d2fa…), joint int8 18202004 B (sha eea7483e…),
+vocab.txt 93939 B (sha d5854467…). Phone fit: 2.8 GB RAM / 13 GB
+internal free / 980 MB SD — SD only, ~300 MB headroom.
+Implementation (`82bac318` + fixes `f0ad404a`/`5c4c627e`; APKs
+`20261016_034748Z`/`085455Z`/`104352Z`, CIs green, headSha matched):
+ParakeetFrontend (nemo128 mel, exact port), ParakeetVocabulary,
+ParakeetRecognizer (encoder + TDT greedy loop, validated against the
+onnx-asr reference — including two int32-vs-int64 dtype traps the
+validation caught first), ParakeetModelFiles/Storage/Download (leaf
+`stt_parakeet`), ParakeetSpeechProvider (full SpeechService clone),
+LOCAL_PARAKEET in factory/prefs/UI (cycle, dropdown, model section,
+consent), transcribe_file engine/mode params, 5 Tool Tester rows. TDT
+loop and I/O names taken from onnx-asr `nemo.py`/`asr.py` (encoder
+`audio_signal`+`length` → `outputs`+`encoded_lengths`; joint
+`encoder_outputs`+`targets`(int32)+`target_length`(int32)+states →
+logits+states; blank advances `max(dur,1)` without state update).
+BENCHMARK MATRIX (same Russian wav + sherpa EN sample), all on device:
+GigaAM chunk 3/7 RTF 1.08 (same text as the 15.10 run — stable);
+GigaAM whole 3/7 RTF 1.47 (drops the Hyprland segment — segmentation
+matters); Parakeet chunk 4/7 RTF 1.83 ("мачи~/—/Helium✓/Pipewire✓/
+Newwin~/BTOP✓/inference✓"); Parakeet whole on 37.5 s = SILENT APP
+DEATH (E25); Parakeet EN chunk+whole = PERFECT Kennedy quote (25–28 s
+for 3.8 s — model-load time included). Scoring note: Parakeet renders
+Latin-script terms (Helium/Pipewire/BTOP), GigaAM Cyrillic — same
+semantic rubric, script-aware. VERDICT: Parakeet wins this benchmark
+(4 vs 3) and takes English perfectly; int8 quant confirmed as the phone
+quant (only viable one); whole mode capped at 20 s by guard (E25).
+Phone left: both models on SD, location SD, chat ready.
 (c) Manual Google sign-in to Antigravity — user does it later alone.
 After: quotas, model list, chat via Antigravity (PORT_QUEUE.md).
 (d) Proxy tails (deliberate, not bugs): Antigravity `getModelsList`
@@ -1052,6 +1090,33 @@ it); `cplay` permission-denied. Verdict: speaker playback needs a
 player installed first (`pkg install sox` in Termux is the cheapest
 path) — until then, file input goes through code (`transcribe_file`,
 `17007bad`), not air.
+- **E25. Parakeet whole-file on 37.5 s kills the app silently (16.10).**
+Method: Tool Tester "Para Transcribe Whole" on benchmark_v2.wav (37.5 s).
+Evidence: ~20 min of decoding, then the launcher on screen, app process
+gone (ps=0); NO dropbox crash entry (last is 10-14), no FATAL, app log
+ends mid-run — classic LMK kill, not a code crash (2.8 GB RAM phone,
+652 MB int8 + full-sequence conformer activations in one session.run).
+Short whole files work fine (EN 3.8 s whole = perfect, 25 s). Verdict:
+size-dependent OOM, not a whole-path bug. Fix (`f0ad404a`): whole mode
+refuses Parakeet audio over 20 s loudly ("file is 37.5 s, whole mode
+supports up to 20 s on this phone; use chunk mode" — verified on device
+as clean FAILED + app alive; also fixed a `.format`-on-second-literal
+bug, `5c4c627e`). 20 s matches MAX_UTTERANCE_SAMPLES: production never
+decodes more at once.
+- **E26. Reinstall wipes `Android/data/<pkg>` on the SD card too (16.10).**
+"SD survives reinstall" holds only for shared storage
+(`/sdcard/Download`). After the guard-fix reinstall both models were
+gone from the card and had to be re-downloaded (670 + 225 MB). Never
+assume on-card payloads across installs; re-verify with `ls`.
+- **E27. Shared global location strands the second payload (16.10).**
+`AppDataLocation` has one setting for all payloads. Moving Parakeet to
+SD flipped it; GigaAM's files stayed internal while its section read
+SD → "not downloaded", and its own Change→SD was a no-op (`from ==
+target` → true, nothing moved). Fixed (`f0ad404a`): new
+`migrateFrom(source, …)` + both STT storages move files from where
+they actually are (holder search); existing `migrate()` behavior
+unchanged. The GigaAM files were ferried by hand (run-as cp) before
+the fix shipped.
 
 ## Open questions 1–2 — closed, history in ARCHIVE.md
   (live: `docs/FORK-REGISTRY/research-size.md`).

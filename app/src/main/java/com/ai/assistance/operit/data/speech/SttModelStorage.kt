@@ -58,16 +58,27 @@ class SttModelStorage(private val context: Context) {
      * Move the model to [target] if the user has already downloaded it, so
      * changing the location never costs another 214 MB download.
      *
+     * The files are moved from where they actually are, not from where the
+     * global setting points: the setting is shared with other payloads, so
+     * moving one can strand another's files behind.
+     *
      * @return false when the move did not happen, leaving the setting untouched
      */
     fun migrateTo(target: AppDataLocation.Location): Boolean {
-        val moved = locations.migrate(
+        val holder = locations.available().firstOrNull { location ->
+            val dir = locations.dirFor(location, payload.leaf)
+            dir != null && payload.assets.any { File(dir, it.name).isFile }
+        }
+        if (holder == null) {
+            return locations.migrate(target, payload.leaf, emptyList(), payload.downloadBytes)
+        }
+        val moved = locations.migrateFrom(
+            source = holder,
             target = target,
             leaf = payload.leaf,
             files = payload.assets.map { it.name },
             requiredBytes = payload.downloadBytes
         )
-        if (moved) locations.write(target)
         return moved
     }
 }

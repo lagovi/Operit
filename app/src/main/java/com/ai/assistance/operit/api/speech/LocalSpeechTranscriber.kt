@@ -58,14 +58,24 @@ fun transcribeWavFile(
             val modelDir = SttModelStorage(context).isDownloaded()
                 ?: throw IllegalStateException("offline STT model is not downloaded")
             GigaAMRecognizer.open(modelDir).use { recognizer ->
-                runEngine(context, pcm16k, mode, recognizer::transcribe)
+                runEngine(context, pcm16k, mode, wholeLimitSeconds = null, recognizer::transcribe)
             }
         }
         SttFileEngine.PARAKEET -> {
             val modelDir = ParakeetModelStorage(context).isDownloaded()
                 ?: throw IllegalStateException("offline Parakeet model is not downloaded")
             ParakeetRecognizer.open(modelDir).use { recognizer ->
-                runEngine(context, pcm16k, mode, recognizer::transcribe)
+                runEngine(
+                    context,
+                    pcm16k,
+                    mode,
+                    // One production decode never exceeds the 20 s utterance
+                    // ceiling, and a longer single encode does not fit this
+                    // phone's memory (LMK kill, no error). Longer files must
+                    // go through chunk mode.
+                    wholeLimitSeconds = 20,
+                    recognizer::transcribe,
+                )
             }
         }
     }
@@ -85,9 +95,17 @@ private fun runEngine(
     context: Context,
     pcm16k: ShortArray,
     mode: SttFileMode,
+    wholeLimitSeconds: Long?,
     transcribe: (ShortArray) -> String,
 ): EngineRun {
     if (mode == SttFileMode.WHOLE) {
+        val audioSeconds = pcm16k.size / TARGET_RATE.toDouble()
+        if (wholeLimitSeconds != null && audioSeconds > wholeLimitSeconds) {
+            throw IllegalStateException(
+                "file is %.1f s, whole mode supports up to %d s on this phone; " +
+                    "use chunk mode".format(audioSeconds, wholeLimitSeconds),
+            )
+        }
         val text = transcribe(pcm16k)
         return EngineRun(if (text.isBlank()) emptyList() else listOf(text), 1)
     }

@@ -133,16 +133,30 @@ class AppDataLocation(private val context: Context) {
         leaf: String,
         files: List<String>,
         requiredBytes: Long
+    ): Boolean = migrateFrom(read(), target, leaf, files, requiredBytes)
+
+    /**
+     * Same as [migrate] but from an explicit [source]. Needed when the files
+     * are stranded where the global setting no longer points: two payloads
+     * share one setting, so moving the first flips it and the second one's
+     * files stay behind until moved from where they actually are.
+     */
+    fun migrateFrom(
+        source: Location,
+        target: Location,
+        leaf: String,
+        files: List<String>,
+        requiredBytes: Long
     ): Boolean {
-        val from = read()
+        val from = source
         if (from == target) return true
 
-        val source = dirFor(from, leaf)
+        val sourceDir = dirFor(from, leaf)
         val destination = dirFor(target, leaf)
-        if (source == null || destination == null) return false
-        if (source.canonicalPath == destination.canonicalPath) return true
+        if (sourceDir == null || destination == null) return false
+        if (sourceDir.canonicalPath == destination.canonicalPath) return true
 
-        val present = files.map { File(source, it) }.filter { it.isFile }
+        val present = files.map { File(sourceDir, it) }.filter { it.isFile }
         if (present.isNotEmpty()) {
             val needed = present.sumOf { it.length() }
             if (needed > 0 && destination.usableSpaceBytes() < needed) {
@@ -165,8 +179,8 @@ class AppDataLocation(private val context: Context) {
             present.forEach { it.delete() }
             // Drop the emptied source dir so no hollow stt_model-style folders
             // linger. delete() on a non-empty dir returns false, no throw.
-            if (source.listFiles()?.isEmpty() == true) {
-                source.delete()
+            if (sourceDir.listFiles()?.isEmpty() == true) {
+                sourceDir.delete()
             }
         }
 

@@ -96,10 +96,13 @@ commits (breaks the tested line). Spot ports only. Fork-point: `1ed8687d`
   policy (curl: outside 200, to gateway — empty reply/000) — end-to-end
   ran via permissive forwarders `/tmp/opencode/testproxy/` (never commit
   to repo, session test infra) on the same box.
-  Remainder: `AntigravityProvider.getModelsList` goes direct via
-  authManager (default null) — the model-list button in the proxied
-  section passes proxy (fine there); login-over-proxy only if it fits the
-  same scheme (don't demand a user account for it).
+  Remainder (CLOSED 16.10, `6594bc2c` — user directive "everything
+  through proxy when configured"): `AntigravityProvider.getModelsList`
+  and `CodexProvider.getModelsList` carry the config proxy from the
+  factory; generic `ModelListFetcher.getModelsList` takes the section
+  proxy; token exchange/refresh, email/project discovery, onboarding,
+  quota/usage, Codex revocation and both login dialogs are proxied.
+  Only the OAuth loopback callback servers stay direct (phone-local).
   (Spec below — executed verbatim, kept as the decision record.)
 
   **What the user wants (verbatim):** each API provider's settings can say

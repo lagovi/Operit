@@ -47,11 +47,15 @@ absolute reference, RTF 1.12, close-out in §8);
 (e) Parakeet preset — DONE 16.10 night (int8, full preset, matrix:
 GigaAM 3/7+3/7, Parakeet chunk 4/7, EN perfect, whole-RU OOM → 20 s
 guard; close-out in §8);
-(f) deliberate proxy tails (not bugs): Antigravity `getModelsList` goes
-direct (`AntigravityProvider.getModelsList`; the model-list button in the
-settings section passes proxy); login-over-proxy only if it fits the same
-scheme; lab proxies .55:18080/10808 block LAN — end-to-end only via our
-own stand (restore recipe — memo (N35)).
+(f) proxy tails — CLOSED 16.10 (`6594bc2c`, user directive: when a
+proxy is configured, ALL provider traffic goes through it). Token
+exchange/refresh, Antigravity email/project discovery/onboarding,
+model-list (all three fetchers), quota/usage, Codex token revocation
+and both login dialogs now honor the config proxy; providers carry it
+from the factory. Only the OAuth loopback callback servers stay direct
+(phone-local listeners, not provider traffic). Lab proxies
+.55:18080/10808 block LAN — end-to-end only via our own stand
+(restore recipe — memo (N35)).
   CLOSED 11–12.10: 19 (queue `PORT_QUEUE.md`: batch-1 + 17 manual/
   cherry-pick ports; CIs green), 20 (help: 12 offline topics + `?` in the
   appbar; tour `screen_tour.uaw` 102 steps PASS on `20261012_104102Z`),

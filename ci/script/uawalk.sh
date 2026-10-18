@@ -16,6 +16,19 @@
 #                         (for genuinely optional UI like an empty-chat
 #                         "New Chat" button — NOT an error softener);
 #   EXPECT [secs] <text>  screen must show <text> within secs (default 30)
+#   EXPECT_ABSENT [secs] <text>
+#                         screen must NOT show <text> during the next secs
+#                         (default 30), polled every 5s; abort the moment it
+#                         appears. For error surfaces that must never show
+#                         (e.g. the chat model-down "Request Failed" dialog):
+#                         without this a blank assistant reply passed the run
+#   REPLY_BASE            record the current number of assistant reply body
+#                         rows (chat); use right before sending a message
+#   EXPECT_REPLY [secs]   a NEW assistant reply body row must appear within
+#                         secs (default 120) since the last REPLY_BASE; abort
+#                         otherwise. Catches the model-down case where the
+#                         turn ends with only the "Operit" label and no body
+#                         (an empty reply the old harness read as success)
 #   WAIT_PKG [secs] <pkg-substring>
 #                         foreground window must belong to <pkg-substring>
 #                         (locale-independent screen tracking: the installer
@@ -40,6 +53,7 @@ set -uo pipefail
 
 UA_DUMP_DIR="${UA_DUMP_DIR:-/tmp/uaw}"
 UA_STEP=0
+UA_REPLY_BASE=
 
 # List every actionable element on screen: text|desc|bounds, one per line.
 # Used to author scenarios (what exists), not during runs.
@@ -99,6 +113,52 @@ uaw_wait_pkg() {
         sleep 2
     done
     return 1
+}
+
+# Inverse of plab_wait_text: return 1 the moment $1 (fixed string) shows up
+# within $2 secs, 0 if it stays absent for the whole window. Used for error
+# surfaces that must never appear; polling (not a single check) is required
+# because the chat error dialog can pop in at any point while the model call
+# is in flight. The window is wall-clock (deadline), so the caller's `secs`
+# means real seconds even though each dump is slow.
+uaw_wait_absent() {
+    local want="$1" timeout="${2:-30}" deadline texts
+    deadline=$(( $(date +%s) + timeout ))
+    while :; do
+        texts=$(plab_texts 2>/dev/null)
+        if echo "$texts" | grep -qF "$want"; then
+            return 1
+        fi
+        [ "$(date +%s)" -ge "$deadline" ] && return 0
+        sleep 5
+    done
+}
+
+# Count assistant reply body rows on the chat screen. A rendered reply body
+# is a non-clickable full-width View whose text is exposed via content-desc
+# (N51): bounds start at the left gutter (x1<=60) and span the list width
+# (x2>=500). Tool-call chips are the same width but clickable=true, so they
+# are excluded; the empty-reply failure mode (model down) renders only the
+# "Operit" label and no such row.
+uaw_count_reply_rows() {
+    plab_dump | python3 -c "
+import sys, re
+x = sys.stdin.read()
+n = 0
+for m in re.finditer(r'<node[^>]*>', x):
+    s = m.group(0)
+    d = re.search(r'content-desc=\"([^\"]*)\"', s)
+    c = re.search(r'clickable=\"([^\"]*)\"', s)
+    b = re.search(r'bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"', s)
+    if not (d and d.group(1).strip() and b):
+        continue
+    if c and c.group(1) == 'true':
+        continue
+    x1, y1, x2, y2 = (int(v) for v in b.groups())
+    if x1 <= 60 and x2 >= 500:
+        n += 1
+print(n)
+"
 }
 
 uaw_abort() {
@@ -176,6 +236,41 @@ uaw_run() {
                 plab_wait_text "$want" "$secs" \
                     || uaw_abort "text '$want' not visible within ${secs}s"
                 echo "  expect($UA_STEP) '$want' ok"
+                ;;
+            EXPECT_ABSENT)
+                local awant asecs afirst
+                awant="$rest"; asecs=30
+                afirst="${rest%% *}"
+                if [[ "$afirst" =~ ^[0-9]+$ ]]; then
+                    asecs="$afirst"; awant="${rest#* }"
+                fi
+                [ -n "$awant" ] || uaw_abort "EXPECT_ABSENT needs text"
+                uaw_wait_absent "$awant" "$asecs" \
+                    || uaw_abort "text '$awant' appeared within ${asecs}s (must stay absent)"
+                echo "  expect_absent($UA_STEP) '$awant' ok for ${asecs}s"
+                ;;
+            REPLY_BASE)
+                UA_REPLY_BASE=$(uaw_count_reply_rows)
+                echo "  reply_base($UA_STEP) body rows=$UA_REPLY_BASE"
+                ;;
+            EXPECT_REPLY)
+                local rsecs rfirst rnow
+                rsecs=120
+                rfirst="${rest%% *}"
+                [[ "$rfirst" =~ ^[0-9]+$ ]] && rsecs="$rfirst"
+                [ -n "$UA_REPLY_BASE" ] || uaw_abort "EXPECT_REPLY needs a preceding REPLY_BASE"
+                local rdeadline
+                rdeadline=$(( $(date +%s) + rsecs ))
+                while :; do
+                    rnow=$(uaw_count_reply_rows)
+                    if [ "$rnow" -gt "$UA_REPLY_BASE" ]; then
+                        echo "  expect_reply($UA_STEP) body rows $UA_REPLY_BASE -> $rnow"
+                        break
+                    fi
+                    [ "$(date +%s)" -ge "$rdeadline" ] \
+                        && uaw_abort "no assistant reply body within ${rsecs}s (blank reply, model likely down)"
+                    sleep 3
+                done
                 ;;
             WAIT_PKG)
                 local wpkg wsecs wfirst

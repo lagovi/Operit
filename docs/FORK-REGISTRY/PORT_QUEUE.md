@@ -175,16 +175,17 @@ commits (breaks the tested line). Spot ports only. Fork-point: `1ed8687d`
 
 ## Backlog — added 18.10
 
-- **Model-down detection in the test scripts (user, 18.10).** The API model
-  we use for chat (Gemini Flash Latest) can be unavailable/erroring; the
-  app surfaces this as a popup/toast message, but the harness keeps
-  treating an empty assistant reply as a pass. The UI-automation harness
-  (`ci/script/uawalk.sh` + `ci/script/scen/*.uaw`) and any chat smoke test
-  must DETECT that popup/error text and FAIL the run instead of passing on
-  a blank response. Discovered during the 18.10 phone-side
-  `windows_control` end-to-end test: a chat request to invoke
-  `windows_exec` returned an empty assistant body because the model was
-  down (the same symptom `Handoff N60b` records as "inconclusive").
+- **Model-down detection in the test scripts (user, 18.10).** DONE 18.10 —
+  see HANDOFF N61/N64. The harness no longer reads a blank assistant reply
+  as a pass: `ci/script/scen/chat_smoke.uaw` +
+  `ci/script/accept_chat_smoke.sh` send a message and require a real reply
+  body (`REPLY_BASE`/`EXPECT_REPLY` in `ci/script/uawalk.sh`), plus
+  `EXPECT_ABSENT` for the error dialog. Live check on the phone showed the
+  model-down symptom is an EMPTY reply with NO dialog (connection refused
+  is logged by `EnhancedAIService` but the turn is finalized as complete),
+  so the blank-reply check is the one that actually fails.
+  Discovered during the 18.10 phone-side `windows_control` end-to-end test.
+
 
 ## Not taking (REJECTED, deliberate)
 

@@ -645,14 +645,45 @@ UI dump, no matching agent log line) — the screen's `preset:whoami` already
 proves arbitrary-command plumbing (same `/api/command/execute`), so this is
 not blocking. ADB needed `adb kill-server; adb connect 192.168.1.69:5555`
 to clear an `unauthorized` state; now authorized.
-**(N61) Chat model down → harness must catch it (USER, 18.10, BACKLOG).**
-The chat model we use over the API (Gemini Flash Latest) is currently
-failing; the app shows it as a popup/toast. This is the real cause of the
-empty assistant body in N60b (the chat LLM produced nothing to call
-`windows_exec`). REQUIREMENT (backlog, logged in PORT_QUEUE "Backlog —
-added 18.10"): `ci/script/uawalk.sh` + `ci/script/scen/*.uaw` and any chat
-smoke must detect that popup/error text and FAIL the run, instead of
-reporting a blank reply as success. Not implemented yet.
+**(N61) Chat model down → harness must catch it (USER, 18.10) — DONE 18.10.**
+Requirement (also PORT_QUEUE "Backlog — added 18.10"): the API chat model
+(Gemini Flash Latest) can be down; the harness used to read an empty
+assistant reply as a pass. Implemented in `ci/script/uawalk.sh`: new
+commands `REPLY_BASE` (record the current assistant reply-body row count),
+`EXPECT_REPLY [secs]` (a NEW reply body must appear within secs, default
+120, else abort) and `EXPECT_ABSENT [secs] <text>` (abort the moment the
+text shows up, wall-clock window). Reply bodies are non-clickable
+full-width Views whose text is in `content-desc` (N51), so
+`uaw_count_reply_rows` counts nodes with non-empty content-desc,
+`clickable!=true`, `x1<=60`, `x2>=500` (tool-call chips share the width but
+are clickable, so excluded). New scenario `ci/script/scen/chat_smoke.uaw`
+(`EXPECT Enter your question...` → `REPLY_BASE` → type/`TAP Send` →
+`EXPECT_REPLY 120` → `EXPECT_ABSENT 5 "Request Failed"`) and runner
+`ci/script/accept_chat_smoke.sh` (no reinstall; launches the installed
+build, passes onboarding if present, then walks the scenario).
+KEY FINDING (live, on the test phone): the model-down symptom is an
+**empty reply with NO dialog** — blocking the gateway
+(`iptables -I OUTPUT -p tcp -d 192.168.1.55 --dport 20128 -j REJECT`)
+makes okhttp log `EnhancedAIService: 发送消息时发生错误: Connection ...
+Failed to connect ... 20128` and then the turn is finalized as complete
+(`finalizeMessage notifyTurnComplete=true`) with only the "Operit" label
+and no body. `EnhancedAIService.kt:1266` only sets
+`InputProcessingState.Error` (→ the "Request Failed" ErrorDialog,
+`AIChatScreen.kt:694` + `ErrorDialog.kt`) when `!providerStreamCollectionStarted`,
+which is false once the stream collector is running — so a connection
+failure never pops the dialog. NB: the Linux test host IS 192.168.1.55, so
+a whole-IP REJECT (no `--dport`) also kills ADB (source .55); use
+`--dport 20128`. Recovery from such a lock-out: tunnel ADB through HP-630,
+which is not blocked — `python3 /tmp/opencode/phone_tunnel.py` (paramiko
+`direct-tcpip` 127.0.0.1:15555 → 192.168.1.69:5555), then
+`adb connect 127.0.0.1:15555` and delete the rule (ADB auth is key-based,
+so the changed network source is fine).
+ Hence the blank-reply check is the load-
+bearing one; `EXPECT_ABSENT` is a secondary guard. Verified both paths:
+healthy turn PASSES in ~71 s (EXPECT_REPLY exits the moment the body
+appears, ~19 s), blocked turn ABORTS at `EXPECT_REPLY` with "blank reply,
+model likely down" (runner exit 1).
+
 **(N62) Export templates: Chinese default page translated, release re-uploaded
 (18.10).** The only remaining Chinese in the two export templates was the
 default `web_content` starter page (`index.html` + `main.js`, the diagnostic
@@ -719,6 +750,14 @@ creating the agent via WMI (`Win32_Process.Create`, "no redirect") does
 **not** reproduce the spiral on Windows — with no console handle Node's
 writes are inert (old and fixed both logged 486 B in 12 s); the spiral needs
 a pipe whose reader closed, which is the Linux harness case above.
+**(N64) EPIPE fix embedded in an APK (build `39118388660`, 18.10).** CI
+build `39118388660` at `880924cf` (with the N63 pc-agent fix in the
+toolpkg) is green; artifact `operit-android-107` (160 295 263 B zip)
+extracted to `/home/uzzzver/operit-fork/apk/20261018_101319Z/app-debug.apk`
+(163 165 767 B, sha256
+`7be2140ba6bb7af942b9d3593334d2b876172c4bf304874b42d548cc8380fd02`) with
+`CHANGES.md`. This is the first accepted APK that carries the fixed
+pc-agent, so a PC deploying the agent from this build gets the listener.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

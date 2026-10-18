@@ -1,0 +1,23 @@
+# chat_smoke.uaw — chat round-trip smoke with model-down detection.
+#
+# Precondition (runner): target build installed, launched, sitting on the
+# chat screen.
+#
+# Why this scenario exists: when the API chat model (Gemini Flash Latest)
+# is down the turn ends with only the "Operit" label and NO reply body (the
+# old harness read that blank body as a PASS). EXPECT_REPLY makes it a hard
+# FAIL. A second guard catches the ErrorDialog form (title
+# R.string.request_failed = "Request Failed") for failures that do pop it.
+
+EXPECT 15 Enter your question...
+MAYBE_TAP New Chat
+EXPECT Enter your question...
+REPLY_BASE
+TAP Enter your question...
+TYPE ping
+TAP Send
+# The model call spends a while in flight; wait for a real reply body.
+EXPECT_REPLY 120
+# Guard the dialog form of the failure too (should never show on a healthy turn).
+EXPECT_ABSENT 5 Request Failed
+DUMP

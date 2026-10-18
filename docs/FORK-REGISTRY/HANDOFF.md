@@ -553,7 +553,14 @@ icon swap via `ExeEditor` → copy project into `data/flutter_assets/assets/web_
 helper — `sshpass` absent; use the installed `paramiko` instead:
 `python3 -c "import paramiko..."`). Windows 10, PowerShell 5.1, .NET
 present, Edge installed; `winget`/`choco`/`python` are NOT on PATH.
-RDP is up (N58).
+RDP is up (N58). `artur` is in BUILTIN\Administrators; WebView2 Runtime
+155.0.4283.60 + Edge 155.0.4283.45 are installed (so Windows export has
+its runtime). Node.js was absent until the user authorised its install.
+**USER DIRECTIVE 18.10: the agent may do ANYTHING on this Windows
+machine (full unrestricted permission) — install software, change
+settings, run the PC agent, etc. No per-action confirmation needed.**
+Installed Node.js v24.22.0 LTS (silent MSI) at the user's suggestion
+("новee than 18"); `node -v` verified.
 **(N59) VirusTotal scan — DONE (18.10).** Both artifacts were already
 on VT (submitted ~2026-03). `subpack-windows.zip`
 `9c2d3e3b5e862334e24f4008572f239c380a73f23c5940054bf3a5142ca46888`:

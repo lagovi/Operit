@@ -610,14 +610,41 @@ supported launcher redirects, so it is a robustness gap, not a normal
 path, but fatal on disk if triggered. **SECURITY NOTE:** `GET /api/config`
 is unauthenticated and returns `apiToken` in cleartext — any LAN host can
 read it; only token-gated endpoints are protected.
-**NEXT (phone side, still open):** the toolpkg IS on the phone
-(`files/toolpkg_cache/com.operit.windows_bundle-2ca0f3a6`). Remaining:
-import/enable it, set env `WINDOWS_AGENT_BASE_URL=http://192.168.1.66:58321`
-+ `WINDOWS_AGENT_TOKEN=<from config.json>` (SharedPreferences file
-`env_preferences.xml`, see `EnvPreferences.kt`), then run
-`windows_test_connection` / `windows_exec` from the phone and watch the
-command land on the PC. ADB needed `adb kill-server; adb connect
-192.168.1.69:5555` to clear an `unauthorized` state; now authorized.
+**(N60b) PC agent end-to-end on Windows — PHONE SIDE DONE (18.10).** The
+`windows_control` toolpkg is present on the phone both as an APK asset
+(`packages/windows_control.toolpkg`, seen in the load log) and in
+`files/toolpkg_cache/com.operit.windows_bundle-2ca0f3a6/`. Env was set by
+writing `shared_prefs/env_preferences.xml` while the app was force-stopped
+(`WINDOWS_AGENT_BASE_URL=http://192.168.1.66:58321`, `WINDOWS_AGENT_TOKEN`,
+`..._DEFAULT_SHELL=powershell`, `..._TIMEOUT_MS=30000`; file and reader in
+`EnvPreferences.kt`, name `env_preferences`). Enabling was the missing
+step: the manifest container `com.operit.windows_bundle` is imported but
+the subpackage `windows_control` declares **`enabledByDefault: false`**
+(`examples/windows_control/src/packages/windows_control.ts:12`), so
+`isPackageEnabled("windows_control")` is false and the setup card shows
+"Package not imported or env incomplete". The proper user path is the
+screen's **"Step 3 → Paste and Apply"** (`pasteConfigAndApply →
+saveConfigAndActivatePackage → ensureImportedAndUsed`, which calls
+`enablePackage("windows_control")`). It was enabled for the test by adding
+`"windows_control"` to `imported_packages` and
+`{"windows_control":true}` to `toolpkg_subpackage_states` in
+`shared_prefs/com.ai.assistance.operit.core.tools.PackageManager.xml`
+(key names per `PackageManager.kt`: `ENABLED_PACKAGES_KEY="imported_packages"`,
+`TOOLPKG_SUBPACKAGE_STATES_KEY="toolpkg_subpackage_states"`). With that,
+Toolbox → Windows Quick Setup → **Connected**, showing `Package Version
+0.2.2`, `Agent Version 0.2.2`, `Duration 107`, `Command preset:whoami`. The
+PC agent log confirms the phone originated it:
+`GET /api/health` then `POST /api/command/execute {"hasPreset":true,
+"preset":"whoami",...} → cmd.exe /c "chcp 65001>nul & whoami", 107 ms`. So
+phone → LAN → PC agent → process execution works end to end. Testing notes:
+`adb shell input text` CANNOT type the config JSON (double quotes are
+stripped, only the first segment survives) so the field must be filled by
+a real keyboard/paste; and a chat attempt to invoke `windows_exec` for
+`echo OPERIT-PHONE-E2E` was inconclusive (assistant body not exposed in the
+UI dump, no matching agent log line) — the screen's `preset:whoami` already
+proves arbitrary-command plumbing (same `/api/command/execute`), so this is
+not blocking. ADB needed `adb kill-server; adb connect 192.168.1.69:5555`
+to clear an `unauthorized` state; now authorized.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

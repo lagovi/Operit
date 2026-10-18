@@ -101,14 +101,16 @@ Do not re-propose them without new facts.
 
 ## 2026-10-03: internal-storage prospects, ranked (APK anatomy at e9c7e0e1)
 
-Status update 2026-10-08: rows 2, 3, 4 DONE; packaging lever and rootfs
-DEAD (details in the ledger above and in HANDOFF E1–E3); row 1 PART
-(subpack mechanics done, apktool/desktop + Q2 open — HANDOFF 12/13).
+Status update 2026-10-18: rows 2, 3, 4 DONE; packaging lever DEAD
+(details in the ledger above and in HANDOFF E1–E3); row 1 DONE — subpack
+mechanics + helper APKs + templates/emoji + OCR + speech models all
+hosted, and the terminal rootfs moved out of the APK (SIZE-008, release
+`terminal-rootfs-v1`; the *installed* tree still stays internal, E3 stands).
 Do not re-investigate DONE rows; do not re-propose DEAD ones.
 
 | # | lever | internal saving | cost | status 2026-10-06 |
 |---|-------|----------------:|------|-------------------|
-| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | PART: rootfs DEAD on device (E3, stays internal); subpack MECHANICS DONE 08.10 (`a4fddb40`, leaf+picker accepted, files still in APK — payoff only via SD move until Q2); apktool REMOVED+MEASURED 08.10 (CI `37722980127`: 247299182 → 220307769 Б); desktop.apk REMOVED+MEASURED 08.10 (CI `37726800230`: → 214210621 Б); живые остатки (helper APK/templates/emoji) → Q2; Q2 OPEN (HANDOFF 13, hosting decided) |
+| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | DONE: subpack MECHANICS (`a4fddb40`); apktool REMOVED (CI `37722980127`: 247299182 → 220307769 Б); desktop.apk REMOVED (CI `37726800230`: → 214210621 Б); Q2 hosted helper APK/templates/emoji/OCR/speech; rootfs MOVED OUT 18.10 (SIZE-008, release `terminal-rootfs-v1`, host `RootfsArchiveProvider`; the installed tree still stays internal, E3 stands) |
 | 2 | GigaAM model (225 MB) to SD via the existing picker | 225 MB | zero code; operational, needs the SD present | DONE (M6 2026-10-05: SD round-trip byte-identical, engine inits from card) |
 | 3 | Drop `tensorflow.lite` + `mediapipe.tasks.text` (comment says "if needed", zero code references) | ~11.5 MB | two dependency lines; CI-verifiable | DONE (CI `37127299796`: APK 386 -> 373 MB, both .so gone from APK) |
 | 4 | R8/minify for debug builds too (dex stored ~75 MB over 43 files, no minification today) | est. 25–35 MB | slower CI builds; measure like the packaging lever | DONE 08.10 (keep-fix `b4ff4a30`, minify debug ON forever, −40.1 MB measured: 287428400 -> 247288710; mapping artifacts per green CI) |
@@ -248,7 +250,7 @@ Nothing large is tracked in git, so this had to be established:
 | `lib/arm64-v8a` (151.5 MB raw) | `jniLibs.zip` on upstream's Google Drive, unpacked by `ci/script/prepare_android_dependencies.py` |
 | `assets/subpack` (35 MB) | `subpack.zip` on the same Google Drive account |
 | `assets/packages/apktool.toolpkg` (25.7 MB) | packed from `examples/apktool/` by `tools/example_packages/sync_example_packages.py`; its four jars are `jadx-runtime-android.jar` 14 MB, `apktool-runtime-android.jar` 5.0 MB, `android-framework.jar` 4.3 MB, `apk-reverse-helper-runtime-android.jar` 3.1 MB |
-| terminal rootfs (61.2 MB) | `terminal/src/main/assets/`, in our own submodule |
+| terminal rootfs (61.2 MB) | was `terminal/src/main/assets/` (our submodule); now the release `terminal-rootfs-v1`, fetched by the app (SIZE-008) |
 
 The fork cannot modify the Google Drive archives, which is why the subpackages
 would need a download source this fork controls before they could be moved.

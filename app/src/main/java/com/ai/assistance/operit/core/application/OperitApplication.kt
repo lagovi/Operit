@@ -53,7 +53,9 @@ import com.ai.assistance.operit.util.CrashRecoveryState
 import com.ai.assistance.operit.util.OperitPaths
 import com.ai.assistance.operit.util.SkillRepoZipPoolManager
 import com.ai.assistance.operit.util.SerializationSetup
+import com.ai.assistance.operit.util.TerminalRootfsDownload
 import com.ai.assistance.operit.util.TextSegmenter
+import com.ai.assistance.operit.terminal.TerminalRootfs
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.ai.assistance.operit.core.tools.agent.ShowerController
 import com.ai.assistance.operit.ui.common.displays.VirtualDisplayOverlay
@@ -137,6 +139,10 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         }
 
         globalImageLoader = ImageLoader.Builder(this).build()
+
+        // The terminal rootfs is no longer an APK asset; the terminal asks this
+        // provider for the archive on first use (English-only fork, HANDOFF N69).
+        TerminalRootfs.provider = TerminalRootfsDownload.getInstance(applicationContext)
     }
 
     fun initializeMainApplication() {

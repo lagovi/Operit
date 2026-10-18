@@ -14,7 +14,6 @@ import java.io.File
  *
  * | payload | in APK | movable | note |
  * |---|---:|---|---|
- * | terminal rootfs | 61.2 MiB | yes | already extracted to filesDir on first terminal use |
  * | js | 1.4 MiB | no | hot JS-engine runtime, offline (HANDOFF 12b) |
  *
  * Gone from the table because Q2 removed them from the APK (see the objects
@@ -23,11 +22,8 @@ import java.io.File
  * `desktop.apk` (deleted, HANDOFF 12b), `shizuku.apk` + `accessibility.apk`
  * (on-demand into cacheDir, release `v1.12.1+4`), `templates/` +
  * `emoji/` trees (one zip each, unpacked into the seed dir on first use,
- * release `v1.12.1+4`).
- * The terminal rootfs is not listed as an object yet: it has to lose its
- * `context.assets.open` call first, and the proot tree may not start from an
- * external leaf at all (E3). Adding an entry before that work is done would
- * make the registry lie about what the build contains.
+ * release `v1.12.1+4`), and the terminal rootfs (release `terminal-rootfs-v1`,
+ * HANDOFF N69).
  *
  * Not listed, because nothing can be done about them: `lib/arm64-v8a` and the dex
  * files. The linker resolves native libraries from the package manager's own
@@ -267,9 +263,38 @@ class OfflinePayload(
             unpackedBytes = 36179278L
         )
 
+        /**
+         * The Ubuntu rootfs the local terminal unpacks on first use, released
+         * from the APK and now downloaded on demand into `filesDir`. The
+         * terminal no longer reads it from its own assets; it asks the host
+         * application through `com.ai.assistance.operit.terminal.RootfsArchiveProvider`
+         * (set in `OperitApplication.onCreate`), and only when Ubuntu is not yet
+         * installed. The install script deletes the archive right after
+         * unpacking, so an installed terminal never downloads it again.
+         *
+         * The archive name is duplicated in
+         * `com.ai.assistance.operit.terminal.TerminalRootfs.ARCHIVE_NAME`, which
+         * is the single source the terminal and the download gate both read;
+         * bump both together with the release file.
+         */
+        val TERMINAL_ROOTFS = OfflinePayload(
+            id = "terminal-rootfs",
+            title = "Terminal Ubuntu rootfs",
+            leaf = "filesDir",
+            assets = listOf(
+                RemoteAsset(
+                    name = "ubuntu-noble-aarch64-pd-v4.18.0.tar.xz",
+                    url = "$RELEASE_BASE/terminal-rootfs-v1/ubuntu-noble-aarch64-pd-v4.18.0.tar.xz",
+                    sizeBytes = 64133552L,
+                    sha256 = "91acaa786b8e2fbba56a9fd0f8a1188cee482b5c7baeed707b29ddaa9a294daa"
+                )
+            ),
+            unpackedBytes = 64133552L
+        )
+
         val all: List<OfflinePayload> = listOf(
             GIGAAM, PARAKEET, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU, HELPER_A11Y,
-            SEED_TEMPLATES, SEED_EMOJI, PADDLE_OCR
+            SEED_TEMPLATES, SEED_EMOJI, PADDLE_OCR, TERMINAL_ROOTFS
         )
     }
 }

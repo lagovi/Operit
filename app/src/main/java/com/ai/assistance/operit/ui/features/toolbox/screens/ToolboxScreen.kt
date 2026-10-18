@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.ai.assistance.operit.ui.components.CustomScaffold
+import com.ai.assistance.operit.ui.components.TerminalRootfsGate
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -209,11 +210,19 @@ fun FileManagerToolScreen(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TerminalToolScreen(navController: NavController, forceShowSetup: Boolean = false) {
-        val context = LocalContext.current
-        val terminalManager = remember { TerminalManager.getInstance(context) }
-        val terminalEnv = rememberTerminalEnv(terminalManager = terminalManager, forceShowSetup = forceShowSetup)
         CustomScaffold() { paddingValues ->
-                Box(modifier = Modifier.padding(paddingValues)) { TerminalViewScreen(env = terminalEnv) }
+                Box(modifier = Modifier.padding(paddingValues)) {
+                        TerminalRootfsGate {
+                                val context = LocalContext.current
+                                val terminalManager = remember { TerminalManager.getInstance(context) }
+                                val terminalEnv =
+                                        rememberTerminalEnv(
+                                                terminalManager = terminalManager,
+                                                forceShowSetup = forceShowSetup
+                                        )
+                                TerminalViewScreen(env = terminalEnv)
+                        }
+                }
         }
 }
 

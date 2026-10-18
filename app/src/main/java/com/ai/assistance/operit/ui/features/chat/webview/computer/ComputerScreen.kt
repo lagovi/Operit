@@ -15,37 +15,42 @@ import androidx.compose.ui.platform.LocalContext
 import com.ai.assistance.operit.terminal.TerminalManager
 import com.ai.assistance.operit.terminal.rememberTerminalEnv
 import com.ai.assistance.operit.terminal.main.TerminalScreen
+import com.ai.assistance.operit.ui.components.TerminalRootfsGate
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ComputerScreen() {
-    val context = LocalContext.current
-    
-    // Create a TerminalManager and TerminalEnv instance for the terminal
-    val terminalManager = remember { TerminalManager.getInstance(context) }
-    val terminalEnv = rememberTerminalEnv(terminalManager)
-    
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            // 移除背景色，避免遮挡 SurfaceView
-            // .background(Color.Black) 
-            // 使用 pointerInput 拦截触摸事件，防止穿透到下层聊天界面
-            // 相比 clickable，这种方式对无障碍服务更友好，不会阻止内部组件的无障碍访问
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { /* 消费点击事件 */ },
-                    onDoubleTap = { /* 消费双击事件 */ },
-                    onLongPress = { /* 消费长按事件 */ },
-                    onPress = { /* 消费按压事件 */ }
-                )
-            }
-    ) {
-        // Show the terminal interface instead of the web desktop
-        TerminalScreen(
-            env = terminalEnv,
-            useLocalImeHandling = false,
-            checkUpdatesOnEnter = false,
-        )
+    // The terminal cannot start until its Ubuntu rootfs is on the device; the
+    // gate handles the one-time download before TerminalManager is created.
+    TerminalRootfsGate {
+        val context = LocalContext.current
+
+        // Create a TerminalManager and TerminalEnv instance for the terminal
+        val terminalManager = remember { TerminalManager.getInstance(context) }
+        val terminalEnv = rememberTerminalEnv(terminalManager)
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                // 移除背景色，避免遮挡 SurfaceView
+                // .background(Color.Black) 
+                // 使用 pointerInput 拦截触摸事件，防止穿透到下层聊天界面
+                // 相比 clickable，这种方式对无障碍服务更友好，不会阻止内部组件的无障碍访问
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { /* 消费点击事件 */ },
+                        onDoubleTap = { /* 消费双击事件 */ },
+                        onLongPress = { /* 消费长按事件 */ },
+                        onPress = { /* 消费按压事件 */ }
+                    )
+                }
+        ) {
+            // Show the terminal interface instead of the web desktop
+            TerminalScreen(
+                env = terminalEnv,
+                useLocalImeHandling = false,
+                checkUpdatesOnEnter = false,
+            )
+        }
     }
 } 

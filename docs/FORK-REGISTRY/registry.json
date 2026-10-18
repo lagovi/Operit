@@ -666,6 +666,35 @@
     }
    ],
    "reverify": "node --check on the handler; start the agent bound to the LAN address and confirm GET /api/config is 200 from 127.0.0.1 and 403 from another host, while POST /api/command/execute still works with the token"
+   },
+  {
+   "id": "SIZE-008",
+   "area": "size",
+   "title": "Terminal Ubuntu rootfs moved out of the APK to an on-demand download",
+   "commit": null,
+   "status": "applied",
+   "rationale": "The 61.2 MiB ubuntu-noble-aarch64-pd-v4.18.0.tar.xz was the last heavy asset bundled in the APK besides the JS runtime. It is now downloaded on demand from the fork's own release terminal-rootfs-v1 and verified by sha256 (RemoteAssetFetcher). The terminal module no longer reads it from context.assets; a RootfsArchiveProvider seam (terminal commit 9d01a2e) is installed by the app in OperitApplication.onCreate, and the archive is requested only when Ubuntu is not yet installed (the install script deletes it after unpacking). The installed tree still lives in internal filesDir: E3 showed an external location cannot hold its symlinks, so only the source of the archive changed, not its destination. The UI gate (TerminalRootfsGate) asks the user before the transfer and shows progress; the terminal can still be started without a UI, in which case the provider downloads directly.",
+   "files": [
+    "app/src/main/java/com/ai/assistance/operit/util/OfflinePayloads.kt",
+    "app/src/main/java/com/ai/assistance/operit/util/TerminalRootfsDownload.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/components/TerminalRootfsGate.kt",
+    "app/src/main/java/com/ai/assistance/operit/core/application/OperitApplication.kt",
+    "terminal/src/main/java/com/ai/assistance/operit/terminal/RootfsArchiveProvider.kt",
+    "terminal/src/main/java/com/ai/assistance/operit/terminal/TerminalManager.kt"
+   ],
+   "anchors": [
+    {
+     "file": "app/src/main/java/com/ai/assistance/operit/util/OfflinePayloads.kt",
+     "contains": "terminal-rootfs-v1",
+     "why": "the release tag the archive is fetched from; must match the release name"
+    },
+    {
+     "file": "terminal/src/main/java/com/ai/assistance/operit/terminal/TerminalManager.kt",
+     "contains": "TerminalRootfs.isInstalled",
+     "why": "the archive is only requested when Ubuntu is not yet installed"
+    }
+   ],
+   "reverify": "CI Android Build; then on a clean install open the terminal, accept the download, confirm Ubuntu unpacks, and confirm no second download on relaunch. Assert app/build's assets no longer contain ubuntu-noble-aarch64-pd-v4.18.0.tar.xz."
   }
- ]
-}
+  ]
+ }

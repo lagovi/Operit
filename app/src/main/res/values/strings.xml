@@ -1806,6 +1806,11 @@
     <string name="download_started">Download started: %1$s</string>
     <string name="download_success">Download successful: %1$s</string>
     <string name="download_start">Download started: %1$s</string>
+    <string name="terminal_rootfs_title">Terminal environment</string>
+    <string name="terminal_rootfs_required_body">The terminal needs the Ubuntu environment. It is downloaded once (about 61 MB) and kept on this device. Once the terminal is set up it is not downloaded again.</string>
+    <string name="terminal_rootfs_downloading">Downloading the terminal environment…</string>
+    <string name="terminal_rootfs_failed_title">Could not download the terminal environment</string>
+    <string name="terminal_rootfs_retry">Retry</string>
     <string name="deploy_date">Deploy: %1$s</string>
     <string name="termux_start_command_sent">Termux start command sent</string>
     <string name="termux_start_failed">Termux start failed</string>

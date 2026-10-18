@@ -26,8 +26,8 @@ phone now).
 `b4ff4a30` QuickJS keep + `c8bda3c4`/`acc9eb3a` 5a/5b + `50dc014a`
 R8-mapping + `f3ce47f1`/`5cb753fe` task 10 + `cddb9906` revert +
 `97ad4913`/`a112091f`/`55e18396` tests (Android Tests green) +
-`a4fddb40` subpack Q1 + submodule `terminal@ecb93f2` (English-only
-re-applied 18.10; see N65);
+`a4fddb40` subpack Q1 + submodule `terminal@9d01a2e` (English-only
+re-applied 18.10, see N65; rootfs from the host provider, see N69);
 docs-only commits on top.)
 
 OPEN (full breakdown in §8; summary here):
@@ -815,6 +815,45 @@ Warning`) and none of the former Chinese literals (`清华源`,
 straight from the packaged APK. NB: the reinstall wiped app data, so the
 phone-side `windows_control` re-verify (item 7) needs the environment and
 the PC agent re-deployed.
+**(N68) Phone→PC `windows_control` re-verified on build `39143043794`
+(18.10).** After the reinstall wiped app data, the env and the enabled
+subpackage were restored the N60b way (app force-stopped, written via
+`run-as`): `shared_prefs/env_preferences.xml` = `WINDOWS_AGENT_BASE_URL`
+`http://192.168.1.66:58321`, `WINDOWS_AGENT_TOKEN`, `..._DEFAULT_SHELL`
+`powershell`, `..._TIMEOUT_MS` `30000`; `...PackageManager.xml` =
+`imported_packages` gains `windows_control` and `toolpkg_subpackage_states`
+`{"windows_control":true}`. Toolbox → Windows Quick Setup then shows
+**Connected**, package/agent `0.2.2`, `preset:whoami` in 82 ms. PC side
+(`C:\Users\artur\operit-pc-agent\logs\agent.runtime.log`) shows the matching
+`GET /api/health` and `POST /api/command/execute` (`whoami`,
+`tokenProvided:true`, `exitCode 0`, 82 ms). Item 7 CLOSED. The live UI check
+also confirms the English-only UI on this build.
+**(N69) Terminal Ubuntu rootfs moved out of the APK (18.10, item 2 / Q2
+tail).** The last movable heavy asset, the 61.2 MiB
+`ubuntu-noble-aarch64-pd-v4.18.0.tar.xz`, is no longer bundled. It is
+downloaded on demand from the fork's own release `terminal-rootfs-v1`
+(asset `ubuntu-noble-aarch64-pd-v4.18.0.tar.xz`, 64133552 B, sha256
+`91acaa786b8e2fbba56a9fd0f8a1188cee482b5c7baeed707b29ddaa9a294daa`; uploader
+`ci/script/publish_payload_release.sh`, new). Mechanics: `:terminal` no
+longer reads the archive from `context.assets`; a new seam
+`RootfsArchiveProvider` (`terminal/.../RootfsArchiveProvider.kt`, commit
+`terminal@9d01a2e`, branch `feat/rootfs-host-provider`) is installed by
+`:app` in `OperitApplication.onCreate` (`TerminalRootfs.provider`). The
+archive is requested only when Ubuntu is not yet installed
+(`TerminalRootfs.isInstalled`, the single source for the installed path and
+the archive name); after the install script unpacks the tree it deletes the
+archive, so an installed terminal never re-downloads. `:app`
+`TerminalRootfsDownload` (singleton, implements `RootfsArchiveProvider`)
+wraps `RemoteAssetFetcher` (resume/Range/sha256) and exposes a `StateFlow`;
+`TerminalRootfsGate` (`ui/components`) wraps both :app terminal entry points
+(`ComputerScreen`, `ToolboxScreen.TerminalToolScreen`) with consent →
+progress → retry, and only creates `TerminalManager` once the archive is on
+the device. `OfflinePayload.TERMINAL_ROOTFS` is registered in
+`OfflinePayload.all`. NOTE: E3 still stands — the *installed* tree stays in
+internal `filesDir`; only the *source* of the archive changed. Expected APK
+shrink ~61 MiB (measured on the next CI run). Acceptance: fresh install →
+Toolbox terminal → consent → download → Ubuntu unpacks; instant on the
+second launch.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

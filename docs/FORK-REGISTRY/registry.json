@@ -34,6 +34,36 @@
    "status": "applied"
   },
   {
+   "id": "I18N-002",
+   "area": "localization",
+   "title": "terminal submodule UI is English-only (SSH config, setup, mirrors, copy menu)",
+   "commit": "ecb93f2",
+   "rationale": "The terminal module is a git submodule whose Compose UI wrote ~65 Chinese literals directly (SSH config screen, setup warnings, mirror display names, the terminal copy menu), so they bypassed the resource system and rendered Chinese regardless of app language. The English-only change (terminal 1df5639) moves them into the module's values/ bucket (English, single source of truth) and deletes values-en/. On this fork it was lost when the performance-monitor port f6991f96 re-pinned the submodule at the upstream perf branch 0458689, which predates it. The fix re-applies 1df5639 on top of 0458689 so both the PTY child pid feature and the English strings survive. The earlier 26d4964 (extract terminal .so from the APK) is deliberately NOT carried: it is a fallback for the rejected useLegacyPackaging=false experiment (SIZE-007), and nativeLibraryDir is populated under normal packaging.",
+   "files": [
+    "terminal/src/main/java/com/ai/assistance/operit/terminal/ui/SSHConfigScreen.kt",
+    "terminal/src/main/java/com/ai/assistance/operit/terminal/ui/SetupScreen.kt",
+    "terminal/src/main/java/com/ai/assistance/operit/terminal/ui/SettingsViewModel.kt",
+    "terminal/src/main/java/com/ai/assistance/operit/terminal/utils/SourceManager.kt",
+    "terminal/src/main/java/com/ai/assistance/operit/terminal/utils/SSHDServerManager.kt",
+    "terminal/src/main/java/com/ai/assistance/operit/terminal/view/canvas/CanvasTerminalView.kt",
+    "terminal/src/main/res/values/strings.xml"
+   ],
+   "anchors": [
+    {
+     "file": "terminal/src/main/java/com/ai/assistance/operit/terminal/utils/SourceManager.kt",
+     "contains": "terminal_mirror_source_tuna",
+     "why": "mirror names now resolve from the English resources, not literals"
+    },
+    {
+     "file": "terminal/src/main/res/values/strings.xml",
+     "contains": "terminal_package_openssh_server_name",
+     "why": "the openssh-server row that was the last leaking literal"
+    }
+   ],
+   "reverify": "python3 ci/script/fork_audit.py",
+   "status": "applied"
+  },
+  {
    "id": "UI-001",
    "area": "layout",
    "title": "Edge-to-edge insets on onboarding screens",

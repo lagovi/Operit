@@ -646,6 +646,26 @@
    ],
    "anchors": [],
    "reverify": []
+  },
+  {
+   "id": "SEC-001",
+   "area": "security",
+   "title": "PC agent settings endpoints answer only to the machine running the agent",
+   "commit": null,
+   "status": "applied",
+   "rationale": "The PC agent's GET /api/config returned the api token in plaintext and POST /api/config could rewrite it, both without any check, so anyone who reached the agent's port could read or replace the token (only command/process/file endpoints checked it). The settings endpoints (/api/config, /api/presets, /api/startup/state, /api/startup/apply_recommended_bind) now require the request to originate from the same machine: loopback, or one of the host's own addresses (a PC browser that opened the console through the LAN address is still allowed; the IPv4-mapped ::ffff: form is handled too). A remote peer cannot present a local source address over TCP without completing the handshake from it. The phone only uses /api/health, /api/command/execute, /api/process/* and /api/file/*, so remote command control is unchanged and stays token-gated; only /api/health remains remote-readable.",
+   "files": [
+    "examples/windows_control/resources/pc_agent/operit-pc-agent/src/handlers/api-handler.js",
+    "examples/windows_control/resources/pc_agent/operit-pc-agent/README.md"
+   ],
+   "anchors": [
+    {
+     "file": "examples/windows_control/resources/pc_agent/operit-pc-agent/src/handlers/api-handler.js",
+     "contains": "api.local_only.denied",
+     "why": "the local-only guard must stay in the request path"
+    }
+   ],
+   "reverify": "node --check on the handler; start the agent bound to the LAN address and confirm GET /api/config is 200 from 127.0.0.1 and 403 from another host, while POST /api/command/execute still works with the token"
   }
  ]
 }

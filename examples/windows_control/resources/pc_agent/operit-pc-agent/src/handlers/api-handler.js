@@ -3,6 +3,17 @@ const { readJsonBody, sendJson, parseBoolean } = require("../lib/http-utils");
 const FILE_WRITE_JSON_MAX_BODY_BYTES = 8 * 1024 * 1024;
 const FILE_WRITE_BASE64_JSON_MAX_BODY_BYTES = 24 * 1024 * 1024;
 
+// Settings endpoints are reachable only from the machine that runs the
+// agent. They reveal the api token (GET /api/config) and can rewrite it
+// (POST /api/config), so a remote caller must not reach them. The web
+// console runs on that same machine and is unaffected.
+const LOCAL_ONLY_PATHS = new Set([
+  "/api/config",
+  "/api/presets",
+  "/api/startup/state",
+  "/api/startup/apply_recommended_bind"
+]);
+
 function buildPublicConfig(config, versionInfo) {
   return {
     bindAddress: config.bindAddress,
@@ -37,6 +48,21 @@ function isAuthorized(config, token) {
   }
 
   return String(token || "") === config.apiToken;
+}
+
+// True for a loopback peer address: 127.0.0.0/8, ::1, or the IPv4-mapped
+// form Node reports for an IPv4 client on a dual-stack socket
+// (::ffff:127.x.x.x).
+function isLoopbackAddress(address) {
+  const value = String(address || "").trim();
+  if (!value) {
+    return false;
+  }
+  if (value === "::1") {
+    return true;
+  }
+  const ipv4 = value.startsWith("::ffff:") ? value.slice("::ffff:".length) : value;
+  return /^127\./.test(ipv4);
 }
 
 function createApiHandler({
@@ -76,6 +102,24 @@ function createApiHandler({
       description: item.description,
       allowed: config.allowedPresets.includes(name)
     }));
+  }
+
+  // A request is "local" when it comes from this same machine: over the
+  // loopback interface, or from one of the host's own addresses (a browser on
+  // the PC that opened the console through the LAN address shows up with that
+  // address, not 127.0.0.1). A remote peer cannot present a local address over
+  // TCP without completing the handshake from that address, so this is a sound
+  // boundary for a single-host settings endpoint.
+  function isLocalRequest(req) {
+    const remoteAddress = req && req.socket ? req.socket.remoteAddress : "";
+    if (isLoopbackAddress(remoteAddress)) {
+      return true;
+    }
+    const normalized = String(remoteAddress || "").replace(/^::ffff:/, "");
+    if (!normalized) {
+      return false;
+    }
+    return processService.getNetworkSnapshot().ipv4Candidates.includes(normalized);
   }
 
   function unauthorized(res, routeName, tokenProvided, extra = {}) {
@@ -272,6 +316,19 @@ function createApiHandler({
 
   async function handleApiRequest(req, res, url) {
     const config = state.config;
+
+    if (LOCAL_ONLY_PATHS.has(url.pathname) && !isLocalRequest(req)) {
+      logger.warn("api.local_only.denied", {
+        path: url.pathname,
+        method: req.method,
+        remoteAddress: req && req.socket ? req.socket.remoteAddress : ""
+      });
+      sendJson(res, 403, {
+        ok: false,
+        error: "This endpoint is available only from the machine running the agent"
+      });
+      return true;
+    }
 
     if (req.method === "GET" && url.pathname === "/api/health") {
       const network = processService.getNetworkSnapshot();

@@ -781,6 +781,25 @@ Effect: SSH config screen, env-setup rows, mirror source names and the
 terminal long-press "Copy" are English. Re-verify: `python3
 ci/script/fork_audit.py` (0 new Chinese literals in Kotlin) + a CI build +
 a phone check of the SSH config screen.
+**(N66) PC agent settings endpoints were world-open — FIXED (18.10).**
+With the agent bound to the LAN address (so the phone can reach it),
+`GET /api/config` handed the api token to anyone who could reach the port,
+and `POST /api/config` let them rewrite it (bind/port/token/allowedPresets);
+neither checked anything. Only command/process/file required the token. FIX
+(user decision: restrict settings to local access): the settings endpoints
+— `GET`/`POST /api/config`, `GET /api/presets`, `GET /api/startup/state`,
+`POST /api/startup/apply_recommended_bind` — now answer only to the agent's
+own machine: loopback (127.0.0.0/8, `::1`, and the `::ffff:` mapped form)
+or one of the host's non-internal IPv4 addresses (a PC browser that opened
+the console through the LAN address still works). `/api/health` stays
+remote-readable (the phone's health check). The phone calls only
+health/command/process/file, so remote control is unchanged. Verified with
+a mock-request harness: loopback and the host's own address → 200, a remote
+address → 403 for the settings paths, health → 200. NOT taken (user chose
+otherwise): never returning the token and making the console ask for it.
+Registry SEC-001; `README.md` documents the split. NB: the agent ships
+inside the tool package, so the fix reaches a PC only after a CI build and
+a redeploy of the agent.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

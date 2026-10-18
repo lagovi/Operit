@@ -187,6 +187,17 @@ commits (breaks the tested line). Spot ports only. Fork-point: `1ed8687d`
   finalized as complete), so the blank-reply note is the one that fires.
   Discovered during the 18.10 phone-side `windows_control` end-to-end test.
 
+- **PC agent settings were reachable from any host (user, 18.10).** DONE
+  18.10 — see HANDOFF N66 / registry SEC-001. `GET /api/config` returned the
+  api token in plaintext and `POST /api/config` could rewrite it, both with
+  no check. The settings endpoints (`/api/config`, `/api/presets`,
+  `/api/startup/state`, `/api/startup/apply_recommended_bind`) now answer
+  only to the machine running the agent (loopback, or one of the host's own
+  addresses). The phone is unaffected: it calls only `/api/health`,
+  `/api/command/execute`, `/api/process/*`, `/api/file/*`. On the user's
+  decision the alternative (stop returning the token; have the console ask
+  for it) was NOT taken.
+
 
 ## Not taking (REJECTED, deliberate)
 
@@ -199,10 +210,12 @@ commits (breaks the tested line). Spot ports only. Fork-point: `1ed8687d`
 - i18n commits (`a51f23b4`, `a46e0c62`, `d1a28473`, `98241209`, `f72b20f6`, `2f31888b`) — nothing to localize, fork is English-only.
 - Dev draw packages (`29d67812`, `ef1bf4b6`, `14c8afdc`) — don't touch draw.
 
-## Debt: terminal submodule (non-blocking)
-- Pointer `26d4964a`→`04586898` (`pty.pid` needed for the perf monitor)
-  brought 49 hardcoded CN strings (SSH screens, mirror names). It's
-  someone else's repo (submodule) — can't edit there (CI rebuilds clean).
-  Allowlisted in `cjk-allowlist.json` as upstream debt. Full EN pass of
-  terminal — separate task, when we fork terminal (upstream started
-  values-en itself).
+## Terminal submodule language — DONE 18.10
+- The pin `26d4964a`→`04586898` (`pty.pid` for the perf monitor) had dropped
+  the earlier English-only change, so the SSH screens, setup rows, mirror
+  names and the terminal copy menu showed Chinese again. Fixed by
+  cherry-picking the i18n commit onto `04586898` as
+  `lagovi/OperitTerminalCore@ecb93f2` (branch `fix/terminal-english-strings`)
+  and re-pointing the submodule. This is OUR fork (pushable), not upstream
+  debt. The 49 CN literals were removed from `cjk-allowlist.json`. See
+  HANDOFF N65 and registry I18N-002.

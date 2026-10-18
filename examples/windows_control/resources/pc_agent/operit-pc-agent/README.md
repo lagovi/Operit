@@ -53,16 +53,19 @@ Windows side helper project for Operit.
 
 ## API (local)
 
-Public read endpoints:
+World-readable read endpoint:
 - `GET /api/health`
+
+Local-only endpoints (callable only from the machine that runs the agent;
+a remote caller gets `403`):
 - `GET /api/config`
 - `GET /api/presets`
 - `GET /api/startup/state`
 
-Config / command endpoint:
-- `POST /api/config`
+Config / command endpoints:
+- `POST /api/config` (local-only)
 - `POST /api/command/execute` (requires `token`)
-- `POST /api/startup/apply_recommended_bind`
+- `POST /api/startup/apply_recommended_bind` (local-only)
 
 File endpoints (all require `token` in JSON body):
 - `POST /api/file/list`
@@ -85,6 +88,11 @@ File endpoints (all require `token` in JSON body):
 - Default bind address is `127.0.0.1`.
 - `apiToken` is always enabled. If missing, agent auto-generates one.
 - In wizard one-click fill, token is generated only when missing (existing token is reused).
+- The settings endpoints (`/api/config`, `/api/presets`, `/api/startup/*`)
+  answer only to the machine that runs the agent. The agent still binds to
+  the LAN address so the phone can run commands, but the api token is never
+  handed to a remote caller and cannot be rewritten remotely. The web console
+  runs on that machine, so it is unaffected.
 
 ## Troubleshooting
 

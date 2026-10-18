@@ -26,7 +26,8 @@ phone now).
 `b4ff4a30` QuickJS keep + `c8bda3c4`/`acc9eb3a` 5a/5b + `50dc014a`
 R8-mapping + `f3ce47f1`/`5cb753fe` task 10 + `cddb9906` revert +
 `97ad4913`/`a112091f`/`55e18396` tests (Android Tests green) +
-`a4fddb40` subpack Q1 + submodule `terminal@26d4964`;
+`a4fddb40` subpack Q1 + submodule `terminal@ecb93f2` (English-only
+re-applied 18.10; see N65);
 docs-only commits on top.)
 
 OPEN (full breakdown in §8; summary here):
@@ -645,22 +646,30 @@ UI dump, no matching agent log line) — the screen's `preset:whoami` already
 proves arbitrary-command plumbing (same `/api/command/execute`), so this is
 not blocking. ADB needed `adb kill-server; adb connect 192.168.1.69:5555`
 to clear an `unauthorized` state; now authorized.
-**(N61) Chat model down → harness must catch it (USER, 18.10) — DONE 18.10.**
+**(N61) Chat model down → harness reports it (USER, 18.10) — DONE 18.10.**
 Requirement (also PORT_QUEUE "Backlog — added 18.10"): the API chat model
 (Gemini Flash Latest) can be down; the harness used to read an empty
-assistant reply as a pass. Implemented in `ci/script/uawalk.sh`: new
-commands `REPLY_BASE` (record the current assistant reply-body row count),
-`EXPECT_REPLY [secs]` (a NEW reply body must appear within secs, default
-120, else abort) and `EXPECT_ABSENT [secs] <text>` (abort the moment the
-text shows up, wall-clock window). Reply bodies are non-clickable
-full-width Views whose text is in `content-desc` (N51), so
-`uaw_count_reply_rows` counts nodes with non-empty content-desc,
-`clickable!=true`, `x1<=60`, `x2>=500` (tool-call chips share the width but
-are clickable, so excluded). New scenario `ci/script/scen/chat_smoke.uaw`
-(`EXPECT Enter your question...` → `REPLY_BASE` → type/`TAP Send` →
-`EXPECT_REPLY 120` → `EXPECT_ABSENT 5 "Request Failed"`) and runner
+assistant reply as a pass. USER DIRECTIVE (18.10, second pass): a missing
+reply must be RECORDED IN THE FINAL REPORT, not abort the run — a blank
+reply means the model is unavailable, not that the UI is broken.
+Implemented in `ci/script/uawalk.sh`: `REPLY_BASE` (record the current
+assistant reply-body row count), `EXPECT_REPLY [secs]` (wait for a NEW reply
+body within secs, default 120; on timeout it is NOT fatal — `uaw_note`
+records "model unavailable: no assistant reply body appeared ..."). New
+`uaw_note`/`uaw_notes` collect notes; `uaw_run` prints them at the end of
+every scenario. `NOTE_IF_PRESENT <text>` records an unexpected on-screen
+text (e.g. the "Request Failed" dialog) without aborting. `EXPECT_ABSENT`
+was dropped (it aborted; replaced by the note-based approach).
+Reply bodies are non-clickable full-width Views whose text is in
+`content-desc` (N51), so `uaw_count_reply_rows` counts nodes with
+non-empty content-desc, `clickable!=true`, `x1<=60`, `x2>=500` (tool-call
+chips share the width but are clickable, so excluded). New scenario
+`ci/script/scen/chat_smoke.uaw` (`EXPECT Enter your question...` →
+`REPLY_BASE` → type/`TAP Send` → `EXPECT_REPLY 120` →
+`NOTE_IF_PRESENT Request Failed`) and runner
 `ci/script/accept_chat_smoke.sh` (no reinstall; launches the installed
-build, passes onboarding if present, then walks the scenario).
+build, passes onboarding if present, then walks the scenario and prints the
+notes in the summary; exit stays 0).
 KEY FINDING (live, on the test phone): the model-down symptom is an
 **empty reply with NO dialog** — blocking the gateway
 (`iptables -I OUTPUT -p tcp -d 192.168.1.55 --dport 20128 -j REJECT`)
@@ -671,18 +680,16 @@ and no body. `EnhancedAIService.kt:1266` only sets
 `InputProcessingState.Error` (→ the "Request Failed" ErrorDialog,
 `AIChatScreen.kt:694` + `ErrorDialog.kt`) when `!providerStreamCollectionStarted`,
 which is false once the stream collector is running — so a connection
-failure never pops the dialog. NB: the Linux test host IS 192.168.1.55, so
-a whole-IP REJECT (no `--dport`) also kills ADB (source .55); use
-`--dport 20128`. Recovery from such a lock-out: tunnel ADB through HP-630,
-which is not blocked — `python3 /tmp/opencode/phone_tunnel.py` (paramiko
-`direct-tcpip` 127.0.0.1:15555 → 192.168.1.69:5555), then
-`adb connect 127.0.0.1:15555` and delete the rule (ADB auth is key-based,
-so the changed network source is fine).
- Hence the blank-reply check is the load-
-bearing one; `EXPECT_ABSENT` is a secondary guard. Verified both paths:
-healthy turn PASSES in ~71 s (EXPECT_REPLY exits the moment the body
-appears, ~19 s), blocked turn ABORTS at `EXPECT_REPLY` with "blank reply,
-model likely down" (runner exit 1).
+failure never pops the dialog; the blank-reply note is therefore the one
+that fires. NB: the Linux test host IS 192.168.1.55, so a whole-IP REJECT
+(no `--dport`) also kills ADB (source .55); use `--dport 20128`. Recovery
+from such a lock-out: tunnel ADB through HP-630, which is not blocked —
+`python3 /tmp/opencode/phone_tunnel.py` (paramiko `direct-tcpip`
+127.0.0.1:15555 → 192.168.1.69:5555), then `adb connect 127.0.0.1:15555`
+and delete the rule (ADB auth is key-based, so the changed network source
+is fine). Verified both paths: healthy turn PASSES in ~51 s, notes none,
+exit 0; blocked turn finishes with the "model unavailable" note, runner
+exit 0 (report shows the note).
 
 **(N62) Export templates: Chinese default page translated, release re-uploaded
 (18.10).** The only remaining Chinese in the two export templates was the
@@ -758,6 +765,22 @@ extracted to `/home/uzzzver/operit-fork/apk/20261018_101319Z/app-debug.apk`
 `7be2140ba6bb7af942b9d3593334d2b876172c4bf304874b42d548cc8380fd02`) with
 `CHANGES.md`. This is the first accepted APK that carries the fixed
 pc-agent, so a PC deploying the agent from this build gets the listener.
+**(N65) Terminal submodule English-only regression — FIXED (18.10).** The
+terminal module's Compose UI hardcoded ~65 Chinese literals (SSH config
+screen, setup warnings, mirror display names, the terminal copy menu), so
+they rendered Chinese no matter the app language. The English-only change
+(`terminal@1df5639`, 30.09) fixed this and was pinned by `5f483aeb`. The
+performance-monitor port `f6991f96` then re-pinned the submodule at the
+upstream perf branch `0458689` (PTY child pid), which predates the i18n
+commit → Chinese returned. FIX: cherry-pick `1df5639` on top of `0458689`
+as `lagovi/OperitTerminalCore` branch `fix/terminal-english-strings`
+(commit `ecb93f2`), which keeps the PTY child pid AND the English strings.
+The `26d4964` APK-extraction fallback is deliberately NOT carried (only
+needed under the rejected `useLegacyPackaging=false`). Registry: I18N-002.
+Effect: SSH config screen, env-setup rows, mirror source names and the
+terminal long-press "Copy" are English. Re-verify: `python3
+ci/script/fork_audit.py` (0 new Chinese literals in Kotlin) + a CI build +
+a phone check of the SSH config screen.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in
@@ -820,9 +843,11 @@ not downloaded — N47, not a bug).
   dialog `RemoteAnnouncementDialog.kt`. Avatar initials, badges, usernames
   deliberately untranslated (identifiers).
 - Terminal WORKS (broken in all fork builds since `bf48f418`, resurrected
-  05.10): PM extracts 41 .so (`useLegacyPackaging=true`, `cddb9906`) +
-  sleeping APK-extraction fallback in the submodule (`26d4964`, doesn't
-  fire under `true`, harmless). Terminal setup CLOSED 11.10 (poll
+  05.10): PM extracts 41 .so (`useLegacyPackaging=true`, `cddb9906`). The
+  APK-extraction fallback (`26d4964`) was dropped on 18.10 when the pin was
+  moved to `ecb93f2` (see N65): it only fires when `nativeLibraryDir` is
+  empty, which only `useLegacyPackaging=false` produces, and that lever is
+  rejected (SIZE-007). Terminal setup CLOSED 11.10 (poll
   `accept_term7.log` round 3 "Granted", PASS=4 FAIL=0): red
   "Operit Terminal" line = `isOperitTerminalInstalled`
   (`PermissionLevelCard.kt` → `ShizukuDemoScreen.kt:147` →
@@ -1329,7 +1354,9 @@ sufficient to NOT redo.
   `/data` has no `noexec`, avc suppressed. Verdict: Samsung forbids exec
   from `files/`; terminal binaries must come from PM extraction. Revert
   `cddb9906` (CI `37299257049`, APK 287 MB), acceptance 15:12 — live
-  shell. B1 commit kept in submodule as sleeping fallback. Consequence
+  shell. B1 (`26d4964`) was kept as a sleeping fallback until 18.10, then
+  dropped with the pin `ecb93f2` (N65) — it only fires under the rejected
+  `false` flip. Consequence
   for size: native libs untouchable while the terminal execs prebuilds;
   any new `false` flip first proves exec on this Samsung. METHODOLOGY
   (matters for future measurements): epochs 435/369 measured with

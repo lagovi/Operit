@@ -584,6 +584,40 @@ agent; screenshot via `xwd -root` + PIL. Active session PID confirmed,
 non-black pixels captured — desktop is live and controllable. Use
 `DISPLAY=:99 xdotool` for clicks/keys (install xdotool if missing).
 Stand up Xvfb + xfreerdp first in every new session.
+**(N60) PC agent end-to-end on Windows — PC SIDE DONE (18.10).** The
+`windows_control` toolpkg's PC half was deployed to `192.168.1.66` and
+verified from the Linux box:
+`C:\Users\artur\operit-pc-agent` (staged from
+`examples/windows_control/resources/pc_agent/operit-pc-agent` via zip +
+`Expand-Archive`), `npm install` done (node-pty needed
+`npm install-scripts approve node-pty` + `npm rebuild node-pty` under
+npm 11's blocked-scripts default; win32-x64 prebuilds present).
+`data/config.json` written with `bindAddress 192.168.1.66`, port 58321;
+token auto-generated (kept OUT of git — read it from that file). Intended
+flow (`operit_pc_agent.bat`/`launch_agent.ps1`) opens a browser and needs
+an interactive session, so it was made persistent as Scheduled Task
+`OperitPcAgent` (`run_agent.bat` → `node src\server.js` with stdout/err
+redirected to `logs\agent.*.log`, `/SC ONSTART /RU artur /RP ***
+/RL HIGHEST`). Firewall rule `Operit PC Agent` TCP-58321 added. Proofs
+over LAN: `GET /api/health` 200, `POST /api/command/execute`
+(`Write-Output OPERIT-E2E-OK; [Environment]::MachineName`) → exitCode 0,
+stdout `OPERIT-E2E-OK\r\nHP-630`, wrong token → 401, `POST /api/file/read`
+→ package.json content. **BUG FOUND:** starting the agent with a broken
+stdout (WMI create, no redirect) sends it into an `EPIPE`
+`uncaughtException` loop that rewrote `agent.runtime.log` to **389 MB in
+~25 s** (logger's `console.error` rethrows → handler logs again). The
+supported launcher redirects, so it is a robustness gap, not a normal
+path, but fatal on disk if triggered. **SECURITY NOTE:** `GET /api/config`
+is unauthenticated and returns `apiToken` in cleartext — any LAN host can
+read it; only token-gated endpoints are protected.
+**NEXT (phone side, still open):** the toolpkg IS on the phone
+(`files/toolpkg_cache/com.operit.windows_bundle-2ca0f3a6`). Remaining:
+import/enable it, set env `WINDOWS_AGENT_BASE_URL=http://192.168.1.66:58321`
++ `WINDOWS_AGENT_TOKEN=<from config.json>` (SharedPreferences file
+`env_preferences.xml`, see `EnvPreferences.kt`), then run
+`windows_test_connection` / `windows_exec` from the phone and watch the
+command land on the PC. ADB needed `adb kill-server; adb connect
+192.168.1.69:5555` to clear an `unauthorized` state; now authorized.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

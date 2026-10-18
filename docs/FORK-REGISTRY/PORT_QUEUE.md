@@ -176,14 +176,15 @@ commits (breaks the tested line). Spot ports only. Fork-point: `1ed8687d`
 ## Backlog — added 18.10
 
 - **Model-down detection in the test scripts (user, 18.10).** DONE 18.10 —
-  see HANDOFF N61/N64. The harness no longer reads a blank assistant reply
-  as a pass: `ci/script/scen/chat_smoke.uaw` +
-  `ci/script/accept_chat_smoke.sh` send a message and require a real reply
-  body (`REPLY_BASE`/`EXPECT_REPLY` in `ci/script/uawalk.sh`), plus
-  `EXPECT_ABSENT` for the error dialog. Live check on the phone showed the
-  model-down symptom is an EMPTY reply with NO dialog (connection refused
-  is logged by `EnhancedAIService` but the turn is finalized as complete),
-  so the blank-reply check is the one that actually fails.
+  see HANDOFF N61. The harness no longer reads a blank assistant reply as a
+  pass, and (user directive 18.10, second pass) it does not abort either:
+  `ci/script/scen/chat_smoke.uaw` + `ci/script/accept_chat_smoke.sh` send a
+  message and `REPLY_BASE`/`EXPECT_REPLY` (in `ci/script/uawalk.sh`) record
+  "model unavailable" in the run's notes/report when no reply body appears;
+  `NOTE_IF_PRESENT` reports the error dialog if it shows. Live check on the
+  phone showed the model-down symptom is an EMPTY reply with NO dialog
+  (connection refused is logged by `EnhancedAIService` but the turn is
+  finalized as complete), so the blank-reply note is the one that fires.
   Discovered during the 18.10 phone-side `windows_control` end-to-end test.
 
 

@@ -16,19 +16,17 @@
 #                         (for genuinely optional UI like an empty-chat
 #                         "New Chat" button — NOT an error softener);
 #   EXPECT [secs] <text>  screen must show <text> within secs (default 30)
-#   EXPECT_ABSENT [secs] <text>
-#                         screen must NOT show <text> during the next secs
-#                         (default 30), polled every 5s; abort the moment it
-#                         appears. For error surfaces that must never show
-#                         (e.g. the chat model-down "Request Failed" dialog):
-#                         without this a blank assistant reply passed the run
 #   REPLY_BASE            record the current number of assistant reply body
 #                         rows (chat); use right before sending a message
 #   EXPECT_REPLY [secs]   a NEW assistant reply body row must appear within
-#                         secs (default 120) since the last REPLY_BASE; abort
-#                         otherwise. Catches the model-down case where the
-#                         turn ends with only the "Operit" label and no body
-#                         (an empty reply the old harness read as success)
+#                         secs (default 120) since the last REPLY_BASE. The
+#                         model-down case (turn ends with only the "Operit"
+#                         label and no body) is NOT fatal: it is recorded and
+#                         printed in the run's notes/report at the end
+#   NOTE_IF_PRESENT <text>
+#                         if <text> is visible right now, record it in the
+#                         notes/report (does not abort). Use for error
+#                         surfaces that should be reported, not crash the run
 #   WAIT_PKG [secs] <pkg-substring>
 #                         foreground window must belong to <pkg-substring>
 #                         (locale-independent screen tracking: the installer
@@ -54,6 +52,7 @@ set -uo pipefail
 UA_DUMP_DIR="${UA_DUMP_DIR:-/tmp/uaw}"
 UA_STEP=0
 UA_REPLY_BASE=
+UA_NOTES=()
 
 # List every actionable element on screen: text|desc|bounds, one per line.
 # Used to author scenarios (what exists), not during runs.
@@ -115,22 +114,26 @@ uaw_wait_pkg() {
     return 1
 }
 
-# Inverse of plab_wait_text: return 1 the moment $1 (fixed string) shows up
-# within $2 secs, 0 if it stays absent for the whole window. Used for error
-# surfaces that must never appear; polling (not a single check) is required
-# because the chat error dialog can pop in at any point while the model call
-# is in flight. The window is wall-clock (deadline), so the caller's `secs`
-# means real seconds even though each dump is slow.
-uaw_wait_absent() {
-    local want="$1" timeout="${2:-30}" deadline texts
-    deadline=$(( $(date +%s) + timeout ))
-    while :; do
-        texts=$(plab_texts 2>/dev/null)
-        if echo "$texts" | grep -qF "$want"; then
-            return 1
-        fi
-        [ "$(date +%s)" -ge "$deadline" ] && return 0
-        sleep 5
+# Record a note for the end-of-run report. Notes are conditions that must
+# be surfaced to the operator but must NOT abort the walk (e.g. the chat
+# model being unavailable): the run finishes and the note is printed with
+# the summary, so a green run with a note reads as "UI ok, model not usable"
+# instead of a crash.
+uaw_note() {
+    UA_NOTES+=("$1")
+    echo "  note($UA_STEP) $1"
+}
+
+# Print all notes collected in this run (called by uaw_run at the end).
+uaw_notes() {
+    local n
+    if [ "${#UA_NOTES[@]}" -eq 0 ]; then
+        echo "uawalk notes: none"
+        return 0
+    fi
+    echo "uawalk notes (${#UA_NOTES[@]}):"
+    for n in "${UA_NOTES[@]}"; do
+        echo "  - $n"
     done
 }
 
@@ -180,6 +183,7 @@ uaw_run() {
     local run_start step_start step_end step_ms
     run_start=$(date +%s)
     UA_STEP=0
+    UA_NOTES=()
     # NOTE: the scenario is read on fd 3, NOT stdin: `adb shell` consumes
     # stdin and would otherwise swallow the remaining steps (lost a full
     # run to this: only step 1 executed, silently).
@@ -237,17 +241,13 @@ uaw_run() {
                     || uaw_abort "text '$want' not visible within ${secs}s"
                 echo "  expect($UA_STEP) '$want' ok"
                 ;;
-            EXPECT_ABSENT)
-                local awant asecs afirst
-                awant="$rest"; asecs=30
-                afirst="${rest%% *}"
-                if [[ "$afirst" =~ ^[0-9]+$ ]]; then
-                    asecs="$afirst"; awant="${rest#* }"
+            NOTE_IF_PRESENT)
+                [ -n "$rest" ] || uaw_abort "NOTE_IF_PRESENT needs text"
+                if plab_texts 2>/dev/null | grep -qF "$rest"; then
+                    uaw_note "unexpected text present: '$rest'"
+                else
+                    echo "  note_if_present($UA_STEP) '$rest' absent, ok"
                 fi
-                [ -n "$awant" ] || uaw_abort "EXPECT_ABSENT needs text"
-                uaw_wait_absent "$awant" "$asecs" \
-                    || uaw_abort "text '$awant' appeared within ${asecs}s (must stay absent)"
-                echo "  expect_absent($UA_STEP) '$awant' ok for ${asecs}s"
                 ;;
             REPLY_BASE)
                 UA_REPLY_BASE=$(uaw_count_reply_rows)
@@ -267,8 +267,13 @@ uaw_run() {
                         echo "  expect_reply($UA_STEP) body rows $UA_REPLY_BASE -> $rnow"
                         break
                     fi
-                    [ "$(date +%s)" -ge "$rdeadline" ] \
-                        && uaw_abort "no assistant reply body within ${rsecs}s (blank reply, model likely down)"
+                    if [ "$(date +%s)" -ge "$rdeadline" ]; then
+                        # NOT fatal (user directive 18.10): a blank reply means
+                        # the model is unavailable, not that the UI is broken.
+                        # Record it so the final report tells the operator.
+                        uaw_note "model unavailable: no assistant reply body appeared within ${rsecs}s (blank reply)"
+                        break
+                    fi
                     sleep 3
                 done
                 ;;
@@ -369,4 +374,5 @@ uaw_run() {
         echo "  time($UA_STEP) ${step_ms}ms [$cmd]"
     done 3< "$scenario"
     echo "uawalk: $UA_STEP steps done, scenario $scenario, total $(( $(date +%s) - run_start ))s"
+    uaw_notes
 }

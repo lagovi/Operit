@@ -48,10 +48,17 @@ if plab_wait_text "Your responsibility" 15; then
 fi
 plab_expect_text "Enter your question..." 30 "chat" && ok "chat reached" || { bad "chat"; exit 2; }
 
-# 2. the walker scenario: send a message, fail on the model-down dialog
+# 2. the walker scenario: send a message and record model availability
 step "walker scenario"
 uaw_run ci/script/scen/chat_smoke.uaw || exit 1
-ok "chat round-trip, no model-down dialog"
+if [ "${#UA_NOTES[@]}" -gt 0 ]; then
+    # A blank reply / error dialog means the MODEL is unavailable, not that
+    # the UI broke (user directive 18.10): report it, do not fail the run.
+    for _n in "${UA_NOTES[@]}"; do echo "  NOTE  $_n"; done
+    ok "chat UI ok; ${#UA_NOTES[@]} note(s) about model availability (see above)"
+else
+    ok "chat round-trip: reply body appeared"
+fi
 
 echo "PASS=$pass FAIL=$failed"
 [ "$failed" -eq 0 ]

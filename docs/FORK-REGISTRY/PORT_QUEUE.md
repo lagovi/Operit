@@ -169,9 +169,22 @@ commits (breaks the tested line). Spot ports only. Fork-point: `1ed8687d`
   no-auth, via SOCKS5 with auth (target — LAN gateway
   `192.168.1.55:20128`, same LAN, reachable via proxy); negative: crooked
   proxy (dead port) gives a clean error within connectTimeout, not an
-  eternal hang. OAuth login via proxy — only if it fits the same scheme
-  (don't demand an account specially). Regression: direct mode (DIRECT)
-  works as before.
+   eternal hang. OAuth login via proxy — only if it fits the same scheme
+   (don't demand an account specially). Regression: direct mode (DIRECT)
+   works as before.
+
+## Backlog — added 18.10
+
+- **Model-down detection in the test scripts (user, 18.10).** The API model
+  we use for chat (Gemini Flash Latest) can be unavailable/erroring; the
+  app surfaces this as a popup/toast message, but the harness keeps
+  treating an empty assistant reply as a pass. The UI-automation harness
+  (`ci/script/uawalk.sh` + `ci/script/scen/*.uaw`) and any chat smoke test
+  must DETECT that popup/error text and FAIL the run instead of passing on
+  a blank response. Discovered during the 18.10 phone-side
+  `windows_control` end-to-end test: a chat request to invoke
+  `windows_exec` returned an empty assistant body because the model was
+  down (the same symptom `Handoff N60b` records as "inconclusive").
 
 ## Not taking (REJECTED, deliberate)
 

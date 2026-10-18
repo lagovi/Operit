@@ -645,6 +645,14 @@ UI dump, no matching agent log line) — the screen's `preset:whoami` already
 proves arbitrary-command plumbing (same `/api/command/execute`), so this is
 not blocking. ADB needed `adb kill-server; adb connect 192.168.1.69:5555`
 to clear an `unauthorized` state; now authorized.
+**(N61) Chat model down → harness must catch it (USER, 18.10, BACKLOG).**
+The chat model we use over the API (Gemini Flash Latest) is currently
+failing; the app shows it as a popup/toast. This is the real cause of the
+empty assistant body in N60b (the chat LLM produced nothing to call
+`windows_exec`). REQUIREMENT (backlog, logged in PORT_QUEUE "Backlog —
+added 18.10"): `ci/script/uawalk.sh` + `ci/script/scen/*.uaw` and any chat
+smoke must detect that popup/error text and FAIL the run, instead of
+reporting a blank reply as success. Not implemented yet.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

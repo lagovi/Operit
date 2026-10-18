@@ -554,15 +554,21 @@ helper — `sshpass` absent; use the installed `paramiko` instead:
 `python3 -c "import paramiko..."`). Windows 10, PowerShell 5.1, .NET
 present, Edge installed; `winget`/`choco`/`python` are NOT on PATH.
 RDP is up (N58).
-**(N59) VirusTotal scan — BLOCKED on API key (18.10).** Both artifacts
-must be scanned before trust: `subpack-windows.zip`
-`9c2d3e3b5e862334e24f4008572f239c380a73f23c5940054bf3a5142ca46888` and
+**(N59) VirusTotal scan — DONE (18.10).** Both artifacts were already
+on VT (submitted ~2026-03). `subpack-windows.zip`
+`9c2d3e3b5e862334e24f4008572f239c380a73f23c5940054bf3a5142ca46888`:
+0 malicious / 0 suspicious / 68 undetected / 8 unsupported (clean).
 `assistance_subpack.exe`
-`3e5957d48fffe121a82fbc46445d7957718fed59e490444744338818e980cb5d`.
-Anonymous submission is impossible now: `POST /api/v3/files` without
-`x-apikey` → HTTP 401; the web-UI endpoint `POST /ui/files` → HTTP 429
-`RecaptchaRequiredError`. Need a VirusTotal API key from the user to
-query/upload by hash. Do NOT substitute a fake "clean" verdict.
+`3e5957d48fffe121a82fbc46445d7957718fed59e490444744338818e980cb5d`:
+**1 malicious** / 0 suspicious / 56 undetected / 9 timeout / 6 failure /
+4 unsupported — the single hit is APEX 6.769 (20260413) → "Malicious",
+a generic heuristic on an unsigned freshly-built Flutter launcher; all
+mainstream engines (Microsoft, Kaspersky, ESET, Google, etc.) are
+undetected. Read as a likely false positive from one engine, not proof
+of cleanliness — the exe is unsigned. Keyed via user's VT API key for
+this session (not stored). Was blocked earlier because anonymous submit
+is impossible: `POST /api/v3/files` without `x-apikey` → 401, web UI
+`POST /ui/files` → 429 `RecaptchaRequiredError`.
 **(N58) VNC/RDP to the Windows host — DONE.** RDP enabled on
 `192.168.1.66` (port 3389 open, firewall rule `Remote Desktop`), login
 `artur`/`123321`. Agent side: `xfreerdp` (installed via `sudo apt`),

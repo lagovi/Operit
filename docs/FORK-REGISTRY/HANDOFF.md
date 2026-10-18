@@ -533,12 +533,14 @@ inspect the subpack template on a real Windows machine (exe started
 but produced no window under SSH — needs an interactive desktop/RDP to
 confirm GUI). VirusTotal scan of the Windows remote-control payload and
 the subpack template still pending — do before any further trust.
-**(N58) VNC/RDP to the Windows host — open.** The same machine needs
-an interactive desktop channel (VNC server or RDP) so the subpack exe
-GUI and the Windows remote-control flow can be observed and driven by
-the agent. Set up by the user (enable RDP / install a VNC server and
-open the port); agent only connects once it exists. Do NOT pick up
-without it.
+**(N58) VNC/RDP to the Windows host — DONE.** RDP enabled on
+`192.168.1.66` (port 3389 open, firewall rule `Remote Desktop`), login
+`artur`/`123321`. Agent side: `xfreerdp` (installed via `sudo apt`),
+driven through a persistent `Xvfb :99` (1280x800x24) started by the
+agent; screenshot via `xwd -root` + PIL. Active session PID confirmed,
+non-black pixels captured — desktop is live and controllable. Use
+`DISPLAY=:99 xdotool` for clicks/keys (install xdotool if missing).
+Stand up Xvfb + xfreerdp first in every new session.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

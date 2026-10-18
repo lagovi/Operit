@@ -486,11 +486,53 @@ re-pulled); chat ready, Default Config reseeded, untouched.
 (3.6 MB), `test_audio_en.wav` = EN Kennedy (185 KB),
 `test_audio_ru.wav` = RU spare. Day 16.10 added: "Ping Test" chat
 (LLM proof) + terminal env setup skipped (3 setup-check sessions).
-**(N48) Deferred, do NOT pick up spontaneously.** Supervision v1 digest
-has tool NAMES without args/results (needs deeper hooks); terminal
-submodule full-EN pass (49 CN strings, someone else's repo); fp16/int4
-Parakeet quants; Parakeet custom-checkpoint branch (provider is
-preset-only by decision). All wait for an explicit user task.
+**(N53) Login flows (Antigravity/Codex/GitHub) — how they actually work.**
+Browser is EXTERNAL: `Intent(Intent.ACTION_VIEW, authorizationUrl)` with
+`FLAG_ACTIVITY_NEW_TASK`. No embedded browser for OAuth — by design, so
+the password is typed on the provider's real page and the app never
+sees it. No cookies are stored by the app: the loopback callback server
+(`AntigravityOAuthLoopbackCallbackServer` / `CodexOAuthLoopbackCallbackServer`)
+receives a one-shot authorization code, exchanges it via the provider's
+token endpoint for access+refresh tokens, and stores only those tokens
+plus email/project-id/account-id in encrypted prefs. On re-connect:
+access token is reused while fresh (Antigravity 1 min skew, Codex 5 min),
+then a single guarded refresh via `refreshMutex`; failure → "login again".
+Logout: Codex revokes the refresh token server-side (proxied since
+16.10 day) then clears prefs; Antigravity clears prefs only (nothing to
+revoke upstream). The in-app WebView (`WebSessionBrowserScreen`) is a
+separate feature with its own `CookieManager` and a "Clear cookies"
+button — it has nothing to do with OAuth.
+**(N54) In-app browser for OAuth — optional idea (user, 17.10).** Use
+the built-in WebView with a per-browser proxy (OkHttp/WebView proxy) so
+OAuth goes through the configured proxy even on networks where the
+system browser can't reach the provider. Strictly scoped to that
+browser only — do not touch the system-browser path or the loopback
+callback server. Deferred; needs a design pass (cookie isolation, JS
+challenge pages, captcha) before any code. Do NOT pick up without an
+explicit user task.
+**(N55) Windows remote control — what's inside.** Toolbox card
+"Windows One-Click Setup" (string `tool_windows_control_one_click`):
+exports the PC agent package, configures HTTP agent env vars and
+enables `windows_control` in one flow — i.e. it lets the PHONE drive a
+Windows PC over HTTP, the reverse direction of the phone export. Not
+the same as `exportWindowsApp` (which produces a runnable Windows app
+from a web project). Contents still to be unpacked and inspected.
+**(N56) Windows subpack template — what it is.** `OfflinePayload.SUBPACK_WINDOWS`
+(`subpack-windows`, release `v1.12.1+4`, ~60 MB unpacked) is a
+prebuilt native Windows app shell: `assistance_subpack.exe` (3.7 MB
+PE, x64) plus `data/flutter_assets/assets/web_content`. On export the
+app stages the template, swaps the icon via `ExeEditor`, copies the user's
+web project into `web_content`, re-zips into `Download/Operit/exports`.
+Not Tauri/Electron — a native Win32/Flutter desktop shell with an
+embedded WebView (WebView2 likely). The template is downloaded once per
+device via the same subpack mechanism as the Android helper APK.
+**(N57) Remote Windows host access (user, 17.10).** SSH reachable:
+`ssh artur@192.168.1.66` (password `123321`), Windows 10, PowerShell
+5.1, winget + .NET present, Edge installed. Used to download and
+inspect the subpack template on a real Windows machine (exe started
+but produced no window under SSH — needs an interactive desktop/RDP to
+confirm GUI). VirusTotal scan of the Windows remote-control payload and
+the subpack template still pending — do before any further trust.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

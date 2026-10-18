@@ -213,6 +213,32 @@ function shutdown(signal) {
   setTimeout(() => process.exit(1), 2000);
 }
 
+// The launcher may start the agent with no console attached (detached or a
+// redirected grandchild), so stdout/stderr can be a closed pipe. Writing a log
+// line to that pipe emits an 'error' event; without a listener Node escalates
+// it to 'uncaughtException', the handler below logs to the console again, the
+// next write fails the same way, and the runtime log grows without bound (this
+// hit 389 MB in ~25 s). The log sink is best-effort, so a broken pipe is not
+// an error; any other stream error is reported exactly once so it cannot
+// re-enter this handler in a loop.
+let stdStreamErrorReported = false;
+function handleStdStreamError(error) {
+  const code = error && error.code ? error.code : "";
+  if (code === "EPIPE") {
+    return;
+  }
+  if (stdStreamErrorReported) {
+    return;
+  }
+  stdStreamErrorReported = true;
+  logger.error("process.stream.error", {
+    code,
+    error: error && error.message ? error.message : String(error)
+  });
+}
+process.stdout.on("error", handleStdStreamError);
+process.stderr.on("error", handleStdStreamError);
+
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 process.on("uncaughtException", (error) => {

@@ -695,6 +695,22 @@ the template APK was re-zipped: HtmlPackager → Android produced
 template defaults are dropped at repack, as designed, no CJK), and it
 installs and launches on the phone showing the user page. So the re-zipped
 `subpack-android.apk` still parses, repacks, signs and installs.
+**(N63) PC agent EPIPE log spiral — FIXED (18.10).** N60's bug: the launcher
+can start the agent with no console, so a write to `process.stdout`/`stderr`
+hits a closed pipe; with no `error` listener Node escalates the EPIPE into
+`uncaughtException`, whose handler (server.js) logs to the console again, so
+the runtime log grew to 389 MB in ~25 s. Fix in
+`examples/windows_control/resources/pc_agent/operit-pc-agent/src/server.js`:
+attach an `error` listener to both streams that ignores EPIPE and reports any
+other stream error at most once (so it cannot re-enter the handler). No
+fallback: the log sink is declared best-effort, which is what it is.
+Reproduced and confirmed with a harness over a real closed pipe using the
+actual `logger.js`: without the listener, 1000 intended ticks produced
+829 322 B (each tick logged again from `uncaughtException`); with it, 46 890 B
+(one line per tick). `node --check` passes. Ships inside the toolpkg
+(`manifest.json` resource `pc_agent_zip` → `resources/pc_agent/operit-pc-agent`),
+so the fix reaches a PC on the next agent re-deploy (needs a fresh APK build
+to embed the updated toolpkg). Not yet re-tested on the Windows host itself.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

@@ -533,6 +533,12 @@ inspect the subpack template on a real Windows machine (exe started
 but produced no window under SSH — needs an interactive desktop/RDP to
 confirm GUI). VirusTotal scan of the Windows remote-control payload and
 the subpack template still pending — do before any further trust.
+**(N58) VNC/RDP to the Windows host — open.** The same machine needs
+an interactive desktop channel (VNC server or RDP) so the subpack exe
+GUI and the Windows remote-control flow can be observed and driven by
+the agent. Set up by the user (enable RDP / install a VNC server and
+open the port); agent only connects once it exists. Do NOT pick up
+without it.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

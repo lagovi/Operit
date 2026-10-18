@@ -850,10 +850,14 @@ wraps `RemoteAssetFetcher` (resume/Range/sha256) and exposes a `StateFlow`;
 progress → retry, and only creates `TerminalManager` once the archive is on
 the device. `OfflinePayload.TERMINAL_ROOTFS` is registered in
 `OfflinePayload.all`. NOTE: E3 still stands — the *installed* tree stays in
-internal `filesDir`; only the *source* of the archive changed. Expected APK
-shrink ~61 MiB (measured on the next CI run). Acceptance: fresh install →
-Toolbox terminal → consent → download → Ubuntu unpacks; instant on the
-second launch.
+internal `filesDir`; only the *source* of the archive changed. MEASURED:
+CI `39173414126` (commit `04ceace1`) GREEN, APK 163129867 → 98986580 B
+(−64143287 B, exactly the removed archive); the packaged APK no longer
+contains `ubuntu-noble-aarch64-pd-v4.18.0.tar.xz` (still ships
+`assets/setup_fake_sysdata.sh`). Archived
+`/home/uzzzver/operit-fork/apk/20261018_224236Z/` + `CHANGES.md`. Acceptance
+(fresh install → Toolbox terminal → consent → download → Ubuntu unpacks;
+no re-download on relaunch) is part of the full UI walkthrough, not yet done.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

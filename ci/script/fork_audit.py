@@ -147,12 +147,19 @@ def check_anchors(result: AuditResult) -> None:
 
     lost = 0
     planned = 0
+    rejected = 0
     for entry in entries:
         entry_id = entry.get("id", "<no id>")
+        status = entry.get("status", "planned")
         # A planned entry describes work that has not landed yet. Its anchors are
         # the contract to satisfy, not a claim about the current tree, so they are
         # reported as pending rather than as lost.
-        if entry.get("status") != "applied":
+        if status == "rejected":
+            # Decided against and kept only as a record; never applied, so it is
+            # neither planned nor anchor-checked.
+            rejected += 1
+            continue
+        if status != "applied":
             planned += 1
             continue
         for anchor in entry.get("anchors", []):
@@ -175,10 +182,10 @@ def check_anchors(result: AuditResult) -> None:
                 )
                 lost += 1
 
-    applied = len(entries) - planned
+    applied = len(entries) - planned - rejected
     result.notes.append(
-        f"Registry entries: {applied} applied, {planned} planned; "
-        f"anchors checked: {sum(len(e.get('anchors', [])) for e in entries)}; lost: {lost}"
+        f"Registry entries: {applied} applied, {planned} planned, {rejected} rejected; "
+        f"anchors checked: {sum(len(e.get('anchors', [])) for e in entries if e.get('status') == 'applied')}; lost: {lost}"
     )
 
 

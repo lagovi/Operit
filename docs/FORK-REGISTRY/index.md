@@ -73,7 +73,9 @@ still required.
    locale this fork ships, so anything that clips in English clips in every
    locale added later.
 5. Update `registry.json`: set `status` to `applied` on entries you landed, and
-   re-record anchors for entries whose code you had to re-do.
+   re-record anchors for entries whose code you had to re-do. Set `status` to
+   `rejected` for entries decided against (keep the record, drop the anchors from
+   the count).
 
 ## Adding an entry
 
@@ -101,7 +103,9 @@ Add to `registry.json`:
 
 `status` is `planned` until the change lands, then `applied`. Planned entries are
 counted but not checked for lost anchors — the anchor in a planned entry is the
-contract to satisfy, not a claim about the current tree.
+contract to satisfy, not a claim about the current tree. A `rejected` entry is a
+change that was decided against and is kept only as a record (so nobody retries
+it): the audit counts it separately and does not check its anchors.
 
 An anchor must be something whose disappearance would mean the fork change is
 gone. A good anchor is a distinctive literal string, a DSL call, or a symbol

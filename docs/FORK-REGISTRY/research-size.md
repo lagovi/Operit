@@ -5,7 +5,9 @@
 Two levers from the 10-03 table below are now CLOSED by device evidence.
 Do not re-propose them without new facts.
 
-1. **`useLegacyPackaging=false` — REVERTED (`cddb9906`).**
+1. **`useLegacyPackaging=false` — REVERTED (`cddb9906`), REJECTED 18.10
+   (user: "close this record as rejected"). Do not retry without an exec
+   proof on the phone.**
    Measured 10-03 (`bf48f418`, CI `37086798853`): APK 293 -> 386 MB (+93),
    installed 435 -> 369 MB (−66). Looked like a pure win for installed size
    (the user's priority) and was kept. On 10-05 it killed the terminal:

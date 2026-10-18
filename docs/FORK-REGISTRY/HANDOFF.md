@@ -674,7 +674,21 @@ default `index.html` would show for any export whose project has no
 `index.html`; that was the real leak. Verified the rebuilt archives keep every
 untouched entry byte-identical and in the same order (only the two files
 changed). Page content lives in `/tmp/opencode/en_web/` (regenerate from the
-released asset if lost).
+released asset if lost). Verified end to end on the test phone (CI build
+`39104317586`, APK archived `20261018_063108Z`): HtmlPackager (Toolbox →
+HTML Packager) exported a project to
+`Download/Operit/exports/Web_Project_20261018_104007.zip`; its
+`data/flutter_assets/assets/web_content/main.js` sha256 is
+`dfada5ab02c65f232d25b98baa74bcb6a961c7c32924bae957ae4649ef59733d`, i.e.
+byte-identical to the new English template, and no `web_content` file
+contains CJK. A project copied over the extracted template **without** an
+`index.html` now leaves the English `<title>AI Workspace</title>` instead
+of the old Chinese page. UI-driving note: this phone's DocumentsUI does
+not navigate into a folder on `input tap`/`input swipe` (rows highlight but
+never open) — worked around by putting `index.html` in the picked folder
+root (`files/workspace/`) so the entry file is auto-selected; the
+workspace provider root is `/data/data/<pkg>/files/workspace`
+(`WorkspaceDocumentsProvider`).
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

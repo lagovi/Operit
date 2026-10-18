@@ -688,7 +688,13 @@ not navigate into a folder on `input tap`/`input swipe` (rows highlight but
 never open) — worked around by putting `index.html` in the picked folder
 root (`files/workspace/`) so the entry file is auto-selected; the
 workspace provider root is `/data/data/<pkg>/files/workspace`
-(`WorkspaceDocumentsProvider`).
+(`WorkspaceDocumentsProvider`). The Android side was re-checked too because
+the template APK was re-zipped: HtmlPackager → Android produced
+`Download/Operit/exports/WebApp_1792309997281.apk` (48 098 734 B, signed
+`META-INF/ANDROIDK.*`), its `web_content` holds only the user's files (the
+template defaults are dropped at repack, as designed, no CJK), and it
+installs and launches on the phone showing the user page. So the re-zipped
+`subpack-android.apk` still parses, repacks, signs and installs.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

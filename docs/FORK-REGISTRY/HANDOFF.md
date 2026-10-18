@@ -510,29 +510,59 @@ browser only — do not touch the system-browser path or the loopback
 callback server. Deferred; needs a design pass (cookie isolation, JS
 challenge pages, captcha) before any code. Do NOT pick up without an
 explicit user task.
-**(N55) Windows remote control — what's inside.** Toolbox card
-"Windows One-Click Setup" (string `tool_windows_control_one_click`):
-exports the PC agent package, configures HTTP agent env vars and
-enables `windows_control` in one flow — i.e. it lets the PHONE drive a
-Windows PC over HTTP, the reverse direction of the phone export. Not
-the same as `exportWindowsApp` (which produces a runnable Windows app
-from a web project). Contents still to be unpacked and inspected.
-**(N56) Windows subpack template — what it is.** `OfflinePayload.SUBPACK_WINDOWS`
-(`subpack-windows`, release `v1.12.1+4`, ~60 MB unpacked) is a
-prebuilt native Windows app shell: `assistance_subpack.exe` (3.7 MB
-PE, x64) plus `data/flutter_assets/assets/web_content`. On export the
-app stages the template, swaps the icon via `ExeEditor`, copies the user's
-web project into `web_content`, re-zips into `Download/Operit/exports`.
-Not Tauri/Electron — a native Win32/Flutter desktop shell with an
-embedded WebView (WebView2 likely). The template is downloaded once per
-device via the same subpack mechanism as the Android helper APK.
+**(N55) Windows remote control — what's inside (DONE 18.10).** It is a
+t o o l p k g, not app code: `examples/windows_control/` (manifest
+`toolpkg_id com.operit.windows_bundle`, version `0.2.0`, resource
+`pc_agent_zip`), entry `dist/main.js`, subpackage `windows_control`
+(`src/packages/windows_control.ts`). The bundle ships a Node.js 18+ PC
+agent `resources/pc_agent/operit-pc-agent/` (launcher
+`operit_pc_agent.bat` → `scripts/launch_agent.ps1`; server
+`src/server.js`, default bind `127.0.0.1:58321`, token ALWAYS required
+and auto-generated if absent). Mobile side sets env
+`WINDOWS_AGENT_BASE_URL` + `WINDOWS_AGENT_TOKEN` (both required;
+`WINDOWS_AGENT_DEFAULT_SHELL`, `WINDOWS_AGENT_TIMEOUT_MS` optional) and
+gets tools: `windows_exec`, `windows_process_start/read/write/terminate/list`,
+`windows_test_connection`, `windows_check_connection`, `read/edit/write`.
+PC API: `POST /api/command/execute`, `/api/file/list|read|read_segment|write|edit|read_base64|write_base64`,
+`/api/startup/apply_recommended_bind`, plus public `GET /api/health|config|presets|startup/state`.
+Net effect: the PHONE runs PowerShell/CMD and file ops on the PC over
+LAN. This is the reverse direction of the phone export and is NOT the
+same as `exportWindowsApp`. Strings in `app/src/main/res/values/strings.xml:7825`
+(`tool_windows_control_one_click`).
+**(N56) Windows subpack template — what it is (DONE 18.10).** `OfflinePayload.SUBPACK_WINDOWS`
+asset URL `.../v1.12.1+4/subpack-windows.zip`, `sizeBytes 11412717`
+(11.4 MB zip), sha256 `9c2d3e3b...a46888` — RE-DOWNLOADED and verified
+byte-for-byte against that hash. Unpacked 27 MB. It is a Flutter
+Windows desktop shell (NOT Tauri/Electron): `assistance_subpack.exe`
+(311 KB, PE32+ GUI x64, 6 sections), `flutter_windows.dll` (18.5 MB),
+`webview_windows_plugin.dll` + `WebView2Loader.dll` (WebView2),
+`url_launcher_windows_plugin.dll`, `data/app.so` (Dart AOT,
+`package:assistance_subpack/main.dart` + `web_server.dart`),
+`data/icudtl.dat`, `data/flutter_assets/` incl. `assets/web_content/{index.html,main.js,styles.css}`
+and `assets/operit.png`. Leaked build path `D:/Code/prog/assistance_subpack/`;
+branding strings "Operit Subpack", "Made By Operit". So the shell runs an
+embedded Dart HTTP server that serves `web_content` into a WebView2
+window. Export flow (`ExportDialogs.kt:894`): stage template → optional
+icon swap via `ExeEditor` → copy project into `data/flutter_assets/assets/web_content`
+→ re-zip to `Download/Operit/exports`. Per-file hashes: exe
+`3e5957d48fffe121a82fbc46445d7957718fed59e490444744338818e980cb5d`,
+`flutter_windows.dll` `9096bfdcab5d1241f6ff1b0d6d5144ae996ba4cfb918acfc84962e5d462a3d08`,
+`app.so` `7004db2f6108fd1bd9c8856bc958bd38028aad39d674c7a2e31fcc735f914c57`.
 **(N57) Remote Windows host access (user, 17.10).** SSH reachable:
-`ssh artur@192.168.1.66` (password `123321`), Windows 10, PowerShell
-5.1, winget + .NET present, Edge installed. Used to download and
-inspect the subpack template on a real Windows machine (exe started
-but produced no window under SSH — needs an interactive desktop/RDP to
-confirm GUI). VirusTotal scan of the Windows remote-control payload and
-the subpack template still pending — do before any further trust.
+`artur@192.168.1.66` password `123321` (plain `ssh` needs a password
+helper — `sshpass` absent; use the installed `paramiko` instead:
+`python3 -c "import paramiko..."`). Windows 10, PowerShell 5.1, .NET
+present, Edge installed; `winget`/`choco`/`python` are NOT on PATH.
+RDP is up (N58).
+**(N59) VirusTotal scan — BLOCKED on API key (18.10).** Both artifacts
+must be scanned before trust: `subpack-windows.zip`
+`9c2d3e3b5e862334e24f4008572f239c380a73f23c5940054bf3a5142ca46888` and
+`assistance_subpack.exe`
+`3e5957d48fffe121a82fbc46445d7957718fed59e490444744338818e980cb5d`.
+Anonymous submission is impossible now: `POST /api/v3/files` without
+`x-apikey` → HTTP 401; the web-UI endpoint `POST /ui/files` → HTTP 429
+`RecaptchaRequiredError`. Need a VirusTotal API key from the user to
+query/upload by hash. Do NOT substitute a fake "clean" verdict.
 **(N58) VNC/RDP to the Windows host — DONE.** RDP enabled on
 `192.168.1.66` (port 3389 open, firewall rule `Remote Desktop`), login
 `artur`/`123321`. Agent side: `xfreerdp` (installed via `sudo apt`),

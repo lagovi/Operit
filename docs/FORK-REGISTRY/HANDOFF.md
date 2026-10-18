@@ -710,7 +710,15 @@ actual `logger.js`: without the listener, 1000 intended ticks produced
 (one line per tick). `node --check` passes. Ships inside the toolpkg
 (`manifest.json` resource `pc_agent_zip` → `resources/pc_agent/operit-pc-agent`),
 so the fix reaches a PC on the next agent re-deploy (needs a fresh APK build
-to embed the updated toolpkg). Not yet re-tested on the Windows host itself.
+to embed the updated toolpkg). Deployed to the test host `HP-630` too:
+`C:\Users\artur\operit-pc-agent\src\server.js` now has the fix
+(sha256 `3394B576…`), the scheduled task restarted clean, and `GET
+/api/health` (pid 4696, v0.2.2) + `POST /api/command/execute` (`whoami`
+→ `hp-630\artur`, 83 ms) still work — no regression. Host-side repro note:
+creating the agent via WMI (`Win32_Process.Create`, "no redirect") does
+**not** reproduce the spiral on Windows — with no console handle Node's
+writes are inert (old and fixed both logged 486 B in 12 s); the spiral needs
+a pipe whose reader closed, which is the Linux harness case above.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

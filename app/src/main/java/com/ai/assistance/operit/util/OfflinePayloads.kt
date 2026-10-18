@@ -82,7 +82,11 @@ class OfflinePayload(
          * recognised by size+sha and never downloaded again.
          *
          * Bytes are the `assets/subpack/android.apk` entry of the last APK
-         * that still bundled it (CI `37726800230`).
+         * that still bundled it (CI `37726800230`), with the default
+         * `web_content` page translated to English (release `v1.12.1+4`,
+         * re-uploaded 2026-10-18). The page itself is never shipped: the
+         * export drops `assets/flutter_assets/assets/web_content/` and writes
+         * the user's project in its place.
          */
         val SUBPACK_ANDROID = OfflinePayload(
             id = "subpack-android",
@@ -92,16 +96,21 @@ class OfflinePayload(
                 RemoteAsset(
                     name = "apk_editor_android.apk",
                     url = "$RELEASE_BASE/v1.12.1+4/subpack-android.apk",
-                    sizeBytes = 48139093L,
-                    sha256 = "c56b23a841a736e028aeec8bee6b48a086b668143ce103095042e622750b86b4"
+                    sizeBytes = 48059795L,
+                    sha256 = "932bfb5304e7db0e313dc4e8f03dd20387355c755c35812be467d8c47c9e11af"
                 )
             ),
-            unpackedBytes = 48139093L
+            unpackedBytes = 48059795L
         )
 
         /**
          * Windows export template, same mechanics as [SUBPACK_ANDROID].
-         * Bytes are the `assets/subpack/windows.zip` entry of CI `37726800230`.
+         * Bytes are the `assets/subpack/windows.zip` entry of CI `37726800230`,
+         * with the default `web_content` page translated to English (release
+         * `v1.12.1+4`, re-uploaded 2026-10-18). Unlike Android, the Windows
+         * export copies the user's project over the extracted template without
+         * deleting the default files, so an untranslated page here would leak
+         * into any export whose project has no `index.html`.
          */
         val SUBPACK_WINDOWS = OfflinePayload(
             id = "subpack-windows",
@@ -111,11 +120,11 @@ class OfflinePayload(
                 RemoteAsset(
                     name = "exe_editor_windows.zip",
                     url = "$RELEASE_BASE/v1.12.1+4/subpack-windows.zip",
-                    sizeBytes = 11412717L,
-                    sha256 = "9c2d3e3b5e862334e24f4008572f239c380a73f23c5940054bf3a5142ca46888"
+                    sizeBytes = 11422731L,
+                    sha256 = "b7d080a64c791d6a00fbe3511178bf702cefb890d93867e5bf705213a9a4c180"
                 )
             ),
-            unpackedBytes = 11412717L
+            unpackedBytes = 11422731L
         )
 
         /** One download base for every payload: no per-file host to mistype. */

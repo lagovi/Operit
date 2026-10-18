@@ -653,6 +653,28 @@ empty assistant body in N60b (the chat LLM produced nothing to call
 added 18.10"): `ci/script/uawalk.sh` + `ci/script/scen/*.uaw` and any chat
 smoke must detect that popup/error text and FAIL the run, instead of
 reporting a blank reply as success. Not implemented yet.
+**(N62) Export templates: Chinese default page translated, release re-uploaded
+(18.10).** The only remaining Chinese in the two export templates was the
+default `web_content` starter page (`index.html` + `main.js`, the diagnostic
+CORS/storage/download bench titled "AI工作区"; `styles.css` had none). Both
+were re-uploaded to release `v1.12.1+4` as English:
+`subpack-android.apk` 48 059 795 B /
+sha256 `932bfb5304e7db0e313dc4e8f03dd20387355c755c35812be467d8c47c9e11af`
+(was 48 139 093 / `c56b23a8…`), `subpack-windows.zip` 11 422 731 B /
+sha256 `b7d080a64c791d6a00fbe3511178bf702cefb890d93867e5bf705213a9a4c180`
+(was 11 412 717 / `9c2d3e3b…`). `OfflinePayloads.kt` `SUBPACK_ANDROID` /
+`SUBPACK_WINDOWS` updated to the new sha+size, so any device holding the old
+staged copy re-downloads once. Key finding about reach: the Android export
+**drops** `assets/flutter_assets/assets/web_content/` and writes the user's
+project in its place (`ApkReverseEngineer.repackageApkWithWebContent` skips
+that prefix), so the Android default page is never shipped — translating it is
+cosmetic on the template artifact. The Windows export instead extracts the
+whole template then copies the project over it without deleting extras, so its
+default `index.html` would show for any export whose project has no
+`index.html`; that was the real leak. Verified the rebuilt archives keep every
+untouched entry byte-identical and in the same order (only the two files
+changed). Page content lives in `/tmp/opencode/en_web/` (regenerate from the
+released asset if lost).
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

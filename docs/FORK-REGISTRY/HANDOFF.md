@@ -800,6 +800,21 @@ otherwise): never returning the token and making the console ask for it.
 Registry SEC-001; `README.md` documents the split. NB: the agent ships
 inside the tool package, so the fix reaches a PC only after a CI build and
 a redeploy of the agent.
+**(N67) Accepted build `39143043794` (18.10).** Archived at
+`/home/uzzzver/operit-fork/apk/20261018_160038Z/` (`app-debug.apk`
+163 129 867 B, sha256
+`fcfc829ea12b83f46dd80996373ad3e63c68b862d76a10377b31c2679d92ba6d`),
+CI green at `b5fdd791`. Carries the terminal English-only re-pin
+(I18N-002 / N65), the PC-agent local-only settings (SEC-001 / N66) and the
+N61 harness change. Phone acceptance: the CI debug signature changed, so
+the app had to be uninstalled first; on the test phone it installs and
+shows the English onboarding. The shipped APK contains the terminal
+English strings (`OpenSSH Server`, `SSH Connection Config`, `SSH Mode
+Warning`) and none of the former Chinese literals (`清华源`,
+`启用反向挂载`, `SSH 连接配置`, `密码认证`, `暂无SSH配置`, …), pulled
+straight from the packaged APK. NB: the reinstall wiped app data, so the
+phone-side `windows_control` re-verify (item 7) needs the environment and
+the PC agent re-deployed.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

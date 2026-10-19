@@ -128,9 +128,8 @@ docs/FORK-REGISTRY/
 
 ## Relationship to the rest of the docs
 
-`docs/TODO/` holds the working history and per-change narrative, following
-`docs/TODO/README.md`. This directory is the *operational* index: what to run,
-what to look at, what breaks if a change is lost. The older
-`docs/TODO/fork-l10n-runbook.md` remains useful for the CI and device-testing
-mechanics but its diagnosis of the leftover Chinese text is superseded — see
-`re-audit-l10n.md` for the corrected account.
+This directory is the only operational index: what to run, what to look at,
+what breaks if a change is lost. The old `docs/TODO/` plans were upstream
+working documents and were removed on 19.10; everything still true from them
+lives in these files or in `HANDOFF.md`. The corrected account of the leftover
+Chinese text is `re-audit-l10n.md`; the removed runbook's diagnosis was wrong.

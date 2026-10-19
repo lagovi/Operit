@@ -1,7 +1,7 @@
 # Re-audit: resources and language machinery
 
-What to re-check after merging upstream. This supersedes the diagnosis in
-`docs/TODO/fork-l10n-runbook.md`, which blamed leftover Chinese on hardcoded
+What to re-check after merging upstream. This supersedes the old runbook
+(removed with `docs/TODO/`), which blamed leftover Chinese on hardcoded
 Kotlin literals. That diagnosis was wrong for the symptoms the user actually saw.
 
 ## The corrected account of the four defects
@@ -86,8 +86,8 @@ fails if the last two disagree.
   prompt builders are still bilingual. Do not assume a prompt is English because
   the app is — see `re-audit-prompts.md`.
 - Chinese text fetched from `operit.app` (announcements, market package names)
-  is not a resource and is not affected by any of the above. See
-  `docs/TODO/remote_content_translation/`.
+  is not a resource and is not affected by any of the above. The server-content
+  translation plan (removed with `docs/TODO/`) was fully implemented.
 
 ## Notification channels are the one thing resources cannot fix
 

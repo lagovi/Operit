@@ -523,8 +523,7 @@ android {
             // policy forbids untrusted_app from executing app_data_file, so
             // the libs must be extracted by the package manager into lib/
             // with an executable label. APK gets smaller (compressed .so),
-            // installed grows back (~+66 MB). See
-            // docs/TODO/offline-assets-move/2_WorkQueue.md item 1.
+            // installed grows back (~+66 MB). Measured in research-size.md.
             useLegacyPackaging = true
             // PaddleOCR: the OpenCV .so (17 MB arm64) ships on-demand via
             // OfflinePayloads.PADDLE_OCR and loads with System.load — the

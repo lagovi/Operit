@@ -33,8 +33,8 @@ Do not re-propose them without new facts.
    Consequence for future size work: native libs are untouchable as long as
    the terminal execs prebuilts. Any new `false`-style attempt must first prove
    exec works from its target location on the Samsung test phone.
-2. **Rootfs to external storage — FAILED (Q1 verdict 10-05, protocol in
-   `docs/TODO/offline-assets-move/2_WorkQueue.md` item 1).** 358 MB unpacked
+2. **Rootfs to external storage — FAILED (Q1 verdict 10-05; the plan record
+   was removed with `docs/TODO/`).** 358 MB unpacked
    tree copied with `busybox cp -a` (app uid, via `run-as`) to EXTERNAL_APP
    (`/storage/emulated/0/...`, FUSE): files copy, symlinks do not — hundreds
    of `can't create symlink ... Operation not permitted` (`etc/ssl/certs`,

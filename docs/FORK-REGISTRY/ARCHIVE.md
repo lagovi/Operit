@@ -512,7 +512,7 @@ CJK = 0 across UI and all phone notifications.
 ## Open question 1: further distribution trimming (SUPERSEDED 2026-10-03)
 
 Table below — state on 30.09 (APK 296 MB). Live:
-`docs/FORK-REGISTRY/research-size.md` + plan `docs/TODO/offline-assets-move/`.
+`docs/FORK-REGISTRY/research-size.md` (the plan it came from was removed with `docs/TODO/`).
 OCR verdict below partly outdated: non-Latin ML Kit removed (SIZE-002),
 Latin OCR alive (`OCRUtils`), engine+model stay.
 

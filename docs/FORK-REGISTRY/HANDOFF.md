@@ -1369,8 +1369,6 @@ wrong thing.
 | 4 | `docs/FORK-REGISTRY/re-audit-l10n.md` | **corrected diagnosis.** Main doc if Chinese reappears |
 | 5 | `docs/FORK-REGISTRY/re-audit-prompts.md` | which prompts the user sees and which not |
 | 6 | `docs/FORK-REGISTRY/re-audit-layout.md` | why English breaks layout and what's still unfixed |
-| 7 | `docs/TODO/fork-l10n-runbook.md` | CI+device mechanics. **Diagnosis inside is wrong**, marked in header |
-| 8 | `docs/TODO/remote_content_translation/index.md` | server-Chinese plan, **fully implemented** (T1 + Market + T2 batch + T3 fallback, incl. announcement) |
 
 Files you'll edit when you reach the tasks:
 

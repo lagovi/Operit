@@ -858,6 +858,21 @@ contains `ubuntu-noble-aarch64-pd-v4.18.0.tar.xz` (still ships
 `/home/uzzzver/operit-fork/apk/20261018_224236Z/` + `CHANGES.md`. Acceptance
 (fresh install → Toolbox terminal → consent → download → Ubuntu unpacks;
 no re-download on relaunch) is part of the full UI walkthrough, not yet done.
+**(N70) Build `39173414126` / `20261018_224236Z` ACCEPTED on the phone
+(19.10, item 3).** Installed on the a20s (uninstall first: the CI debug key
+differs per build, so app data was wiped; user confirmed the test phone is
+disposable). Onboarding completed with the English screens. Terminal rootfs
+acceptance: the first entry to the terminal (top-bar "AI Computer") shows the
+`TerminalRootfsGate` consent card; Download → `files/ubuntu-noble-…tar.xz.part`
+grew to 64 133 552 B, then the final archive appeared; `TerminalManager`
+logged `Rootfs archive ready`; the shell logged `Ubuntu not installed,
+installing...` then `Ubuntu installed -> Ubuntu 24.04.1 LTS`;
+`.operit_installed_ok` was written and the install script deleted the archive.
+After force-stop + relaunch, the gate was Ready with no consent card and no
+archive reappeared (no re-download); the terminal reached a live
+`root@localhost:~#` proot shell (Ubuntu banner, python3 present). Full
+`ci/script/scen/full_tour.uaw`: 113 steps, 683 s, 0 aborts, notes none; no
+FATAL in logcat. Item 3 CLOSED.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in

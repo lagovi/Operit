@@ -668,7 +668,7 @@
    "reverify": "node --check on the handler; start the agent bound to the LAN address and confirm GET /api/config is 200 from 127.0.0.1 and 403 from another host, while POST /api/command/execute still works with the token"
    },
   {
-   "id": "SIZE-008",
+   "id": "SIZE-010",
    "area": "size",
    "title": "Terminal Ubuntu rootfs moved out of the APK to an on-demand download",
    "commit": null,

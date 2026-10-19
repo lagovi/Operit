@@ -857,7 +857,7 @@ contains `ubuntu-noble-aarch64-pd-v4.18.0.tar.xz` (still ships
 `assets/setup_fake_sysdata.sh`). Archived
 `/home/uzzzver/operit-fork/apk/20261018_224236Z/` + `CHANGES.md`. Acceptance
 (fresh install → Toolbox terminal → consent → download → Ubuntu unpacks;
-no re-download on relaunch) is part of the full UI walkthrough, not yet done.
+no re-download on relaunch) — see N70 below.
 **(N70) Build `39173414126` / `20261018_224236Z` ACCEPTED on the phone
 (19.10, item 3).** Installed on the a20s (uninstall first: the CI debug key
 differs per build, so app data was wiped; user confirmed the test phone is

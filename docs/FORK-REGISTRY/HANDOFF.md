@@ -32,7 +32,7 @@ docs-only commits on top.)
 
 OPEN (full breakdown in §8; summary here):
 (a) 5a/5b — CLOSED 15.10 night by the agent alone via root (decision
-15.10; close-outs in §8); Windows export blocked — no Windows machine;
+15.10; close-outs in §8); Windows export PROVEN 19.10 (N71);
 (b) joint manual testing with the user — NO checklist exists and none
 is owed right now (clarified with the user 16.10: the phrase meant
 "poke at the polished whole when the agent says ready" + far-field STT
@@ -873,6 +873,33 @@ archive reappeared (no re-download); the terminal reached a live
 `root@localhost:~#` proot shell (Ubuntu banner, python3 present). Full
 `ci/script/scen/full_tour.uaw`: 113 steps, 683 s, 0 aborts, notes none; no
 FATAL in logcat. Item 3 CLOSED.
+**(N71) Windows subpack export PROVEN end-to-end (19.10).** The old blocker
+("no Windows machine") was wrong: the PC agent host `hp-630`
+(`artur@192.168.1.66`) is reachable over SSH. Export from the app on the
+phone: Toolbox → HTML Packager → Select Folder (SAF; `sendevent` taps needed:
+Download → `winproj` → USE THIS FOLDER → ALLOW) → `index.html` auto-selected →
+Generate Package → Windows → Export. The fresh install had no template, so
+the flow downloaded `exe_editor_windows.zip` (11 422 731 B, mtime 04:47) from
+release `v1.12.1+4` through `SubpackStorage.ensureTemplate`, then produced
+`/sdcard/Download/Operit/exports/Web_Project_20261019_044745.zip`
+(11 419 555 B, 22 entries): `assistance_subpack.exe` 318 464 B,
+`data/app.so`, and `data/flutter_assets/assets/web_content/index.html`
+(288 B, byte-identical to the source project) plus `assets/style.css`
+(99 B). Copied to `hp-630` with paramiko; `Expand-Archive` dies under the
+non-interactive SSH host with a `Write-Progress` HostException — use
+`tar.exe -xf` (22 files extracted). Direct SSH runs land in session 0 and
+cannot create a rendering surface (`Failed to create platform view rendering
+surface`, EGL 12302); run it in the console session with a scheduled task
+(`LogonType Interactive`) instead. Result: window `assistance_subpack` stays
+alive, `msedgewebview2.exe` processes run in session 1, and the app's local
+server (`127.0.0.1:8090`) serves `/` = 288 B with
+`OPERIT-WINDOWS-EXPORT-19-10` and `/assets/style.css` = 99 B with the
+`#102030` background — the exported webview requested and received the
+project. A GDI screenshot shows the client area white because the composited
+WebView2 surface is not captured by `CopyFromScreen`; the HTTP+WebView2
+evidence is the acceptance, the visual frame was not judged. Session test
+infra: `/tmp/opencode/win_export.zip`, `win_shot2.png`,
+`win_export_test/` on the PC. Windows export is no longer blocked.
 **(N50) Full UI tour 16.10 day (build `20261016_104352Z`).**
 `ci/script/scen/full_tour.uaw` (screen_tour + SAVEDUMP per screen):
 113 steps PASS, 740 s wall, zero aborts, zero dropbox crashes. Dumps in
@@ -1006,8 +1033,8 @@ part: keep this list truthful; "ready" only after green CI + install
 referee (if one resurfaces — file with screenshot name + screen path):
 dead button / U1 / D12; Market search icon verified (opens search).
 Far-field STT only if the user complains (M6 closed).
-(a) subpack-leaf files after a REAL export — PROVEN 10.10 (Android;
-Windows export never run): HTML Packager → ExportPlatformDialog →
+(a) subpack-leaf files after a REAL export — PROVEN 10.10 (Android) and
+19.10 (Windows, N71): HTML Packager → ExportPlatformDialog →
 Android export to the end → `files/subpack/apk_editor_android.apk`
 48139093 B + sha `c56b23a8...` (size+sha matched), output APK installs;
 (CLOSE-OUT task 13 for details).
@@ -1127,9 +1154,8 @@ later: the guard-fix reinstall wiped the card app folders (E26) — phone
 truth moved to (N47): Parakeet on SD only, GigaAM not downloaded.
 (c) Manual Google sign-in to Antigravity — user does it later alone.
 After: quotas, model list, chat via Antigravity (PORT_QUEUE.md).
-(d) Proxy tails (deliberate, not bugs): Antigravity `getModelsList`
-direct; login-over-proxy only if it fits the scheme (don't demand a user
-account for it).
+(d) Proxy tails — CLOSED 16.10 (`6594bc2c`, see OPEN (f)); kept here only
+until this line was corrected 19.10.
 
 ## Status: environment
 

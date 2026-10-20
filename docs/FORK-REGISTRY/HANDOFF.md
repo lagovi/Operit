@@ -1908,12 +1908,23 @@ the fix shipped.
   GigaAM. Also allowlisted the updated Chinese `stt_service_type` prompt
   literal (was CJK-NEW 1 in `fork_audit.py`).
 
-  **Still to verify:** the next CI build (storage hint 225 → 670/682 MB,
-  info text); a real dictated phrase on the phone (the speaker→mic loopback
-  produced no VAD phrase, so only init/keep-alive was exercised); English
-  `transcribe_file` (no `test_audio_en.wav` on the phone); keep-alive +
-  unload for GigaAM and Parakeet, which use the same section but were not
-  loaded this run.
+  **Follow-up build accepted — 39370951428, commit `f48ddc77`
+  (2026-10-20).** APK 99,073,540 B, sha256 `7ec1bca…54c12f`, at
+  `/home/uzzzver/operit-fork/apk/20261020_044202Z/` with
+  `debug/mapping.txt`. On the phone: Nemotron block now reads "Where the
+  682 MB offline speech model is kept…", Parakeet reads 670 MB, GigaAM
+  stays 225 MB; the STT info text names all three local engines.
+  Re-downloaded Nemotron (Ready · 682 MB) and `transcribe_file
+  engine=nemotron` still returned the same text on `test_audio.wav`.
+
+  **Still to verify:** a real dictated phrase on the phone (the
+  speaker→mic loopback produced no VAD phrase, so only init/keep-alive was
+  exercised); English `transcribe_file` (no `test_audio_en.wav` on the
+  phone); keep-alive + unload for GigaAM and Parakeet, which use the same
+  section but were not loaded. Native-heap release after recognition is
+  delayed but real: right after a `transcribe_file` result the heap still
+  held 763 MB, and a few minutes later it was 21 MB / RSS 115 MB on the same
+  build, so this is allocator laziness rather than a retained recognizer.
 
 
 ## Open questions 1–2 — closed, history in ARCHIVE.md

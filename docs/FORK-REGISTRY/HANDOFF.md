@@ -1917,14 +1917,30 @@ the fix shipped.
   Re-downloaded Nemotron (Ready · 682 MB) and `transcribe_file
   engine=nemotron` still returned the same text on `test_audio.wav`.
 
-  **Still to verify:** a real dictated phrase on the phone (the
-  speaker→mic loopback produced no VAD phrase, so only init/keep-alive was
-  exercised); English `transcribe_file` (no `test_audio_en.wav` on the
-  phone); keep-alive + unload for GigaAM and Parakeet, which use the same
-  section but were not loaded. Native-heap release after recognition is
-  delayed but real: right after a `transcribe_file` result the heap still
-  held 763 MB, and a few minutes later it was 21 MB / RSS 115 MB on the same
-  build, so this is allocator laziness rather than a retained recognizer.
+  **Additional acceptance on the same build (2026-10-20):** English
+  `transcribe_file` works — the test rig had no `test_audio_en.wav`, so
+  `whisper.cpp`'s `samples/jfk.wav` (11 s, 16 kHz mono, 352,078 B) was
+  pushed and **Nemotron Transcribe EN** returned "And so my fellow
+  American What your country can do for Ask what you can do f…". Keep-alive
+  and unload were exercised for the other two engines with their models
+  downloaded from settings: GigaAM init 558 MB RSS → "Unload from memory"
+  → 168 MB (native heap 27 MB); Parakeet init 1.1 GB → unload → 99 MB.
+  Native-heap release after recognition is delayed but real: right after a
+  `transcribe_file` result the heap still held 763 MB, and a few minutes
+  later it was 21 MB / RSS 115 MB, so this is allocator laziness rather than
+  a retained recognizer. Memory risk observed: after those two unloads,
+  switching the demo to Nemotron got the whole app LMK-killed (`lmkd`
+  reclaimed pid with oom_adj 0, "min2x watermark breached", 1.7 GB freed,
+  swap low); a fresh process loaded Nemotron fine at 886 MB. On a 3 GB
+  phone, switching engines after a big model was resident is the risky
+  moment, not a single Nemotron session.
+
+  **Still to verify:** a real dictated phrase on the phone. The
+  speaker→mic loopback could not produce a VAD phrase: `tinyplay` as
+  `shell` cannot open `/dev/snd/pcmC0D0p`, as root it prints "Playing
+  sample" but no phrase appears; the mic source was switched to
+  "Recognition (unprocessed)" and media volume was 15/15. Needs a human
+  speaker, a wired loopback, or a virtual audio source.
 
 
 ## Open questions 1–2 — closed, history in ARCHIVE.md

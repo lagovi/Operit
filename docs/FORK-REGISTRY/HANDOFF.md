@@ -1866,12 +1866,54 @@ the fix shipped.
   model now stays in RAM until the button, an engine switch, or process
   death.
 
-  **Still to verify (device/CI only):** CI compile (this is the first
-  build of the vendored API + provider); Nemotron download/extract on the
-  phone (`stt_nemotron`), dictation run, `transcribe_file engine=nemotron`,
-  the unload button, and the keep-alive change on GigaAM/Parakeet. Also
-  confirm `--language=ru`/`en` path in-app and whether `auto` is accepted by
-  the stream option (the CLI spike only proved `ru`).
+  **Accepted on device — build 39348381793, commit `c07c876a`
+  (2026-10-20).** CI `assembleDebug` on `feat/english-only-build`
+  succeeded; APK 99,071,232 B, sha256 `8ca30eb3…7cda3b`, kept at
+  `/home/uzzzver/operit-fork/apk/20261020_003348Z/app-debug.apk` with
+  `debug/mapping.txt` (287,725,565 B). Install lesson: a CI debug build has
+  a new signing key, so `adb install -r` fails with
+  `INSTALL_FAILED_UPDATE_INCOMPATIBLE`; uninstall first. Uninstall then left
+  `/data/user/0/com.ai.assistance.operit.debug` owned by the previous uid
+  (u0_a293) — **because the previous install still had live proot mounts**
+  (`…/installed-rootfs/ubuntu/{mnt/nemo,proc,dev,sys}`, three path aliases
+  each). `rm -rf` as root descends into that procfs and never finishes;
+  `umount -l` those paths under `/data/data`, `/data_mirror/data_ce/null/0`
+  and `/data/user/0` first, then `rm -rf /data/user/0/… /data/user_de/0/…`.
+  After that plain `adb install` works. (Once, `adb install` returned
+  "Broken pipe (32)", the phone rebooted on its own, reconnected, and the
+  data dir was recreated under the new uid 10295; no action was needed
+  beyond reinstalling.)
+  Verified on the a20s: Settings → Speech services → STT lists
+  `Nemotron 3.5 (Local, offline)`; it shows "Not downloaded · about 682 MB
+  plus a one-time 39 MB runtime" and downloads to `files/stt_nemotron`
+  (encoder 657,601,521 / decoder 14,978,075 / joiner 9,504,438 / tokens
+  131,440 B / `libsherpa-onnx-jni.so` 24,169,352 B) on the LAN mirror,
+  then reads "Ready · 682 MB". Tool Test Center → **Nemotron Transcribe**
+  (`transcribe_file engine=nemotron`) returned text for
+  `/sdcard/Download/Operit/test/test_audio.wav`, no crash. Speech
+  Recognition demo: engine label correct, language list is
+  `auto/en/ru`, init brought RSS to 886 MB, Stop left it at 790 MB
+  (keep-alive), Settings "Unload from memory" returned UNLOADED, disabled
+  the button, and the native heap fell to ~25 MB / RSS ~156 MB (the free
+  is asynchronous: it was still 635 MB right after the dialog). `auto`
+  was accepted by `setOption` (no error), but the text quality of that
+  path was not judged against the `ru` CLI benchmark.
+
+  **Found in acceptance, fixed in the next commit (code):** the storage
+  hint under Parakeet and Nemotron reused `stt_storage_summary`, which said
+  "225 MB" for every engine. The string now takes the per-engine
+  `%1$s MB`; `GigaAMModelSection`, `ParakeetModelSection` and
+  `NemotronModelSection` pass their `sizeLabel` into the picker. The STT
+  info paragraph now names GigaAM, Parakeet and Nemotron instead of only
+  GigaAM. Also allowlisted the updated Chinese `stt_service_type` prompt
+  literal (was CJK-NEW 1 in `fork_audit.py`).
+
+  **Still to verify:** the next CI build (storage hint 225 → 670/682 MB,
+  info text); a real dictated phrase on the phone (the speaker→mic loopback
+  produced no VAD phrase, so only init/keep-alive was exercised); English
+  `transcribe_file` (no `test_audio_en.wav` on the phone); keep-alive +
+  unload for GigaAM and Parakeet, which use the same section but were not
+  loaded this run.
 
 
 ## Open questions 1–2 — closed, history in ARCHIVE.md

@@ -2750,6 +2750,7 @@
     <!-- STT Service Types -->
     <string name="speech_services_stt_type_gigaam">GigaAM (Local, offline)</string>
     <string name="speech_services_stt_type_parakeet">Parakeet (Local, offline)</string>
+    <string name="speech_services_stt_type_nemotron">Nemotron 3.5 (Local, offline)</string>
     <!-- One-time GigaAM download. Declining stores nothing: settings keeps
          offering the download until the files exist. -->
     <string name="gigaam_model_title">Offline speech model</string>
@@ -2767,6 +2768,28 @@
     <string name="parakeet_absent_summary">Not downloaded · about %1$s</string>
     <string name="parakeet_ready_summary">Ready · %1$s · %2$s</string>
     <string name="parakeet_download_failed_summary">Download failed: %1$s</string>
+    <!-- One-time Nemotron download. Same contract as GigaAM/Parakeet, plus the
+         sherpa-onnx runtime: it is not in the APK, so the first download also
+         fetches the official AAR (%2$s) once and keeps only its arm64 library. -->
+    <string name="nemotron_model_title">Offline Nemotron model</string>
+    <string name="nemotron_consent_title">Download the Nemotron speech model?</string>
+    <string name="nemotron_consent_text">Speech recognition runs fully on your device. The model is about %1$s, and the speech runtime it needs is a one-time %2$s. Everything will be stored %3$s. You can also download it later in Settings.</string>
+    <string name="nemotron_absent_summary">Not downloaded · about %1$s plus a one-time %2$s runtime</string>
+    <string name="nemotron_ready_summary">Ready · %1$s · %2$s</string>
+    <string name="nemotron_download_failed_summary">Download failed: %1$s</string>
+    <!-- Unload the in-memory local checkpoint. The model is kept loaded after
+         the first recognition so later phrases start instantly; this reclaims
+         that RAM without touching the downloaded files. -->
+    <string name="stt_memory_title">Memory</string>
+    <string name="stt_memory_summary">The offline model stays in memory after the first recognition so the next one starts instantly. Unload it to reclaim that memory while you are not using speech recognition; the next recognition reloads it.</string>
+    <string name="stt_memory_unload">Unload from memory</string>
+    <string name="stt_memory_confirm_title">Unload the speech model from memory?</string>
+    <string name="stt_memory_confirm_text">The model files stay on the device. The next recognition reloads them, which takes a few seconds.</string>
+    <string name="stt_memory_action_unload">Unload</string>
+    <string name="stt_memory_status_unloaded">Model unloaded from memory.</string>
+    <string name="stt_memory_status_not_loaded">Nothing loaded in memory.</string>
+    <string name="stt_memory_status_in_use">Model is in use right now; stop recognition first.</string>
+    <string name="stt_memory_status_failed">Could not unload the model.</string>
     <!-- Local engine tuning. Defaults reproduce the shipped behavior. -->
     <string name="stt_tuning_title">Local engine tuning</string>
     <string name="stt_tuning_vad">Split speech into phrases</string>
@@ -3049,6 +3072,9 @@
     <string name="para_transcribe_test">Para Transcribe</string>
     <string name="para_transcribe_whole_test">Para Transcribe Whole</string>
     <string name="para_transcribe_en_test">Para Transcribe EN</string>
+    <string name="nemo_transcribe_test">Nemotron Transcribe</string>
+    <string name="nemo_transcribe_whole_test">Nemotron Transcribe Whole</string>
+    <string name="nemo_transcribe_en_test">Nemotron Transcribe EN</string>
     <string name="chunk_read_test">Chunk Read</string>
     <string name="file_info_test">File Info</string>
     <string name="find_files_test">Find Files</string>
@@ -3090,6 +3116,9 @@
     <string name="para_transcribe_test_desc">Transcribe test audio file with Parakeet</string>
     <string name="para_transcribe_whole_test_desc">Transcribe test audio file with Parakeet, no chunking</string>
     <string name="para_transcribe_en_test_desc">Transcribe English test audio with Parakeet</string>
+    <string name="nemo_transcribe_test_desc">Transcribe test audio file with Nemotron</string>
+    <string name="nemo_transcribe_whole_test_desc">Transcribe test audio file with Nemotron, no chunking</string>
+    <string name="nemo_transcribe_en_test_desc">Transcribe English test audio with Nemotron</string>
     <string name="chunk_read_test_desc">Read first part of test file</string>
     <string name="file_info_test_desc">Get test file information</string>
     <string name="find_files_test_desc">Find files in test directory</string>
@@ -5821,7 +5850,7 @@
     <string name="toolreg_get_chat_messages_desc">Get chat messages: %1$s%2$s%3$s</string>
     <string name="toolreg_list_files_desc">List directory: %1$s%2$s</string>
     <string name="toolreg_read_file_desc">Read file: %1$s%2$s</string>
-    <string name="toolreg_transcribe_file_desc">Transcribe audio file with on-device STT: %1$s%2$s (params: engine gigaam|parakeet, mode chunk|whole)</string>
+    <string name="toolreg_transcribe_file_desc">Transcribe audio file with on-device STT: %1$s%2$s (params: engine gigaam|parakeet|nemotron, mode chunk|whole)</string>
     <string name="toolreg_read_file_part_range_lines">lines %1$s-%2$s</string>
     <string name="toolreg_read_file_part_range_from">from line %1$s</string>
     <string name="toolreg_read_file_part_desc">Read file (%1$s): %2$s%3$s</string>

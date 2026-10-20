@@ -17,6 +17,8 @@ object SpeechServiceFactory {
         LOCAL_GIGAAM,
         /** Parakeet TDT offline plus Silero VAD. */
         LOCAL_PARAKEET,
+        /** Nemotron 3.5 streaming transducer (sherpa-onnx) plus Silero VAD. */
+        LOCAL_NEMOTRON,
         OPENAI_STT,
         DEEPGRAM_STT,
     }
@@ -68,6 +70,7 @@ object SpeechServiceFactory {
         return when (type) {
             SpeechServiceType.LOCAL_GIGAAM -> acquireLocalSpeechService(context, type)
             SpeechServiceType.LOCAL_PARAKEET -> acquireLocalSpeechService(context, type)
+            SpeechServiceType.LOCAL_NEMOTRON -> acquireLocalSpeechService(context, type)
             SpeechServiceType.OPENAI_STT -> {
                 runBlocking {
                     OpenAISttProvider(
@@ -118,57 +121,65 @@ object SpeechServiceFactory {
         type: SpeechServiceType,
     ): SpeechService {
         val appContext = context.applicationContext
-        synchronized(localLock) {
-            val existing = localEntry
-            if (existing != null && existing.type != type) {
-                throw IllegalStateException(
-                    "Local SpeechService already active: ${existing.type}. " +
-                        "Cannot create another local SpeechService of type $type before releasing the previous one."
-                )
-            }
+        var stale: SpeechService? = null
+        val entry =
+            synchronized(localLock) {
+                val existing = localEntry
+                if (existing != null && existing.type != type) {
+                    // On-device checkpoints are big enough that only one may be
+                    // resident. A live lease means someone is still using it;
+                    // a released (keep-alive) one is dropped below the lock.
+                    if (existing.refCount > 0) {
+                        throw IllegalStateException(
+                            "Local SpeechService already active: ${existing.type}. " +
+                                "Cannot create another local SpeechService of type $type before releasing the previous one."
+                        )
+                    }
+                    localEntry = null
+                    stale = existing.service
+                }
 
-            val entry =
-                if (existing != null) {
-                    existing.refCount += 1
-                    existing
+                val current = localEntry
+                if (current != null) {
+                    current.refCount += 1
+                    current
                 } else {
                     val service =
                         when (type) {
                             SpeechServiceType.LOCAL_GIGAAM -> GigaAMSpeechProvider(appContext)
                             SpeechServiceType.LOCAL_PARAKEET -> ParakeetSpeechProvider(appContext)
+                            SpeechServiceType.LOCAL_NEMOTRON -> NemotronSpeechProvider(appContext)
                             else -> throw IllegalArgumentException("Not a local SpeechService type: $type")
                         }
                     LocalEntry(type = type, service = service, refCount = 1).also { localEntry = it }
                 }
+            }
 
-            return SpeechServiceLease(
-                delegate = entry.service,
-                onRelease = { releaseLocalSpeechService(entry.type) },
-            )
+        try {
+            stale?.shutdown()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Failed to drop the previous local SpeechService", e)
         }
+
+        return SpeechServiceLease(
+            delegate = entry.service,
+            onRelease = { releaseLocalSpeechService(entry.type) },
+        )
     }
 
     private fun releaseLocalSpeechService(type: SpeechServiceType) {
-        val toShutdown: SpeechService?
         synchronized(localLock) {
             val entry = localEntry
             if (entry == null || entry.type != type) {
                 return
             }
-
-            entry.refCount -= 1
             if (entry.refCount > 0) {
-                return
+                entry.refCount -= 1
             }
-
-            localEntry = null
-            toShutdown = entry.service
-        }
-
-        try {
-            toShutdown?.shutdown()
-        } catch (e: Exception) {
-            AppLogger.w(TAG, "Failed to shutdown local SpeechService", e)
+            // Keep-alive: at zero the loaded checkpoint stays resident (the
+            // entry and the recognizer are kept) so the next session starts
+            // without the multi-second load. It is dropped only by
+            // unloadLocalService() or by switching to another local engine.
         }
     }
 
@@ -230,5 +241,63 @@ object SpeechServiceFactory {
         }
         instance = null
         currentProfileId = null
+    }
+
+    /** Outcome of [unloadLocalService], for the settings screen's status line. */
+    enum class LocalUnloadResult {
+        /** No local checkpoint was held in memory. */
+        NOT_LOADED,
+        /** The checkpoint was released; its RAM is back. */
+        UNLOADED,
+        /** A session is running or another consumer still holds the engine. */
+        IN_USE,
+        /** Releasing threw; the process memory state is unknown. */
+        FAILED,
+    }
+
+    /**
+     * Whether a local engine currently keeps its checkpoint in memory. This is
+     * the 214–670 MB the settings screen lets the user reclaim: a provider
+     * object exists as soon as a screen asks for it, but only `initialize()`
+     * loads the weights.
+     */
+    fun isLocalServiceLoaded(): Boolean =
+        synchronized(localLock) { localEntry?.service?.isInitialized?.value == true }
+
+    /**
+     * Drops the in-memory local checkpoint so its weights stop costing RAM.
+     *
+     * Refuses while a recognition session is live or when more than one
+     * consumer holds a lease: pulling the model out from under either would
+     * break it. The downloaded files are untouched, so the next session
+     * reloads them (the few-second `PREPARING` delay comes back with it).
+     *
+     * Blocking (`shutdown()` joins the recognition coroutines); call off the
+     * main thread.
+     */
+    fun unloadLocalService(): LocalUnloadResult {
+        val entry =
+            synchronized(localLock) {
+                val current = localEntry ?: return LocalUnloadResult.NOT_LOADED
+                if (current.refCount > 1 || current.service.isRecognizing) {
+                    return LocalUnloadResult.IN_USE
+                }
+                if (!current.service.isInitialized.value) {
+                    return LocalUnloadResult.NOT_LOADED
+                }
+                localEntry = null
+                current
+            }
+        // The cached singleton is a lease over the same provider; drop it too,
+        // or the next getInstance() would hand out a released recognizer.
+        instance = null
+        currentProfileId = null
+        return try {
+            entry.service.shutdown()
+            LocalUnloadResult.UNLOADED
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Failed to unload local SpeechService", e)
+            LocalUnloadResult.FAILED
+        }
     }
 }

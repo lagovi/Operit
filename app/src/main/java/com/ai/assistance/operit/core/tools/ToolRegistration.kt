@@ -1818,6 +1818,7 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                     ) {
                         null, "", "gigaam" -> SttFileEngine.GIGAAM
                         "parakeet" -> SttFileEngine.PARAKEET
+                        "nemotron" -> SttFileEngine.NEMOTRON
                         else -> throw IllegalArgumentException(
                             "unknown transcribe_file engine: " +
                                 tool.parameters.find { it.name == "engine" }?.value,

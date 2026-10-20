@@ -1718,6 +1718,161 @@ target` → true, nothing moved). Fixed (`f0ad404a`): new
 they actually are (holder search); existing `migrate()` behavior
 unchanged. The GigaAM files were ferried by hand (run-as cp) before
 the fix shipped.
+- **E28. Nemotron 3.5 ASR Streaming 0.6B as a third on-device STT
+  (pure-C and official REJECTED; sherpa 1120 ms viable, 19.10).**
+  Hypothesis: cache-aware streaming FastConformer + RNN-T 0.6B could
+  beat/round out GigaAM (ru) and Parakeet (en) — 32 langs incl. `ru-RU`,
+  OpenMDW-1.1, true streaming. User priority order, strict: speed > RAM
+  > disk (disk low if the model can live on SD). Method: (a) pure-C
+  runtime `kdrkdrkdr/nemotron-asr-streaming.c` @
+  `5cc20265c3723de0e5a6a5244d01e051aca2e344` (W8A8 `nemotron-w8a8.bin`
+  667 530 161 B sha256 `ec63ef4f…f56b1dbd`), arm64 built in CI spike
+  (run `39268724873`, artifact `nemotron-arm64`: `nemotron_asr_arm64`
+  81 872 B + generic) — CI branch deleted after the spike; (b) NVIDIA
+  `NeMo-Speech.cpp` v0.2.0 (Apache-2.0, GGUF `nemotron-q8_0.gguf`
+  742 090 464 B sha256 `3fc991d3…3a070b1`) run in the app's Ubuntu proot
+  chroot (glibc, `taskset ff`); (c) `sherpa-onnx` v1.13.8 (Apache-2.0,
+  ORT) Android aarch64 termux-static CLI (bionic, needs the matching
+  Termux `libc++_shared.so` 30) with the sherpa int8 export
+  `csukuangfj2/sherpa-onnx-nemotron-3.5-asr-streaming-0.6b-{560,1120}ms-
+  int8-2026-06-11` (encoder 657 601 403 / 657 601 521 B, decoder
+  14 978 075, joiner 9 504 438, tokens 131 440 → 682 MB; `--language=ru`,
+  greedy, 4 threads, cores 0–3). Input = app
+  `PcmResampler.kt` port (Kaiser sinc) → 16 kHz PCM, the product path.
+  Phone a20s: 8×A53 @1.8 GHz, 2.8 GB, under load (`cnss-daemon` ~58 %,
+  systemui ~19 %, loadavg 6–7) — a clean phone is ~10–20 % faster
+  (pure-C still >2.2, sherpa 1120 ~1.4–1.5). Evidence — pure-C: best
+  4 threads, cores 0–3, **37.53 s in
+  99.70–101.44 s (RTF 2.66–2.70), MAXRSS/PSS 836 MB**, quality **4–5/7**
+  (Оматчи≈, hyperland✓, helium✓, pipewire✗ «Pipelia», neovim✗ «New»,
+  btop✓, inference✓); thread sweep 1/2/4/6/8 = 50.1/34.2/29.1/30.0/31.6 s
+  (10 s clip); att_right 0/1/3/6 = 47.0/34.9/29.3/27.0 s (6 not quality-
+  checked); cores 4–7 are SLOWER than 0–3 (117 vs 101 s — use 0–3); SD
+  FUSE mmap works (warm 29.4 s ≈ internal 29.1, cold 32.4) → model can
+  live on SD. WAV path trap: the runtime's own 48 kHz resampler TRUNCATES
+  the tail (~7 s) and lowers quality; feed 16 kHz PCM directly, never
+  the runtime WAV reader. Official: 16 kHz **159 s (RTF 4.24)**, 48 kHz
+  147 s (3.92), **RSS 1.59–1.66 GB / PSS 1.63–1.73 GB**, quality **6/7**
+  (омачи✓, hyperland✓, helium✓, pipeware≈✓, newvo✗, btop✓, inference✓),
+  libs 14 MB + bin 1.78 MB. Sherpa-onnx 1120 ms int8: **37.53 s in 62 s
+  inference (RTF 1.65), 82 s total incl. 19 s recognizer creation,
+  RSS/PSS 769 MB**, quality **6/7** (омачи✓, hyperland✓, helium✓,
+  Pipewa≈✓, **Neuvim≈✓**, втоп≈, inference✓); 560 ms same model is 93 s
+  inference (RTF 2.5), 112 s total, 768 MB, «NeoV»/«BTO» — slower and
+  no better. Threads at 560 ms (10 s clip): 4 best 27 s; 2→37, 6 pinned
+  to 4 cores→61, 8 on 8 cores→34 (oversubscription/memory). 19 s
+  startup = ONNX model parse/load, NOT graph optimization: host ORT
+  1.31 on the 657 MB encoder — ALL 20.5 s, BASIC 17.6 s, DISABLE 34.3 s,
+  pre-optimized model load 25.6 s (Celeron; phone 19 s, warm repeat also
+  18.9 s). ORT-format `.ort` (fixed, ORT 1.28.0, 628 MB) loads in
+  **16.6 s** vs 18.9 s ONNX — only 2.4 s, so the cost is weight
+  load/memory init, not protobuf. Same class as the existing Parakeet
+  ORT (652 MB, sessions created once in
+  `ParakeetSpeechProvider.initialize()` and kept), so lazy init +
+  singleton + a "preparing" state hides it; it is not a
+  Nemotron-specific flaw. A real cut needs a smaller model (int4
+  ~330 MB, no sherpa export) or pure-C's custom 1 s loader. For clips shorter than ~18 s pure-C's ~1 s
+  load wins end-to-end (crossover 19+1.65t = 1+2.66t ≈ 18 s). Android libs 32 MB raw arm64 (ORT 22.2,
+  jni 4.8, c-api 4.5, cxx 0.44; ~15 MB compressed) and duplicate the
+  app's Java ORT 1.21.1. Other options: Q4_0 GGUF (`framadhita`,
+  638 MB) rejected — `general.architecture='nemo_asr'`, official runtime
+  wants `asr`/`parakeet-ctc`; needs our own `.nemo`→GGUF conversion.
+  ONNX int4 (`onnx-community`, ~788 MB, onnxruntime-genai) / ONNX int8
+  (`soniqo`, ~755 MB) / LiteRT int8 (`soniqo`, ~721 MB) NOT benchmarked;
+  sherpa covers the ORT path. `pantinor/…-sherpa` 2.6 GB — doesn't fit
+  the 980 MB SD. Verdict: **pure-C and official REJECTED** (2.66 and
+  3.9–4.2 RTF, 836 MB / 1.6 GB); **sherpa 1120 ms is the viable
+  variant** — RTF 1.65 (second only to GigaAM 1.12, faster than Parakeet
+  1.83), 769 MB (second to GigaAM, below Parakeet ~1 GB), 682 MB disk
+  (≈ Parakeet, > GigaAM 225), quality 6/7 (best), constant memory for
+  long files (Parakeet is LMK-killed >20 s, E25). Under a strict
+  speed>RAM>disk order GigaAM still wins; for quality + long files on
+  a 3 GB phone sherpa 1120 ms is the best and a candidate to replace
+  Parakeet, not GigaAM. Integration cost: 32 MB raw libs (~15 MB APK)
+  + 682 MB payload; 1.12 s chunk latency limits live dictation. Re-verify
+  only on a device with dotprod/i8mm (A76+) or GPU/NPU. Artifacts kept:
+  phone `/data/local/tmp/nemo/` (pure-C bin, W8A8, GGUF, official `cli/`,
+  `bench16_hq.wav`, `run_*.sh`) and `/data/local/tmp/nemo-sherpa/`
+  (CLI, libc++, 560/1120 encoders, decoder/joiner/tokens,
+  `run_sherpa*.sh`); host `/tmp/opencode/nemo-spike/` + `nemo-sherpa/`
+  (+ CI YAML `nemotron-spike.yml`). Q4 and SD copy removed.
+
+  **Integration — in progress (2026-10-19).** Product shape: add
+  **Nemotron as a third local engine** (`LOCAL_NEMOTRON`), keep GigaAM and
+  Parakeet (neither is removed; the fork is a released build, and the
+  forward-compat rule forbids breaking a stored `LOCAL_PARAKEET`). Model is
+  the 1120 ms sherpa variant above (682 MB payload, four files, HF repo
+  `csukuangfj2/sherpa-onnx-nemotron-3.5-asr-streaming-0.6b-1120ms-int8-2026-06-11`
+  @ revision `cba1c96ca5ef0e8393b50584ae153a79145dc492`; sizes + LFS sha256
+  verified from the HF API, `tokens.txt` sha computed locally:
+  encoder `2fff2166…`, decoder `19f9c98f…`, joiner `4101c7c6…`, tokens
+  `729cc103…`). Download path planned as a `RemoteAsset` list +
+  `OfflinePayload.NEMOTRON` (leaf `stt_nemotron`) with a
+  `NemotronModelDownload`/`NemotronModelStorage` clone of the Parakeet
+  pair, plus the settings section and dictation-consent dialog.
+
+  **Runtime packaging — decided (b), implemented, needs CI + device check.**
+  (a) Bundle the official `sherpa-onnx-static-link-onnxruntime-1.13.8.aar`
+  arm64 `libsherpa-onnx-jni.so` (24,169,352 B; NEEDED = bionic only, no
+  `libc++_shared`/ORT collision, LOAD align 0x4000 = 16 KB) in a new
+  Gradle module: +24 MB APK / ~+48 MB installed, rejected on size.
+  (b) Chosen: download it on demand like the OpenCV `.so`
+  (`OfflinePayloads.PADDLE_OCR` precedent). `NemotronModelFiles.RUNTIME_ASSET`
+  is the AAR (38,691,998 B, sha `b22c3fc1…`); `NemotronModelStorage.ensureRuntime`
+  unzips `jni/arm64-v8a/libsherpa-onnx-jni.so`, checks its exact 24,169,352 B,
+  deletes the AAR. The provider `System.load`s the extracted path.
+  The reduced Kotlin API is vendored in
+  `app/src/main/java/com/k2fsa/sherpa/onnx/` (`SherpaOnnxNative.kt`,
+  `OnlineRecognizer.kt`, `OnlineStream.kt`, `FeatureConfig.kt`,
+  `QnnConfig.kt`, `HomophoneReplacerConfig.kt`), companions' `loadLibrary`
+  removed. Upstream is v1.13.8 `sherpa-onnx/kotlin-api`; field/method names
+  are JNI ABI (native resolves by name), so re-diff on every version bump.
+
+  **Integration — DONE in code, needs CI build + device acceptance.**
+  User decisions: third local engine (`LOCAL_NEMOTRON`), keep GigaAM and
+  Parakeet (forward compat for a stored `LOCAL_PARAKEET`), runtime on demand.
+  Everything below is written and statically checked, never compiled (no
+  Android SDK on the host): `NemotronModelFiles` (four weights + runtime,
+  pinned revision, sizes/sha), `NemotronModelStorage` (leaf `stt_nemotron`,
+  `runtimeLib`, `isDownloaded` requires weights + `.so`, `ensureRuntime`,
+  `migrateTo` with `unpackedBytes`), `NemotronModelDownload` (one
+  `ensureAssets` over weights + AAR, then extract), `NemotronRecognizer`
+  (`open(modelDir, runtimeLib, threads=4)`, per-stream
+  `setOption("language", …)`, `transcribe(pcm, language)`),
+  `NemotronSpeechProvider` (Parakeet shape: VAD chunker, 16 kHz resample,
+  decode channel, 4 threads), `NemotronModelSection` (download + storage
+  picker), `LOCAL_NEMOTRON` in the factory/prefs/settings dropdown/dictation
+  cycler + consent dialog, `SttFileEngine.NEMOTRON` in
+  `LocalSpeechTranscriber` (whole mode capped at 20 s like Parakeet,
+  language = `auto`), `ToolRegistration.kt` engine arg, tool-test entries
+  (`ToolTesterScreen`: Nemotron chunk/whole/en), prompt engine lists
+  (`SystemToolPromptsInternal.kt`, `StandardSoftwareSettingsModifyTools.kt`
+  already accepts any `SpeechServiceType` via `values()`), proguard keep
+  `com.k2fsa.sherpa.onnx.**`, and `LocalModelMemorySection` under the
+  Nemotron block too.
+
+  **Unload-from-memory + keep-alive — DONE, needs CI + device check.**
+  User request: a Settings option to drop the loaded checkpoint when it
+  lags and speech recognition is temporarily abandoned. `SpeechServiceFactory`
+  now keeps a released local engine resident (`releaseLocalSpeechService`
+  no longer shuts it down at refCount 0), so the next session skips the
+  19 s load; only one local engine may stay resident, so acquiring another
+  type drops the stale one, and `unloadLocalService()` (new, with
+  `isLocalServiceLoaded()` and a `LocalUnloadResult` enum) frees it. UI:
+  new `sections/LocalModelMemorySection.kt` with a confirm dialog, wired
+  into the GigaAM, Parakeet and Nemotron blocks of
+  `SpeechServicesSettingsScreen.kt`. New strings `stt_memory_*`.
+  Behavior change to accept on device: after using a local engine the
+  model now stays in RAM until the button, an engine switch, or process
+  death.
+
+  **Still to verify (device/CI only):** CI compile (this is the first
+  build of the vendored API + provider); Nemotron download/extract on the
+  phone (`stt_nemotron`), dictation run, `transcribe_file engine=nemotron`,
+  the unload button, and the keep-alive change on GigaAM/Parakeet. Also
+  confirm `--language=ru`/`en` path in-app and whether `auto` is accepted by
+  the stream option (the CLI spike only proved `ru`).
+
 
 ## Open questions 1–2 — closed, history in ARCHIVE.md
   (live: `docs/FORK-REGISTRY/research-size.md`).

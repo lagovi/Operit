@@ -198,3 +198,9 @@
 # (proven 13.10: JNI DETECTED ERROR NoSuchMethodError -> WIN DEATH).
 -keep class com.paddle.ocr.** { *; }
 -keep class ai.onnxruntime.** { *; }
+
+# sherpa-onnx (vendored Kotlin API, Apache-2.0) + its on-demand JNI runtime.
+# The library is not in the APK; the app extracts it next to the Nemotron
+# weights and System.load()s it. R8 must not rename or strip the classes the
+# native layer reflects into.
+-keep class com.k2fsa.sherpa.onnx.** { *; }

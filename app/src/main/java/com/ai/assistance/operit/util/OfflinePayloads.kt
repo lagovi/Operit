@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.util
 
 import com.ai.assistance.operit.data.speech.GigaAMModelFiles
+import com.ai.assistance.operit.data.speech.NemotronModelFiles
 import com.ai.assistance.operit.data.speech.ParakeetModelFiles
 import java.io.File
 
@@ -69,6 +70,22 @@ class OfflinePayload(
             leaf = "stt_parakeet",
             assets = ParakeetModelFiles.ASSETS,
             unpackedBytes = ParakeetModelFiles.TOTAL_BYTES
+        )
+
+        /**
+         * The 682 MB Nemotron 3.5 ASR Streaming 0.6B (int8, 1120 ms) sherpa
+         * checkpoint. Own leaf (`stt_nemotron`), so it never shares files with
+         * the other engines. The on-demand arm64 `libsherpa-onnx-jni.so`
+         * (24 MB, extracted from the official static-link AAR) lives in the
+         * same leaf; [NemotronModelFiles.WEIGHTS_BYTES] is what the downloader
+         * counts, the AAR itself is dropped after extraction.
+         */
+        val NEMOTRON = OfflinePayload(
+            id = "stt-nemotron",
+            title = "Nemotron speech model",
+            leaf = "stt_nemotron",
+            assets = NemotronModelFiles.ASSETS,
+            unpackedBytes = NemotronModelFiles.WEIGHTS_BYTES + NemotronModelFiles.RUNTIME_LIB_BYTES
         )
 
         /**
@@ -293,8 +310,8 @@ class OfflinePayload(
         )
 
         val all: List<OfflinePayload> = listOf(
-            GIGAAM, PARAKEET, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU, HELPER_A11Y,
-            SEED_TEMPLATES, SEED_EMOJI, PADDLE_OCR, TERMINAL_ROOTFS
+            GIGAAM, PARAKEET, NEMOTRON, SUBPACK_ANDROID, SUBPACK_WINDOWS, HELPER_SHIZUKU,
+            HELPER_A11Y, SEED_TEMPLATES, SEED_EMOJI, PADDLE_OCR, TERMINAL_ROOTFS
         )
     }
 }

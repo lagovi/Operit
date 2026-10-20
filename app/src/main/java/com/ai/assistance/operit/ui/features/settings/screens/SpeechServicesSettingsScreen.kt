@@ -83,7 +83,9 @@ import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.features.settings.sections.GigaAMModelSection
 import com.ai.assistance.operit.ui.features.settings.sections.ParakeetModelSection
+import com.ai.assistance.operit.ui.features.settings.sections.NemotronModelSection
 import com.ai.assistance.operit.ui.features.settings.sections.LocalSttTuningSection
+import com.ai.assistance.operit.ui.features.settings.sections.LocalModelMemorySection
 import com.ai.assistance.operit.api.voice.OpenAIRealtimeVoiceProvider
 import com.ai.assistance.operit.api.voice.OpenAIVoiceProvider
 import com.ai.assistance.operit.api.voice.SimpleVoiceProvider
@@ -1708,6 +1710,7 @@ fun SpeechServicesSettingsScreen(
                                 value = when(sttServiceTypeInput) {
                                                                         SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM -> stringResource(R.string.speech_services_stt_type_gigaam)
                                     SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET -> stringResource(R.string.speech_services_stt_type_parakeet)
+                                    SpeechServiceFactory.SpeechServiceType.LOCAL_NEMOTRON -> stringResource(R.string.speech_services_stt_type_nemotron)
                                     SpeechServiceFactory.SpeechServiceType.OPENAI_STT -> stringResource(R.string.speech_services_stt_type_openai)
                                     SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT -> stringResource(R.string.speech_services_stt_type_deepgram)
                                 },
@@ -1730,6 +1733,7 @@ fun SpeechServicesSettingsScreen(
                                                 text = when(type) {
                                                                                                         SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM -> stringResource(R.string.speech_services_stt_type_gigaam)
                                                     SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET -> stringResource(R.string.speech_services_stt_type_parakeet)
+                                                    SpeechServiceFactory.SpeechServiceType.LOCAL_NEMOTRON -> stringResource(R.string.speech_services_stt_type_nemotron)
                                                     SpeechServiceFactory.SpeechServiceType.OPENAI_STT -> stringResource(R.string.speech_services_stt_type_openai)
                                                     SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT -> stringResource(R.string.speech_services_stt_type_deepgram)
                                                 },
@@ -1751,6 +1755,8 @@ fun SpeechServicesSettingsScreen(
                                 GigaAMModelSection()
                                 Spacer(modifier = Modifier.height(16.dp))
                                 LocalSttTuningSection()
+                                Spacer(modifier = Modifier.height(16.dp))
+                                LocalModelMemorySection()
                             }
                         }
 
@@ -1759,6 +1765,18 @@ fun SpeechServicesSettingsScreen(
                                 ParakeetModelSection()
                                 Spacer(modifier = Modifier.height(16.dp))
                                 LocalSttTuningSection()
+                                Spacer(modifier = Modifier.height(16.dp))
+                                LocalModelMemorySection()
+                            }
+                        }
+
+                        AnimatedVisibility(visible = sttServiceTypeInput == SpeechServiceFactory.SpeechServiceType.LOCAL_NEMOTRON) {
+                            Column(modifier = Modifier.padding(top = 16.dp)) {
+                                NemotronModelSection()
+                                Spacer(modifier = Modifier.height(16.dp))
+                                LocalSttTuningSection()
+                                Spacer(modifier = Modifier.height(16.dp))
+                                LocalModelMemorySection()
                             }
                         }
 

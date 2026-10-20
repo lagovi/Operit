@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import com.ai.assistance.operit.core.tools.FileContentData
 import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.data.speech.NemotronModelStorage
 import com.ai.assistance.operit.data.speech.ParakeetModelStorage
 import com.ai.assistance.operit.data.speech.SttModelStorage
 import com.ai.assistance.operit.util.AppLogger
@@ -18,7 +19,7 @@ import com.ai.assistance.operit.util.AppLogger
  * without a microphone or a speaker. No silent conversions: unsupported
  * files and a missing model fail loudly.
  */
-enum class SttFileEngine { GIGAAM, PARAKEET }
+enum class SttFileEngine { GIGAAM, PARAKEET, NEMOTRON }
 
 enum class SttFileMode { CHUNK, WHOLE }
 
@@ -76,6 +77,26 @@ fun transcribeWavFile(
                     wholeLimitSeconds = 20,
                     recognizer::transcribe,
                 )
+            }
+        }
+        SttFileEngine.NEMOTRON -> {
+            val storage = NemotronModelStorage(context)
+            val modelDir = storage.isDownloaded()
+                ?: throw IllegalStateException("offline Nemotron model is not downloaded")
+            val runtimeLib = storage.runtimeLib(modelDir)
+                ?: throw IllegalStateException("sherpa-onnx runtime for Nemotron is missing")
+            NemotronRecognizer.open(modelDir, runtimeLib).use { recognizer ->
+                runEngine(
+                    context,
+                    pcm16k,
+                    mode,
+                    // Same ceiling as Parakeet: one production decode never
+                    // exceeds 20 s, and a longer single encode is killed by the
+                    // phone's memory manager.
+                    wholeLimitSeconds = 20,
+                ) { chunk ->
+                    recognizer.transcribe(chunk, NemotronRecognizer.AUTO_LANGUAGE)
+                }
             }
         }
     }

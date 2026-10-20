@@ -34,6 +34,9 @@ import com.ai.assistance.operit.data.speech.GigaAMModelFiles
 import com.ai.assistance.operit.data.speech.ParakeetModelDownload
 import com.ai.assistance.operit.data.speech.ParakeetModelFiles
 import com.ai.assistance.operit.data.speech.ParakeetModelStorage
+import com.ai.assistance.operit.data.speech.NemotronModelDownload
+import com.ai.assistance.operit.data.speech.NemotronModelFiles
+import com.ai.assistance.operit.data.speech.NemotronModelStorage
 import com.ai.assistance.operit.data.speech.SttModelStorage
 import com.ai.assistance.operit.ui.features.settings.sections.formatMegabytes
 import kotlinx.coroutines.launch
@@ -144,6 +147,8 @@ fun SpeechToTextScreen(navController: NavController) {
                 SttModelStorage(context).isDownloaded() == null
             SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET ->
                 ParakeetModelStorage(context).isDownloaded() == null
+            SpeechServiceFactory.SpeechServiceType.LOCAL_NEMOTRON ->
+                NemotronModelStorage(context).isDownloaded() == null
             else -> false
         }
     
@@ -226,7 +231,8 @@ fun SpeechToTextScreen(navController: NavController) {
             try {
                 // 对于本地引擎，启用连续模式和部分结果
                 val isLocal = recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM ||
-                    recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET
+                    recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET ||
+                    recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_NEMOTRON
                 val continuousMode = isLocal
                 val partialResults = isLocal
                 speechService.startRecognition(selectedLanguage, continuousMode, partialResults)
@@ -253,6 +259,8 @@ fun SpeechToTextScreen(navController: NavController) {
             SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM ->
                 SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET
             SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET ->
+                SpeechServiceFactory.SpeechServiceType.LOCAL_NEMOTRON
+            SpeechServiceFactory.SpeechServiceType.LOCAL_NEMOTRON ->
                 SpeechServiceFactory.SpeechServiceType.OPENAI_STT
             SpeechServiceFactory.SpeechServiceType.OPENAI_STT ->
                 SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT
@@ -266,6 +274,7 @@ fun SpeechToTextScreen(navController: NavController) {
         return when (mode) {
             SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM -> context.getString(R.string.speech_services_stt_type_gigaam)
             SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET -> context.getString(R.string.speech_services_stt_type_parakeet)
+            SpeechServiceFactory.SpeechServiceType.LOCAL_NEMOTRON -> context.getString(R.string.speech_services_stt_type_nemotron)
             SpeechServiceFactory.SpeechServiceType.OPENAI_STT -> context.getString(R.string.speech_services_stt_type_openai)
             SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT -> context.getString(R.string.speech_services_stt_type_deepgram)
         }
@@ -630,8 +639,8 @@ fun SpeechToTextScreen(navController: NavController) {
     }
 
     if (showModelConsent) {
-        if (recognitionMode == SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET) {
-            ParakeetConsentDialog(
+        when (recognitionMode) {
+            SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET -> ParakeetConsentDialog(
                 onDismiss = { showModelConsent = false },
                 onReady = {
                     showModelConsent = false
@@ -639,8 +648,15 @@ fun SpeechToTextScreen(navController: NavController) {
                     startRecognition()
                 },
             )
-        } else {
-            GigaAMConsentDialog(
+            SpeechServiceFactory.SpeechServiceType.LOCAL_NEMOTRON -> NemotronConsentDialog(
+                onDismiss = { showModelConsent = false },
+                onReady = {
+                    showModelConsent = false
+                    modelMissing = false
+                    startRecognition()
+                },
+            )
+            else -> GigaAMConsentDialog(
                 onDismiss = { showModelConsent = false },
                 onReady = {
                     showModelConsent = false
@@ -808,6 +824,106 @@ private fun ParakeetConsentDialog(
                         Text(
                             text = stringResource(
                                 R.string.parakeet_download_failed_summary,
+                                failed.message,
+                            ),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            when {
+                downloading != null -> {
+                    TextButton(onClick = { downloads.cancel() }) {
+                        Text(stringResource(R.string.floating_cancel))
+                    }
+                }
+                failed != null -> {
+                    TextButton(onClick = { downloads.download() }) {
+                        Text(stringResource(R.string.action_retry))
+                    }
+                }
+                else -> {
+                    TextButton(onClick = { downloads.download() }) {
+                        Text(stringResource(R.string.update_download))
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            if (downloading == null) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(R.string.gigaam_not_now))
+                }
+            }
+        },
+    )
+}
+
+/**
+ * Consent before the one-time Nemotron download. Same contract as
+ * [GigaAMConsentDialog]; one extra number to disclose: the download also
+ * carries the sherpa-onnx runtime once, because the JNI library is not in the
+ * APK and only its arm64 part is kept after the AAR is unpacked.
+ */
+@Composable
+private fun NemotronConsentDialog(
+    onDismiss: () -> Unit,
+    onReady: () -> Unit,
+) {
+    val context = LocalContext.current
+    val downloads = remember { NemotronModelDownload.getInstance(context) }
+    val storage = remember { NemotronModelStorage(context) }
+    val state by downloads.state.collectAsState()
+
+    LaunchedEffect(Unit) { downloads.refresh() }
+    val ready = state is NemotronModelDownload.State.Ready
+    LaunchedEffect(ready) {
+        if (ready) onReady()
+    }
+    if (ready) return
+
+    val sizeLabel = remember { formatMegabytes(NemotronModelFiles.TOTAL_BYTES) }
+    val runtimeLabel = remember { formatMegabytes(NemotronModelFiles.RUNTIME_ASSET.sizeBytes) }
+    val locationLabel = remember { storage.describe(storage.currentLocation()) }
+    val downloading = state as? NemotronModelDownload.State.Downloading
+    val failed = state as? NemotronModelDownload.State.Failed
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.nemotron_consent_title)) },
+        text = {
+            Column {
+                if (downloading != null) {
+                    val fraction =
+                        if (downloading.totalBytes > 0) {
+                            downloading.downloadedBytes.toFloat() / downloading.totalBytes
+                        } else {
+                            0f
+                        }
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        stringResource(
+                            R.string.stt_model_downloading,
+                            (fraction * 100).toInt(),
+                        ),
+                    )
+                } else {
+                    Text(
+                        stringResource(
+                            R.string.nemotron_consent_text,
+                            sizeLabel,
+                            runtimeLabel,
+                            locationLabel,
+                        ),
+                    )
+                    if (failed != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(
+                                R.string.nemotron_download_failed_summary,
                                 failed.message,
                             ),
                             color = MaterialTheme.colorScheme.error,

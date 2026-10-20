@@ -103,7 +103,12 @@ fun NemotronModelSection(modifier: Modifier = Modifier) {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        StorageLocationPicker(storage = storage, downloads = downloads, onMoved = { locationEpoch++ })
+        StorageLocationPicker(
+            storage = storage,
+            downloads = downloads,
+            sizeLabel = sizeLabel,
+            onMoved = { locationEpoch++ },
+        )
         Spacer(modifier = Modifier.height(8.dp))
         when (val s = state) {
             is NemotronModelDownload.State.Downloading -> {
@@ -159,6 +164,7 @@ fun NemotronModelSection(modifier: Modifier = Modifier) {
 private fun StorageLocationPicker(
     storage: NemotronModelStorage,
     downloads: NemotronModelDownload,
+    sizeLabel: String,
     onMoved: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -181,7 +187,7 @@ private fun StorageLocationPicker(
             fontWeight = FontWeight.Medium,
         )
         Text(
-            text = stringResource(R.string.stt_storage_summary),
+            text = stringResource(R.string.stt_storage_summary, sizeLabel),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

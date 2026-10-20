@@ -98,7 +98,7 @@ fun ParakeetModelSection(modifier: Modifier = Modifier) {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        StorageLocationPicker(storage = storage, onMoved = { locationEpoch++ })
+        StorageLocationPicker(storage = storage, sizeLabel = sizeLabel, onMoved = { locationEpoch++ })
         Spacer(modifier = Modifier.height(8.dp))
         when (val s = state) {
             is ParakeetModelDownload.State.Downloading -> {
@@ -151,7 +151,11 @@ fun ParakeetModelSection(modifier: Modifier = Modifier) {
  * move and only the setting flips.
  */
 @Composable
-private fun StorageLocationPicker(storage: ParakeetModelStorage, onMoved: () -> Unit) {
+private fun StorageLocationPicker(
+    storage: ParakeetModelStorage,
+    sizeLabel: String,
+    onMoved: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
@@ -172,7 +176,7 @@ private fun StorageLocationPicker(storage: ParakeetModelStorage, onMoved: () -> 
             fontWeight = FontWeight.Medium,
         )
         Text(
-            text = stringResource(R.string.stt_storage_summary),
+            text = stringResource(R.string.stt_storage_summary, sizeLabel),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

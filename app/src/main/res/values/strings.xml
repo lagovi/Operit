@@ -2907,7 +2907,7 @@
     <string name="speech_services_info_tts_title">Text-to-Speech (TTS)</string>
     <string name="speech_services_info_tts_desc">TTS service converts text to speech. You can use the built-in system TTS engine or connect to remote HTTP / WebSocket speech APIs.</string>
     <string name="speech_services_info_stt_title">Speech-to-Text (STT)</string>
-    <string name="speech_services_info_stt_desc">STT service converts speech to text. Supports the built-in GigaAM engine, which runs on the local device without network connection after a one-time model download. Silero VAD (Voice Activity Detection) splits speech into phrases for improved recognition accuracy and resource efficiency.</string>
+    <string name="speech_services_info_stt_desc">STT service converts speech to text. Supports the built-in on-device engines (GigaAM, Parakeet, Nemotron), which run without a network connection after a one-time model download. Silero VAD (Voice Activity Detection) splits speech into phrases for improved recognition accuracy and resource efficiency.</string>
     
     <!-- Permission Names -->
     <string name="perm_name_camera">Camera</string>
@@ -7221,7 +7221,7 @@
     <string name="stt_model_dir_unavailable">Could not create the model directory</string>
     <string name="stt_model_downloading">Downloading speech model… %1$d%%</string>
     <string name="stt_storage_title">Speech model storage</string>
-    <string name="stt_storage_summary">Where the 225 MB offline speech model is kept. Putting it on a memory card keeps it out of the phone\'s internal storage, at the cost of slower loading.</string>
+    <string name="stt_storage_summary">Where the %1$s offline speech model is kept. Putting it on a memory card keeps it out of the phone\'s internal storage, at the cost of slower loading.</string>
     <string name="stt_storage_internal">Internal storage</string>
     <string name="stt_storage_external_app">App folder on external storage</string>
     <string name="stt_storage_sdcard">Memory card (app folder)</string>

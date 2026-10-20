@@ -97,7 +97,7 @@ fun GigaAMModelSection(modifier: Modifier = Modifier) {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        StorageLocationPicker(storage = storage, onMoved = { locationEpoch++ })
+        StorageLocationPicker(storage = storage, sizeLabel = sizeLabel, onMoved = { locationEpoch++ })
         CustomSttModelSection(locationEpoch = locationEpoch)
         Spacer(modifier = Modifier.height(8.dp))
         when (val s = state) {
@@ -154,7 +154,11 @@ internal fun formatMegabytes(bytes: Long): String = "${(bytes + 500_000L) / 1_00
  * move and only the setting flips.
  */
 @Composable
-private fun StorageLocationPicker(storage: SttModelStorage, onMoved: () -> Unit) {
+private fun StorageLocationPicker(
+    storage: SttModelStorage,
+    sizeLabel: String,
+    onMoved: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var expanded by remember { mutableStateOf(false) }
@@ -175,7 +179,7 @@ private fun StorageLocationPicker(storage: SttModelStorage, onMoved: () -> Unit)
             fontWeight = FontWeight.Medium,
         )
         Text(
-            text = stringResource(R.string.stt_storage_summary),
+            text = stringResource(R.string.stt_storage_summary, sizeLabel),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

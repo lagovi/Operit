@@ -230,6 +230,7 @@ fun AppContent(
     // 屏幕缓存 Map - 保存已访问过的屏幕，使其状态得以保留
     val screenCache = remember { mutableStateMapOf<String, @Composable () -> Unit>() }
     val screenKeepAliveCache = remember { mutableStateMapOf<String, Boolean>() }
+    val screenTopicCache = remember { mutableMapOf<String, String>() }
     val screenStateHolder = rememberSaveableStateHolder()
     // 路由级 ViewModelStore 管理器：自身是 Activity 级 ViewModel（跨配置变化
     // 保留 owner/VM）；路由出栈/替换/清栈时清理对应 store（P1：离页查询不保留）。
@@ -464,6 +465,8 @@ fun AppContent(
                         if (!screenCache.containsKey(currentScreenKey)) {
                             val screenSnapshot = currentScreen
                             screenKeepAliveCache[currentScreenKey] = screenSnapshot.keepAlive
+                            screenTopicCache[currentScreenKey] =
+                                helpTopicForScreen(screenSnapshot) ?: ""
                             screenCache[currentScreenKey] = {
                                 when (screenSnapshot) {
                                     is Screen.ToolPkgComposeDsl ->
@@ -755,7 +758,7 @@ fun AppContent(
                                             CompositionLocalProvider(
                                                 LocalIsCurrentScreen provides isCurrentScreen,
                                                 LocalHelpScreenId provides
-                                                    (helpTopicForScreen(screenSnapshot) ?: ""),
+                                                    (screenTopicCache[screenKey] ?: ""),
                                                 LocalRouteInstanceId provides screenKey,
                                                 LocalSetScreenSoftInputMode provides { mode ->
                                                     if (isCurrentScreen && currentScreenSoftInputMode != mode) {

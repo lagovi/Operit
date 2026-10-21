@@ -182,11 +182,10 @@ fun Modifier.helpTapInterceptor(state: HelpModeState): Modifier = composed {
                     val event = awaitPointerEvent(PointerEventPass.Initial)
                     val change = event.changes.firstOrNull { it.id == down.id } ?: break
                     maxDistance = maxOf(maxDistance, (change.position - down.position).getDistance())
-                    if (change.changedToUpIgnoreConsumed()) {
+                    if (!change.pressed) {
                         up = change
                         break
                     }
-                    if (!change.pressed) break
                 }
                 if (up != null && maxDistance <= viewConfiguration.touchSlop) {
                     up.consume()

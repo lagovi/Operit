@@ -1881,8 +1881,10 @@ private fun getProviderDisplayName(providerTypeId: String, context: android.cont
 }
 
 private fun getProviderSelectionOptions(context: android.content.Context): List<ProviderSelectionOption> {
+    // Custom OpenAI-compatible endpoints are the first choice: the user should
+    // not have to scroll past every vendor to reach the free-form fields.
     val builtInProviders =
-        ApiProviderType.values().map { provider ->
+        ApiProviderType.values().sortedBy { it != ApiProviderType.OTHER }.map { provider ->
             ProviderSelectionOption(
                 id = provider.name,
                 displayName = getBuiltInProviderDisplayName(provider, context)

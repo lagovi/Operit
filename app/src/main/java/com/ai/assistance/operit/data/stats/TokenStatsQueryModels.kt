@@ -3,7 +3,7 @@ package com.ai.assistance.operit.data.stats
 import com.ai.assistance.operit.data.collects.PricingCurrency
 
 data class TokenStatsQueryParams(
-    val targetCurrency: PricingCurrency = PricingCurrency.CNY,
+    val targetCurrency: PricingCurrency = PricingCurrency.USD,
     val manualRate: Double = TokenCostCurrency.DEFAULT_USD_TO_CNY_RATE,
     val providerModels: Set<String>? = null,
 )

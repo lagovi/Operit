@@ -51,7 +51,7 @@ data class TokenStatsUiState(
     val lifetime: TokenStatsLifetimeOverview? = null,
     val range: TokenStatsRangeData? = null,
     val currentRange: TokenStatsTimeRange? = null,
-    val targetCurrency: PricingCurrency = PricingCurrency.CNY,
+    val targetCurrency: PricingCurrency = PricingCurrency.USD,
     val tokenDisplayUnit: TokenStatsDisplayUnit = TokenStatsDisplayUnit.MILLIONS,
     val manualRate: Double = TokenCostCurrency.DEFAULT_USD_TO_CNY_RATE,
     val rateIsEstimated: Boolean = true,

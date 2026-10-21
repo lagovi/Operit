@@ -4274,7 +4274,7 @@
     <string name="provider_ollama">Ollama (Local Model)</string>
     <string name="provider_openai_local">OpenAI-Compatible (Local Model)</string>
     <string name="provider_openai_generic">OpenAI (Generic)</string>
-    <string name="provider_other">Other Providers</string>
+    <string name="provider_other">Custom Provider (OpenAI-compatible)</string>
     <string name="provider_nvidia">NVIDIA (API Catalog)</string>
     <string name="provider_llama_cpp">llama.cpp Local Inference</string>
     <string name="provider_mnn">MNN Local Inference</string>

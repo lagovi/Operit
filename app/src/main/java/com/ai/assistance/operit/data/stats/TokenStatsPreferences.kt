@@ -54,7 +54,7 @@ internal class TokenStatsPreferences(context: Context) {
 
     suspend fun loadTargetCurrency(): PricingCurrency {
         val stored = dataStore.data.first()[TARGET_CURRENCY]
-        return stored?.let { PricingCurrency.valueOf(it) } ?: PricingCurrency.CNY
+        return stored?.let { PricingCurrency.valueOf(it) } ?: PricingCurrency.USD
     }
 
     suspend fun saveTargetCurrency(currency: PricingCurrency) {

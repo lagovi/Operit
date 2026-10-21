@@ -6,9 +6,24 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-16 (HANDOFF self-revision: rakes, task clarity,
-negative detail), HEAD `f4009f75`,
+**Date:** 2026-10-21, HEAD `36013754`,
 branch `feat/english-only-build`
+
+**CURRENT 21.10 — phase 1 of the user UI/UX pass accepted.**
+Phone runs CI `39620348241` (APK dir `apk/20261021_145013Z/`,
+99,713,760 B, sha256 `a3ee21832e40d5ec176ad214e58907dff5975c44ba1f3c8b1b67d2216e1d4562`).
+Because the debug signing key changes every CI run, the app was uninstalled
+before install: all local app data (chats, settings, three downloaded STT
+models) is GONE. Do not treat missing models as a regression; the user has to
+download them again, or the next build must be installed over the same key.
+Verified on the phone: `?` help mode banner sits below the header, its
+buttons work, tapping History shows element help, Screen guide opens the
+topic, Back exits; STT switches GigaAM → Parakeet → Nemotron without a crash
+and the language field reads English; Tool Tester seeds `test_image.png`
+11,099 B, `test_audio.wav` 256,044 B, `test_audio_en.wav` 352,078 B into
+`/sdcard/Download/Operit/test` and List Files passes; File Manager rows grow
+for two-line names. The old Nemotron live-mic acceptance is still open and
+still waits for the user to play a book/audio.
 
 > **Language rule (user directive, 15.10): talk to the user in Russian.
 > All agent-internal docs are in English (token efficiency). Code comments,
@@ -82,6 +97,9 @@ from the factory. Only the OAuth loopback callback servers stay direct
   Q2 CLOSED whole.
   12 (a/b apktool+desktop — CLOSED 08.10, CIs `37722980127`/`37726800230`),
   13 (subpack DoD CLOSED 10.10 on `2026-10-10_00-41-11Z`).
+(g) user UI/UX pass 21.10 — phase 1 ACCEPTED 21.10 (help mode, STT switch,
+Tool Tester, File Manager; build `39620348241`). Phases 2–4 remain, exact
+scope in the section below.
 CLOSED: everything else (1–5 except behavioral 5a/5b — open, see §8;
 7a, 9, 10, 11, 3a/3b, 4, subpack Q1 mechanics, 16 install-size —
 don't touch, decision 10.10).
@@ -1023,6 +1041,83 @@ not downloaded — N47, not a bug).
   contents; never create empty releases (first appears with ready Q2
   download code); all fork releases `--prerelease` + ALPHA banner
   (100% vibe-coded, stability is upstream's).
+
+## UI/UX pass (user spec 21.10) — phase 1 closed, 2–4 open
+
+The user asked for a broad UI/UX pass. Delivery is phased; each phase is a
+separate CI build and on-device acceptance. Answers already fixed by the user:
+the build is internal, so the help scheme may replace the old `?` behavior;
+remove `User Agreement` from Toolbox but keep `Get API Key` with a clear
+instruction; `Voice Backup` means the existing `Voice Wake-up` tab; avatar
+presets download on demand; System Prompt Monitor gives view plus safe
+toggles; model-modality detection is an explicit button with confirmation.
+
+**Phase 1 — ACCEPTED 21.10, build `39620348241`.** Shipped in `HelpMode.kt`,
+`HelpModeCatalog.kt`, `AppContent.kt`, `ChatHeader.kt`,
+`ClassicChatInputSection.kt`, `SpeechServiceFactory.kt`,
+`SpeechToTextScreen.kt`, `ToolTesterScreen.kt`, `FileListItem.kt`, with
+fixtures under `app/src/main/assets/tool_tester/`. Contract doc:
+`docs/doc-src/architecture/in_place_help.md`. Remaining known limits are in
+that doc: `:terminal` cannot import app help classes, Workspace is an overlay,
+dialogs are separate windows.
+
+**Phase 2 — help coverage and About.**
+- Add anchors and `HelpModeCatalog` entries for the rest of AI Chat (model,
+  toggles, more, workspace, export, computer), Assistant Config, Memory Base,
+  Toolbox, Settings, Packages, Workflow, About, model config, speech services
+  and permissions.
+- Workspace: it is an overlay inside `AIChatScreen`, not a `Screen`. Add a
+  trigger on its own header (a `?` in the workspace panel) and a workspace
+  topic; do not try to reach it through `helpTopicForScreen`.
+- Terminal: only the banner and screen guide work. If element anchors are
+  required, move the help contract to a shared module or implement a local
+  terminal anchor registry; do not add an app dependency to `:terminal`.
+- About: `ui/features/about/screens/AboutScreen.kt` currently carries the old
+  content. Replace with fork identity, upstream link `AAswordman/Operit`,
+  version/build, documentation and issues links, and the APK channel. No
+  license wall.
+- Toolbox: remove the card `toolbox.agreement` from
+  `ui/main/screens/ScreenRouteRegistry.kt` (around line 230). Keep
+  `toolbox.token_config` (`Get API Key`) and make its description state that a
+  DeepSeek key is optional and other providers are configured in model config.
+  Keep `Screen.Agreement` if some other path still needs it.
+- Acceptance: every appbar screen with a topic shows `?`; a tap on each new
+  anchor opens the right text; Back exits; navigation turns help off.
+
+**Phase 3 — Settings and model configuration.**
+- Custom provider must be first-class in `ModelConfigScreen.kt`: name,
+  endpoint, key, model list, headers, proxy, and a test that reports the HTTP
+  status and body. Do not hide provider-specific fields behind unrelated
+  presets.
+- Advanced connection test must show request URL, status, latency, response
+  head and the parsed error, not only success/failure.
+- Modality detection: explicit button; after probing ask for confirmation
+  before writing capabilities.
+- Layouts: fix overlapping rows on the 360 dp phone in chat settings and
+  Settings; keep long labels on one line or wrap deliberately.
+- Supervision, backup, USD default, export templates, module center with STT,
+  OCR and MNN, and per-component cookie clearing. Keep the backup/restore
+  tabs separate from the existing Voice Wake-up tab.
+- Acceptance on the phone at 360 dp; no clipped controls at font scale 1.0.
+
+**Phase 4 — Packages, prompts, avatars, Workflow.**
+- Packages screen: background translation of package metadata and clear
+  installed/available/updatable status.
+- System Prompt Monitor in `ModelPromptsSettingsScreen.kt`: view the assembled
+  prompt and safe toggles for managed parts.
+- Avatars: presets downloaded on demand, not in the APK.
+- Workflow: guided explanation of triggers, variables and tool steps.
+
+**Phase 1 follow-ups seen during acceptance.**
+- File Manager rows are readable but noticeably taller on the 360 dp phone;
+  tune `baseHeight`/padding only if the user objects.
+- Tool Tester still labels the download row "Download Test Image" while it
+  writes `test_download.txt`; rename the label or the destination.
+- The help banner text wraps to two lines at 360 dp. It is readable; a compact
+  two-row banner is an optional polish.
+- App data is wiped on every CI install because the debug signing key changes.
+  STT models must be downloaded again after each acceptance unless a
+  persistent debug keystore is introduced.
 
 ## §8. Open work (order matters not; each has a DoD)
 

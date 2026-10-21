@@ -1723,6 +1723,10 @@
     <string name="developer">Developer</string>
     <string name="contact">Contact</string>
     <string name="project_url">Project URL</string>
+    <string name="about_fork_repository">Fork repository</string>
+    <string name="about_upstream_repository">Upstream repository</string>
+    <string name="about_documentation">Documentation</string>
+    <string name="about_report_issue">Report an issue</string>
     <string name="open_source_licenses">Open Source Licenses</string>
     <string name="license_format">License: %1$s</string>
     <string name="visit_project">Visit Project</string>
@@ -2208,7 +2212,7 @@
     <string name="tool_log_viewer_desc">Real-time capture and view system and application logs with filtering and search support</string>
     <string name="tool_sql_viewer">SQL Viewer</string>
     <string name="tool_sql_viewer_desc">Browse built-in tables and run SQL commands</string>
-    <string name="tool_token_config_desc">Open the API key acquisition and configuration page for quick model setup</string>
+    <string name="tool_token_config_desc">Get a DeepSeek API key (optional). To use another provider, open Model Configuration.</string>
     <string name="screen_title_sql_viewer">SQL Viewer</string>
     <string name="sql_viewer_title">SQL Viewer</string>
     <string name="sql_viewer_input_label">SQL Input</string>

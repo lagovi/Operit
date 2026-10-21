@@ -59,6 +59,9 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 private const val GITHUB_PROJECT_URL = "https://github.com/AAswordman/Operit"
+private const val FORK_PROJECT_URL = "https://github.com/lagovi/Operit"
+private const val FORK_DOCS_URL = "https://github.com/lagovi/Operit/tree/main/docs/doc-src"
+private const val FORK_ISSUES_URL = "https://github.com/lagovi/Operit/issues"
 
 private enum class PatchUpdatePhase {
     SELECTING_MIRROR,
@@ -1029,9 +1032,24 @@ fun AboutScreen(
             item {
                 SettingsGroup {
                     SettingsRow(
-                        icon = Icons.Default.Language,
+                        icon = Icons.Default.Code,
+                        iconTint = MaterialTheme.colorScheme.primary,
+                        title = stringResource(id = R.string.about_fork_repository),
+                        subtitleText = FORK_PROJECT_URL,
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(FORK_PROJECT_URL)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        }
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(start = 66.dp))
+
+                    SettingsRow(
+                        icon = Icons.Default.Source,
                         iconTint = MaterialTheme.colorScheme.secondary,
-                        title = stringResource(id = R.string.project_url),
+                        title = stringResource(id = R.string.about_upstream_repository),
                         subtitleText = GITHUB_PROJECT_URL,
                         onClick = {
                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_PROJECT_URL)).apply {
@@ -1044,11 +1062,25 @@ fun AboutScreen(
                     HorizontalDivider(modifier = Modifier.padding(start = 66.dp))
 
                     SettingsRow(
-                        icon = Icons.Default.Star,
+                        icon = Icons.Default.MenuBook,
                         iconTint = MaterialTheme.colorScheme.secondary,
-                        title = stringResource(id = R.string.star_on_github),
+                        title = stringResource(id = R.string.about_documentation),
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_PROJECT_URL)).apply {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(FORK_DOCS_URL)).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        }
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(start = 66.dp))
+
+                    SettingsRow(
+                        icon = Icons.Default.BugReport,
+                        iconTint = MaterialTheme.colorScheme.secondary,
+                        title = stringResource(id = R.string.about_report_issue),
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(FORK_ISSUES_URL)).apply {
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
                             context.startActivity(intent)

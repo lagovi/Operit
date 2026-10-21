@@ -27,6 +27,11 @@ turns short taps into element descriptions.
 3. The screen id must already exist in `helpTopicForScreen` and in
    `HelpTopics`. A screen without a topic gets no `?` action.
 
+Toolbox cards use their navigation entry id (`toolbox.*`) as the anchor id.
+All built-in cards have an entry. A plugin-provided card whose id is absent
+from the catalog deliberately falls through to the Toolbox screen guide; add
+an entry when a plugin card becomes standard.
+
 ## Current limits
 
 - The terminal lives in the `:terminal` module, which cannot depend on app UI.

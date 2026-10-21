@@ -6,15 +6,18 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-21, HEAD `e86da759`,
+**Date:** 2026-10-21, HEAD `fe45ec0d`,
 branch `feat/english-only-build`
 
 **CURRENT 21.10 — phase 2 of the user UI/UX pass accepted.**
-Phone runs CI `39643998395` (APK dir `apk/20261021_172745Z/`,
-99,701,388 B, sha256 `642b21c568301a5b041287d837ba105cd5c4540f70f88428ff74969b7419dacf`).
-The Toolbox now has no User Agreement card, Get API Key says it is optional,
-and About has fork/upstream/documentation/issue links. The About help topic
-opens from the banner. The previous accepted build was CI `39620348241`
+Phone runs CI `39663125034` (APK dir `apk/20261021_193631Z/`,
+99,704,420 B, sha256 `3ebd022ea1da0575d10eae9b50f3481358a1794264662a362c73ef4e8b2a7289`).
+Toolbox has no User Agreement card; Get API Key says it is optional; About
+has fork/upstream/documentation/issue links. In help mode every built-in
+Toolbox card opens its own description (verified on Tool Test Center) and the
+About screen guide opens. Plugin-provided Toolbox cards without a catalog
+entry still open the Toolbox screen guide. Previous accepted builds:
+`39643998395` (`apk/20261021_172745Z/`, 99,701,388 B) and `39620348241`
 (`apk/20261021_145013Z/`, 99,713,760 B).
 Because the debug signing key changes every CI run, the app was uninstalled
 before install: all local app data (chats, settings, three downloaded STT
@@ -1057,9 +1060,10 @@ presets download on demand; System Prompt Monitor gives view plus safe
 toggles; model-modality detection is an explicit button with confirmation.
 
 **Phase 1 — ACCEPTED 21.10, build `39620348241`.**
-**Phase 2 — partially accepted 21.10, build `39643998395`:** agreement card
-removed, Get API Key description fixed, About links added. Element anchors
-and the Workspace trigger are still open below. Shipped in `HelpMode.kt`,
+**Phase 2 — ACCEPTED 21.10, build `39663125034`:** agreement card removed,
+Get API Key description fixed, About links added, all built-in Toolbox cards
+have element help. The Workspace trigger and Settings-row anchors remain
+open below. Shipped in `HelpMode.kt`,
 `HelpModeCatalog.kt`, `AppContent.kt`, `ChatHeader.kt`,
 `ClassicChatInputSection.kt`, `SpeechServiceFactory.kt`,
 `SpeechToTextScreen.kt`, `ToolTesterScreen.kt`, `FileListItem.kt`, with

@@ -6,12 +6,16 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-21, HEAD `fe45ec0d`,
+**Date:** 2026-10-21, HEAD `bc61ae00`,
 branch `feat/english-only-build`
 
-**CURRENT 21.10 — phase 2 of the user UI/UX pass accepted.**
-Phone runs CI `39663125034` (APK dir `apk/20261021_193631Z/`,
-99,704,420 B, sha256 `3ebd022ea1da0575d10eae9b50f3481358a1794264662a362c73ef4e8b2a7289`).
+**CURRENT 21.10 — phase 2 accepted; phase 3 started.**
+Phone runs CI `39679978602` (APK dir `apk/20261021_213509Z/`,
+99,703,968 B, sha256 `989aa00ce72015af994b4533f8063637d31f47848520b3e24045ed98517a356e`).
+Verified: the provider picker lists `Custom Provider (OpenAI-compatible)`
+first, and a fresh Token Usage screen shows `$0.00` (USD default). The
+previous build, CI `39663125034` (`apk/20261021_193631Z/`), was accepted for
+the Toolbox/About phase 2 work.
 Toolbox has no User Agreement card; Get API Key says it is optional; About
 has fork/upstream/documentation/issue links. In help mode every built-in
 Toolbox card opens its own description (verified on Tool Test Center) and the
@@ -1096,6 +1100,9 @@ dialogs are separate windows.
   anchor opens the right text; Back exits; navigation turns help off.
 
 **Phase 3 — Settings and model configuration.**
+Status 21.10: custom provider is first in the picker (label `Custom Provider
+(OpenAI-compatible)`) and new installs default Token Usage to USD; both
+accepted on build `39679978602`. Remaining below.
 - Custom provider must be first-class in `ModelConfigScreen.kt`: name,
   endpoint, key, model list, headers, proxy, and a test that reports the HTTP
   status and body. Do not hide provider-specific fields behind unrelated

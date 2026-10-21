@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.ui.components.TerminalRootfsGate
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -95,7 +96,7 @@ fun ToolboxScreen(
                                 items = tools,
                                 key = { tool -> tool.id }
                         ) { tool ->
-                                ToolCard(tool = tool)
+                                ToolCard(tool = tool, modifier = Modifier.helpAnchor(tool.id))
                         }
                 }
         }
@@ -104,7 +105,7 @@ fun ToolboxScreen(
 /** 工具项卡片 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToolCard(tool: Tool) {
+fun ToolCard(tool: Tool, modifier: Modifier = Modifier) {
         var isPressed by remember { mutableStateOf(false) }
 
         // 创建协程作用域
@@ -131,7 +132,7 @@ fun ToolCard(tool: Tool) {
                 // A fixed height clipped the description through the middle of the
                 // glyphs once a title wrapped to two lines. The card now takes a
                 // range and the description absorbs the slack above the minimum.
-                modifier = Modifier.fillMaxWidth().heightIn(min = 156.dp, max = 200.dp).scale(scale),
+                modifier = modifier.fillMaxWidth().heightIn(min = 156.dp, max = 200.dp).scale(scale),
                 colors =
                         CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation =

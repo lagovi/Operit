@@ -36,6 +36,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.ai.assistance.operit.ui.features.help.content.HelpTopic
 import com.ai.assistance.operit.ui.features.help.content.helpEntry
 import com.ai.assistance.operit.ui.features.help.content.helpTopic
@@ -209,11 +210,11 @@ fun HelpModeOverlay(
     if (!state.enabled) return
     BackHandler { state.disable() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().zIndex(3f)) {
         Surface(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(start = 12.dp, end = 12.dp, top = 72.dp, bottom = 8.dp)
                 .widthIn(max = 560.dp),
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.inverseSurface,

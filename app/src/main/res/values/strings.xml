@@ -3046,7 +3046,7 @@
     <!-- Tool Test Groups -->
     <string name="env_setup_group">Environment Setup (Sequential)</string>
     <string name="basic_http_group">Basic &amp; HTTP (Parallel)</string>
-    <string name="file_readonly_group">File Read-only (Parallel)</string>
+    <string name="file_readonly_group">File Read-only (Sequential)</string>
     <string name="file_write_group">File Write (Sequential)</string>
     <string name="system_group">System (Parallel)</string>
     <string name="ui_automation_group">UI Automation (Parallel, May Fail)</string>

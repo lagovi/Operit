@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
@@ -158,13 +159,29 @@ fun SpeechToTextScreen(navController: NavController) {
     var speechService by remember {
         mutableStateOf(SpeechServiceFactory.createSpeechService(context, recognitionMode))
     }
+    // The first composition already created the service above; only later
+    // mode changes need the switch path.
+    var hasSwitchedEngine by remember { mutableStateOf(false) }
 
     LaunchedEffect(recognitionMode) {
-        try {
-            speechService.shutdown()
-        } catch (_: Exception) {
+        if (!hasSwitchedEngine) {
+            hasSwitchedEngine = true
+            return@LaunchedEffect
         }
-        speechService = SpeechServiceFactory.createSpeechService(context, recognitionMode)
+        try {
+            val replacement =
+                SpeechServiceFactory.switchLocalSpeechService(context, recognitionMode)
+            try {
+                speechService.shutdown()
+            } catch (_: Exception) {
+            }
+            speechService = replacement
+        } catch (e: Exception) {
+            error = context.getString(
+                R.string.engine_switch_failed,
+                e.message ?: ""
+            )
+        }
     }
 
     DisposableEffect(Unit) {
@@ -186,16 +203,19 @@ fun SpeechToTextScreen(navController: NavController) {
     LaunchedEffect(speechService) {
         error = null // 清理旧的错误信息
         modelMissing = isLocalModelMissing(recognitionMode)
-        val success = speechService.initialize()
-        if (success) {
-            val supported = speechService.getSupportedLanguages()
+        // Supported languages are static per engine and do not need the
+        // checkpoint. Fill the picker first: a missing or slow model must not
+        // leave the user with an empty, unchangeable field.
+        val supported = runCatching { speechService.getSupportedLanguages() }
+            .getOrDefault(emptyList())
+        if (supported.isNotEmpty()) {
             availableLanguages = supported
-            // The field must never show a language the engine does not offer,
-            // e.g. after switching engines. Snap to what is actually there.
-            if (supported.isNotEmpty() && selectedLanguage !in supported) {
+            if (selectedLanguage !in supported) {
                 selectedLanguage = supported.first()
             }
-        } else if (!modelMissing) {
+        }
+        val success = speechService.initialize()
+        if (!success && !modelMissing) {
             // A missing local model is not an error banner: the consent dialog
             // covers it when the user presses start.
             error = context.getString(R.string.engine_init_failed, recognitionMode.name)
@@ -450,7 +470,7 @@ fun SpeechToTextScreen(navController: NavController) {
                     onExpandedChange = { expanded = !expanded }
                 ) {
                     OutlinedTextField(
-                        value = selectedLanguage,
+                        value = languageLabel(selectedLanguage),
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = {
@@ -466,7 +486,7 @@ fun SpeechToTextScreen(navController: NavController) {
                     ) {
                         availableLanguages.forEach { language ->
                             DropdownMenuItem(
-                                text = { Text(language) },
+                                text = { Text(languageLabel(language)) },
                                 onClick = {
                                     selectedLanguage = language
                                     expanded = false
@@ -485,7 +505,7 @@ fun SpeechToTextScreen(navController: NavController) {
         ) {
             Button(
                 onClick = { startRecognition() },
-                modifier = Modifier.weight(1f).height(56.dp),
+                modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                 enabled = (isInitialized || modelMissing) && !isListening,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -499,12 +519,17 @@ fun SpeechToTextScreen(navController: NavController) {
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.start_recognition), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(R.string.start_recognition),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2
+                )
             }
 
             Button(
                 onClick = { stopRecognition() },
-                modifier = Modifier.weight(1f).height(56.dp),
+                modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                 enabled = isListening,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error,
@@ -518,7 +543,12 @@ fun SpeechToTextScreen(navController: NavController) {
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.stop_recognition), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(R.string.stop_recognition),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2
+                )
             }
         }
 
@@ -960,3 +990,11 @@ private fun NemotronConsentDialog(
         },
     )
 }
+private fun languageLabel(code: String): String =
+    when (code) {
+        "auto" -> "Auto detect"
+        "ru" -> "Russian"
+        "en" -> "English"
+        "zh" -> "Chinese"
+        else -> code
+    }

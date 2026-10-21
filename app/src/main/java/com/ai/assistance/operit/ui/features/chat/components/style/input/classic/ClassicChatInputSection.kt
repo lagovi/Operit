@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import androidx.compose.ui.draw.clip
@@ -504,6 +505,7 @@ fun ClassicChatInputSection(
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 30.dp)
+                        .helpAnchor("composer")
                         .onPreviewKeyEvent { keyEvent ->
                             if (!enableEnterToSend) {
                                 false
@@ -614,7 +616,8 @@ fun ClassicChatInputSection(
                                     !showAttachmentPanel
                                 )
                             }
-                        ),
+                        )
+                        .helpAnchor("attach"),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -692,7 +695,8 @@ fun ClassicChatInputSection(
                                     }
                                 }
                             }
-                        ),
+                        )
+                        .helpAnchor("send"),
                     contentAlignment = Alignment.Center
                 ) {
                     val iconTint =

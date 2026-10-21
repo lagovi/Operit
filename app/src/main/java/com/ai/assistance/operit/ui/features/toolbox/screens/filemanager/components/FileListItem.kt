@@ -65,7 +65,7 @@ fun FileListItem(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(baseHeight * itemSize)
+            .heightIn(min = baseHeight * itemSize)
             .combinedClickable(
                 onClick = onItemClick,
                 onLongClick = onItemLongClick
@@ -79,7 +79,8 @@ fun FileListItem(
             DisplayMode.SINGLE_COLUMN -> {
                 Row(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
+                        .heightIn(min = baseHeight * itemSize)
                         .padding(basePadding * itemSize),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -116,7 +117,7 @@ fun FileListItem(
                             ),
                             color = if (isSelected) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
 
@@ -149,8 +150,7 @@ fun FileListItem(
                                 color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                                        else MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -159,7 +159,8 @@ fun FileListItem(
             DisplayMode.TWO_COLUMNS, DisplayMode.THREE_COLUMNS -> {
                 Row(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxWidth()
+                        .heightIn(min = baseHeight * itemSize)
                         .padding(basePadding * itemSize),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -196,7 +197,7 @@ fun FileListItem(
                             ),
                             color = if (isSelected) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
 
@@ -229,8 +230,7 @@ fun FileListItem(
                                 color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                                        else MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }

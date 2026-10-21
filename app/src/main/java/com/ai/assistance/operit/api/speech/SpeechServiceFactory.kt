@@ -167,6 +167,57 @@ object SpeechServiceFactory {
         )
     }
 
+    /**
+     * Switches the resident local engine without leaving a stale lease behind.
+     *
+     * The demo screen, the cached singleton and the floating voice helper all
+     * hold leases over the same provider. A plain [createSpeechService] refuses
+     * to start a second checkpoint while any lease is alive, which used to
+     * crash the UI when the user changed the engine. Switching always stops
+     * the cached lease first; a local checkpoint that is not recognizing is
+     * then closed so the new engine can take its place. A session that is
+     * genuinely running is left alone and reported to the caller.
+     */
+    fun switchLocalSpeechService(
+        context: Context,
+        type: SpeechServiceType,
+    ): SpeechService {
+        if (type != SpeechServiceType.LOCAL_GIGAAM &&
+            type != SpeechServiceType.LOCAL_PARAKEET &&
+            type != SpeechServiceType.LOCAL_NEMOTRON
+        ) {
+            return createSpeechService(context, type)
+        }
+
+        // Drop the factory-owned lease first. It is the one that survived the
+        // old screen's shutdown and made refCount > 0.
+        resetInstance()
+
+        val stale =
+            synchronized(localLock) {
+                val current = localEntry
+                if (current != null && current.type != type) {
+                    if (current.service.isRecognizing) {
+                        throw IllegalStateException(
+                            "Stop the current recognition before switching the on-device engine."
+                        )
+                    }
+                    localEntry = null
+                    current.service
+                } else {
+                    null
+                }
+            }
+
+        try {
+            stale?.shutdown()
+        } catch (e: Exception) {
+            AppLogger.w(TAG, "Failed to close the previous local SpeechService", e)
+        }
+
+        return createSpeechService(context, type)
+    }
+
     private fun releaseLocalSpeechService(type: SpeechServiceType) {
         synchronized(localLock) {
             val entry = localEntry

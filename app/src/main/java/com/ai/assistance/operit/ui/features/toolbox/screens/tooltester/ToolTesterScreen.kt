@@ -57,6 +57,10 @@ fun ToolTesterScreen(navController: NavController) {
 
     val toolGroups = remember { getFinalToolTestGroups(context) }
 
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) { seedToolTesterFiles(context) }
+    }
+
     suspend fun runTest(toolTest: ToolTest) {
         // UI preparation phase on Main thread
         if (toolTest.id == "set_input_text") {
@@ -71,11 +75,12 @@ fun ToolTesterScreen(navController: NavController) {
 
         // Mark test as running on Main thread
         testResults = testResults.toMutableMap().apply {
-            put(toolTest.id, ToolTestResult(TestStatus.RUNNING, null))
+            put(toolTest.key, ToolTestResult(TestStatus.RUNNING, null))
         }
 
         // Execution phase on IO thread
         val result = withContext(Dispatchers.IO) {
+            seedToolTesterFiles(context)
             try {
                 aiToolHandler.executeTool(AITool(toolTest.id, toolTest.parameters))
             } catch (e: Exception) {
@@ -85,7 +90,7 @@ fun ToolTesterScreen(navController: NavController) {
 
         // Update UI with result on Main thread
         testResults = testResults.toMutableMap().apply {
-            put(toolTest.id, ToolTestResult(if (result.success) TestStatus.SUCCESS else TestStatus.FAILED, result))
+            put(toolTest.key, ToolTestResult(if (result.success) TestStatus.SUCCESS else TestStatus.FAILED, result))
         }
     }
 
@@ -156,7 +161,7 @@ fun ToolTesterScreen(navController: NavController) {
                     items(group.tests) { toolTest ->
                         ToolTestGridItem(
                             toolTest = toolTest,
-                            testResult = testResults[toolTest.id]
+                            testResult = testResults[toolTest.key]
                         ) {
                             selectedTestForDetails = it
                             showDialog = true
@@ -183,7 +188,7 @@ fun ToolTesterScreen(navController: NavController) {
             ) {
                 ToolDetailsSheet(
                     toolTest = selectedTestForDetails!!,
-                    testResult = testResults[selectedTestForDetails!!.id],
+                    testResult = testResults[selectedTestForDetails!!.key],
                     scope = scope,
                     context = context,
                     onTest = { test -> scope.launch { runTest(test); } },
@@ -304,8 +309,8 @@ private fun getFinalToolTestGroups(context: android.content.Context): List<ToolG
     return listOf(
         ToolGroup(context.getString(R.string.env_setup_group), true, false, listOf(
             ToolTest("make_directory", context.getString(R.string.create_test_dir), context.getString(R.string.create_test_dir_desc), listOf(ToolParameter("path", testBaseDir), ToolParameter("create_parents", "true"))),
-            ToolTest("download_file", context.getString(R.string.download_test_image), context.getString(R.string.download_test_image_desc), listOf(ToolParameter("url", "https://picsum.photos/100"), ToolParameter("destination", testImage))),
-            ToolTest("write_file", context.getString(R.string.create_text_file), context.getString(R.string.create_text_file_desc), listOf(ToolParameter("path", testFile), ToolParameter("content", "This is a test file for Operit tool testing.")))
+            ToolTest("download_file", context.getString(R.string.download_test_image), context.getString(R.string.download_test_image_desc), listOf(ToolParameter("url", "https://example.com"), ToolParameter("destination", "$testBaseDir/test_download.txt"))),
+            ToolTest("write_file", context.getString(R.string.create_text_file), context.getString(R.string.create_text_file_desc), listOf(ToolParameter("path", testFile), ToolParameter("content", "This is a test file for Operit tool testing.")), key = "write_test_file")
         )),
         ToolGroup(context.getString(R.string.basic_http_group), false, false, listOf(
             ToolTest("sleep", context.getString(R.string.delay_test), context.getString(R.string.delay_test_desc), listOf(ToolParameter("duration_ms", "1000"))),
@@ -329,18 +334,18 @@ private fun getFinalToolTestGroups(context: android.content.Context): List<ToolG
             ToolTest("use_package", context.getString(R.string.use_package_test), context.getString(R.string.use_package_test_desc), listOf(ToolParameter("package_name", "non_existent_package"))),
             ToolTest("query_memory", context.getString(R.string.query_memory_test), context.getString(R.string.query_memory_test_desc), listOf(ToolParameter("query", "test")))
         )),
-        ToolGroup(context.getString(R.string.file_readonly_group), false, false, listOf(
+        ToolGroup(context.getString(R.string.file_readonly_group), true, false, listOf(
             ToolTest("list_files", context.getString(R.string.list_files_test), context.getString(R.string.list_files_test_desc), listOf(ToolParameter("path", testBaseDir))),
             ToolTest("file_exists", context.getString(R.string.file_exists_test), context.getString(R.string.file_exists_test_desc), listOf(ToolParameter("path", testFile))),
             ToolTest("read_file", context.getString(R.string.ocr_read_test), context.getString(R.string.ocr_read_test_desc), listOf(ToolParameter("path", testImage))),
-            ToolTest("transcribe_file", context.getString(R.string.transcribe_file_test), context.getString(R.string.transcribe_file_test_desc), listOf(ToolParameter("path", testAudio))),
-            ToolTest("transcribe_file", context.getString(R.string.stt_transcribe_whole_test), context.getString(R.string.stt_transcribe_whole_test_desc), listOf(ToolParameter("path", testAudio), ToolParameter("mode", "whole"))),
-            ToolTest("transcribe_file", context.getString(R.string.para_transcribe_test), context.getString(R.string.para_transcribe_test_desc), listOf(ToolParameter("path", testAudio), ToolParameter("engine", "parakeet"))),
-            ToolTest("transcribe_file", context.getString(R.string.para_transcribe_whole_test), context.getString(R.string.para_transcribe_whole_test_desc), listOf(ToolParameter("path", testAudio), ToolParameter("engine", "parakeet"), ToolParameter("mode", "whole"))),
-            ToolTest("transcribe_file", context.getString(R.string.para_transcribe_en_test), context.getString(R.string.para_transcribe_en_test_desc), listOf(ToolParameter("path", testAudioEn), ToolParameter("engine", "parakeet"))),
-            ToolTest("transcribe_file", context.getString(R.string.nemo_transcribe_test), context.getString(R.string.nemo_transcribe_test_desc), listOf(ToolParameter("path", testAudio), ToolParameter("engine", "nemotron"))),
-            ToolTest("transcribe_file", context.getString(R.string.nemo_transcribe_whole_test), context.getString(R.string.nemo_transcribe_whole_test_desc), listOf(ToolParameter("path", testAudio), ToolParameter("engine", "nemotron"), ToolParameter("mode", "whole"))),
-            ToolTest("transcribe_file", context.getString(R.string.nemo_transcribe_en_test), context.getString(R.string.nemo_transcribe_en_test_desc), listOf(ToolParameter("path", testAudioEn), ToolParameter("engine", "nemotron"))),
+            ToolTest("transcribe_file", context.getString(R.string.transcribe_file_test), context.getString(R.string.transcribe_file_test_desc), listOf(ToolParameter("path", testAudio)), key = "stt_gigaam"),
+            ToolTest("transcribe_file", context.getString(R.string.stt_transcribe_whole_test), context.getString(R.string.stt_transcribe_whole_test_desc), listOf(ToolParameter("path", testAudio), ToolParameter("mode", "whole")), key = "stt_gigaam_whole"),
+            ToolTest("transcribe_file", context.getString(R.string.para_transcribe_test), context.getString(R.string.para_transcribe_test_desc), listOf(ToolParameter("path", testAudio), ToolParameter("engine", "parakeet")), key = "stt_parakeet"),
+            ToolTest("transcribe_file", context.getString(R.string.para_transcribe_whole_test), context.getString(R.string.para_transcribe_whole_test_desc), listOf(ToolParameter("path", testAudio), ToolParameter("engine", "parakeet"), ToolParameter("mode", "whole")), key = "stt_parakeet_whole"),
+            ToolTest("transcribe_file", context.getString(R.string.para_transcribe_en_test), context.getString(R.string.para_transcribe_en_test_desc), listOf(ToolParameter("path", testAudioEn), ToolParameter("engine", "parakeet")), key = "stt_parakeet_en"),
+            ToolTest("transcribe_file", context.getString(R.string.nemo_transcribe_test), context.getString(R.string.nemo_transcribe_test_desc), listOf(ToolParameter("path", testAudio), ToolParameter("engine", "nemotron")), key = "stt_nemotron"),
+            ToolTest("transcribe_file", context.getString(R.string.nemo_transcribe_whole_test), context.getString(R.string.nemo_transcribe_whole_test_desc), listOf(ToolParameter("path", testAudio), ToolParameter("engine", "nemotron"), ToolParameter("mode", "whole")), key = "stt_nemotron_whole"),
+            ToolTest("transcribe_file", context.getString(R.string.nemo_transcribe_en_test), context.getString(R.string.nemo_transcribe_en_test_desc), listOf(ToolParameter("path", testAudioEn), ToolParameter("engine", "nemotron")), key = "stt_nemotron_en"),
             ToolTest("read_file_part", context.getString(R.string.chunk_read_test), context.getString(R.string.chunk_read_test_desc), listOf(ToolParameter("path", testFile), ToolParameter("partIndex", "0"))),
             ToolTest("file_info", context.getString(R.string.file_info_test), context.getString(R.string.file_info_test_desc), listOf(ToolParameter("path", testFile))),
             ToolTest("find_files", context.getString(R.string.find_files_test), context.getString(R.string.find_files_test_desc), listOf(ToolParameter("path", testBaseDir), ToolParameter("pattern", "*.txt")))
@@ -381,7 +386,41 @@ private fun getFinalToolTestGroups(context: android.content.Context): List<ToolG
 }
 
 
-data class ToolTest(val id: String, val name: String, val description: String, val parameters: List<ToolParameter>)
+data class ToolTest(
+    val id: String,
+    val name: String,
+    val description: String,
+    val parameters: List<ToolParameter>,
+    val key: String = id,
+)
 data class ToolTestResult(val status: TestStatus, val result: ToolResult?)
 enum class TestStatus { SUCCESS, FAILED, RUNNING }
 data class ToolGroup(val name: String, val sequential: Boolean, val isManual: Boolean, val tests: List<ToolTest>)
+
+private const val TOOL_TEST_ASSET_DIR = "tool_tester"
+
+/**
+ * The tester used to depend on files being pushed over adb. On a fresh
+ * install the directory did not exist, so List Files, OCR Read and the
+ * transcribe rows failed before the tool under test was even reached.
+ * Seed the fixtures from the APK instead; user files are never overwritten.
+ */
+private fun seedToolTesterFiles(context: android.content.Context) {
+    val dir = java.io.File(OperitPaths.testPathSdcard())
+    dir.mkdirs()
+    listOf("test_image.png", "test_audio.wav", "test_audio_en.wav").forEach { name ->
+        val target = java.io.File(dir, name)
+        if (target.isFile) return@forEach
+        try {
+            context.assets.open("$TOOL_TEST_ASSET_DIR/$name").use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
+        } catch (e: Exception) {
+            com.ai.assistance.operit.util.AppLogger.w(
+                "ToolTester",
+                "Cannot seed $name",
+                e
+            )
+        }
+    }
+}

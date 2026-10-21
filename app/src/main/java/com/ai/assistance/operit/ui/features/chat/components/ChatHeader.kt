@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.R
 import android.net.Uri
 import androidx.compose.foundation.Image
@@ -99,7 +100,7 @@ fun ChatHeader(
                         ) {
                                 IconButton(
                                         onClick = onToggleChatHistorySelector,
-                                        modifier = Modifier.matchParentSize()
+                                        modifier = Modifier.matchParentSize().helpAnchor("history")
                                 ) {
                                         Icon(
                                                 imageVector = Icons.Default.History,
@@ -132,7 +133,7 @@ fun ChatHeader(
                 ) {
                         IconButton(
                                 onClick = onLaunchFloatingWindow,
-                                modifier = Modifier.matchParentSize()
+                                modifier = Modifier.matchParentSize().helpAnchor("pip")
                         ) {
                                 Icon(
                                         imageVector = Icons.Default.PictureInPicture,
@@ -157,6 +158,7 @@ fun ChatHeader(
                                         .widthIn(max = 176.dp)
                                         .clip(CircleShape)
                                         .clickable(onClick = onCharacterClick)
+                                        .helpAnchor("character")
                                         .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)

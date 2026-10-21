@@ -58,6 +58,11 @@ import com.ai.assistance.operit.ui.main.navigation.ScreenRouteViewModelStoreOwne
 import com.ai.assistance.operit.ui.main.navigation.retainedRouteKeysOnContentAttach
 import com.ai.assistance.operit.ui.main.screens.Screen
 import com.ai.assistance.operit.ui.common.composedsl.ToolPkgComposeDslToolScreen
+import com.ai.assistance.operit.ui.features.help.HelpModeOverlay
+import com.ai.assistance.operit.ui.features.help.HelpModeState
+import com.ai.assistance.operit.ui.features.help.LocalHelpMode
+import com.ai.assistance.operit.ui.features.help.LocalHelpScreenId
+import com.ai.assistance.operit.ui.features.help.helpTapInterceptor
 import com.ai.assistance.operit.ui.features.help.content.HelpTopicHolder
 import com.ai.assistance.operit.ui.features.help.content.helpTopicForScreen
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
@@ -176,6 +181,9 @@ fun AppContent(
     val drawerNavigationOffsetPx =
         with(density) { if (useTabletLayout) 40.dp.toPx() else 30.dp.toPx() }
     ImeWakeListeningEffect(context = context, density = density)
+    val helpMode = remember { HelpModeState() }
+    val helpScreenId = helpTopicForScreen(currentScreen)
+    LaunchedEffect(helpScreenId) { helpMode.bindScreen(helpScreenId) }
     val themeSnapshot = LocalThemePreferenceSnapshot.current
     val useBackgroundImage = themeSnapshot.useBackgroundImage
     val backgroundImageUri = themeSnapshot.backgroundImageUri
@@ -265,6 +273,8 @@ fun AppContent(
 
     CompositionLocalProvider(
         LocalAppBarContentColor provides appBarContentColor,
+        LocalHelpMode provides helpMode,
+        LocalHelpScreenId provides (helpScreenId ?: ""),
     ) {
         // 使用Scaffold来正确处理顶部栏和内容的布局
         // contentWindowInsets = WindowInsets(0) 让内容可以延伸到系统栏下方，使背景能够完全填充
@@ -366,16 +376,17 @@ fun AppContent(
                         val topicId = helpTopicForScreen(currentScreen)
                         if (topicId != null && currentScreen !is Screen.Help) {
                             androidx.compose.material3.IconButton(
-                                onClick = {
-                                    HelpTopicHolder.topic = topicId
-                                    onScreenChange(Screen.Help)
-                                }
+                                onClick = { helpMode.toggle(topicId) }
                             ) {
                                 Text(
                                     text = "?",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 20.sp,
-                                    color = appBarContentColor
+                                    color = if (helpMode.enabled) {
+                                        MaterialTheme.colorScheme.tertiary
+                                    } else {
+                                        appBarContentColor
+                                    }
                                 )
                             }
                         }
@@ -735,10 +746,16 @@ fun AppContent(
                                                 scaleY = scale
                                             }
                                 ) {
-                                    Box(modifier = Modifier.fillMaxSize()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .helpTapInterceptor(helpMode)
+                                    ) {
                                         screenStateHolder.SaveableStateProvider(screenKey) {
                                             CompositionLocalProvider(
                                                 LocalIsCurrentScreen provides isCurrentScreen,
+                                                LocalHelpScreenId provides
+                                                    (helpTopicForScreen(screenSnapshot) ?: ""),
                                                 LocalRouteInstanceId provides screenKey,
                                                 LocalSetScreenSoftInputMode provides { mode ->
                                                     if (isCurrentScreen && currentScreenSoftInputMode != mode) {
@@ -757,6 +774,17 @@ fun AppContent(
                                     }
                                 }
                             }
+                        }
+
+                        if (helpMode.enabled) {
+                            HelpModeOverlay(
+                                state = helpMode,
+                                onAllTopics = { topic ->
+                                    HelpTopicHolder.topic = topic
+                                    helpMode.disable()
+                                    onScreenChange(Screen.Help)
+                                },
+                            )
                         }
 
                         // 帧率计数器 - 放在所有屏幕之上

@@ -1920,6 +1920,7 @@
     <string name="recognizing">Recognizing...</string>
     <string name="not_recognizing">Not recognizing</string>
     <string name="engine_init_failed">Engine %s initialization failed.</string>
+    <string name="engine_switch_failed">Cannot switch the speech engine: %s</string>
     <string name="recognition_error">Recognition error: %s</string>
     <string name="start_recognition_error">Start recognition error: %s</string>
     <string name="stop_recognition_error">Stop recognition error: %s</string>

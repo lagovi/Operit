@@ -6,28 +6,36 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-21, HEAD `bc61ae00`,
+**Date:** 2026-10-22, HEAD `d01dc15b`,
 branch `feat/english-only-build`
 
-**CURRENT 21.10 — phase 2 accepted; phase 3 started.**
-Phone runs CI `39679978602` (APK dir `apk/20261021_213509Z/`,
-99,703,968 B, sha256 `989aa00ce72015af994b4533f8063637d31f47848520b3e24045ed98517a356e`).
-Verified: the provider picker lists `Custom Provider (OpenAI-compatible)`
-first, and a fresh Token Usage screen shows `$0.00` (USD default). The
-previous build, CI `39663125034` (`apk/20261021_193631Z/`), was accepted for
-the Toolbox/About phase 2 work.
-Toolbox has no User Agreement card; Get API Key says it is optional; About
-has fork/upstream/documentation/issue links. In help mode every built-in
-Toolbox card opens its own description (verified on Tool Test Center) and the
-About screen guide opens. Plugin-provided Toolbox cards without a catalog
-entry still open the Toolbox screen guide. Previous accepted builds:
+**CURRENT 22.10 — phase 2 help mostly done; phase 3 in progress.**
+Phone runs CI `39702837798` (APK dir `apk/20261022_005741Z/`,
+99,710,580 B, sha256 `d69080c5c0a983fba78cc90c47a7f82d170e2277c2c426ea88ebb468fd422e59`).
+This build adds help anchors to 22 Settings rows and a help mode to the
+Workspace overlay: its own `?`, three element cards (`workspace.tabs`,
+`workspace.save`, `workspace.preview`) and a Workspace screen guide. Verified:
+the Model Parameters Settings row opens its card; the Workspace `?` shows the
+banner, Screen guide opens the Workspace topic, the Preview tab opens the tabs
+card; Back disables help and the `<>` toolbar toggle closes the workspace.
+The previous build, CI `39679978602` (`apk/20261021_213509Z/`, 99,703,968 B,
+sha256 `989aa00ce72015af994b4533f8063637d31f47848520b3e24045ed98517a356e`),
+was accepted for the custom-provider/USD phase 3 work: the provider picker
+lists `Custom Provider (OpenAI-compatible)` first, and a fresh Token Usage
+screen shows `$0.00`.
+The build before that, CI `39663125034` (`apk/20261021_193631Z/`), was accepted
+for Toolbox/About phase 2 work. Toolbox has no User Agreement card; Get API Key
+says it is optional; About has fork/upstream/documentation/issue links. Every
+built-in Toolbox card opens its own help description (verified on Tool Test
+Center) and the About screen guide opens. Plugin Toolbox cards without a
+catalog entry still open the Toolbox screen guide. Previous accepted builds:
 `39643998395` (`apk/20261021_172745Z/`, 99,701,388 B) and `39620348241`
 (`apk/20261021_145013Z/`, 99,713,760 B).
 Because the debug signing key changes every CI run, the app was uninstalled
 before install: all local app data (chats, settings, three downloaded STT
 models) is GONE. Do not treat missing models as a regression; the user has to
 download them again, or the next build must be installed over the same key.
-Verified on the phone: `?` help mode banner sits below the header, its
+Verified on the phone earlier: `?` help mode banner sits below the header, its
 buttons work, tapping History shows element help, Screen guide opens the
 topic, Back exits; STT switches GigaAM → Parakeet → Nemotron without a crash
 and the language field reads English; Tool Tester seeds `test_image.png`
@@ -109,7 +117,8 @@ from the factory. Only the OAuth loopback callback servers stay direct
   12 (a/b apktool+desktop — CLOSED 08.10, CIs `37722980127`/`37726800230`),
   13 (subpack DoD CLOSED 10.10 on `2026-10-10_00-41-11Z`).
 (g) user UI/UX pass 21.10 — phase 1 ACCEPTED 21.10 (help mode, STT switch,
-Tool Tester, File Manager; build `39620348241`). Phases 2–4 remain, exact
+Tool Tester, File Manager; build `39620348241`). Phase 2 help coverage is
+mostly done (Toolbox, About, Settings, Workspace); phases 2–4 remain, exact
 scope in the section below.
 CLOSED: everything else (1–5 except behavioral 5a/5b — open, see §8;
 7a, 9, 10, 11, 3a/3b, 4, subpack Q1 mechanics, 16 install-size —
@@ -1053,7 +1062,7 @@ not downloaded — N47, not a bug).
   download code); all fork releases `--prerelease` + ALPHA banner
   (100% vibe-coded, stability is upstream's).
 
-## UI/UX pass (user spec 21.10) — phase 1 closed, 2–4 open
+## UI/UX pass (user spec 21.10) — phase 1 closed, phase 2 in progress, 3–4 open
 
 The user asked for a broad UI/UX pass. Delivery is phased; each phase is a
 separate CI build and on-device acceptance. Answers already fixed by the user:
@@ -1064,45 +1073,43 @@ presets download on demand; System Prompt Monitor gives view plus safe
 toggles; model-modality detection is an explicit button with confirmation.
 
 **Phase 1 — ACCEPTED 21.10, build `39620348241`.**
-**Phase 2 — ACCEPTED 21.10, build `39663125034`:** agreement card removed,
-Get API Key description fixed, About links added, all built-in Toolbox cards
-have element help. The Workspace trigger and Settings-row anchors remain
-open below. Shipped in `HelpMode.kt`,
-`HelpModeCatalog.kt`, `AppContent.kt`, `ChatHeader.kt`,
+**Phase 2 — in progress. Toolbox/About accepted 21.10 on build `39663125034`;
+Settings rows and Workspace help added 22.10 on build `39702837798`.**
+Agreement card removed, Get API Key description fixed, About links added, all
+built-in Toolbox cards have element help, 22 Settings rows have element help,
+and the Workspace overlay has its own `?`, three element cards and a topic.
+Shipped in `HelpMode.kt`, `HelpModeCatalog.kt`, `HelpContent.kt`,
+`SettingsScreen.kt`, `WorkspaceManager.kt`, `AppContent.kt`, `ChatHeader.kt`,
 `ClassicChatInputSection.kt`, `SpeechServiceFactory.kt`,
 `SpeechToTextScreen.kt`, `ToolTesterScreen.kt`, `FileListItem.kt`, with
 fixtures under `app/src/main/assets/tool_tester/`. Contract doc:
 `docs/doc-src/architecture/in_place_help.md`. Remaining known limits are in
-that doc: `:terminal` cannot import app help classes, Workspace is an overlay,
-dialogs are separate windows.
+that doc: `:terminal` cannot import app help classes, dialogs are separate
+windows, and the Workspace setup screen has no `?` yet.
 
-**Phase 2 — help coverage and About.**
+**Phase 2 — remaining help coverage.**
+Done: Toolbox, About, Settings, Workspace.
 - Add anchors and `HelpModeCatalog` entries for the rest of AI Chat (model,
-  toggles, more, workspace, export, computer), Assistant Config, Memory Base,
-  Toolbox, Settings, Packages, Workflow, About, model config, speech services
-  and permissions.
-- Workspace: it is an overlay inside `AIChatScreen`, not a `Screen`. Add a
-  trigger on its own header (a `?` in the workspace panel) and a workspace
-  topic; do not try to reach it through `helpTopicForScreen`.
+  toggles, more, export, computer), Assistant Config, Memory Base, Packages,
+  Workflow, model config, speech services and permissions.
+- Workspace: done as an overlay. It uses its own header button and
+  `scopeOverride = "workspace"`; do not route it through
+  `helpTopicForScreen`. Workspace Setup is still uncovered.
 - Terminal: only the banner and screen guide work. If element anchors are
   required, move the help contract to a shared module or implement a local
   terminal anchor registry; do not add an app dependency to `:terminal`.
-- About: `ui/features/about/screens/AboutScreen.kt` currently carries the old
-  content. Replace with fork identity, upstream link `AAswordman/Operit`,
-  version/build, documentation and issues links, and the APK channel. No
-  license wall.
-- Toolbox: remove the card `toolbox.agreement` from
-  `ui/main/screens/ScreenRouteRegistry.kt` (around line 230). Keep
-  `toolbox.token_config` (`Get API Key`) and make its description state that a
-  DeepSeek key is optional and other providers are configured in model config.
-  Keep `Screen.Agreement` if some other path still needs it.
+- Toolbox: done. `toolbox.agreement` is removed from
+  `ui/main/screens/ScreenRouteRegistry.kt`; `Screen.Agreement` remains defined
+  but is no longer referenced by the registry.
 - Acceptance: every appbar screen with a topic shows `?`; a tap on each new
   anchor opens the right text; Back exits; navigation turns help off.
 
 **Phase 3 — Settings and model configuration.**
-Status 21.10: custom provider is first in the picker (label `Custom Provider
+Status 22.10: custom provider is first in the picker (label `Custom Provider
 (OpenAI-compatible)`) and new installs default Token Usage to USD; both
-accepted on build `39679978602`. Remaining below.
+accepted on build `39679978602`. Settings-row help is Phase 2 work and shipped
+in `39702837798`. Connection diagnostics, modality detection, layouts and the
+rest below remain.
 - Custom provider must be first-class in `ModelConfigScreen.kt`: name,
   endpoint, key, model list, headers, proxy, and a test that reports the HTTP
   status and body. Do not hide provider-specific fields behind unrelated

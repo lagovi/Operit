@@ -9,8 +9,10 @@ turns short taps into element descriptions.
 - `HelpModeState` lives in `AppContent` and is provided through `LocalHelpMode`.
 - `helpTopicForScreen` maps a screen class to a topic id. The same id is
   provided to each cached screen through `LocalHelpScreenId`.
-- `Modifier.helpAnchor(id)` publishes the control's bounds in root coordinates.
-  It does not change the control's click, gesture or scroll behavior.
+- `Modifier.helpAnchor(id, scopeOverride)` publishes the control's bounds in
+  root coordinates. It does not change the control's click, gesture or scroll
+  behavior. `scopeOverride` registers the anchor under another screen id, which
+  is how an overlay annotates itself.
 - `Modifier.helpTapInterceptor(state)` is attached once per screen wrapper. It
   observes the pointer stream at the initial pass, leaves the press and drag
   untouched, and consumes only the up event of a short tap. That keeps lists
@@ -32,12 +34,21 @@ All built-in cards have an entry. A plugin-provided card whose id is absent
 from the catalog deliberately falls through to the Toolbox screen guide; add
 an entry when a plugin card becomes standard.
 
+Settings rows use `settings.*`. The shared row composables take an optional
+`modifier`, so the anchor wraps the whole clickable row rather than a label.
+
+The Workspace is an overlay inside AI Chat, not a routed screen. Its header
+`?` calls `helpMode.toggle("workspace")` and its controls call
+`.helpAnchor("workspace.*", "workspace")` while the underlying screen id is
+still `aichat`. When the overlay closes, a `LaunchedEffect` in
+`WorkspaceManager` disables help if the active id is still `workspace`.
+
 ## Current limits
 
 - The terminal lives in the `:terminal` module, which cannot depend on app UI.
   It gets the screen guide and unannotated fallback, but no element anchors yet.
-- Workspace is an overlay inside the chat, not a routed screen, so it needs a
-  separate entry point before it can have its own help mode.
+- The Workspace setup screen (no workspace bound yet) still has no `?`; only
+  the opened workspace overlay does.
 - Dialogs are separate windows and are not observed by the screen interceptor.
 - Cached screens publish their own topic id, so hidden screens never overwrite
   the anchors of the visible one.

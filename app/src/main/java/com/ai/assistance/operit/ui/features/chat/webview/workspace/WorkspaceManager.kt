@@ -60,6 +60,8 @@ import com.ai.assistance.operit.ui.features.chat.components.attachments.AudioAtt
 import com.ai.assistance.operit.ui.features.chat.components.attachments.VideoAttachmentPlayer
 import com.ai.assistance.operit.ui.features.chat.webview.LocalWebServer
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
+import com.ai.assistance.operit.ui.features.help.LocalHelpMode
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.ui.features.chat.webview.WebViewHandler
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.editor.CodeEditor
 import com.ai.assistance.operit.ui.features.chat.webview.workspace.editor.CodeFormatter
@@ -170,6 +172,12 @@ fun WorkspaceManager(
         onExportClick: (workDir: File) -> Unit
 ) {
     val context = LocalContext.current
+    val helpMode = LocalHelpMode.current
+    // Leaving the overlay while its own help is open would leave the banner
+    // describing controls that are no longer on screen.
+    LaunchedEffect(isVisible) {
+        if (!isVisible && helpMode.screenId == "workspace") helpMode.disable()
+    }
     val clipboardManager = LocalClipboardManager.current
     val webViewRefreshCounter by actualViewModel.webViewRefreshCounter.collectAsState()
     val workspaceCommandExecutionState by actualViewModel.workspaceCommandExecutionState.collectAsState()
@@ -566,7 +574,12 @@ fun WorkspaceManager(
                         verticalAlignment = Alignment.CenterVertically
                 ) {
                     // 文件标签栏
-                    Row(modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
+                    Row(
+                        modifier =
+                            Modifier.weight(1f)
+                                .horizontalScroll(rememberScrollState())
+                                .helpAnchor("workspace.tabs", "workspace")
+                    ) {
                         // 预览标签
                         VSCodeTab(
                                 title = stringResource(R.string.workspace_preview),
@@ -593,6 +606,13 @@ fun WorkspaceManager(
                     // 动态操作区域
                     val currentFile = openFiles.getOrNull(currentFileIndex)
 
+                    IconButton(
+                        onClick = { helpMode.toggle("workspace") },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(Icons.Default.HelpOutline, contentDescription = "Help")
+                    }
+
                     // 保存按钮
                     if (currentFile != null && unsavedFiles.contains(currentFile.path)) {
                         IconButton(
@@ -600,7 +620,7 @@ fun WorkspaceManager(
                                 saveFile(currentFile)
                                 unsavedFiles = unsavedFiles - currentFile.path
                             },
-                            modifier = Modifier.size(40.dp)
+                            modifier = Modifier.size(40.dp).helpAnchor("workspace.save", "workspace")
                         ) {
                             Icon(
                                 Icons.Default.Save,
@@ -614,7 +634,7 @@ fun WorkspaceManager(
                         IconButton(
                                 onClick = { togglePreview(currentFile.path) },
                                 // 限制按钮大小，使其与标签高度(40.dp)保持一致，防止撑开父布局
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier.size(40.dp).helpAnchor("workspace.preview", "workspace")
                         ) {
                             Icon(
                                     if (isPreview) Icons.Default.Edit else Icons.Default.Visibility,

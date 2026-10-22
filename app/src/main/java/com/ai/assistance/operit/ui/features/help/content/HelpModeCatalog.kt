@@ -169,6 +169,135 @@ object HelpModeCatalog {
                 "Runs the autoglm-phone agent for step-by-step mobile automation. It needs a configured model and accessibility or root control."
             ),
         ).associateBy { it.id },
+        "workspace" to listOf(
+            e(
+                "workspace.tabs",
+                "Workspace tabs",
+                "The Preview tab shows the rendered workspace page. Each opened file gets its own tab; tap to switch and use the x on a tab to close it. Unsaved tabs show a dot."
+            ),
+            e(
+                "workspace.save",
+                "Save file",
+                "Appears when the active file has unsaved changes. It writes the editor buffer to disk; closing an unsaved tab asks for confirmation first."
+            ),
+            e(
+                "workspace.preview",
+                "Preview / edit",
+                "For HTML and Markdown files, switches between the rendered preview and the source editor. Preview reloads the workspace server page."
+            ),
+        ).associateBy { it.id },
+        "settings" to listOf(
+            e(
+                "settings.account.github",
+                "GitHub account",
+                "Links the app to GitHub for marketplace publishing, gists and backup features. Logging out removes the stored token; local data stays."
+            ),
+            e(
+                "settings.personal.profile",
+                "User profile",
+                "Sets your name, avatar and personal details used by characters and prompts."
+            ),
+            e(
+                "settings.personal.language",
+                "Language",
+                "Chooses the app interface language. The fork ships English; changing it affects labels and help text, not the models."
+            ),
+            e(
+                "settings.personal.theme",
+                "Theme and appearance",
+                "Controls colors, dark mode, fonts, chat bubbles, background image and other visual options."
+            ),
+            e(
+                "settings.personal.display",
+                "Display and behavior",
+                "Global display and behavior switches that do not belong to chat, such as animations, density and status elements."
+            ),
+            e(
+                "settings.personal.layout",
+                "Layout adjustment",
+                "Moves or resizes UI elements and changes margins when a control is clipped or overlaps on a small screen."
+            ),
+            e(
+                "settings.ai.model",
+                "Model and parameter configuration",
+                "Creates and edits model configurations: provider, endpoint, key, model list, headers, proxy, parameters, thinking rules and the connection test."
+            ),
+            e(
+                "settings.ai.functional",
+                "Functional model configuration",
+                "Assigns a separate model to summarization, memory extraction, title generation, translation and other background functions."
+            ),
+            e(
+                "settings.ai.supervision",
+                "Supervision mode",
+                "Runs a second model that watches the main model and can correct or stop a risky tool call before it executes."
+            ),
+            e(
+                "settings.ai.speech",
+                "Speech services",
+                "Configures text-to-speech and speech-to-text engines, local model downloads, cloud voices, language and API keys."
+            ),
+            e(
+                "settings.prompts.system",
+                "Character card editor",
+                "Edits character cards: system prompt, personality, greeting, example dialogue, model binding and attached memories or tools."
+            ),
+            e(
+                "settings.prompts.persona",
+                "Persona card generation",
+                "Turns a conversation or description into a reusable persona card with name, traits, speaking style and greeting."
+            ),
+            e(
+                "settings.prompts.waifu",
+                "Waifu mode",
+                "Changes reply formatting for a roleplay style, including sentence-by-sentence output and voice playback."
+            ),
+            e(
+                "settings.context.summary",
+                "Context and summary",
+                "Controls how much history is kept verbatim, when older turns are summarized, and which model performs the summary."
+            ),
+            e(
+                "settings.data.tool_permissions",
+                "Tool permissions",
+                "Chooses which tools the assistant may call and which need confirmation. Per-tool rules override the global policy."
+            ),
+            e(
+                "settings.data.backup",
+                "Data backup and recovery",
+                "Exports or imports chats, characters, memories, model configurations and the database, and restores a previous snapshot."
+            ),
+            e(
+                "settings.data.chat_history",
+                "Chat history management",
+                "Deletes, archives or bulk-manages conversations and their attachments."
+            ),
+            e(
+                "settings.data.token_usage",
+                "Token usage statistics",
+                "Shows token and cost totals per day, week or lifetime, with currency, pricing and exchange-rate controls."
+            ),
+            e(
+                "settings.data.llm_log",
+                "LLM I/O log",
+                "Records model requests and responses for debugging. The log can contain private chats; clear it when sharing the device."
+            ),
+            e(
+                "settings.data.performance",
+                "Performance monitor",
+                "Shows live CPU, memory and network use of the app, plugins and terminal."
+            ),
+            e(
+                "settings.privacy.cookies",
+                "Clear cookies",
+                "Deletes cookies stored by the in-app browser and WebView components. It does not delete chats or model configurations."
+            ),
+            e(
+                "settings.external.http",
+                "External HTTP chat API",
+                "Runs a local HTTP endpoint so another device or tool can send messages to Operit. It shows the address and Bearer token."
+            ),
+        ).associateBy { it.id },
         "terminal" to listOf(
             e(
                 "terminal_output",

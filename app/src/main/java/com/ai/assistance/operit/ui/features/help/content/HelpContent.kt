@@ -57,6 +57,25 @@ val HelpTopics: List<HelpTopic> = listOf(
         )
     ),
     HelpTopic(
+        id = "workspace",
+        title = "Workspace",
+        intro = "A per-chat project folder shown as a full-screen overlay. The assistant reads and edits the same files; Preview renders the built page in a WebView.",
+        sections = listOf(
+            s(
+                "Tabs and files",
+                "The Preview tab is always first. Opening a file from the file browser adds a tab; the active tab shows the editor or preview. A dot means unsaved changes. The x closes the tab after a confirmation when the buffer is dirty."
+            ),
+            s(
+                "Top bar actions",
+                "Save appears only for a dirty file. For HTML and Markdown, Preview switches between rendered output and source. While a browser or command preview is open, back, forward and reload act on that WebView. The ? button turns on workspace help."
+            ),
+            s(
+                "Floating menu",
+                "The draggable menu opens the file browser, undo, redo, format (when the language is supported), rename, unbind and export. Export is available when the workspace config allows it and the folder is not a SAF environment."
+            )
+        )
+    ),
+    HelpTopic(
         id = "memory",
         title = "Memory Base",
         intro = "A knowledge graph of facts, documents and their links. The assistant reads it for context and, with auto-update on, writes new facts here after chats.",

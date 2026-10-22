@@ -147,9 +147,9 @@ val LocalHelpScreenId = androidx.compose.runtime.compositionLocalOf { "" }
  * per screen in [Modifier.helpTapInterceptor], so adding an anchor never
  * changes the control's own click, gesture or scroll behavior.
  */
-fun Modifier.helpAnchor(id: String): Modifier = composed {
+fun Modifier.helpAnchor(id: String, scopeOverride: String? = null): Modifier = composed {
     val state = LocalHelpMode.current
-    val scope = LocalHelpScreenId.current
+    val scope = scopeOverride ?: LocalHelpScreenId.current
     this.onGloballyPositioned { coordinates ->
         if (scope.isNotBlank()) {
             state.register(scope, id, coordinates.boundsInRoot())

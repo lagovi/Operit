@@ -27,6 +27,7 @@ import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
 import com.ai.assistance.operit.data.preferences.SupervisionPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.ui.features.github.GitHubLoginDialog
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.ui.features.settings.sections.SubpackStorageSection
 import com.ai.assistance.operit.ui.theme.LocalThemePreferenceSnapshot
 import com.ai.assistance.operit.util.AppLogger
@@ -107,6 +108,7 @@ fun SettingsScreen(
                                         stringResource(R.string.github_account_not_logged_in)
                                 },
                                 icon = Icons.Default.Person,
+                                modifier = Modifier.helpAnchor("settings.account.github"),
                                 onClick = navigateToGitHubAccount
                         )
 
@@ -145,6 +147,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_user_preferences),
                                 subtitle = stringResource(id = R.string.settings_user_preferences_subtitle),
                                 icon = Icons.Default.Face,
+                                modifier = Modifier.helpAnchor("settings.personal.profile"),
                                 onClick = navigateToUserPreferences
                         )
 
@@ -152,6 +155,7 @@ fun SettingsScreen(
                                 title = stringResource(R.string.language_settings),
                                 subtitle = stringResource(id = R.string.settings_language_subtitle),
                                 icon = Icons.Default.Language,
+                                modifier = Modifier.helpAnchor("settings.personal.language"),
                                 onClick = navigateToLanguageSettings
                         )
                         
@@ -159,6 +163,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_theme_appearance),
                                 subtitle = stringResource(id = R.string.settings_theme_subtitle),
                                 icon = Icons.Default.Palette,
+                                modifier = Modifier.helpAnchor("settings.personal.theme"),
                                 onClick = navigateToThemeSettings
                         )
                         
@@ -166,6 +171,7 @@ fun SettingsScreen(
                                 title = stringResource(R.string.settings_global_display),
                                 subtitle = stringResource(R.string.settings_global_display_subtitle),
                                 icon = Icons.Default.Visibility,
+                                modifier = Modifier.helpAnchor("settings.personal.display"),
                                 onClick = navigateToGlobalDisplaySettings
                         )
                         
@@ -173,6 +179,7 @@ fun SettingsScreen(
                                 title = stringResource(R.string.layout_adjustment),
                                 subtitle = stringResource(R.string.layout_adjustment_subtitle),
                                 icon = Icons.Default.AspectRatio,
+                                modifier = Modifier.helpAnchor("settings.personal.layout"),
                                 onClick = navigateToLayoutAdjustmentSettings
                         )
                 }
@@ -187,6 +194,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_model_parameters),
                                 subtitle = stringResource(id = R.string.settings_model_params_subtitle),
                                 icon = Icons.Default.Api,
+                                modifier = Modifier.helpAnchor("settings.ai.model"),
                                 onClick = navigateToModelConfig
                         )
                         
@@ -194,6 +202,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_functional_model),
                                 subtitle = stringResource(id = R.string.settings_functional_model_subtitle),
                                 icon = Icons.Default.Tune,
+                                modifier = Modifier.helpAnchor("settings.ai.functional"),
                                 onClick = navigateToFunctionalConfig
                         )
 
@@ -201,6 +210,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_supervision_mode),
                                 subtitle = stringResource(id = R.string.settings_supervision_mode_subtitle),
                                 icon = Icons.Default.Visibility,
+                                modifier = Modifier.helpAnchor("settings.ai.supervision"),
                                 checked = supervisionEnabled,
                                 onCheckedChange = { enabled ->
                                         supervisionPreferences.setEnabled(enabled)
@@ -211,6 +221,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_speech_services),
                                 subtitle = stringResource(id = R.string.settings_speech_services_subtitle),
                                 icon = Icons.Default.RecordVoiceOver,
+                                modifier = Modifier.helpAnchor("settings.ai.speech"),
                                 onClick = navigateToSpeechServicesSettings
                         )
                         
@@ -226,6 +237,7 @@ fun SettingsScreen(
                                 title = stringResource(R.string.settings_prompt_title),
                                 subtitle = stringResource(id = R.string.settings_system_prompts_subtitle),
                                 icon = Icons.Default.ChatBubble,
+                                modifier = Modifier.helpAnchor("settings.prompts.system"),
                                 onClick = navigateToModelPrompts
                         )
                         
@@ -234,6 +246,7 @@ fun SettingsScreen(
                                 title = stringResource(R.string.persona_card_generation),
                                 subtitle = stringResource(R.string.persona_card_generation_desc),
                                 icon = Icons.Default.Face,
+                                modifier = Modifier.helpAnchor("settings.prompts.persona"),
                                 onClick = navigateToPersonaCardGeneration
                         )
                         
@@ -242,6 +255,7 @@ fun SettingsScreen(
                                 title = stringResource(R.string.waifu_mode_settings),
                                 subtitle = stringResource(R.string.waifu_mode_settings_desc),
                                 icon = Icons.Default.EmojiEmotions,
+                                modifier = Modifier.helpAnchor("settings.prompts.waifu"),
                                 onClick = navigateToWaifuModeSettings
                         )
                 }
@@ -256,6 +270,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_section_context_summary),
                                 subtitle = stringResource(id = R.string.settings_context_summary_subtitle),
                                 icon = Icons.Default.Tune,
+                                modifier = Modifier.helpAnchor("settings.context.summary"),
                                 onClick = navigateToContextSummarySettings
                         )
                 }
@@ -270,6 +285,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_tool_permissions),
                                 subtitle = stringResource(id = R.string.settings_tool_permissions_subtitle),
                                 icon = Icons.Default.AdminPanelSettings,
+                                modifier = Modifier.helpAnchor("settings.data.tool_permissions"),
                                 onClick = navigateToToolPermissions
                         )
 
@@ -277,6 +293,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_data_backup),
                                 subtitle = stringResource(id = R.string.settings_data_backup_desc),
                                 icon = Icons.Default.CloudUpload,
+                                modifier = Modifier.helpAnchor("settings.data.backup"),
                                 onClick = navigateToChatBackupSettings
                         )
                         
@@ -284,6 +301,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_chat_history_management),
                                 subtitle = stringResource(id = R.string.settings_chat_history_management_subtitle),
                                 icon = Icons.Default.ManageHistory,
+                                modifier = Modifier.helpAnchor("settings.data.chat_history"),
                                 onClick = navigateToChatHistorySettings
                         )
 
@@ -291,6 +309,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_token_usage_stats),
                                 subtitle = stringResource(id = R.string.settings_token_usage_subtitle),
                                 icon = Icons.Default.Analytics,
+                                modifier = Modifier.helpAnchor("settings.data.token_usage"),
                                 onClick = navigateToTokenUsageStatistics
                         )
 
@@ -298,6 +317,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_llm_io_log),
                                 subtitle = stringResource(id = R.string.settings_llm_io_log_subtitle),
                                 icon = Icons.Default.ReceiptLong,
+                                modifier = Modifier.helpAnchor("settings.data.llm_log"),
                                 onClick = navigateToLlmIoLog
                         )
 
@@ -307,7 +327,8 @@ fun SettingsScreen(
                                  title = stringResource(id = R.string.settings_performance_monitor),
                                  subtitle = stringResource(id = R.string.settings_performance_monitor_subtitle),
                                  icon = Icons.Default.Speed,
-                                 onClick = navigateToPerformanceMonitor
+                                 modifier = Modifier.helpAnchor("settings.data.performance"),
+                                onClick = navigateToPerformanceMonitor
                          )
                 }
 
@@ -321,6 +342,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_clear_cookies),
                                 subtitle = stringResource(id = R.string.settings_clear_cookies_subtitle),
                                 icon = Icons.Default.DeleteSweep,
+                                modifier = Modifier.helpAnchor("settings.privacy.cookies"),
                                 onClick = { showClearCookieConfirm = true }
                         )
                 }
@@ -335,6 +357,7 @@ fun SettingsScreen(
                                 title = stringResource(id = R.string.settings_external_http_chat),
                                 subtitle = stringResource(id = R.string.settings_external_http_chat_subtitle),
                                 icon = Icons.Default.SettingsEthernet,
+                                modifier = Modifier.helpAnchor("settings.external.http"),
                                 onClick = navigateToExternalHttpChatSettings
                         )
                 }
@@ -430,10 +453,11 @@ private fun CompactSettingsItem(
         title: String,
         subtitle: String,
         icon: ImageVector,
-        onClick: () -> Unit
+        onClick: () -> Unit,
+        modifier: Modifier = Modifier
 ) {
         Row(
-                modifier = Modifier
+                modifier = modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(6.dp))
                         .clickable { onClick() }
@@ -481,10 +505,11 @@ private fun CompactSettingsSwitch(
         subtitle: String,
         icon: ImageVector,
         checked: Boolean,
-        onCheckedChange: (Boolean) -> Unit
+        onCheckedChange: (Boolean) -> Unit,
+        modifier: Modifier = Modifier
 ) {
         Row(
-                modifier = Modifier
+                modifier = modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(6.dp))
                         .padding(8.dp),

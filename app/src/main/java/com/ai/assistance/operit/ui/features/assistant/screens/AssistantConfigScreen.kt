@@ -37,6 +37,7 @@ import com.ai.assistance.operit.ui.features.assistant.components.CompactSwitchRo
 import com.ai.assistance.operit.ui.features.assistant.components.VoiceAutoAttachGrid
 import com.ai.assistance.operit.core.avatar.impl.factory.AvatarControllerFactoryImpl
 import com.ai.assistance.operit.ui.features.assistant.viewmodel.AssistantConfigViewModel
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import kotlinx.coroutines.launch
 
 /** 助手配置屏幕 提供DragonBones模型预览和相关配置 */
@@ -201,11 +202,13 @@ fun AssistantConfigScreen() {
                     Tab(
                         selected = selectedConfigTab == 0,
                         onClick = { selectedConfigTab = 0 },
+                        modifier = Modifier.helpAnchor("assistant.tab.avatar"),
                         text = { Text(text = stringResource(R.string.avatar_config)) }
                     )
                     Tab(
                         selected = selectedConfigTab == 1,
                         onClick = { selectedConfigTab = 1 },
+                        modifier = Modifier.helpAnchor("assistant.tab.voice"),
                         text = { Text(text = stringResource(R.string.voice_wakeup_section_title)) }
                     )
                 }
@@ -232,7 +235,7 @@ fun AssistantConfigScreen() {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        IconButton(onClick = { isAvatarPreviewCollapsed = !isAvatarPreviewCollapsed }) {
+                        IconButton(onClick = { isAvatarPreviewCollapsed = !isAvatarPreviewCollapsed }, modifier = Modifier.helpAnchor("assistant.preview_toggle")) {
                             Icon(
                                 imageVector =
                                     if (isAvatarPreviewCollapsed) Icons.Default.ExpandMore
@@ -305,7 +308,8 @@ fun AssistantConfigScreen() {
                                 modifier = Modifier
                                     .menuAnchor()
                                     .fillMaxWidth()
-                                    .heightIn(min = 48.dp),
+                                    .heightIn(min = 48.dp)
+                                    .helpAnchor("assistant.voice_mode"),
                                 value = modeLabel,
                                 onValueChange = {},
                                 readOnly = true,
@@ -381,6 +385,7 @@ fun AssistantConfigScreen() {
                         // Always Listening
                         CompactSwitchRow(
                             title = stringResource(R.string.voice_wakeup_always_listen_title),
+                            modifier = Modifier.helpAnchor("assistant.always_listen"),
                             description = stringResource(R.string.voice_wakeup_always_listen_desc),
                             checked = wakeListeningEnabled,
                             onCheckedChange = { enabled ->
@@ -432,6 +437,7 @@ fun AssistantConfigScreen() {
                             // Regex Toggle
                             CompactSwitchRow(
                                 title = stringResource(R.string.voice_wakeup_regex_title),
+                                modifier = Modifier.helpAnchor("assistant.regex"),
                                 description = stringResource(R.string.voice_wakeup_regex_desc),
                                 checked = wakePhraseRegexEnabled,
                                 onCheckedChange = { enabled ->
@@ -474,6 +480,7 @@ fun AssistantConfigScreen() {
                         // Greeting Toggle
                         CompactSwitchRow(
                             title = stringResource(R.string.voice_wakeup_greeting_title),
+                            modifier = Modifier.helpAnchor("assistant.greeting"),
                             description = stringResource(R.string.voice_wakeup_greeting_desc),
                             checked = wakeGreetingEnabled,
                             onCheckedChange = { enabled ->
@@ -509,6 +516,7 @@ fun AssistantConfigScreen() {
 
                         CompactSwitchRow(
                             title = stringResource(R.string.voice_wakeup_create_new_chat_title),
+                            modifier = Modifier.helpAnchor("assistant.new_chat"),
                             description = stringResource(R.string.voice_wakeup_create_new_chat_desc),
                             checked = wakeCreateNewChatOnWakeEnabled,
                             onCheckedChange = { enabled ->
@@ -559,6 +567,7 @@ fun AssistantConfigScreen() {
 
                         CompactSwitchRow(
                             title = stringResource(R.string.voice_keyword_attachments_enabled_title),
+                            modifier = Modifier.helpAnchor("assistant.auto_attach"),
                             description = stringResource(R.string.voice_keyword_attachments_enabled_desc),
                             checked = voiceAutoAttachEnabled,
                             onCheckedChange = { enabled ->

@@ -54,10 +54,11 @@ fun CompactSwitchRow(
     description: String,
     checked: Boolean,
     enabled: Boolean = true,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,

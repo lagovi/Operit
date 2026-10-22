@@ -148,6 +148,7 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.T
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.PendingQueueMessageItem
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ToolPromptManagerDialog
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.rememberMentionVisualTransformation
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
@@ -841,7 +842,7 @@ fun AgentChatInputSection(
                                 style = inputTextStyle,
                             )
                         },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent).helpAnchor("composer"),
                         textStyle = inputTextStyle,
                         maxLines = 6,
                         minLines = 1,
@@ -867,7 +868,7 @@ fun AgentChatInputSection(
                             ),
                         shape = RoundedCornerShape(14.dp),
                         trailingIcon = {
-                            IconButton(onClick = { showFullscreenInput.value = true }) {
+                            IconButton(onClick = { showFullscreenInput.value = true }, modifier = Modifier.helpAnchor("composer_expand")) {
                                 Icon(
                                     imageVector = Icons.Default.Fullscreen,
                                     contentDescription = stringResource(R.string.chat_fullscreen_input),
@@ -900,7 +901,7 @@ fun AgentChatInputSection(
                                             shape = RoundedCornerShape(12.dp),
                                         )
                                         .clip(RoundedCornerShape(12.dp))
-                                        .clickable(onClick = onModelSelectorClick),
+                                        .clickable(onClick = onModelSelectorClick).helpAnchor("model"),
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -941,7 +942,8 @@ fun AgentChatInputSection(
                                             showModelSelectorPopup.value = false
                                             showExtraSettingsPopup.value = !showExtraSettingsPopup.value
                                         },
-                                    ),
+                                    )
+                                    .helpAnchor("more"),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
@@ -981,7 +983,7 @@ fun AgentChatInputSection(
                                     } else {
                                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                                     },
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(24.dp).helpAnchor("attach"),
                             )
                         }
 
@@ -1014,7 +1016,7 @@ fun AgentChatInputSection(
                             }
 
                         Box(
-                            modifier = Modifier.size(40.dp),
+                            modifier = Modifier.size(40.dp).helpAnchor("send"),
                             contentAlignment = Alignment.Center,
                         ) {
                             if (showProcessingStatus) {
@@ -1141,7 +1143,7 @@ fun AgentChatInputSection(
                                     style = inputTextStyle,
                                 )
                             },
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp).onPreviewKeyEvent(onEnterToSendKeyEvent).helpAnchor("composer"),
                             textStyle = inputTextStyle,
                             maxLines = 6,
                             minLines = 1,
@@ -1167,7 +1169,7 @@ fun AgentChatInputSection(
                                 ),
                             shape = RoundedCornerShape(14.dp),
                             trailingIcon = {
-                                IconButton(onClick = { showFullscreenInput.value = true }) {
+                                IconButton(onClick = { showFullscreenInput.value = true }, modifier = Modifier.helpAnchor("composer_expand")) {
                                     Icon(
                                         imageVector = Icons.Default.Fullscreen,
                                         contentDescription = stringResource(R.string.chat_fullscreen_input),
@@ -1200,7 +1202,7 @@ fun AgentChatInputSection(
                                                 shape = RoundedCornerShape(12.dp),
                                             )
                                             .clip(RoundedCornerShape(12.dp))
-                                            .clickable(onClick = onModelSelectorClick),
+                                            .clickable(onClick = onModelSelectorClick).helpAnchor("model"),
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -1241,7 +1243,8 @@ fun AgentChatInputSection(
                                                     showModelSelectorPopup.value = false
                                                     showExtraSettingsPopup.value = !showExtraSettingsPopup.value
                                                 },
-                                            ),
+                                            )
+                                            .helpAnchor("more"),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
@@ -1281,7 +1284,7 @@ fun AgentChatInputSection(
                                         } else {
                                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                                         },
-                                    modifier = Modifier.size(24.dp),
+                                    modifier = Modifier.size(24.dp).helpAnchor("attach"),
                                 )
                             }
 
@@ -1314,7 +1317,7 @@ fun AgentChatInputSection(
                                 }
 
                             Box(
-                                modifier = Modifier.size(40.dp),
+                                modifier = Modifier.size(40.dp).helpAnchor("send"),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 if (showProcessingStatus) {

@@ -37,6 +37,11 @@ object HelpModeCatalog {
                 "Type the message here. Use @ to mention a character or package. The expand button opens a larger editor when the text does not fit."
             ),
             e(
+                "composer_expand",
+                "Full-screen editor",
+                "Opens the draft in a larger editor for long messages. The text is returned to the message field when the editor closes."
+            ),
+            e(
                 "attach",
                 "Attach",
                 "Adds a file, photo, screenshot, notification, location, memory folder, package, skill or MCP server to the next message."
@@ -85,6 +90,73 @@ object HelpModeCatalog {
                 "computer",
                 "AI computer",
                 "Opens the sandboxed terminal that the assistant can drive when a task needs commands or files."
+            ),
+        ).associateBy { it.id },
+        "assistant" to listOf(
+            e(
+                "assistant.tab.avatar",
+                "Avatar tab",
+                "Shows the avatar preview, model import and selection, and avatar behavior settings."
+            ),
+            e(
+                "assistant.tab.voice",
+                "Voice Wake-up tab",
+                "Shows wake mode, wake phrase, greeting, new-chat behavior and keyword attachments."
+            ),
+            e(
+                "assistant.preview_toggle",
+                "Collapse preview",
+                "Collapses or expands the avatar preview to free vertical space."
+            ),
+            e(
+                "assistant.voice_mode",
+                "Wake mode",
+                "Switches between STT wake-word recognition and personal voice templates."
+            ),
+            e(
+                "assistant.always_listen",
+                "Always listening",
+                "Keeps the microphone open for the wake phrase. It needs microphone permission and uses more battery."
+            ),
+            e(
+                "assistant.wake_phrase",
+                "Wake phrase",
+                "The phrase that starts listening in STT mode. The switch below can treat it as a regular expression."
+            ),
+            e(
+                "assistant.regex",
+                "Regex wake phrase",
+                "Treats the wake phrase as a regular expression, so several variants can match."
+            ),
+            e(
+                "assistant.timeout",
+                "Inactivity timeout",
+                "Seconds of silence before a voice call ends. Values are clamped to 1–600."
+            ),
+            e(
+                "assistant.greeting",
+                "Spoken greeting",
+                "Speaks a greeting when the wake phrase starts a session."
+            ),
+            e(
+                "assistant.greeting_text",
+                "Greeting text",
+                "Text spoken when the greeting is enabled. A blank value restores the default greeting."
+            ),
+            e(
+                "assistant.new_chat",
+                "New chat on wake",
+                "Starts a new conversation each time the wake phrase fires."
+            ),
+            e(
+                "assistant.new_chat_group",
+                "New chat group",
+                "Group name used for chats created by voice. A blank value restores the default group."
+            ),
+            e(
+                "assistant.auto_attach",
+                "Keyword attachments",
+                "Adds the configured context, such as time or screen text, to the message when a keyword is recognized."
             ),
         ).associateBy { it.id },
         "memory" to listOf(

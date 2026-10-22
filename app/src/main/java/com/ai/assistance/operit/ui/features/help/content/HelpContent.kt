@@ -76,6 +76,21 @@ val HelpTopics: List<HelpTopic> = listOf(
         )
     ),
     HelpTopic(
+        id = "assistant",
+        title = "Assistant Config",
+        intro = "Avatar and voice wake-up settings for the assistant. Changes are saved as you edit.",
+        sections = listOf(
+            s(
+                "Tabs",
+                "Avatar shows the character preview, model import and selection, and avatar behavior settings. Voice Wake-up configures hands-free listening, the wake phrase, greetings and keyword attachments."
+            ),
+            s(
+                "Voice Wake-up",
+                "Wake mode chooses between STT recognition and personal voice templates. Always listening keeps the microphone open for the wake phrase. In STT mode the wake phrase can be matched as a regular expression. Inactivity timeout ends an idle voice call after 1–600 seconds. Greeting speaks a fixed line when a session starts; New chat on wake creates a fresh conversation and places it in the configured group. Keyword attachments add selected context when their trigger word is heard."
+            )
+        )
+    ),
+    HelpTopic(
         id = "memory",
         title = "Memory Base",
         intro = "A knowledge graph of facts, documents and their links. The assistant reads it for context and, with auto-update on, writes new facts here after chats.",
@@ -132,7 +147,7 @@ val HelpTopics: List<HelpTopic> = listOf(
             ),
             s(
                 "App and testing",
-                "Permission manager — the same permission center as the setup wizard. Tool test center — exercise any tool with manual inputs. Token config — inspect token accounting. Process limit remover, Default assistant guide, User agreement — one-shot setup and legal screens."
+                "Permission manager — the same permission center as the setup wizard. Tool test center — exercise any tool with manual inputs. Token config — inspect token accounting. Process limit remover and Default assistant guide — one-shot setup screens."
             )
         )
     ),
@@ -281,6 +296,7 @@ fun helpTopicForScreen(screen: Any): String? {
     val name = screen.javaClass.simpleName
     return when (name) {
         "AiChat" -> "aichat"
+        "AssistantConfig" -> "assistant"
         "MemoryBase" -> "memory"
         "Packages", "PackageManager" -> "packages"
         "Toolbox" -> "toolbox"

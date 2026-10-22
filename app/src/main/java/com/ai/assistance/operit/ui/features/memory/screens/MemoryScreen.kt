@@ -83,6 +83,7 @@ import androidx.compose.ui.text.input.ImeAction
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.features.memory.screens.dialogs.MemorySearchSettingsDialog
 import com.ai.assistance.operit.ui.features.memory.screens.dialogs.MemorySearchSimulationDialog
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.ui.main.components.LocalIsCurrentScreen
 
 @Composable
@@ -101,7 +102,7 @@ fun MemorySearchBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        IconButton(onClick = onMenuClick) {
+        IconButton(onClick = onMenuClick, modifier = Modifier.helpAnchor("memory.folders")) {
             Icon(
                 Icons.Default.Folder, 
                 contentDescription = "Toggle Folders",
@@ -111,7 +112,7 @@ fun MemorySearchBar(
         OutlinedTextField(
             value = query,
             onValueChange = onQueryChange,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).helpAnchor("memory.search"),
             placeholder = { Text(stringResource(R.string.memory_search_hint)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -120,7 +121,7 @@ fun MemorySearchBar(
                 onSearch()
             })
         )
-        IconButton(onClick = onSettingsClick) {
+        IconButton(onClick = onSettingsClick, modifier = Modifier.helpAnchor("memory.search_settings")) {
             Icon(
                 Icons.Default.Settings,
                 contentDescription = stringResource(R.string.memory_search_settings_title),
@@ -266,7 +267,7 @@ fun MemoryScreen() {
                     FloatingActionButton(
                         onClick = { viewModel.showBatchDeleteConfirm() },
                         containerColor = MaterialTheme.colorScheme.errorContainer,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(48.dp).helpAnchor("memory.delete_selected")
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete Selected")
                     }
@@ -282,7 +283,7 @@ fun MemoryScreen() {
                         viewModel.toggleBoxSelectionMode(!uiState.isBoxSelectionMode)
                     },
                     containerColor = if (uiState.isBoxSelectionMode) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(48.dp).helpAnchor("memory.select")
                 ) {
                     Icon(Icons.Default.SelectAll, contentDescription = "Toggle Box Selection Mode")
                 }
@@ -296,7 +297,7 @@ fun MemoryScreen() {
                         viewModel.toggleLinkingMode(!uiState.isLinkingMode)
                     },
                     containerColor = if (uiState.isLinkingMode) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(48.dp).helpAnchor("memory.link")
                 ) {
                     Icon(Icons.Default.Link, contentDescription = "Toggle Linking Mode")
                 }
@@ -311,14 +312,14 @@ fun MemoryScreen() {
                             )
                         )
                     },
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(48.dp).helpAnchor("memory.import"),
                     containerColor = MaterialTheme.colorScheme.tertiaryContainer
                 ) {
                     Icon(Icons.Default.UploadFile, contentDescription = "Import Document")
                 }
                 FloatingActionButton(
                     onClick = { viewModel.startEditing(null) },
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(48.dp).helpAnchor("memory.create")
                 ) {
                     Icon(Icons.Default.Add, contentDescription = "Create Memory")
                 }

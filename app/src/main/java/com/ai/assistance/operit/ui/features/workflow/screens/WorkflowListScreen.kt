@@ -41,6 +41,7 @@ import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.model.ExecutionStatus
 import com.ai.assistance.operit.data.model.Workflow
 import com.ai.assistance.operit.ui.components.CustomScaffold
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.ui.features.workflow.viewmodel.WorkflowViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -111,7 +112,8 @@ fun WorkflowListScreen(
                                         isFabMenuExpanded = false
                                     },
                                     containerColor = MaterialTheme.colorScheme.errorContainer,
-                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.helpAnchor("workflow.delete_selected")
                                 )
                             }
                             SpeedDialAction(
@@ -121,7 +123,8 @@ fun WorkflowListScreen(
                                     selectedWorkflowIds = emptySet()
                                     isSelectionMode = false
                                     isFabMenuExpanded = false
-                                }
+                                },
+                                modifier = Modifier.helpAnchor("workflow.exit_select")
                             )
                         } else {
                             SpeedDialAction(
@@ -130,7 +133,8 @@ fun WorkflowListScreen(
                                 onClick = {
                                     showCreateDialog = true
                                     isFabMenuExpanded = false
-                                }
+                                },
+                                modifier = Modifier.helpAnchor("workflow.create_blank")
                             )
                             SpeedDialAction(
                                 text = stringResource(R.string.workflow_create_from_template),
@@ -138,7 +142,8 @@ fun WorkflowListScreen(
                                 onClick = {
                                     showTemplateDialog = true
                                     isFabMenuExpanded = false
-                                }
+                                },
+                                modifier = Modifier.helpAnchor("workflow.create_template")
                             )
                             SpeedDialAction(
                                 text = stringResource(R.string.multi_select),
@@ -147,7 +152,8 @@ fun WorkflowListScreen(
                                     selectedWorkflowIds = emptySet()
                                     isSelectionMode = true
                                     isFabMenuExpanded = false
-                                }
+                                },
+                                modifier = Modifier.helpAnchor("workflow.multi_select")
                             )
                         }
                     }
@@ -155,7 +161,8 @@ fun WorkflowListScreen(
 
                 FloatingActionButton(
                     onClick = { isFabMenuExpanded = !isFabMenuExpanded },
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.helpAnchor("workflow.create_menu")
                 ) {
                     val rotation by animateFloatAsState(
                         targetValue = if (isFabMenuExpanded) 45f else 0f,
@@ -219,7 +226,7 @@ fun WorkflowListScreen(
 
                         FilledTonalButton(
                             onClick = { showCreateDialog = true },
-                            modifier = Modifier.height(48.dp),
+                            modifier = Modifier.height(48.dp).helpAnchor("workflow.create_blank"),
                             contentPadding = PaddingValues(horizontal = 28.dp)
                         ) {
                             Icon(
@@ -591,9 +598,11 @@ private fun SpeedDialAction(
     icon: ImageVector,
     onClick: () -> Unit,
     containerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
-    contentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer
+    contentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
+    modifier: Modifier = Modifier
 ) {
     Row(
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {

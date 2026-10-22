@@ -82,6 +82,7 @@ import com.ai.assistance.operit.ui.features.chat.components.style.input.common.C
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.CharacterCardModelBindingSwitchConfirmDialog
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ToolPromptManagerDialog
 import com.ai.assistance.operit.ui.features.chat.components.style.input.common.ThinkingQualitySlider
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -406,6 +407,7 @@ fun ClassicChatSettingsBar(
                 .padding(vertical = 8.dp, horizontal = 2.dp)
                 .size(28.dp)
                 .align(Alignment.BottomEnd)
+                .helpAnchor("more")
         ) {
             Icon(
                 imageVector = Icons.Outlined.Tune,

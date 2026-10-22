@@ -59,6 +59,7 @@ import com.ai.assistance.operit.ui.features.packages.screens.mcp.components.MCPE
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.ui.components.ErrorDialog
 import com.ai.assistance.operit.ui.features.packages.components.EmptyState
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.ui.features.packages.components.PackageTab
 import com.ai.assistance.operit.ui.features.packages.dialogs.PackageDetailsDialog
 import com.ai.assistance.operit.ui.features.packages.dialogs.QuickPluginCreatorDialog
@@ -545,7 +546,8 @@ fun PackageManagerScreen(
                         SmallFloatingActionButton(
                             onClick = { showPackageLoadErrorsDialog = true },
                             containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.helpAnchor("packages.errors")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Error,
@@ -564,7 +566,8 @@ fun PackageManagerScreen(
                             showEnvDialog = true
                         },
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.helpAnchor("packages.env")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -580,7 +583,7 @@ fun PackageManagerScreen(
                             Modifier.shadow(
                                 elevation = 6.dp,
                                 shape = FloatingActionButtonDefaults.shape
-                            )
+                            ).helpAnchor("packages.market")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Store,
@@ -597,7 +600,7 @@ fun PackageManagerScreen(
                             Modifier.shadow(
                                 elevation = 6.dp,
                                 shape = FloatingActionButtonDefaults.shape
-                            )
+                            ).helpAnchor("packages.import")
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Add,
@@ -645,7 +648,7 @@ fun PackageManagerScreen(
                 Tab(
                     selected = selectedTab == PackageTab.PLUGINS,
                     onClick = { selectedTab = PackageTab.PLUGINS },
-                    modifier = Modifier.height(48.dp)
+                    modifier = Modifier.height(48.dp).helpAnchor("packages.tab.plugins")
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -677,7 +680,7 @@ fun PackageManagerScreen(
                 Tab(
                     selected = selectedTab == PackageTab.PACKAGES,
                     onClick = { selectedTab = PackageTab.PACKAGES },
-                    modifier = Modifier.height(48.dp)
+                    modifier = Modifier.height(48.dp).helpAnchor("packages.tab.packages")
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -709,7 +712,7 @@ fun PackageManagerScreen(
                 Tab(
                     selected = selectedTab == PackageTab.SKILLS,
                     onClick = { selectedTab = PackageTab.SKILLS },
-                    modifier = Modifier.height(48.dp)
+                    modifier = Modifier.height(48.dp).helpAnchor("packages.tab.skills")
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -741,7 +744,7 @@ fun PackageManagerScreen(
                 Tab(
                     selected = selectedTab == PackageTab.MCP,
                     onClick = { selectedTab = PackageTab.MCP },
-                    modifier = Modifier.height(48.dp)
+                    modifier = Modifier.height(48.dp).helpAnchor("packages.tab.mcp")
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

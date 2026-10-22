@@ -87,6 +87,122 @@ object HelpModeCatalog {
                 "Opens the sandboxed terminal that the assistant can drive when a task needs commands or files."
             ),
         ).associateBy { it.id },
+        "memory" to listOf(
+            e(
+                "memory.folders",
+                "Folders",
+                "Toggles the folder panel. Select a folder to filter the graph, or create, rename or delete folders there."
+            ),
+            e(
+                "memory.search",
+                "Search memories",
+                "Type a query and press Enter to run vector search over the current memory profile. The result highlights matching nodes."
+            ),
+            e(
+                "memory.search_settings",
+                "Search settings",
+                "Opens vector search and embedding settings: save options, rebuild the search index after imports, and simulate a search."
+            ),
+            e(
+                "memory.delete_selected",
+                "Delete selected",
+                "Appears in box-selection mode after nodes are selected. Opens a confirmation before deleting them."
+            ),
+            e(
+                "memory.select",
+                "Box selection",
+                "Turns box selection on or off. While on, drag across the graph to select several nodes; Delete selected then removes them."
+            ),
+            e(
+                "memory.link",
+                "Link mode",
+                "Turns link mode on or off. Pick two nodes, then set the link type, weight and description."
+            ),
+            e(
+                "memory.import",
+                "Import document",
+                "Opens the document picker. Text, PDF, DOC and DOCX files are read and split into memory nodes."
+            ),
+            e(
+                "memory.create",
+                "Create memory",
+                "Opens the new-memory dialog with title, content, type, source, credibility, importance, folder and tags."
+            ),
+        ).associateBy { it.id },
+        "packages" to listOf(
+            e(
+                "packages.tab.plugins",
+                "Plugins tab",
+                "Shows installable tool packages. Each card can be enabled, opened for details, or replaced by a newer version."
+            ),
+            e(
+                "packages.tab.packages",
+                "Packages tab",
+                "Shows script packages that add tools written in JavaScript or TypeScript. The same tab imports and updates them."
+            ),
+            e(
+                "packages.tab.skills",
+                "Skills tab",
+                "Shows skill definitions that give the assistant reusable instructions and supporting resources."
+            ),
+            e(
+                "packages.tab.mcp",
+                "MCP tab",
+                "Shows Model Context Protocol servers. Each entry lists its tools and whether the assistant can currently call them."
+            ),
+            e(
+                "packages.errors",
+                "Load errors",
+                "Appears only when a package failed to load. Opens the failing package names and their error messages."
+            ),
+            e(
+                "packages.env",
+                "Environment variables",
+                "Edits the environment values required by the imported plugins and packages. Empty optional values are allowed."
+            ),
+            e(
+                "packages.market",
+                "Artifact market",
+                "Opens the artifact market to browse and import published plugins, packages, skills and MCP presets."
+            ),
+            e(
+                "packages.import",
+                "Import",
+                "Opens the file picker for the current tab. Plugins and packages must match the selected tab's format."
+            ),
+        ).associateBy { it.id },
+        "workflow" to listOf(
+            e(
+                "workflow.create_menu",
+                "Create workflow",
+                "Expands the create menu: a blank workflow, a template, or multi-select. The plus turns into a close icon while the menu is open."
+            ),
+            e(
+                "workflow.create_blank",
+                "Blank workflow",
+                "Opens the editor with an empty trigger and step list. Add steps, variables and tools there."
+            ),
+            e(
+                "workflow.create_template",
+                "From template",
+                "Opens the template picker. Templates are supplied by installed tool packages."
+            ),
+            e(
+                "workflow.multi_select",
+                "Multi-select",
+                "Enables selection mode so several workflow cards can be deleted together."
+            ),
+            e(
+                "workflow.delete_selected",
+                "Delete selected",
+                "Deletes the selected workflows after confirmation. It appears only in selection mode with at least one card selected."
+            ),
+            e(
+                "workflow.exit_select",
+                "Exit selection",
+                "Clears the selection and leaves multi-select mode."
+            ),
+        ).associateBy { it.id },
         "toolbox" to listOf(
             e(
                 "toolbox.tool_tester",

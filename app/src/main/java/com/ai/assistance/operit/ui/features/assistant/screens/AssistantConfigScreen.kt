@@ -415,7 +415,8 @@ fun AssistantConfigScreen() {
                             OutlinedTextField(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(min = 48.dp),
+                                    .heightIn(min = 48.dp)
+                                    .helpAnchor("assistant.wake_phrase"),
                                 value = wakePhraseInput,
                                 onValueChange = { newValue ->
                                     wakePhraseInput = newValue
@@ -452,7 +453,8 @@ fun AssistantConfigScreen() {
                         OutlinedTextField(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 48.dp),
+                                .heightIn(min = 48.dp)
+                                .helpAnchor("assistant.timeout"),
                             value = inactivityTimeoutInput,
                             onValueChange = { newValue ->
                                 val filtered = newValue.filter { it.isDigit() }
@@ -494,7 +496,8 @@ fun AssistantConfigScreen() {
                         OutlinedTextField(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 48.dp),
+                                .heightIn(min = 48.dp)
+                                .helpAnchor("assistant.greeting_text"),
                             value = wakeGreetingTextInput,
                             onValueChange = { newValue ->
                                 wakeGreetingTextInput = newValue
@@ -529,7 +532,8 @@ fun AssistantConfigScreen() {
                         OutlinedTextField(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = 48.dp),
+                                .heightIn(min = 48.dp)
+                                .helpAnchor("assistant.new_chat_group"),
                             value = autoNewChatGroupInput,
                             onValueChange = { newValue ->
                                 autoNewChatGroupInput = newValue

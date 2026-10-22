@@ -964,6 +964,7 @@ fun AgentChatInputSection(
                                 Modifier
                                     .padding(start = 8.dp)
                                     .size(36.dp)
+                                    .helpAnchor("attach")
                                     .clickable(
                                         enabled = true,
                                         onClick = {
@@ -983,7 +984,7 @@ fun AgentChatInputSection(
                                     } else {
                                         MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                                     },
-                                modifier = Modifier.size(24.dp).helpAnchor("attach"),
+                                modifier = Modifier.size(24.dp),
                             )
                         }
 
@@ -1265,6 +1266,7 @@ fun AgentChatInputSection(
                                         Modifier
                                             .padding(start = 8.dp)
                                             .size(36.dp)
+                                            .helpAnchor("attach")
                                             .clickable(
                                                 enabled = true,
                                                 onClick = {
@@ -1284,7 +1286,7 @@ fun AgentChatInputSection(
                                         } else {
                                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
                                         },
-                                    modifier = Modifier.size(24.dp).helpAnchor("attach"),
+                                    modifier = Modifier.size(24.dp),
                                 )
                             }
 

@@ -12,7 +12,9 @@ turns short taps into element descriptions.
 - `Modifier.helpAnchor(id, scopeOverride)` publishes the control's bounds in
   root coordinates. It does not change the control's click, gesture or scroll
   behavior. `scopeOverride` registers the anchor under another screen id, which
-  is how an overlay annotates itself.
+  is how an overlay annotates itself. A `DisposableEffect` removes the anchor
+  when the control leaves composition, so tab switches, collapsed sections and
+  recycled list rows cannot leave stale rectangles that answer later taps.
 - `Modifier.helpTapInterceptor(state)` is attached once per screen wrapper. It
   observes the pointer stream at the initial pass, leaves the press and drag
   untouched, and consumes only the up event of a short tap. That keeps lists
@@ -36,6 +38,14 @@ an entry when a plugin card becomes standard.
 
 Settings rows use `settings.*`. The shared row composables take an optional
 `modifier`, so the anchor wraps the whole clickable row rather than a label.
+
+Assistant Config uses two tabs under the same screen id. Anchors on the
+visible tab only are live; anchors on the hidden tab are disposed. The Agent
+chat input bar (the default composer) publishes `attach`, `model`, `more`,
+`composer`, `composer_expand` and `send`; `attach` and `send` are anchored on
+the outer touch targets, not the icons. The composer sits at the bottom window
+edge, so the lower part of its 36 dp attach target is clipped by the system
+navigation bar even though help reads the unclipped Compose bounds.
 
 The Workspace is an overlay inside AI Chat, not a routed screen. Its header
 `?` calls `helpMode.toggle("workspace")` and its controls call

@@ -6,11 +6,41 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-22, HEAD `d01dc15b`,
+**Date:** 2026-10-23, HEAD `16946e4c`,
 branch `feat/english-only-build`
 
-**CURRENT 22.10 — phase 2 help mostly done; phase 3 in progress.**
-Phone runs CI `39702837798` (APK dir `apk/20261022_005741Z/`,
+**CURRENT 23.10 — Assistant/Agent help verified; stale-anchor fix waits for CI.**
+Phone runs CI `39824917364` (APK dir `apk/20261022_180451Z/`,
+99,716,508 B, sha256 `221b88c67d8e48c40da3e9bf142e511b30954c5972b4844e500fc2dca79c787e`).
+This candidate adds the Assistant Config and agent input-bar help plus the
+four missing text-field anchors, and the full 36 dp attach hit area. Verified
+on the phone: Assistant → Voice Wake-up cards for Wake mode, Always listening,
+Wake phrase, Regex, Inactivity timeout, Greeting, Greeting text, New chat,
+New chat group and Keyword attachments; Assistant → Avatar cards for the
+Avatar tab and Collapse preview; Chat cards for Model selection, More options,
+Attach, and the previously checked composer/expand/send. Attach now answers
+across the whole 36 dp left edge; the bottom of that box is clipped by the
+navigation bar because the composer row sits at the window edge, so only the
+top ~22 px of the touch target is reachable. The next commit unregisters
+anchors on disposal (`HelpModeState.unregister`, `DisposableEffect` in
+`Modifier.helpAnchor`) because hidden tab content left stale rectangles that
+could answer a tap on another tab (seen when the Avatar enable switch invoked
+the Voice Wake-up Greeting card). This fix still needs a CI build and the
+same two-tab retest.
+All three STT checkpoints are restored after the clean uninstall, in the
+shared folder (`/storage/emulated/0/Download/Operit/`): GigaAM `stt_model`
+225 MB, Parakeet `stt_parakeet` 670 MB, Nemotron `stt_nemotron` 682 MB,
+including the extracted `libsherpa-onnx-jni.so` (24,169,352 B). The
+`app_data_location` preference was set to `EXTERNAL_SHARED`; Speech Services
+shows all three as Ready at those paths. Restore recipe: fetch the pinned
+URLs from `GigaAMModelFiles`, `ParakeetModelFiles` and `NemotronModelFiles`
+(verify their sha256), push the files into the matching leaf under
+`Download/Operit`, extract `jni/arm64-v8a/libsherpa-onnx-jni.so` from the
+sherpa AAR into `stt_nemotron`, then write
+`shared_prefs/app_data_location.xml` with `location=EXTERNAL_SHARED`.
+
+PREVIOUS 22.10 — phase 2 help mostly done; phase 3 in progress.
+Phone ran CI `39702837798` (APK dir `apk/20261022_005741Z/`,
 99,710,580 B, sha256 `d69080c5c0a983fba78cc90c47a7f82d170e2277c2c426ea88ebb468fd422e59`).
 This build adds help anchors to 22 Settings rows and a help mode to the
 Workspace overlay: its own `?`, three element cards (`workspace.tabs`,

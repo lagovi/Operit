@@ -22,6 +22,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -78,6 +79,10 @@ class HelpModeState {
 
     fun register(scope: String, id: String, rect: Rect) {
         anchors["$scope:$id"] = rect
+    }
+
+    fun unregister(scope: String, id: String) {
+        anchors.remove("$scope:$id")
     }
 
     fun tap(position: Offset) {
@@ -150,6 +155,13 @@ val LocalHelpScreenId = androidx.compose.runtime.compositionLocalOf { "" }
 fun Modifier.helpAnchor(id: String, scopeOverride: String? = null): Modifier = composed {
     val state = LocalHelpMode.current
     val scope = scopeOverride ?: LocalHelpScreenId.current
+    DisposableEffect(state, scope, id) {
+        onDispose {
+            if (scope.isNotBlank()) {
+                state.unregister(scope, id)
+            }
+        }
+    }
     this.onGloballyPositioned { coordinates ->
         if (scope.isNotBlank()) {
             state.register(scope, id, coordinates.boundsInRoot())

@@ -6,33 +6,33 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-23, HEAD `16946e4c`,
+**Date:** 2026-10-23, HEAD `c8ecd067`,
 branch `feat/english-only-build`
 
-**CURRENT 23.10 — Assistant/Agent help verified; stale-anchor fix waits for CI.**
-Phone runs CI `39824917364` (APK dir `apk/20261022_180451Z/`,
-99,716,508 B, sha256 `221b88c67d8e48c40da3e9bf142e511b30954c5972b4844e500fc2dca79c787e`).
-This candidate adds the Assistant Config and agent input-bar help plus the
-four missing text-field anchors, and the full 36 dp attach hit area. Verified
-on the phone: Assistant → Voice Wake-up cards for Wake mode, Always listening,
-Wake phrase, Regex, Inactivity timeout, Greeting, Greeting text, New chat,
-New chat group and Keyword attachments; Assistant → Avatar cards for the
-Avatar tab and Collapse preview; Chat cards for Model selection, More options,
-Attach, and the previously checked composer/expand/send. Attach now answers
-across the whole 36 dp left edge; the bottom of that box is clipped by the
-navigation bar because the composer row sits at the window edge, so only the
-top ~22 px of the touch target is reachable. The next commit unregisters
-anchors on disposal (`HelpModeState.unregister`, `DisposableEffect` in
-`Modifier.helpAnchor`) because hidden tab content left stale rectangles that
-could answer a tap on another tab (seen when the Avatar enable switch invoked
-the Voice Wake-up Greeting card). This fix still needs a CI build and the
-same two-tab retest.
-All three STT checkpoints are restored after the clean uninstall, in the
+**CURRENT 23.10 — Assistant/Agent help and anchor disposal accepted.**
+Phone runs CI `39917337180` (APK dir `apk/20261023_072258Z/`,
+99,716,848 B, sha256 `d3752386bce44197457d9063fa10e98653f274c7f1cb750e87d11a38d9e2fc3d`),
+commit `c8ecd067` (code `9242665b`). This is the previous candidate
+`39824917364` plus anchor disposal: `HelpModeState.unregister` and a
+`DisposableEffect` in `Modifier.helpAnchor` remove a rectangle when its control
+leaves composition. Verified after a clean install and onboarding (Root
+selected): switch Voice Wake-up → Avatar with help off, enable help, tap the
+Avatar enable switch — the Assistant screen guide opens instead of the stale
+Voice Wake-up Greeting card; switching back and tapping Greeting still opens
+the Greeting card. The earlier candidate was also accepted for the Assistant
+Config and agent input-bar coverage: Voice Wake-up cards for Wake mode, Always
+listening, Wake phrase, Regex, Inactivity timeout, Greeting, Greeting text,
+New chat, New chat group and Keyword attachments; Avatar cards for the Avatar
+tab and Collapse preview; Chat cards for Model selection, More options,
+Attach, and composer/expand/send. Attach answers across the whole 36 dp left
+edge; the bottom of that box is clipped by the navigation bar because the
+composer row sits at the window edge, so only the top ~22 px is reachable.
+All three STT checkpoints are restored after the clean installs, in the
 shared folder (`/storage/emulated/0/Download/Operit/`): GigaAM `stt_model`
 225 MB, Parakeet `stt_parakeet` 670 MB, Nemotron `stt_nemotron` 682 MB,
 including the extracted `libsherpa-onnx-jni.so` (24,169,352 B). The
 `app_data_location` preference was set to `EXTERNAL_SHARED`; Speech Services
-shows all three as Ready at those paths. Restore recipe: fetch the pinned
+on `39917337180` shows all three as Ready at those paths. Restore recipe: fetch the pinned
 URLs from `GigaAMModelFiles`, `ParakeetModelFiles` and `NemotronModelFiles`
 (verify their sha256), push the files into the matching leaf under
 `Download/Operit`, extract `jni/arm64-v8a/libsherpa-onnx-jni.so` from the

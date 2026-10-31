@@ -63,11 +63,13 @@ Update this file after every completed item. Do not rely on chat context.
     `docs/FORK-REGISTRY/AVATAR-3D-RESEARCH.md`; six glTF presets published to
     `lagovi/OperitAvatarAssets` with a `presets.json` catalog and per-model
     `LICENSE.txt`.
-  - [ ] Implement the gallery: Presets / Device / Create tabs, catalog fetch
-    and verified download into app storage, and the same picker from the card,
-    group, per-card user and global user avatar entry points.
-  - [ ] Implement Create: draw on a canvas, local composition, and generation
-    through the user's OpenAI-compatible image endpoint.
+  - [x] Gallery implemented: Presets / Device / Create / Backend tabs; catalog
+    fetched from `lagovi/OperitAvatarAssets`, sha256 verified, model installed
+    into `AvatarRepository`; entry points wired for character card, group card,
+    per-card user portrait, global user portrait and the assistant avatar list.
+  - [x] Create implemented: draw, local composition, and generation through an
+    explicit OpenAI-compatible images endpoint.
+  - [ ] On-device acceptance of the whole gallery flow in one signed-off build.
   - [ ] Implement the Assistant import doctor and the Blender guide/skill.
 - [x] G4. Workflow guided explanation for triggers, variables and tool steps.
 

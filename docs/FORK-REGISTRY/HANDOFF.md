@@ -35,20 +35,22 @@ Open after this batch:
 - H4/V2/V3: closed. The accepted build and its verification are above. The
   only unverified surface is the terminal Home toolbar anchors after package
   setup; the setup card anchor and the terminal module sink are verified.
-- G3: avatar presets and a user-friendly avatar workflow are the next large
-  task, but only after the current backlog and full regression testing are
-  complete. Start with research and a written options proposal for user
-  approval; do not implement before approval. Cover: which avatars are needed
-  (character portraits, group avatars, assistant avatar, style variants); how
-  users are supposed to create/choose them now and why the current flow is
-  unclear; options such as bundled presets, fork-hosted downloads, optional
-  third-party image services, better local import/crop, or user-provided
-  images only, and self-creation of a new avatar (drawing, generative prompt,
-  or local composition) as a mandatory option; and privacy, licensing, network
-  and storage consequences.
-  Current facts: no preset metadata, images or download URLs exist in the
-  fork; the only known local avatar is `file:///android_asset/operit.png`.
-  `CharacterCardDialog` is the main current entry point.
+- G3: research is done and committed as
+  `docs/FORK-REGISTRY/AVATAR-RESEARCH.md` (commit `e6c90765`). It documents the
+  current storage keys (`<card|group prefix>custom_ai_avatar_uri`,
+  `custom_user_avatar_uri`, global user avatar), the existing flow (tap avatar →
+  `GetContent` → `CropImageContract` 1:1 → copy into `filesDir`), and why it
+  feels unclear. It compares six options: bundled presets, fork-hosted packs,
+  third-party service, better local import, user images only, and
+  self-creation (draw / generate / local compose). Nothing is implemented;
+  the user has to approve one option and answer four open questions in that
+  document: presets source, whether Generate is in scope, which avatar kinds
+  get presets, and the preset style set. Facts: the only bundled portrait is
+  `app/src/main/assets/operit.png` (1024×1024, 1.3 MB); there is no preset
+  metadata; group cards already have a local composition fallback in
+  `CharacterGroupCardManager.buildDefaultGroupAvatar`; image outputs from
+  OpenAI-compatible providers are already parsed (`b64_json` in
+  `OpenAIProvider.kt`).
 - F3: Settings subtitle rows now allow two lines and chat rows already use
   weighted text, but the 360 dp visual check still has to happen on the phone
   (`SettingsScreen.kt`, `ClassicChatSettingsBar.kt`, `ModelApiSettingsSection.kt`).

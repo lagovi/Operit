@@ -174,3 +174,19 @@ Animated Assistant avatars are a separate system; see `AVATAR-3D-RESEARCH.md`.
 1. For generation, only OpenAI-compatible image endpoints are planned. Is that
    enough, or must other providers be covered in the first iteration?
 2. Who reviews preset licences before a pack is published?
+
+## Image generation backends to support
+
+The Create → Generate tab talks to a configurable HTTP endpoint. Three
+backends are planned, all reachable through the same client:
+
+| Backend | Where it runs | Notes |
+| --- | --- | --- |
+| OpenAI-compatible images API | Any provider the user already has | `POST /v1/images/generations`, returns `b64_json` or URL |
+| Google Colab notebook | User's own Colab runtime | Free GPU hours; user supplies their existing workflow later |
+| Bonsai Image 4B (Prism ML) | User's CUDA machine or a hosted instance | Apache-2.0; binary 4.09 GB or ternary 4.55 GB payload; 4-step sampler; Flash-like speed on A100 |
+
+Bonsai's own card says it needs an NVIDIA GPU with CUDA and runs on Linux and
+Windows, so it cannot run inside the Android app. The app only needs to reach
+it over HTTP, which the OpenAI-compatible client already covers. Concrete
+Colab integration is deferred until the user provides their existing notes.

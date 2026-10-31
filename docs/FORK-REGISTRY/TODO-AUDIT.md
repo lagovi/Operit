@@ -69,7 +69,10 @@ Update this file after every completed item. Do not rely on chat context.
     per-card user portrait, global user portrait and the assistant avatar list.
   - [x] Create implemented: draw, local composition, and generation through an
     explicit OpenAI-compatible images endpoint.
-  - [ ] On-device acceptance of the whole gallery flow in one signed-off build.
+  - [x] On-device acceptance in CI `41251376299` / commit `dfdc111e`: presets
+    load from the fork, Xbot installs and renders, staging copy is removed,
+    draw and compose save into the avatar slot, the global portrait and the
+    assistant preset list open. APK archived in `apk/20261031_231010Z/`.
   - [ ] Implement the Assistant import doctor and the Blender guide/skill.
 - [x] G4. Workflow guided explanation for triggers, variables and tool steps.
 

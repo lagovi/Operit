@@ -9,7 +9,33 @@
 **Date:** 2026-10-31, HEAD `c96de0f4` plus the uncommitted batch below,
 branch `feat/english-only-build`
 
-**CURRENT 31.10 — TZ batch accepted in CI `41218273980`.**
+**CURRENT 01.11 — avatar gallery accepted in CI `41251376299`.**
+Commit `dfdc111e`, APK
+`/home/uzzzver/operit-fork/apk/20261031_231010Z/app-debug.apk`
+(99,834,656 B, sha256
+`74d53a78f0549474b8d62998aae05f5fc9c2d7f7615b391c6a5d5ebc30fdcc0d`).
+
+Avatar work delivered: `data/avatar/AvatarPresetRepository` (catalog +
+sha256-verified download from `lagovi/OperitAvatarAssets`),
+`data/avatar/AvatarAssetStore` (single square-portrait save path),
+`data/avatar/AvatarImageGenerator` with `AvatarImageGenerationSettings`
+(explicit OpenAI-compatible images endpoint, key and model),
+`ui/.../AvatarGalleryDialog` with Presets / Device / Create / Backend, and
+`AvatarRepository.installGltfPreset`. Entry points: character card, group
+card, per-card user portrait, global user portrait, and the assistant avatar
+list (`AssistantConfigScreen` → Preset gallery icon).
+
+Verified on the phone after a clean install: the catalog loads, Xbot installs
+into `files/avatars/Xbot`, the private staging copy is deleted, draw and
+composition write `drawn_avatar_*.png` / `composed_avatar_*.png` and the URI
+lands in the card theme key, the global portrait gallery opens, the assistant
+gallery installs and switches the model.
+
+Not yet done: generation against a live image endpoint (no endpoint was
+configured during acceptance), Colab integration (waiting for the user's
+existing notes), and the assistant "import doctor" plus the Blender guide.
+
+**Previous accepted build — TZ batch, CI `41218273980`.**
 Commit `5da03469` (terminal submodule `04a6457`), CI
 `41218273980`, APK
 `/home/uzzzver/operit-fork/apk/20261031_160912Z/app-debug.apk`

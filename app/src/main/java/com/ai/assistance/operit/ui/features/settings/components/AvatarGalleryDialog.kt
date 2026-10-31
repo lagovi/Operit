@@ -611,10 +611,21 @@ private fun ComposePad(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
+                .heightIn(max = 200.dp)
                 .background(background, RoundedCornerShape(12.dp))
         ) {
             drawComposeShape(shape, accent, size.width, size.height)
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = {
+            scope.launch {
+                val bitmap = renderCompose(shape, background, accent, 512)
+                AvatarAssetStore.saveBitmap(context, bitmap, "composed_avatar")?.let { uri ->
+                    onImageReady(uri)
+                    onDone()
+                }
+            }
+        }) { Text("Use composition") }
         Spacer(modifier = Modifier.height(8.dp))
         Text("Shape", style = MaterialTheme.typography.labelMedium)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -636,16 +647,6 @@ private fun ComposePad(
                 Swatch(option, accent == option) { accent = option }
             }
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        Button(onClick = {
-            scope.launch {
-                val bitmap = renderCompose(shape, background, accent, 512)
-                AvatarAssetStore.saveBitmap(context, bitmap, "composed_avatar")?.let { uri ->
-                    onImageReady(uri)
-                    onDone()
-                }
-            }
-        }) { Text("Use composition") }
     }
 }
 

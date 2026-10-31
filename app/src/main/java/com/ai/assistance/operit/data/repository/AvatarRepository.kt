@@ -843,7 +843,7 @@ class AvatarRepository(
             val safeId = sanitizeImportDirectoryName(presetId)
             val targetDir = File(userAvatarDir, safeId)
             targetDir.mkdirs()
-            val displayDir = File(userAvatarDir, "$safeId $name".replace(" ", "_"))
+            val displayDir = File(userAvatarDir, sanitizeImportDirectoryName(name))
             if (displayDir != targetDir) {
                 targetDir.deleteRecursively()
                 displayDir.mkdirs()

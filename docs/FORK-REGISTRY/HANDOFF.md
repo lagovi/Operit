@@ -9,20 +9,32 @@
 **Date:** 2026-10-31, HEAD `c96de0f4` plus the uncommitted batch below,
 branch `feat/english-only-build`
 
-**CURRENT 31.10 — TZ implementation batch, not built yet.**
-This commit contains the full batch for `docs/FORK-REGISTRY/TODO-AUDIT.md`
-(A–H). No CI run exists yet, so H4/V2/V3 are still open.
+**CURRENT 31.10 — TZ batch accepted in CI `41218273980`.**
+Commit `5da03469` (terminal submodule `04a6457`), CI
+`41218273980`, APK
+`/home/uzzzver/operit-fork/apk/20261031_160912Z/app-debug.apk`
+(99,736,928 B, sha256
+`d3a14d17135db5b749b46a9a57920aedc75ad2528ab20596b38c52f027775f16`).
 `python3 ci/script/fork_audit.py --no-color --no-hotspots` passes (44 anchors,
-0 lost). Local Kotlin compilation is impossible on this host: only
-`/usr/lib/android-sdk/platform-tools` exists, with no platforms or build-tools.
-H4 therefore needs a commit and push, a manual CI dispatch, install on
-`192.168.1.69:5555`, and the usual uninstall-first step because the debug key
-changes. The terminal changes live in the `terminal` submodule and must be
-committed/pushed before the parent pointer.
+0 lost). The APK was installed after a clean uninstall because the debug key
+changes; onboarding selected Root.
+Verified on the phone: Module center (Speech / OCR Not downloaded / MNN), model
+test diagnostics (HTTP 200, 3467 ms), memory weight descriptions and stacked
+Reset/Cancel, Prompt Monitor tab and its section toggles, per-store cookie
+dialog, help top-bar cards for `computer` and `workspace`, help banner Exit /
+Screen guide / All topics, and the terminal setup help card after the 61 MB
+rootfs download. The terminal Home toolbar anchors (`terminal_settings`,
+`terminal_input`, extra keys) were not reached because the setup packages were
+not installed; the anchor plumbing itself is the same as the verified setup
+card.
+Two acceptance bugs were found and fixed before this build: the help tap
+interceptor now covers the top bar (`AppContent.kt`), and the help banner
+rectangle is excluded so its own buttons work (`HelpMode.kt`).
 
 Open after this batch:
-- H4/V2/V3: build, install, smoke-test at 360 dp / font scale 1.0, archive the
-  APK under `/home/uzzzver/operit-fork/apk/<UTC-CI-start>/` with `CHANGES.md`.
+- H4/V2/V3: closed. The accepted build and its verification are above. The
+  only unverified surface is the terminal Home toolbar anchors after package
+  setup; the setup card anchor and the terminal module sink are verified.
 - G3: avatar presets and a user-friendly avatar workflow are the next large
   task, but only after the current backlog and full regression testing are
   complete. Start with research and a written options proposal for user

@@ -63,10 +63,25 @@ Update this file after every completed item. Do not rely on chat context.
 - [x] H1. Rename the Tool Tester download fixture label or its destination.
 - [x] H2. Verified the workspace File Manager rows are already compact (8 dp vertical padding, 20 dp icon, single-line ellipsis).
 - [x] H3. Check the help banner at 360 dp; compact it if it wraps badly.
-- [~] H4. Build on CI, install, smoke-test, archive APK with `CHANGES.md`.
+- [x] H4. Build on CI, install, smoke-test, archive APK with `CHANGES.md`.
+  - [x] First CI `41166171224` green; APK installed after a clean uninstall.
+  - [x] Smoke-tested Module center, model diagnostics (HTTP 200, latency 3467 ms),
+    memory weight descriptions/button layout and Prompt Monitor toggles.
+  - [x] Found that the help tap interceptor covered only screen content, not the
+    top bar, so `computer`/`workspace` anchors did not open their cards.
+    Fixed in `AppContent.kt`; CI `41215247651` is building the fix.
+  - [x] CI `41215247651` green; installed. Top-bar anchors now open their cards.
+  - [x] Second bug found during that test: the Scaffold-wide interceptor also
+    swallowed taps on the help banner, so Exit/Screen guide/All topics were dead.
+    Fixed in `HelpMode.kt` by excluding the banner rectangle; CI
+    `41218273980` is building the fix.
+  - [x] Installed `41218273980`; Exit, Screen guide and All topics all work.
+  - [x] Terminal setup help opens its card after the rootfs download.
+  - [x] Archived as `/home/uzzzver/operit-fork/apk/20261031_160912Z/` with
+    `CHANGES.md`, APK sha256 `d3a14d17135db5b749b46a9a57920aedc75ad2528ab20596b38c52f027775f16`.
 
 ## Verification
 
 - [x] V1. `python3 ci/script/fork_audit.py --no-color --no-hotspots` (pass, 44 anchors, 0 lost).
-- [ ] V2. CI green
-- [ ] V3. On-device smoke test at 360 dp / font scale 1.0
+- [x] V2. CI green (`41218273980`, commit `5da03469`).
+- [x] V3. On-device smoke test at 360 dp / font scale 1.0 (terminal Home toolbar anchors not reached; setup anchor verified).

@@ -463,6 +463,47 @@ private fun DrawPad(
     )
 
     Column {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            OutlinedButton(onClick = { if (strokes.isNotEmpty()) strokes.removeAt(strokes.lastIndex) }) {
+                Icon(Icons.Default.Undo, contentDescription = null)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Undo")
+            }
+            OutlinedButton(onClick = { strokes.clear() }) {
+                Icon(Icons.Default.Delete, contentDescription = null)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Clear")
+            }
+            Button(
+                enabled = strokes.isNotEmpty(),
+                onClick = {
+                    scope.launch {
+                        val bitmap = renderDrawPad(strokes, 512)
+                        AvatarAssetStore.saveBitmap(context, bitmap, "drawn_avatar")?.let { uri ->
+                            onImageReady(uri)
+                            onDone()
+                        }
+                    }
+                }
+            ) { Text("Use drawing") }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            palette.forEach { swatch ->
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(swatch, CircleShape)
+                        .border(
+                            if (swatch == color) 2.dp else 1.dp,
+                            MaterialTheme.colorScheme.outline,
+                            CircleShape
+                        )
+                        .clickable { color = swatch }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -508,47 +549,6 @@ private fun DrawPad(
                     drawCircle(stroke.color, 4.dp.toPx(), stroke.points[0])
                 }
             }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            palette.forEach { swatch ->
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(swatch, CircleShape)
-                        .border(
-                            if (swatch == color) 2.dp else 1.dp,
-                            MaterialTheme.colorScheme.outline,
-                            CircleShape
-                        )
-                        .clickable { color = swatch }
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedButton(onClick = { if (strokes.isNotEmpty()) strokes.removeAt(strokes.lastIndex) }) {
-                Icon(Icons.Default.Undo, contentDescription = null)
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Undo")
-            }
-            OutlinedButton(onClick = { strokes.clear() }) {
-                Icon(Icons.Default.Delete, contentDescription = null)
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Clear")
-            }
-            Button(
-                enabled = strokes.isNotEmpty(),
-                onClick = {
-                    scope.launch {
-                        val bitmap = renderDrawPad(strokes, 512)
-                        AvatarAssetStore.saveBitmap(context, bitmap, "drawn_avatar")?.let { uri ->
-                            onImageReady(uri)
-                            onDone()
-                        }
-                    }
-                }
-            ) { Text("Use drawing") }
         }
     }
 }

@@ -75,9 +75,19 @@ class HelpModeState {
 
     private val anchors = mutableMapOf<String, Rect>()
     private var layerOrigin = Offset.Zero
+    private var overlayBounds: Rect? = null
 
     fun setLayerOrigin(origin: Offset) {
         layerOrigin = origin
+    }
+
+    fun setOverlayBounds(bounds: Rect?) {
+        overlayBounds = bounds
+    }
+
+    fun isInsideOverlay(position: Offset): Boolean {
+        val absolute = position + layerOrigin
+        return overlayBounds?.contains(absolute) == true
     }
 
     fun register(scope: String, id: String, rect: Rect) {
@@ -219,8 +229,10 @@ fun Modifier.helpTapInterceptor(state: HelpModeState): Modifier = composed {
                     }
                 }
                 if (up != null && maxDistance <= viewConfiguration.touchSlop) {
-                    up.consume()
-                    state.tap(down.position)
+                    if (!state.isInsideOverlay(down.position)) {
+                        up.consume()
+                        state.tap(down.position)
+                    }
                 }
             }
         }
@@ -239,13 +251,17 @@ fun HelpModeOverlay(
 ) {
     if (!state.enabled) return
     BackHandler { state.disable() }
+    DisposableEffect(Unit) {
+        onDispose { state.setOverlayBounds(null) }
+    }
 
     Box(modifier = Modifier.fillMaxSize().zIndex(3f)) {
         Surface(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(start = 12.dp, end = 12.dp, top = 72.dp, bottom = 8.dp)
-                .widthIn(max = 560.dp),
+                .widthIn(max = 560.dp)
+                .onGloballyPositioned { state.setOverlayBounds(it.boundsInRoot()) },
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.inverseSurface,
             contentColor = MaterialTheme.colorScheme.inverseOnSurface,

@@ -116,7 +116,7 @@ fun AvatarGalleryDialog(
         onDismissRequest = onDismiss,
         title = { Text(title, fontWeight = FontWeight.Bold) },
         text = {
-            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
+            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 460.dp)) {
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(
                         selected = selectedTab == 0,
@@ -467,6 +467,7 @@ private fun DrawPad(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
+                .heightIn(max = 240.dp)
                 .background(Color.White, RoundedCornerShape(12.dp))
                 .pointerInput(color) {
                     detectDragGestures(
@@ -525,19 +526,17 @@ private fun DrawPad(
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Row {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             OutlinedButton(onClick = { if (strokes.isNotEmpty()) strokes.removeAt(strokes.lastIndex) }) {
                 Icon(Icons.Default.Undo, contentDescription = null)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Undo")
             }
-            Spacer(modifier = Modifier.width(8.dp))
             OutlinedButton(onClick = { strokes.clear() }) {
                 Icon(Icons.Default.Delete, contentDescription = null)
                 Spacer(modifier = Modifier.width(4.dp))
                 Text("Clear")
             }
-            Spacer(modifier = Modifier.width(8.dp))
             Button(
                 enabled = strokes.isNotEmpty(),
                 onClick = {

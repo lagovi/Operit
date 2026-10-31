@@ -81,6 +81,7 @@ import androidx.compose.foundation.layout.Arrangement
 import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelOption
 import com.ai.assistance.operit.ui.components.CustomScaffold
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.ui.features.settings.sections.GigaAMModelSection
 import com.ai.assistance.operit.ui.features.settings.sections.ParakeetModelSection
 import com.ai.assistance.operit.ui.features.settings.sections.NemotronModelSection
@@ -403,13 +404,16 @@ fun SpeechServicesSettingsScreen(
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
                 item {
+                    Box(modifier = Modifier.helpAnchor("speech.tabs")) {
                     SpeechServicesModeTabs(
                         selectedTabIndex = selectedTabIndex,
                         onTabSelected = { selectedTabIndex = it },
                     )
+                    }
                 }
 
                 item {
+                    Box(modifier = Modifier.helpAnchor("speech.profiles")) {
                     SpeechProfileManagementBar(
                         selectedTabIndex = selectedTabIndex,
                         ttsProfiles = ttsProfiles.map { SpeechProfileOption(it.id, it.name) },
@@ -455,12 +459,13 @@ fun SpeechServicesSettingsScreen(
                         onDeleteTts = { id -> ttsProfilePendingDeletionId = id },
                         onDeleteStt = { id -> sttProfilePendingDeletionId = id },
                     )
+                    }
                 }
 
                 if (selectedTabIndex == 0) item(key = "tts-settings") {
                 // --- TTS Section ---
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().helpAnchor("speech.tts"),
                     shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -1683,7 +1688,7 @@ fun SpeechServicesSettingsScreen(
                 if (selectedTabIndex == 1) item(key = "stt-settings") {
                 // --- STT Section ---
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().helpAnchor("speech.stt"),
                     shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -1752,7 +1757,7 @@ fun SpeechServicesSettingsScreen(
 
                         AnimatedVisibility(visible = sttServiceTypeInput == SpeechServiceFactory.SpeechServiceType.LOCAL_GIGAAM) {
                             Column(modifier = Modifier.padding(top = 16.dp)) {
-                                GigaAMModelSection()
+                                Box(modifier = Modifier.helpAnchor("speech.local_models")) { GigaAMModelSection() }
                                 Spacer(modifier = Modifier.height(16.dp))
                                 LocalSttTuningSection()
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -1762,7 +1767,7 @@ fun SpeechServicesSettingsScreen(
 
                         AnimatedVisibility(visible = sttServiceTypeInput == SpeechServiceFactory.SpeechServiceType.LOCAL_PARAKEET) {
                             Column(modifier = Modifier.padding(top = 16.dp)) {
-                                ParakeetModelSection()
+                                Box(modifier = Modifier.helpAnchor("speech.local_models")) { ParakeetModelSection() }
                                 Spacer(modifier = Modifier.height(16.dp))
                                 LocalSttTuningSection()
                                 Spacer(modifier = Modifier.height(16.dp))
@@ -1772,7 +1777,7 @@ fun SpeechServicesSettingsScreen(
 
                         AnimatedVisibility(visible = sttServiceTypeInput == SpeechServiceFactory.SpeechServiceType.LOCAL_NEMOTRON) {
                             Column(modifier = Modifier.padding(top = 16.dp)) {
-                                NemotronModelSection()
+                                Box(modifier = Modifier.helpAnchor("speech.local_models")) { NemotronModelSection() }
                                 Spacer(modifier = Modifier.height(16.dp))
                                 LocalSttTuningSection()
                                 Spacer(modifier = Modifier.height(16.dp))

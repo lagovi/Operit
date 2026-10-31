@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.MoreVert
 import com.ai.assistance.operit.ui.components.CustomScaffold
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.material3.LocalTextStyle
@@ -56,6 +57,8 @@ import com.ai.assistance.operit.data.model.PromptTag
 import com.ai.assistance.operit.data.model.TagType
 import com.ai.assistance.operit.data.preferences.CharacterCardBilingualData
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
+import com.ai.assistance.operit.data.preferences.CharacterPromptSection
+import com.ai.assistance.operit.data.preferences.CharacterPromptSectionVisibility
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
@@ -128,8 +131,11 @@ fun ModelPromptsSettingsScreen(
     )
 
     // 状态
-    var currentTab by remember { mutableStateOf(0) } // 0: 角色卡, 1: 标签, 2: 群组
+    var currentTab by remember { mutableStateOf(0) } // 0: 角色卡, 1: 标签, 2: 群组, 3: 提示词监控
     var refreshTrigger by remember { mutableStateOf(0) }
+    var monitorPrompt by remember { mutableStateOf("") }
+    var monitorVisibility by remember { mutableStateOf(CharacterPromptSectionVisibility()) }
+    var monitorLoading by remember { mutableStateOf(false) }
 
     // 角色卡相关状态
     val characterCardList by characterCardManager.characterCardListFlow.collectAsState(initial = emptyList())
@@ -806,6 +812,16 @@ fun ModelPromptsSettingsScreen(
         }
     }
 
+    val monitorCardId = (activePrompt as? ActivePrompt.CharacterCard)?.id
+    LaunchedEffect(monitorCardId, refreshTrigger, currentTab) {
+        if (currentTab == 3 && monitorCardId != null) {
+            monitorLoading = true
+            monitorVisibility = characterCardManager.promptSectionVisibilityFlow(monitorCardId).first()
+            monitorPrompt = characterCardManager.combinePrompts(monitorCardId)
+            monitorLoading = false
+        }
+    }
+
     CustomScaffold() { paddingValues ->
         Box(
             modifier = Modifier
@@ -866,6 +882,23 @@ fun ModelPromptsSettingsScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(stringResource(R.string.character_groups), fontSize = 12.sp)
+                        }
+                    }
+                    Tab(
+                        selected = currentTab == 3,
+                        onClick = { currentTab = 3 }
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(vertical = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Visibility,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(stringResource(R.string.prompt_monitor_tab), fontSize = 12.sp)
                         }
                     }
                 }
@@ -986,6 +1019,31 @@ fun ModelPromptsSettingsScreen(
                             scope.launch {
                                 activePromptManager.setActivePrompt(ActivePrompt.CharacterGroup(groupId))
                                 refreshTrigger++
+                            }
+                        }
+                    )
+                    3 -> PromptMonitorTab(
+                        prompt = monitorPrompt,
+                        visibility = monitorVisibility,
+                        loading = monitorLoading,
+                        isGroup = monitorCardId == null,
+                        onRefresh = {
+                            monitorCardId?.let { id ->
+                                scope.launch {
+                                    monitorLoading = true
+                                    monitorVisibility = characterCardManager.promptSectionVisibilityFlow(id).first()
+                                    monitorPrompt = characterCardManager.combinePrompts(id)
+                                    monitorLoading = false
+                                }
+                            }
+                        },
+                        onToggle = { section, enabled ->
+                            monitorCardId?.let { id ->
+                                scope.launch {
+                                    characterCardManager.setPromptSectionEnabled(id, section, enabled)
+                                    monitorVisibility = characterCardManager.promptSectionVisibilityFlow(id).first()
+                                    monitorPrompt = characterCardManager.combinePrompts(id)
+                                }
                             }
                         }
                     )
@@ -1972,6 +2030,105 @@ enum class ExportMode {
 }
 
 // 角色卡标签页
+@Composable
+private fun PromptMonitorTab(
+    prompt: String,
+    visibility: CharacterPromptSectionVisibility,
+    loading: Boolean,
+    isGroup: Boolean,
+    onRefresh: () -> Unit,
+    onToggle: (CharacterPromptSection, Boolean) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.prompt_monitor_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onRefresh, enabled = !loading && !isGroup) {
+                Text(stringResource(R.string.prompt_monitor_refresh))
+            }
+        }
+        Text(
+            text = stringResource(R.string.prompt_monitor_desc),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (isGroup) {
+            Text(
+                text = stringResource(R.string.prompt_monitor_group),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            MonitorSwitchRow(
+                title = stringResource(R.string.prompt_monitor_character_setting),
+                checked = visibility.characterSetting,
+                onCheckedChange = { onToggle(CharacterPromptSection.CHARACTER_SETTING, it) }
+            )
+            MonitorSwitchRow(
+                title = stringResource(R.string.prompt_monitor_other_content),
+                checked = visibility.otherContent,
+                onCheckedChange = { onToggle(CharacterPromptSection.OTHER_CONTENT, it) }
+            )
+            MonitorSwitchRow(
+                title = stringResource(R.string.prompt_monitor_tags),
+                checked = visibility.tags,
+                onCheckedChange = { onToggle(CharacterPromptSection.TAGS, it) }
+            )
+            MonitorSwitchRow(
+                title = stringResource(R.string.prompt_monitor_advanced),
+                checked = visibility.advanced,
+                onCheckedChange = { onToggle(CharacterPromptSection.ADVANCED, it) }
+            )
+            if (loading) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            }
+            SelectionContainer {
+                Text(
+                    text = prompt.ifBlank { stringResource(R.string.prompt_monitor_empty) },
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(10.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonitorSwitchRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
 @Composable
 fun CharacterCardTab(
     characterCards: List<CharacterCard>,

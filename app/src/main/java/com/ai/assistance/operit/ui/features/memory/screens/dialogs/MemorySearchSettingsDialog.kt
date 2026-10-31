@@ -120,6 +120,7 @@ fun MemorySearchSettingsDialog(
                 SettingsSection(title = stringResource(R.string.memory_search_weight_section)) {
                     SliderSettingItem(
                         title = stringResource(R.string.memory_search_keyword_weight),
+                        description = stringResource(R.string.memory_search_keyword_weight_desc),
                         value = keywordWeight,
                         valueText = String.format("%.2f", keywordWeight),
                         valueRange = 0.0f..20.0f,
@@ -127,6 +128,7 @@ fun MemorySearchSettingsDialog(
                     )
                     SliderSettingItem(
                         title = stringResource(R.string.memory_search_tag_weight),
+                        description = stringResource(R.string.memory_search_tag_weight_desc),
                         value = tagWeight,
                         valueText = String.format("%.2f", tagWeight),
                         valueRange = 0.0f..20.0f,
@@ -134,6 +136,7 @@ fun MemorySearchSettingsDialog(
                     )
                     SliderSettingItem(
                         title = stringResource(R.string.memory_search_vector_weight),
+                        description = stringResource(R.string.memory_search_vector_weight_desc),
                         value = vectorWeight,
                         valueText = String.format("%.2f", vectorWeight),
                         valueRange = 0.0f..2.0f,
@@ -141,6 +144,7 @@ fun MemorySearchSettingsDialog(
                     )
                     SliderSettingItem(
                         title = stringResource(R.string.memory_search_edge_weight),
+                        description = stringResource(R.string.memory_search_edge_weight_desc),
                         value = edgeWeight,
                         valueText = String.format("%.2f", edgeWeight),
                         valueRange = 0.0f..2.0f,
@@ -363,7 +367,10 @@ fun MemorySearchSettingsDialog(
             }
         },
         dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 OutlinedButton(
                     onClick = {
                         scoreMode = MemoryScoreMode.BALANCED
@@ -377,10 +384,10 @@ fun MemorySearchSettingsDialog(
                             MemorySearchSettingsPreferences.DEFAULT_MEMORY_EXTRACTION_CUSTOM_RULES
                     }
                 ) {
-                    Text(stringResource(R.string.memory_search_reset_default))
+                    Text(stringResource(R.string.memory_search_reset_default), maxLines = 1)
                 }
                 OutlinedButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.memory_cancel))
+                    Text(stringResource(R.string.memory_cancel), maxLines = 1)
                 }
             }
         }
@@ -453,6 +460,7 @@ private fun DimensionUsageBlock(
 @Composable
 private fun SliderSettingItem(
     title: String,
+    description: String? = null,
     value: Float,
     valueText: String,
     valueRange: ClosedFloatingPointRange<Float>,
@@ -470,6 +478,13 @@ private fun SliderSettingItem(
                 text = valueText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary
+            )
+        }
+        description?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Slider(

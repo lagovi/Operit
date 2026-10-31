@@ -1581,6 +1581,7 @@ private fun AgentModelSelectorPopup(
                         // flush on narrow screens and gives the id room on wide ones.
                         .widthIn(min = 280.dp, max = 340.dp)
                         .heightIn(max = 420.dp)
+                        .helpAnchor("toggles")
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
@@ -2321,6 +2322,7 @@ private fun AgentExtraSettingsPopup(
                         // Same reason: a fixed width truncated the value in English.
                         .widthIn(min = 280.dp, max = 340.dp)
                         .heightIn(max = 420.dp)
+                        .helpAnchor("toggles")
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,

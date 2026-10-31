@@ -63,6 +63,7 @@ import com.ai.assistance.operit.ui.features.settings.sections.SettingsInfoBanner
 import com.ai.assistance.operit.ui.features.settings.sections.SettingsSectionHeader
 import com.ai.assistance.operit.ui.features.settings.sections.SettingsSwitchRow
 import com.ai.assistance.operit.ui.features.settings.sections.SettingsTextField
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgAiProviderRegistry
 import com.ai.assistance.operit.ui.main.navigation.RegisterRouteBackGuard
 import com.ai.assistance.operit.util.AppLogger
@@ -387,7 +388,7 @@ fun ModelConfigScreen(
 
             item {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().helpAnchor("modelconfig.profile"),
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     border =
@@ -601,7 +602,8 @@ fun ModelConfigScreen(
                                                         results.add(
                                                             ConnectionTestItem(
                                                                 labelResId = item.type.toLabelResId(),
-                                                                result = result
+                                                                result = result,
+                                                                diagnostics = item
                                                             )
                                                         )
                                                     }
@@ -681,13 +683,17 @@ fun ModelConfigScreen(
                                     Column(modifier = Modifier.padding(12.dp)) {
                                         results.forEachIndexed { index, item ->
                                             val isSuccess = item.result.isSuccess
+                                            val failureDetail =
+                                                item.diagnostics?.parsedError
+                                                    ?: item.result.exceptionOrNull()?.message
+                                                    ?: ""
                                             val statusText =
                                                 if (isSuccess) {
                                                     context.getString(R.string.test_connection_success)
                                                 } else {
                                                     context.getString(
                                                         R.string.test_connection_failed,
-                                                        item.result.exceptionOrNull()?.message ?: ""
+                                                        failureDetail
                                                     )
                                                 }
                                             val contentColor =
@@ -730,6 +736,50 @@ fun ModelConfigScreen(
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = contentColor
                                                     )
+                                                }
+                                                item.diagnostics?.let { diagnostics ->
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                        diagnostics.requestUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                                                            Text(
+                                                                text = stringResource(R.string.test_diag_endpoint, url),
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                        diagnostics.httpStatus?.let { status ->
+                                                            Text(
+                                                                text = stringResource(R.string.test_diag_status, status),
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                        diagnostics.latencyMs?.let { latency ->
+                                                            Text(
+                                                                text = stringResource(R.string.test_diag_latency, latency),
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                        if (!isSuccess) {
+                                                            diagnostics.parsedError?.let { parsed ->
+                                                                Text(
+                                                                    text = stringResource(R.string.test_diag_parsed, parsed),
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = MaterialTheme.colorScheme.error
+                                                                )
+                                                            }
+                                                            diagnostics.responseHead?.takeIf { it.isNotBlank() }?.let { head ->
+                                                                Text(
+                                                                    text = stringResource(R.string.test_diag_response, head),
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                    maxLines = 4,
+                                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                                )
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             }
 
@@ -804,6 +854,7 @@ fun ModelConfigScreen(
 
             selectedConfig.value?.let { config ->
                 item {
+                    Box(modifier = Modifier.helpAnchor("modelconfig.api")) {
                     ModelApiSettingsSection(
                         config = config,
                         configManager = configManager,
@@ -811,44 +862,54 @@ fun ModelConfigScreen(
                         showNotification = { message -> showNotification(message) },
                         navigateToMnnModelDownload = navigateToMnnModelDownload
                     )
+                    }
                 }
 
                 item {
+                    Box(modifier = Modifier.helpAnchor("modelconfig.context")) {
                     ContextSummarySettingsSection(
                         config = config,
                         configManager = configManager,
                         scope = scope,
                         showNotification = { message -> showNotification(message) }
                     )
+                    }
                 }
 
                 item {
+                    Box(modifier = Modifier.helpAnchor("modelconfig.thinking")) {
                     ThinkingConfigurationsSection(
                         config = config,
                         configManager = configManager,
                         saveCoordinator = saveCoordinator,
                         showNotification = { message -> showNotification(message) }
                     )
+                    }
                 }
 
                 item {
+                    Box(modifier = Modifier.helpAnchor("modelconfig.parameters")) {
                     ModelParametersSection(
                         config = config,
                         configManager = configManager,
                         showNotification = { message -> showNotification(message) }
                     )
+                    }
                 }
 
                 item {
+                    Box(modifier = Modifier.helpAnchor("modelconfig.headers")) {
                     CustomHeadersSettingsSection(
                         config = config,
                         configManager = configManager,
                         saveCoordinator = saveCoordinator,
                         showNotification = { message -> showNotification(message) }
                     )
+                    }
                 }
 
                 item {
+                    Box(modifier = Modifier.helpAnchor("modelconfig.advanced")) {
                     AdvancedSettingsSection(
                         config = config,
                         configManager = configManager,
@@ -856,6 +917,7 @@ fun ModelConfigScreen(
                         keyAvailabilityTester = keyAvailabilityTester,
                         showNotification = { message -> showNotification(message) }
                     )
+                    }
                 }
             }
 
@@ -2497,7 +2559,8 @@ private fun ContextSummarySettingsSection(
 
 private data class ConnectionTestItem(
     val labelResId: Int,
-    val result: Result<Unit>
+    val result: Result<Unit>,
+    val diagnostics: com.ai.assistance.operit.api.chat.llmprovider.ModelConnectionTestItem? = null,
 )
 
 private fun ModelConnectionTestType.toLabelResId(): Int {

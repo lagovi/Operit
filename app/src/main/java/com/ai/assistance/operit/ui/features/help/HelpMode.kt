@@ -70,6 +70,9 @@ class HelpModeState {
     var activeTopic by mutableStateOf<HelpTopic?>(null)
         private set
 
+    var activeScope by mutableStateOf<String?>(null)
+        private set
+
     private val anchors = mutableMapOf<String, Rect>()
     private var layerOrigin = Offset.Zero
 
@@ -87,19 +90,20 @@ class HelpModeState {
 
     fun tap(position: Offset) {
         val absolute = position + layerOrigin
+        val scope = activeScope ?: screenId
         val hit =
             anchors.entries
                 .asSequence()
-                .filter { it.key.startsWith("$screenId:") && it.value.contains(absolute) }
+                .filter { it.key.startsWith("$scope:") && it.value.contains(absolute) }
                 .minByOrNull { it.value.width * it.value.height }
         val elementId = hit?.key?.substringAfter(':')
         if (elementId != null) {
-            helpEntry(screenId, elementId)?.let {
+            helpEntry(scope, elementId)?.let {
                 activeEntry = it
                 return
             }
         }
-        activeTopic = helpTopic(screenId)
+        activeTopic = helpTopic(scope)
     }
 
     fun bindScreen(id: String?) {
@@ -107,8 +111,22 @@ class HelpModeState {
             enabled = false
             activeEntry = null
             activeTopic = null
+            activeScope = null
         }
         screenId = id.orEmpty()
+    }
+
+    /**
+     * Selects a nested help catalog without changing the navigation screen.
+     * Used by full-screen overlays such as the AI computer, whose controls
+     * live inside the chat route but are described by their own catalog.
+     */
+    fun bindSubScope(scope: String?) {
+        if (activeScope != scope) {
+            activeEntry = null
+            activeTopic = null
+        }
+        activeScope = scope
     }
 
     fun toggle(id: String) {
@@ -133,7 +151,7 @@ class HelpModeState {
     }
 
     fun openScreenGuide() {
-        activeTopic = helpTopic(screenId)
+        activeTopic = helpTopic(activeScope ?: screenId)
     }
 
     fun dismissDialog() {
@@ -234,24 +252,29 @@ fun HelpModeOverlay(
             tonalElevation = 6.dp,
             shadowElevation = 6.dp,
         ) {
-            Row(
-                modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            Column(
+                modifier = Modifier.padding(start = 14.dp, end = 6.dp, top = 6.dp, bottom = 4.dp),
             ) {
-                Text(
-                    text = "Help mode: tap a control",
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = { state.openScreenGuide() }) {
-                    Text("Screen guide")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "Help mode: tap a control",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = { state.disable() }) {
+                        Text("Exit")
+                    }
                 }
-                TextButton(onClick = { onAllTopics(state.screenId) }) {
-                    Text("All topics")
-                }
-                TextButton(onClick = { state.disable() }) {
-                    Text("Exit")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = { state.openScreenGuide() }) {
+                        Text("Screen guide")
+                    }
+                    TextButton(onClick = { onAllTopics(state.activeScope ?: state.screenId) }) {
+                        Text("All topics")
+                    }
                 }
             }
         }

@@ -57,11 +57,6 @@ object HelpModeCatalog {
                 "Sends the draft. While the assistant is answering, the same button stops generation. With an empty field it starts voice input; when queue mode is active it stores the draft instead."
             ),
             e(
-                "queue",
-                "Queue",
-                "Stores the current draft for later instead of sending it. Open the queue to send, edit or delete queued messages."
-            ),
-            e(
                 "model",
                 "Model selection",
                 "Rebinds the model and configuration profile used by this chat. A character card can lock the model and ask for confirmation before a change."
@@ -80,11 +75,6 @@ object HelpModeCatalog {
                 "workspace",
                 "Workspace",
                 "Opens the project workspace attached to this chat. The assistant can read and edit files there."
-            ),
-            e(
-                "export",
-                "Export",
-                "Exports the conversation or the project for Android or Windows, with a progress dialog and an option to open or install the result."
             ),
             e(
                 "computer",
@@ -373,6 +363,26 @@ object HelpModeCatalog {
                 "Preview / edit",
                 "For HTML and Markdown files, switches between the rendered preview and the source editor. Preview reloads the workspace server page."
             ),
+            e(
+                "workspace.export",
+                "Export project",
+                "Packages the workspace for Android or Windows, shows progress, and offers to open or install the result."
+            ),
+            e(
+                "workspace.setup_create",
+                "Create workspace",
+                "Creates a new project inside the app. The next dialog chooses a language template or a blank folder."
+            ),
+            e(
+                "workspace.setup_select",
+                "Select existing workspace",
+                "Binds a folder on the device through the system folder picker. The app keeps read/write access to that folder."
+            ),
+            e(
+                "workspace.setup_types",
+                "Project templates",
+                "Blank, Office, Web, Android, Flutter, Node, TypeScript, Python, Java and Go templates seed the workspace with a matching structure."
+            ),
         ).associateBy { it.id },
         "settings" to listOf(
             e(
@@ -424,6 +434,11 @@ object HelpModeCatalog {
                 "settings.ai.speech",
                 "Speech services",
                 "Configures text-to-speech and speech-to-text engines, local model downloads, cloud voices, language and API keys."
+            ),
+            e(
+                "settings.ai.modules",
+                "Module center",
+                "Optional on-device engines: speech services, the PaddleOCR engine and local MNN models. Each one downloads only when opened or prepared."
             ),
             e(
                 "settings.prompts.system",
@@ -478,12 +493,110 @@ object HelpModeCatalog {
             e(
                 "settings.privacy.cookies",
                 "Clear cookies",
-                "Deletes cookies stored by the in-app browser and WebView components. It does not delete chats or model configurations."
+                "Choose which cookie store to clear: in-app WebView pages or the HTTP tool jar. It does not delete chats or model configurations."
             ),
             e(
                 "settings.external.http",
                 "External HTTP chat API",
                 "Runs a local HTTP endpoint so another device or tool can send messages to Operit. It shows the address and Bearer token."
+            ),
+        ).associateBy { it.id },
+        "modelconfig" to listOf(
+            e(
+                "modelconfig.profile",
+                "Configuration selector",
+                "Switches the model configuration being edited, creates a new one, or renames/deletes the current one. The chat function keeps its own binding."
+            ),
+            e(
+                "modelconfig.api",
+                "Provider and endpoint",
+                "Sets the provider type, endpoint, API key, model list, proxy and connection test. The test checks credentials and model access separately."
+            ),
+            e(
+                "modelconfig.context",
+                "Context and summary",
+                "Controls how much chat history is sent verbatim and when older turns are summarized. The summary model is chosen in functional model settings."
+            ),
+            e(
+                "modelconfig.thinking",
+                "Thinking rules",
+                "Maps reasoning/thinking options to request parameters and response parsing. Rules can be imported for known providers."
+            ),
+            e(
+                "modelconfig.parameters",
+                "Model parameters",
+                "Sets temperature, top-p, max output tokens and other sampling values sent with every request."
+            ),
+            e(
+                "modelconfig.headers",
+                "Custom headers",
+                "Adds HTTP headers such as User-Agent, Accept-Language or gateway routing headers to model requests."
+            ),
+            e(
+                "modelconfig.advanced",
+                "Advanced options",
+                "Key pools, request timeouts, modality capabilities and provider-specific switches. Change these only when the provider documentation requires it."
+            ),
+        ).associateBy { it.id },
+        "speech" to listOf(
+            e(
+                "speech.tabs",
+                "TTS and STT tabs",
+                "Switches between text-to-speech and speech-to-text settings. The selected tab only changes the visible panel."
+            ),
+            e(
+                "speech.profiles",
+                "Speech profiles",
+                "Creates, renames, selects or deletes speech profiles. A profile stores the engine, voice and credentials for one mode."
+            ),
+            e(
+                "speech.tts",
+                "Text-to-speech",
+                "Chooses the TTS engine and voice, speech rate and pitch. HTTP and VITS profiles expose endpoint, headers, request body and response parsing."
+            ),
+            e(
+                "speech.stt",
+                "Speech-to-text",
+                "Chooses the STT engine, language and API key. Cloud engines need credentials; local engines need downloaded models."
+            ),
+            e(
+                "speech.local_models",
+                "Local speech models",
+                "Shows GigaAM, Parakeet and Nemotron model status and opens their download screens. Downloaded models are stored outside app data and survive reinstalling."
+            ),
+        ).associateBy { it.id },
+        "toolpermission" to listOf(
+            e(
+                "toolpermission.master",
+                "Global tool policy",
+                "Sets the default permission level for every tool: forbid, ask or allow. Per-tool overrides take precedence."
+            ),
+            e(
+                "toolpermission.search",
+                "Search tools",
+                "Filters the tool list by name or description so a specific override can be found quickly."
+            ),
+            e(
+                "toolpermission.list",
+                "Per-tool overrides",
+                "Each card changes one tool's permission. Tapping the active level again clears the override and returns the tool to the global policy."
+            ),
+        ).associateBy { it.id },
+        "permissions" to listOf(
+            e(
+                "permissions.search",
+                "Search apps",
+                "Filters the installed app list by app name or package name."
+            ),
+            e(
+                "permissions.system_apps",
+                "Show system apps",
+                "Includes preinstalled system applications in the list. Changing their permissions can break system components."
+            ),
+            e(
+                "permissions.app_list",
+                "Application list",
+                "Pick an app to inspect its runtime permissions. Granted permissions are grouped by type and can be toggled with root or shell access."
             ),
         ).associateBy { it.id },
         "terminal" to listOf(

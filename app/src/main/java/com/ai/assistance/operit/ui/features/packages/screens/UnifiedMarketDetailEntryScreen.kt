@@ -234,10 +234,23 @@ fun UnifiedMarketDetailEntryScreen(
                         )
                     ),
                 statusLabel =
-                    if (entry.isOpen()) {
-                        stringResource(R.string.market_detail_status_available)
-                    } else {
-                        stringResource(R.string.market_detail_status_closed)
+                    run {
+                        val availability =
+                            if (entry.isOpen()) {
+                                stringResource(R.string.market_detail_status_available)
+                            } else {
+                                stringResource(R.string.market_detail_status_closed)
+                            }
+                        val installState =
+                            when (localInstallState?.kind) {
+                                MarketLocalInstallStateKind.INSTALLED ->
+                                    stringResource(R.string.market_detail_status_installed)
+                                MarketLocalInstallStateKind.UPDATE_AVAILABLE ->
+                                    stringResource(R.string.market_detail_status_update_available)
+                                MarketLocalInstallStateKind.NOT_INSTALLED,
+                                null -> null
+                            }
+                        if (installState != null) "$installState · $availability" else availability
                     }
             ),
         primaryAction =
@@ -695,7 +708,7 @@ private fun MarketInstallProgress.detailLabel(): String {
 private fun MarketLocalInstallState?.detailActionLabel(): String {
     return when (this?.kind) {
         MarketLocalInstallStateKind.INSTALLED -> stringResource(R.string.mcp_plugin_installed)
-        MarketLocalInstallStateKind.UPDATE_AVAILABLE -> stringResource(R.string.market_install_switch_to_version)
+        MarketLocalInstallStateKind.UPDATE_AVAILABLE -> stringResource(R.string.market_action_update)
         MarketLocalInstallStateKind.NOT_INSTALLED,
         null -> stringResource(R.string.mcp_plugin_install)
     }

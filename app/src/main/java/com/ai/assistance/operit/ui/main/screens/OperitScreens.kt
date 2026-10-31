@@ -65,6 +65,7 @@ import com.ai.assistance.operit.ui.features.settings.screens.SpeechServicesSetti
 import com.ai.assistance.operit.ui.features.settings.screens.ThemeSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.ToolPermissionSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.MnnModelDownloadScreen
+import com.ai.assistance.operit.ui.features.settings.screens.ModuleCenterScreen
 import com.ai.assistance.operit.ui.features.settings.screens.UserPreferencesSettingsScreen
 import com.ai.assistance.operit.ui.features.llmio.LlmIoLogScreen
 import com.ai.assistance.operit.ui.features.tokenstats.TokenUsageStatisticsScreen
@@ -612,6 +613,7 @@ sealed class Screen(
                     navigateToChatBackupSettings = { navigateTo(ChatBackupSettings) },
                     navigateToLanguageSettings = { navigateTo(LanguageSettings) },
                     navigateToSpeechServicesSettings = { navigateTo(SpeechServicesSettings) },
+                    navigateToModuleCenter = { navigateTo(ModuleCenter) },
                     navigateToExternalHttpChatSettings = { navigateTo(ExternalHttpChatSettings) },
                     navigateToPersonaCardGeneration = { navigateTo(PersonaCardGeneration) },
                     navigateToWaifuModeSettings = { navigateTo(WaifuModeSettings) },
@@ -888,6 +890,25 @@ sealed class Screen(
         }
     }
     
+    data object ModuleCenter :
+        Screen(navItem = NavItem.Settings, titleRes = R.string.module_center_title) {
+        @Composable
+        override fun Content(
+            navController: NavController,
+            navigateTo: ScreenNavigationHandler,
+            onGoBack: () -> Unit,
+            hasBackgroundImage: Boolean,
+            onLoading: (Boolean) -> Unit,
+            onError: (String) -> Unit,
+            onGestureConsumed: (Boolean) -> Unit
+        ) {
+            ModuleCenterScreen(
+                onNavigateToSpeechServices = { navigateTo(SpeechServicesSettings) },
+                onNavigateToMnnModelDownload = { navigateTo(MnnModelDownload) },
+            )
+        }
+    }
+
     // MNN模型下载屏幕
     data object MnnModelDownload :
         Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_mnn_model_download) {

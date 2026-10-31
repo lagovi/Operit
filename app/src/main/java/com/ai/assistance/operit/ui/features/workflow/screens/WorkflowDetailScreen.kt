@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.R
@@ -129,6 +131,7 @@ fun WorkflowDetailScreen(
     var isFabMenuExpanded by remember { mutableStateOf(false) }
     var showExecutionLogDialog by remember { mutableStateOf(false) }
     var showExecutionLogsForNodeId by remember { mutableStateOf<String?>(null) }
+    var showGuideDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(workflowId) {
@@ -205,6 +208,14 @@ fun WorkflowDetailScreen(
                                 icon = Icons.Default.Add,
                                 onClick = {
                                     showAddNodeDialog = true
+                                    isFabMenuExpanded = false
+                                }
+                            )
+                            SpeedDialAction(
+                                text = stringResource(R.string.workflow_guide_action),
+                                icon = Icons.Default.HelpOutline,
+                                onClick = {
+                                    showGuideDialog = true
                                     isFabMenuExpanded = false
                                 }
                             )
@@ -382,6 +393,59 @@ fun WorkflowDetailScreen(
                     dismissButton = {
                         TextButton(onClick = { showDeleteDialog = false }) {
                             Text(stringResource(R.string.cancel_action))
+                        }
+                    }
+                )
+            }
+
+            if (showGuideDialog) {
+                AlertDialog(
+                    onDismissRequest = { showGuideDialog = false },
+                    title = { Text(stringResource(R.string.workflow_guide_title)) },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 420.dp)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.workflow_guide_intro),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = stringResource(R.string.workflow_guide_triggers_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = stringResource(R.string.workflow_guide_triggers_body),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                text = stringResource(R.string.workflow_guide_variables_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = stringResource(R.string.workflow_guide_variables_body),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                text = stringResource(R.string.workflow_guide_steps_title),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = stringResource(R.string.workflow_guide_steps_body),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showGuideDialog = false }) {
+                            Text(stringResource(R.string.close))
                         }
                     }
                 )

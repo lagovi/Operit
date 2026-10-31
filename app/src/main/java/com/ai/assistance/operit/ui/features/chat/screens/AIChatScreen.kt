@@ -77,6 +77,8 @@ import com.ai.assistance.operit.ui.features.chat.webview.workspace.WorkspaceScre
 import com.ai.assistance.operit.ui.features.chat.webview.MentionSuggestionPanel
 import com.ai.assistance.operit.ui.features.chat.webview.computer.ComputerScreen
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
+import com.ai.assistance.operit.ui.features.help.LocalHelpMode
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.ui.main.LocalTopBarActions
 import com.ai.assistance.operit.ui.main.PendingChatDraftHandler
 import com.ai.assistance.operit.ui.main.components.LocalAppBarContentColor
@@ -734,6 +736,19 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val showWebView by actualViewModel.showWebView.collectAsState()
     // 收集AI电脑显示状态
     val showAiComputer by actualViewModel.showAiComputer.collectAsState()
+    val helpMode = LocalHelpMode.current
+    LaunchedEffect(showAiComputer, showWebView) {
+        helpMode.bindSubScope(
+            when {
+                showAiComputer -> "terminal"
+                showWebView -> "workspace"
+                else -> null
+            }
+        )
+    }
+    DisposableEffect(helpMode) {
+        onDispose { helpMode.bindSubScope(null) }
+    }
     // AppContent owns the primary chat IME layout; embedded chat retains its local translation.
     val shouldUseChatLocalImeHandling =
         embedded &&
@@ -803,7 +818,8 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                         enabled = !isWorkspacePreparing,
                         onClick = {
                             actualViewModel.onAiComputerButtonClick()
-                        }
+                        },
+                        modifier = Modifier.helpAnchor("computer")
                 ) {
                     Icon(
                             imageVector = Icons.Default.Terminal,
@@ -819,7 +835,8 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                         enabled = !isWorkspacePreparing,
                         onClick = {
                             actualViewModel.onWorkspaceButtonClick()
-                        }
+                        },
+                        modifier = Modifier.helpAnchor("workspace")
                 ) {
                     if (isWorkspacePreparing) {
                         CircularProgressIndicator(

@@ -52,6 +52,7 @@ fun SettingsScreen(
         navigateToChatBackupSettings: () -> Unit,
         navigateToLanguageSettings: () -> Unit,
         navigateToSpeechServicesSettings: () -> Unit,
+        navigateToModuleCenter: () -> Unit,
         navigateToExternalHttpChatSettings: () -> Unit,
         navigateToPersonaCardGeneration: () -> Unit,
         navigateToWaifuModeSettings: () -> Unit,
@@ -68,6 +69,8 @@ fun SettingsScreen(
         val scope = rememberCoroutineScope()
         var showGitHubLogin by remember { mutableStateOf(false) }
         var showClearCookieConfirm by remember { mutableStateOf(false) }
+        var clearWebViewCookies by remember { mutableStateOf(true) }
+        var clearHttpToolCookies by remember { mutableStateOf(true) }
 
         val isGitHubLoggedIn = githubAuth.isLoggedInFlow.collectAsState(initial = false).value
         val gitHubUser = githubAuth.userInfoFlow.collectAsState(initial = null).value
@@ -224,6 +227,14 @@ fun SettingsScreen(
                                 modifier = Modifier.helpAnchor("settings.ai.speech"),
                                 onClick = navigateToSpeechServicesSettings
                         )
+
+                        CompactSettingsItem(
+                                title = stringResource(id = R.string.module_center_title),
+                                subtitle = stringResource(id = R.string.module_center_desc),
+                                icon = Icons.Default.Extension,
+                                modifier = Modifier.helpAnchor("settings.ai.modules"),
+                                onClick = navigateToModuleCenter
+                        )
                         
                 }
 
@@ -370,26 +381,57 @@ fun SettingsScreen(
                 AlertDialog(
                         onDismissRequest = { showClearCookieConfirm = false },
                         title = { Text(stringResource(R.string.clear_cookies_dialog_title)) },
-                        text = { Text(stringResource(R.string.clear_cookies_dialog_message)) },
+                        text = {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(stringResource(R.string.clear_cookies_dialog_message))
+                                        CookieComponentRow(
+                                                title = stringResource(R.string.clear_cookies_component_webview),
+                                                description = stringResource(R.string.clear_cookies_component_webview_desc),
+                                                checked = clearWebViewCookies,
+                                                onCheckedChange = { clearWebViewCookies = it }
+                                        )
+                                        CookieComponentRow(
+                                                title = stringResource(R.string.clear_cookies_component_http),
+                                                description = stringResource(R.string.clear_cookies_component_http_desc),
+                                                checked = clearHttpToolCookies,
+                                                onCheckedChange = { clearHttpToolCookies = it }
+                                        )
+                                }
+                        },
                         confirmButton = {
                                 TextButton(
                                         onClick = {
-                                                showClearCookieConfirm = false
-                                                scope.launch {
-                                                        try {
-                                                                CookiePrivacyManager.clearAllCookies()
-                                                                Toast.makeText(
-                                                                        context,
-                                                                        context.getString(R.string.clear_cookies_success),
-                                                                        Toast.LENGTH_SHORT
-                                                                ).show()
-                                                        } catch (e: Exception) {
-                                                                AppLogger.e("SettingsScreen", "Failed to clear cookies", e)
-                                                                Toast.makeText(
-                                                                        context,
-                                                                        context.getString(R.string.clear_cookies_failed),
-                                                                        Toast.LENGTH_SHORT
-                                                                ).show()
+                                                if (!clearWebViewCookies && !clearHttpToolCookies) {
+                                                        Toast.makeText(
+                                                                context,
+                                                                context.getString(R.string.clear_cookies_none_selected),
+                                                                Toast.LENGTH_SHORT
+                                                        ).show()
+                                                } else {
+                                                        val clearWebView = clearWebViewCookies
+                                                        val clearHttp = clearHttpToolCookies
+                                                        showClearCookieConfirm = false
+                                                        scope.launch {
+                                                                try {
+                                                                        if (clearHttp) {
+                                                                                CookiePrivacyManager.clearHttpToolCookies()
+                                                                        }
+                                                                        if (clearWebView) {
+                                                                                CookiePrivacyManager.clearWebViewCookies()
+                                                                        }
+                                                                        Toast.makeText(
+                                                                                context,
+                                                                                context.getString(R.string.clear_cookies_success),
+                                                                                Toast.LENGTH_SHORT
+                                                                        ).show()
+                                                                } catch (e: Exception) {
+                                                                        AppLogger.e("SettingsScreen", "Failed to clear cookies", e)
+                                                                        Toast.makeText(
+                                                                                context,
+                                                                                context.getString(R.string.clear_cookies_failed),
+                                                                                Toast.LENGTH_SHORT
+                                                                        ).show()
+                                                                }
                                                         }
                                                 }
                                         }
@@ -405,6 +447,37 @@ fun SettingsScreen(
                 )
         }
 }
+@Composable
+private fun CookieComponentRow(
+        title: String,
+        description: String,
+        checked: Boolean,
+        onCheckedChange: (Boolean) -> Unit
+) {
+        Row(
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onCheckedChange(!checked) }
+                        .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+        ) {
+                Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                                text = title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                                text = description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                }
+        }
+}
+
 @Composable
 private fun SettingsSection(
         title: String,
@@ -485,7 +558,7 @@ private fun CompactSettingsItem(
                                 text = subtitle,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                         )
                 }
@@ -536,7 +609,7 @@ private fun CompactSettingsSwitch(
                                 text = subtitle,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                         )
                 }

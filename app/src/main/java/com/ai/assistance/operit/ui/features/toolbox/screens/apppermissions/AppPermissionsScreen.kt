@@ -22,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.ai.assistance.operit.ui.components.CustomScaffold
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -249,7 +250,7 @@ fun AppPermissionsScreen(navController: NavController) {
                                     OutlinedTextField(
                                             value = searchQuery,
                                             onValueChange = { searchQuery = it },
-                                            modifier = Modifier.weight(1f).height(56.dp),
+                                            modifier = Modifier.weight(1f).height(56.dp).helpAnchor("permissions.search"),
                                             placeholder = { Text(context.getString(R.string.file_manager_search_hint)) },
                                             leadingIcon = {
                                                 Icon(
@@ -301,6 +302,7 @@ fun AppPermissionsScreen(navController: NavController) {
                                                                     horizontal = 8.dp,
                                                                     vertical = 4.dp
                                                             )
+                                                            .helpAnchor("permissions.system_apps")
                                     ) {
                                         Checkbox(
                                                 checked = showSystemApps,
@@ -387,7 +389,7 @@ fun AppPermissionsScreen(navController: NavController) {
                         } else {
                             // 应用列表，添加动画效果
                             LazyColumn(
-                                    modifier = Modifier.fillMaxSize(),
+                                    modifier = Modifier.fillMaxSize().helpAnchor("permissions.app_list"),
                                     contentPadding =
                                             PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)

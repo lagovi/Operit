@@ -309,7 +309,7 @@ private fun getFinalToolTestGroups(context: android.content.Context): List<ToolG
     return listOf(
         ToolGroup(context.getString(R.string.env_setup_group), true, false, listOf(
             ToolTest("make_directory", context.getString(R.string.create_test_dir), context.getString(R.string.create_test_dir_desc), listOf(ToolParameter("path", testBaseDir), ToolParameter("create_parents", "true"))),
-            ToolTest("download_file", context.getString(R.string.download_test_image), context.getString(R.string.download_test_image_desc), listOf(ToolParameter("url", "https://example.com"), ToolParameter("destination", "$testBaseDir/test_download.txt"))),
+            ToolTest("download_file", context.getString(R.string.download_test_image), context.getString(R.string.download_test_image_desc), listOf(ToolParameter("url", "https://example.com"), ToolParameter("destination", "$testBaseDir/test_download.html"))),
             ToolTest("write_file", context.getString(R.string.create_text_file), context.getString(R.string.create_text_file_desc), listOf(ToolParameter("path", testFile), ToolParameter("content", "This is a test file for Operit tool testing.")), key = "write_test_file")
         )),
         ToolGroup(context.getString(R.string.basic_http_group), false, false, listOf(

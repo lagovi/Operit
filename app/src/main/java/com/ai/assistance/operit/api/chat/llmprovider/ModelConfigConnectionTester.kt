@@ -16,6 +16,7 @@ import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.ImagePoolManager
 import com.ai.assistance.operit.util.MediaPoolManager
 import kotlinx.coroutines.CancellationException
+import org.json.JSONObject
 
 enum class ModelConnectionTestType {
     CHAT,
@@ -28,7 +29,12 @@ enum class ModelConnectionTestType {
 data class ModelConnectionTestItem(
     val type: ModelConnectionTestType,
     val success: Boolean,
-    val error: String? = null
+    val error: String? = null,
+    val requestUrl: String? = null,
+    val httpStatus: Int? = null,
+    val latencyMs: Long? = null,
+    val responseHead: String? = null,
+    val parsedError: String? = null,
 )
 
 data class ModelConnectionTestReport(
@@ -92,6 +98,7 @@ object ModelConfigConnectionTester {
             val parameters = modelConfigManager.getModelParametersForConfig(configForTest.id)
 
             suspend fun runCase(type: ModelConnectionTestType, block: suspend () -> Unit) {
+                val startedAtNs = System.nanoTime()
                 val result =
                     try {
                         block()
@@ -101,11 +108,25 @@ object ModelConfigConnectionTester {
                     } catch (e: Exception) {
                         Result.failure(e)
                     }
+                val latencyMs = (System.nanoTime() - startedAtNs) / 1_000_000
+                val exception = result.exceptionOrNull()
+                val rawMessage = exception?.message
+                val responseHead = rawMessage?.take(600)
+                val parsedError = parseApiErrorMessage(rawMessage)
+                val status =
+                    (exception as? HttpStatusCodeException)?.statusCode
+                        ?: parseHttpStatus(rawMessage)
+                        ?: if (result.isSuccess) 200 else null
                 items.add(
                     ModelConnectionTestItem(
                         type = type,
                         success = result.isSuccess,
-                        error = result.exceptionOrNull()?.message
+                        error = rawMessage,
+                        requestUrl = configForTest.apiEndpoint,
+                        httpStatus = status,
+                        latencyMs = latencyMs,
+                        responseHead = responseHead,
+                        parsedError = parsedError,
                     )
                 )
             }
@@ -270,4 +291,26 @@ object ModelConfigConnectionTester {
             items = items
         )
     }
+}
+
+private fun parseHttpStatus(message: String?): Int? {
+    if (message.isNullOrBlank()) return null
+    val match = Regex("""(?:status|HTTP|code)\D{0,8}(\d{3})""", RegexOption.IGNORE_CASE).find(message)
+    return match?.groupValues?.getOrNull(1)?.toIntOrNull()
+}
+
+private fun parseApiErrorMessage(message: String?): String? {
+    if (message.isNullOrBlank()) return null
+    val start = message.indexOf('{')
+    val end = message.lastIndexOf('}')
+    if (start < 0 || end <= start) return null
+    return runCatching {
+        val json = JSONObject(message.substring(start, end + 1))
+        val error = json.opt("error")
+        when (error) {
+            is JSONObject -> error.optString("message").takeIf { it.isNotBlank() }
+            is String -> error.takeIf { it.isNotBlank() }
+            else -> json.optString("message").takeIf { it.isNotBlank() }
+        }
+    }.getOrNull()
 }

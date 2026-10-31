@@ -1483,7 +1483,12 @@ fun ExpandableFabMenu(
             FabMenuItem(icon = Icons.Default.Folder, text = context.getString(R.string.files), onClick = onFileManagerClick)
             Spacer(modifier = Modifier.height(12.dp))
             if (exportEnabled) {
-                FabMenuItem(icon = Icons.Default.Upload, text = context.getString(R.string.export), onClick = onExportClick)
+                FabMenuItem(
+                    icon = Icons.Default.Upload,
+                    text = context.getString(R.string.export),
+                    onClick = onExportClick,
+                    modifier = Modifier.helpAnchor("export", "workspace"),
+                )
                 Spacer(modifier = Modifier.height(12.dp))
             }
             if (renameEnabled) {
@@ -1515,8 +1520,14 @@ fun ExpandableFabMenu(
 }
 
 @Composable
-fun FabMenuItem(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, onClick: () -> Unit) {
+fun FabMenuItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Row(
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {

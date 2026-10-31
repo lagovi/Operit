@@ -6,8 +6,57 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-23, HEAD `c8ecd067`,
+**Date:** 2026-10-31, HEAD `c96de0f4` plus the uncommitted batch below,
 branch `feat/english-only-build`
+
+**CURRENT 31.10 — TZ implementation batch, not built yet.**
+This commit contains the full batch for `docs/FORK-REGISTRY/TODO-AUDIT.md`
+(A–H). No CI run exists yet, so H4/V2/V3 are still open.
+`python3 ci/script/fork_audit.py --no-color --no-hotspots` passes (44 anchors,
+0 lost). Local Kotlin compilation is impossible on this host: only
+`/usr/lib/android-sdk/platform-tools` exists, with no platforms or build-tools.
+H4 therefore needs a commit and push, a manual CI dispatch, install on
+`192.168.1.69:5555`, and the usual uninstall-first step because the debug key
+changes. The terminal changes live in the `terminal` submodule and must be
+committed/pushed before the parent pointer.
+
+Open after this batch:
+- H4/V2/V3: build, install, smoke-test at 360 dp / font scale 1.0, archive the
+  APK under `/home/uzzzver/operit-fork/apk/<UTC-CI-start>/` with `CHANGES.md`.
+- G3: avatar presets downloaded on demand is blocked. No preset metadata,
+  images or download URLs exist in the fork; the only known local avatar is
+  `file:///android_asset/operit.png`. Adding a preset gallery needs a product
+  decision on the asset host/privacy, then a new `CharacterCardDialog` section
+  that downloads into internal storage on tap. Do not invent a third-party
+  avatar service silently.
+- F3: Settings subtitle rows now allow two lines and chat rows already use
+  weighted text, but the 360 dp visual check still has to happen on the phone
+  (`SettingsScreen.kt`, `ClassicChatSettingsBar.kt`, `ModelApiSettingsSection.kt`).
+
+Implemented in this batch, for quick orientation:
+- About/update: `UpdateManager.kt` now checks `lagovi/Operit`; beta/nightly path
+  and Beta row are gone; `about_website` points at the fork.
+- Chat help: computer/workspace top-bar anchors in `AIChatScreen.kt`, classic
+  model chip in `ClassicChatSettingsBar.kt`, toggles anchor on the settings
+  popup, workspace export anchor in `WorkspaceManager.kt`.
+- Terminal help: new `terminal/.../ui/TerminalHelp.kt` sink plus anchors in
+  `TerminalHome.kt`/`SetupScreen.kt`; `HelpModeState` gained `activeScope` so
+  the terminal/workspace catalogs become active when those overlays open.
+- Model config: diagnostics in `ModelConfigConnectionTester.kt` and
+  `ModelConfigScreen.kt` (endpoint/status/latency/response/parsed error);
+  media-capability detection button with confirmation in
+  `ModelApiSettingsSection.kt`.
+- Module center: new `ModuleCenterScreen.kt` route in `OperitScreens.kt` and a
+  Settings row, with Speech/OCR/MNN entries; OCR prepare API added to
+  `PaddleOcrEngine.kt`.
+- Cookies: component checkboxes (WebView vs HTTP jar) in `SettingsScreen.kt`.
+- Memory: weight descriptions and stacked Reset/Cancel in
+  `MemorySearchSettingsDialog.kt`.
+- Prompts: fourth Monitor tab in `ModelPromptsSettingsScreen.kt`, backed by
+  section visibility stored in `CharacterCardManager.kt` so the toggles change
+  the real `combinePrompts` output.
+- Packages/workflow: clearer market install status text and a Workflow guide
+  dialog. Tool Tester fixture renamed. Help banner was made two-row for 360 dp.
 
 **CURRENT 23.10 — Assistant/Agent help and anchor disposal accepted.**
 Phone runs CI `39917337180` (APK dir `apk/20261023_072258Z/`,

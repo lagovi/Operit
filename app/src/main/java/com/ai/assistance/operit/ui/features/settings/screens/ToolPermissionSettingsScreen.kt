@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
 import com.ai.assistance.operit.ui.permissions.ToolPermissionSystem
 import kotlinx.coroutines.launch
@@ -103,7 +104,7 @@ fun ToolPermissionSettingsScreen(navigateBack: () -> Unit) {
 
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().helpAnchor("toolpermission.master"),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -155,6 +156,7 @@ fun ToolPermissionSettingsScreen(navigateBack: () -> Unit) {
         }
 
         item {
+            Box(modifier = Modifier.helpAnchor("toolpermission.list")) {
             PermissionGroup(
                 level = PermissionLevel.ALLOW,
                 allTools = allTools,
@@ -162,6 +164,7 @@ fun ToolPermissionSettingsScreen(navigateBack: () -> Unit) {
                 toolHandler = toolHandler,
                 onToolToggled = { toolName -> handlePermissionChange(toolName, PermissionLevel.ALLOW) }
             )
+            }
         }
         item {
             PermissionGroup(
@@ -316,7 +319,8 @@ private fun ToolSelectorDialog(
                     label = { Text(stringResource(R.string.search_tools)) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
+                        .padding(horizontal = 24.dp)
+                        .helpAnchor("toolpermission.search"),
                     shape = RoundedCornerShape(16.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))

@@ -51,6 +51,8 @@ import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.llmprovider.AIServiceFactory
 import com.ai.assistance.operit.api.chat.llmprovider.CodexModelListFetcher
 import com.ai.assistance.operit.api.chat.llmprovider.LlamaProvider
+import com.ai.assistance.operit.api.chat.llmprovider.ModelConfigConnectionTester
+import com.ai.assistance.operit.api.chat.llmprovider.ModelConnectionTestType
 import com.ai.assistance.operit.api.chat.llmprovider.ModelListFetcher
 import com.ai.assistance.operit.data.api.AntigravityAuthManager
 import com.ai.assistance.operit.data.api.AntigravityQuotaGroup
@@ -76,6 +78,7 @@ import com.ai.assistance.operit.ui.features.settings.RegisterModelConfigSaveActi
 import com.ai.assistance.operit.ui.features.antigravity.AntigravityLoginDialog
 import com.ai.assistance.operit.ui.features.codex.CodexLoginDialog
 import com.ai.assistance.operit.util.LocationUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -294,6 +297,48 @@ fun ModelApiSettingsSection(
     
     // Tool Call配置状态
     var enableToolCallInput by remember(config.id) { mutableStateOf(config.enableToolCall) }
+
+    var isDetectingMediaSupport by remember(config.id) { mutableStateOf(false) }
+    var detectedMediaSupport by remember(config.id) {
+        mutableStateOf<Triple<Boolean, Boolean, Boolean>?>(null)
+    }
+
+    fun detectMediaSupport() {
+        if (isDetectingMediaSupport) return
+        scope.launch {
+            isDetectingMediaSupport = true
+            try {
+                saveCoordinator.flushAll(showSuccess = false)
+                val latest = configManager.getModelConfig(config.id) ?: config
+                val probe =
+                    latest.copy(
+                        enableDirectImageProcessing = true,
+                        enableDirectAudioProcessing = true,
+                        enableDirectVideoProcessing = true,
+                    )
+                val report =
+                    ModelConfigConnectionTester.run(
+                        context = context,
+                        modelConfigManager = configManager,
+                        config = probe,
+                    )
+                val byType = report.items.associateBy { it.type }
+                detectedMediaSupport =
+                    Triple(
+                        byType[ModelConnectionTestType.IMAGE]?.success == true,
+                        byType[ModelConnectionTestType.AUDIO]?.success == true,
+                        byType[ModelConnectionTestType.VIDEO]?.success == true,
+                    )
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Media support detection failed", e)
+                showNotification(e.message ?: context.getString(R.string.detect_media_support))
+            } finally {
+                isDetectingMediaSupport = false
+            }
+        }
+    }
 
     LaunchedEffect(selectedProviderTypeId) {
         if (isCodexProvider || isAntigravityProvider) {
@@ -1053,6 +1098,39 @@ fun ModelApiSettingsSection(
                      checked = enableDirectVideoProcessingInput,
                      onCheckedChange = { enableDirectVideoProcessingInput = it }
                  )
+
+                 Spacer(modifier = Modifier.height(8.dp))
+                 OutlinedButton(
+                     onClick = { detectMediaSupport() },
+                     enabled = !isDetectingMediaSupport,
+                     modifier = Modifier.fillMaxWidth(),
+                 ) {
+                     if (isDetectingMediaSupport) {
+                         CircularProgressIndicator(
+                             modifier = Modifier.size(16.dp),
+                             strokeWidth = 2.dp,
+                         )
+                     } else {
+                         Icon(
+                             imageVector = Icons.Default.Search,
+                             contentDescription = null,
+                             modifier = Modifier.size(16.dp),
+                         )
+                     }
+                     Spacer(modifier = Modifier.width(6.dp))
+                     Text(
+                         stringResource(
+                             if (isDetectingMediaSupport) R.string.detect_media_support_running
+                             else R.string.detect_media_support
+                         )
+                     )
+                 }
+                 Text(
+                     text = stringResource(R.string.detect_media_support_desc),
+                     style = MaterialTheme.typography.bodySmall,
+                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                     modifier = Modifier.padding(top = 4.dp, start = 4.dp),
+                 )
              }
             
             // Google Search Grounding 开关 (仅Gemini支持)
@@ -1150,6 +1228,42 @@ fun ModelApiSettingsSection(
             }
 
         }
+    }
+
+    detectedMediaSupport?.let { detected ->
+        val yes = stringResource(R.string.detected_media_support_yes)
+        val no = stringResource(R.string.detected_media_support_no)
+        AlertDialog(
+            onDismissRequest = { detectedMediaSupport = null },
+            title = { Text(stringResource(R.string.detected_media_support_title)) },
+            text = {
+                Text(
+                    text = stringResource(
+                        R.string.detected_media_support_summary,
+                        if (detected.first) yes else no,
+                        if (detected.second) yes else no,
+                        if (detected.third) yes else no,
+                    )
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        enableDirectImageProcessingInput = detected.first
+                        enableDirectAudioProcessingInput = detected.second
+                        enableDirectVideoProcessingInput = detected.third
+                        detectedMediaSupport = null
+                    }
+                ) {
+                    Text(stringResource(R.string.detected_media_support_apply))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { detectedMediaSupport = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 
     if (showAntigravityLoginDialog) {

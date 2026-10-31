@@ -31,6 +31,21 @@ object PaddleOcrEngine {
      * Recognize bitmap lines in reading order, joined with newlines
      * (same shape as the old ML Kit full text).
      */
+    fun isPrepared(appContext: Context): Boolean {
+        val dir = File(appContext.applicationContext.filesDir, LEAF)
+        return OfflinePayload.PADDLE_OCR.isCompleteIn(dir)
+    }
+
+    /** Provisions the OCR files without running inference. */
+    suspend fun prepare(appContext: Context): Result<Unit> =
+        try {
+            ensureEngine(appContext)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "OCR provisioning failed", e)
+            Result.failure(e)
+        }
+
     suspend fun recognizeLines(appContext: Context, bitmap: android.graphics.Bitmap): Result<List<String>> {
         val engine = try {
             ensureEngine(appContext)

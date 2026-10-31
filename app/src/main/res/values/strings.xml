@@ -590,7 +590,7 @@
     <string name="about_description">Operit AI is an intelligent assistant application that helps users use their devices more efficiently, providing interface analysis, chat conversations, and more.</string>
     <string name="about_developer">Developer: &lt;a href="https://github.com/AAswordman"&gt;AAswordman&lt;/a&gt;</string>
     <string name="about_contact">Contact Us: aaswordsman@foxmail.com</string>
-    <string name="about_website">&lt;a href="https://github.com/AAswordman/Operit"&gt;GitHub: https://github.com/AAswordman/Operit&lt;/a&gt;</string>
+    <string name="about_website">&lt;a href="https://github.com/lagovi/Operit"&gt;GitHub: https://github.com/lagovi/Operit&lt;/a&gt;</string>
     <string name="about_copyright">© 2025 - 2026 Operit. All Rights Reserved.</string>
     <string name="about_storage_title">Storage used</string>
     <string name="about_storage_internal">Internal storage (app + data)</string>
@@ -3058,7 +3058,7 @@
     
     <!-- Tool Test Names -->
     <string name="create_test_dir">Create Test Directory</string>
-    <string name="download_test_image">Download Test Image</string>
+    <string name="download_test_image">Download test file</string>
     <string name="create_text_file">Create Text File</string>
     <string name="write_small_file_test">Write Small File</string>
     <string name="write_large_file_test">Write Large File</string>
@@ -3102,7 +3102,7 @@
     
     <!-- Tool Test Descriptions -->
     <string name="create_test_dir_desc">Create root directory for all test files.</string>
-    <string name="download_test_image_desc">Download an image for subsequent tests.</string>
+    <string name="download_test_image_desc">Downloads example.com HTML into the tool test folder.</string>
     <string name="create_text_file_desc">Create a text file for testing.</string>
     <string name="write_small_file_test_desc">Write a small text file to verify basic writes.</string>
     <string name="write_large_file_test_desc">Write a larger text file to verify chunked writes.</string>
@@ -3738,7 +3738,12 @@
     <string name="settings_clear_cookies">Clear Cookies</string>
     <string name="settings_clear_cookies_subtitle">Clear cookies saved by search tools, the Browser package, and the built-in browser</string>
     <string name="clear_cookies_dialog_title">Clear cookies?</string>
-    <string name="clear_cookies_dialog_message">This will clear cookies saved by search tools, the Browser package, and the built-in browser. Open pages may need you to sign in again.</string>
+    <string name="clear_cookies_dialog_message">Choose which cookie stores to clear. Open pages may need you to sign in again.</string>
+    <string name="clear_cookies_component_webview">In-app WebView pages</string>
+    <string name="clear_cookies_component_webview_desc">Browser, workspace preview and token pages. Clears the shared Android WebView cookie store.</string>
+    <string name="clear_cookies_component_http">HTTP tools and packages</string>
+    <string name="clear_cookies_component_http_desc">Cookies kept by web search, web visit and package HTTP requests.</string>
+    <string name="clear_cookies_none_selected">Select at least one cookie store.</string>
     <string name="clear_cookies_confirm">Clear</string>
     <string name="clear_cookies_success">Cookies cleared</string>
     <string name="clear_cookies_failed">Failed to clear cookies</string>
@@ -6091,6 +6096,56 @@
     <string name="memory_search_tag_weight">Tag Weight</string>
     <string name="memory_search_vector_weight">Vector Weight</string>
     <string name="memory_search_edge_weight">Edge Propagation Weight</string>
+    <string name="memory_search_keyword_weight_desc">How strongly exact words and phrases contribute. Higher values favor literal matches; the default is 10.</string>
+    <string name="memory_search_tag_weight_desc">How strongly shared tags contribute. The default is 0; raise it when tags are curated and reliable.</string>
+    <string name="memory_search_vector_weight_desc">How strongly semantic embedding similarity contributes. Requires cloud embeddings.</string>
+    <string name="memory_search_edge_weight_desc">How strongly a linked memory passes its score to neighbors. Higher values spread relevance further.</string>
+    <string name="test_diag_endpoint">Endpoint: %1$s</string>
+    <string name="test_diag_status">HTTP status: %1$d</string>
+    <string name="test_diag_latency">Latency: %1$d ms</string>
+    <string name="test_diag_response">Response head: %1$s</string>
+    <string name="test_diag_parsed">Parsed error: %1$s</string>
+    <string name="detect_media_support">Detect media support</string>
+    <string name="detect_media_support_desc">Sends one test image, audio clip and video to check which modalities this model accepts.</string>
+    <string name="detect_media_support_running">Detecting media support…</string>
+    <string name="detected_media_support_title">Detected media support</string>
+    <string name="detected_media_support_summary">Image: %1$s\nAudio: %2$s\nVideo: %3$s</string>
+    <string name="detected_media_support_yes">supported</string>
+    <string name="detected_media_support_no">not supported</string>
+    <string name="detected_media_support_apply">Apply capabilities</string>
+    <string name="module_center_title">Module center</string>
+    <string name="module_center_desc">Optional on-device engines and models. Each one downloads only when you ask for it.</string>
+    <string name="module_center_speech_title">Speech services</string>
+    <string name="module_center_speech_desc">Text-to-speech and speech-to-text engines, cloud voices, and local GigaAM, Parakeet and Nemotron models.</string>
+    <string name="module_center_ocr_title">OCR engine</string>
+    <string name="module_center_ocr_desc">PaddleOCR reads text from screenshots and images. The engine and models are about 36 MB.</string>
+    <string name="module_center_mnn_title">MNN models</string>
+    <string name="module_center_mnn_desc">Download and manage local MNN chat and embedding models.</string>
+    <string name="module_center_open">Open</string>
+    <string name="module_center_prepare">Prepare OCR</string>
+    <string name="module_center_preparing">Preparing…</string>
+    <string name="module_center_ocr_ready">Ready</string>
+    <string name="module_center_ocr_missing">Not downloaded</string>
+    <string name="module_center_ocr_failed">OCR preparation failed: %1$s</string>
+    <string name="workflow_guide_action">Workflow guide</string>
+    <string name="workflow_guide_title">How this workflow runs</string>
+    <string name="workflow_guide_intro">Workflows run as a graph. A trigger starts the run, each connected step receives the previous output, and variables carry values between steps.</string>
+    <string name="workflow_guide_triggers_title">Triggers</string>
+    <string name="workflow_guide_triggers_body">A trigger decides when the workflow starts: manual run, schedule, speech phrase or an app event. A workflow without a trigger can still be started from this screen.</string>
+    <string name="workflow_guide_variables_title">Variables</string>
+    <string name="workflow_guide_variables_body">Variables store text, JSON or extracted values. Later steps refer to them by name. Extraction steps can pull a field from JSON, match a regex or join inputs.</string>
+    <string name="workflow_guide_steps_title">Tool steps</string>
+    <string name="workflow_guide_steps_body">Tool steps call the same tools the assistant uses. Connect them in order; the output of one step becomes the input of the next. Long-press a node to connect, edit or delete it.</string>
+    <string name="prompt_monitor_tab">Monitor</string>
+    <string name="prompt_monitor_title">Assembled character prompt</string>
+    <string name="prompt_monitor_desc">This is the character prompt for the active card. The base system prompt, tools, memories and workspace rules are added by the chat pipeline afterwards.</string>
+    <string name="prompt_monitor_empty">This character card has no prompt content.</string>
+    <string name="prompt_monitor_group">Select a character card to inspect its prompt. Group prompts are assembled from the active members.</string>
+    <string name="prompt_monitor_character_setting">Character setting</string>
+    <string name="prompt_monitor_other_content">Other chat content</string>
+    <string name="prompt_monitor_tags">Attached tags</string>
+    <string name="prompt_monitor_advanced">Advanced custom prompt</string>
+    <string name="prompt_monitor_refresh">Refresh</string>
     <string name="memory_search_reset_default">Reset Default</string>
     <string name="memory_search_debug_tools">Search Debug</string>
     <string name="memory_search_simulation_open">Simulate Search</string>
@@ -7967,6 +8022,9 @@
     <string name="be_first_comment_here">Be the first to leave feedback.</string>
     <string name="market_detail_about_title">About</string>
     <string name="market_detail_status_available">Available</string>
+    <string name="market_detail_status_installed">Installed</string>
+    <string name="market_detail_status_update_available">Update available</string>
+    <string name="market_action_update">Update</string>
     <string name="market_detail_status_closed">Closed</string>
     <string name="market_detail_open_page">Open page</string>
     <string name="market_detail_post_comment">Post comment</string>

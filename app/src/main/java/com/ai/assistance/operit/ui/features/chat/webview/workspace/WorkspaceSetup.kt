@@ -35,6 +35,7 @@ import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.ui.features.chat.webview.createAndResetWorkspaceDirectory
+import com.ai.assistance.operit.ui.features.help.helpAnchor
 import kotlinx.coroutines.*
 
 /**
@@ -514,14 +515,16 @@ fun WorkspaceSetup(chatId: String, onBindWorkspace: (String, String?) -> Unit) {
                     onClick = {
                         projectTypeDialogError = null
                         showProjectTypeDialog = true
-                    }
+                    },
+                    modifier = Modifier.helpAnchor("workspace.setup_create", "workspace"),
                 )
                 
                 WorkspaceOption(
                     icon = Icons.Default.FolderOpen,
                     title = context.getString(R.string.select_existing_workspace),
                     description = context.getString(R.string.select_folder_from_device),
-                    onClick = { showFileBrowser = true }
+                    onClick = { showFileBrowser = true },
+                    modifier = Modifier.helpAnchor("workspace.setup_select", "workspace"),
                 )
             }
         }
@@ -610,10 +613,11 @@ fun WorkspaceOption(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     description: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .width(160.dp) // 调整大小
             .height(160.dp)
             .clip(RoundedCornerShape(12.dp)) // 更圆的角

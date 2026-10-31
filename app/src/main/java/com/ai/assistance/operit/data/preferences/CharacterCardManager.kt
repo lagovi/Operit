@@ -78,6 +78,20 @@ private class CharacterCardSchemaMigration(
 /**
  * 角色卡管理器
  */
+enum class CharacterPromptSection {
+    CHARACTER_SETTING,
+    OTHER_CONTENT,
+    TAGS,
+    ADVANCED
+}
+
+data class CharacterPromptSectionVisibility(
+    val characterSetting: Boolean = true,
+    val otherContent: Boolean = true,
+    val tags: Boolean = true,
+    val advanced: Boolean = true,
+)
+
 class CharacterCardManager private constructor(private val context: Context) {
     
     private val dataStore = context.characterCardDataStore
@@ -612,6 +626,31 @@ class CharacterCardManager private constructor(private val context: Context) {
         }
     }
     
+    private fun sectionVisibilityKey(cardId: String, section: CharacterPromptSection): Preferences.Key<Boolean> =
+        booleanPreferencesKey("character_card_${cardId}_prompt_section_${section.name.lowercase()}")
+
+    fun promptSectionVisibilityFlow(cardId: String): Flow<CharacterPromptSectionVisibility> =
+        dataStore.data.map { preferences ->
+            CharacterPromptSectionVisibility(
+                characterSetting =
+                    preferences[sectionVisibilityKey(cardId, CharacterPromptSection.CHARACTER_SETTING)] ?: true,
+                otherContent =
+                    preferences[sectionVisibilityKey(cardId, CharacterPromptSection.OTHER_CONTENT)] ?: true,
+                tags = preferences[sectionVisibilityKey(cardId, CharacterPromptSection.TAGS)] ?: true,
+                advanced = preferences[sectionVisibilityKey(cardId, CharacterPromptSection.ADVANCED)] ?: true,
+            )
+        }
+
+    suspend fun setPromptSectionEnabled(
+        cardId: String,
+        section: CharacterPromptSection,
+        enabled: Boolean,
+    ) {
+        dataStore.edit { preferences ->
+            preferences[sectionVisibilityKey(cardId, section)] = enabled
+        }
+    }
+
     // 组合提示词（角色设定 + 其他内容 + 标签 + 高级自定义）
     suspend fun combinePrompts(
         characterCardId: String,
@@ -629,8 +668,9 @@ class CharacterCardManager private constructor(private val context: Context) {
             }
         }
         
+        val visibility = promptSectionVisibilityFlow(characterCardId).first()
         val combinedPrompt = buildString {
-            if (characterCard.characterSetting.isNotBlank()) {
+            if (visibility.characterSetting && characterCard.characterSetting.isNotBlank()) {
                 append(characterCard.characterSetting)
                 append("\n\n")
             }
@@ -641,19 +681,21 @@ class CharacterCardManager private constructor(private val context: Context) {
                 } else {
                     characterCard.otherContentChat
                 }
-            if (otherContent.isNotBlank()) {
+            if (visibility.otherContent && otherContent.isNotBlank()) {
                 append(otherContent)
                 append("\n\n")
             }
             
-            attachedTags.forEach { tag ->
-                if (tag.promptContent.isNotBlank()) {
-                    append(tag.promptContent)
-                    append("\n\n")
+            if (visibility.tags) {
+                attachedTags.forEach { tag ->
+                    if (tag.promptContent.isNotBlank()) {
+                        append(tag.promptContent)
+                        append("\n\n")
+                    }
                 }
             }
             
-            if (characterCard.advancedCustomPrompt.isNotBlank()) {
+            if (visibility.advanced && characterCard.advancedCustomPrompt.isNotBlank()) {
                 append(characterCard.advancedCustomPrompt)
                 append("\n\n")
             }

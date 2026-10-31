@@ -388,33 +388,67 @@ fun ClassicChatSettingsBar(
 
     // The passed modifier will align this Box within its parent.
     Box(modifier = modifier.padding(end = chatSettingsBarRightMargin.dp)) {
-        IconButton(
-            onClick = {
-                showMenu = !showMenu
-                if (showMenu) {
-                    return@IconButton
-                }
-                showModelDropdown = false
-                showMemoryDropdown = false
-                showThinkingDropdown = false
-                showMemorySection = false
-                showModelSection = false
-                showToolsSection = false
-                showBehaviorSection = false
-                showPluginsSection = false
-            },
-            modifier = Modifier
-                .padding(vertical = 8.dp, horizontal = 2.dp)
-                .size(28.dp)
-                .align(Alignment.BottomEnd)
-                .helpAnchor("more")
+        Row(
+            modifier = Modifier.align(Alignment.BottomEnd),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Tune,
-                contentDescription = stringResource(R.string.settings_options),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp).scale(iconScale)
-            )
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color.Transparent,
+                modifier = Modifier
+                    .widthIn(min = 0.dp, max = 120.dp)
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable {
+                        showMenu = true
+                        showMemorySection = false
+                        showModelSection = true
+                        showToolsSection = false
+                        showBehaviorSection = false
+                        showPluginsSection = false
+                    }
+                    .helpAnchor("model")
+            ) {
+                Text(
+                    text = currentModelName,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            IconButton(
+                onClick = {
+                    showMenu = !showMenu
+                    if (showMenu) {
+                        return@IconButton
+                    }
+                    showModelDropdown = false
+                    showMemoryDropdown = false
+                    showThinkingDropdown = false
+                    showMemorySection = false
+                    showModelSection = false
+                    showToolsSection = false
+                    showBehaviorSection = false
+                    showPluginsSection = false
+                },
+                modifier = Modifier
+                    .padding(vertical = 8.dp, horizontal = 2.dp)
+                    .size(28.dp)
+                    .helpAnchor("more")
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Tune,
+                    contentDescription = stringResource(R.string.settings_options),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp).scale(iconScale)
+                )
+            }
         }
 
         if (showMenu) {
@@ -440,7 +474,7 @@ fun ClassicChatSettingsBar(
             ) {
                 Box(modifier = Modifier.padding(top = 0.dp, bottom = 76.dp)) {
                     Card(
-                        modifier = Modifier.widthIn(min = 280.dp, max = 340.dp),
+                        modifier = Modifier.widthIn(min = 280.dp, max = 340.dp).helpAnchor("toggles"),
                         shape = RoundedCornerShape(8.dp),
                             colors =
                                     CardDefaults.cardColors(

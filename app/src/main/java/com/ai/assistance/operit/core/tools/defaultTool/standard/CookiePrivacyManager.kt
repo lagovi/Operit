@@ -9,8 +9,15 @@ import kotlinx.coroutines.withContext
 /** Clears cookies shared by network tools and WebView-based browser surfaces. */
 internal object CookiePrivacyManager {
     suspend fun clearAllCookies() {
-        StandardHttpTools.clearSharedCookies()
+        clearHttpToolCookies()
+        clearWebViewCookies()
+    }
 
+    fun clearHttpToolCookies() {
+        StandardHttpTools.clearSharedCookies()
+    }
+
+    suspend fun clearWebViewCookies() {
         withContext(Dispatchers.Main.immediate) {
             val cookieManager = CookieManager.getInstance()
             suspendCancellableCoroutine<Unit> { continuation ->

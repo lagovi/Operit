@@ -279,7 +279,7 @@ val HelpTopics: List<HelpTopic> = listOf(
         sections = listOf(
             s(
                 "Updates",
-                "Check for updates checks now or reopens the update dialog (spinner while checking). Beta plan switch opts into beta builds. The update dialog offers Download / Patch update / OK and Close; mirror-choice dialogs pick a download mirror; progress dialogs Cancel; an install prompt finishes the flow."
+                "Check for updates checks now or reopens the update dialog (spinner while checking). The check reads the fork's GitHub releases. The update dialog offers Download / OK and Close; progress dialogs allow Cancel; an install prompt finishes the flow."
             ),
             s(
                 "Storage and links",

@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,7 +16,10 @@ import androidx.compose.ui.platform.LocalContext
 import com.ai.assistance.operit.terminal.TerminalManager
 import com.ai.assistance.operit.terminal.rememberTerminalEnv
 import com.ai.assistance.operit.terminal.main.TerminalScreen
+import com.ai.assistance.operit.terminal.ui.LocalTerminalHelpAnchorSink
+import com.ai.assistance.operit.terminal.ui.TerminalHelpAnchorSink
 import com.ai.assistance.operit.ui.components.TerminalRootfsGate
+import com.ai.assistance.operit.ui.features.help.LocalHelpMode
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -28,6 +32,19 @@ fun ComputerScreen() {
         // Create a TerminalManager and TerminalEnv instance for the terminal
         val terminalManager = remember { TerminalManager.getInstance(context) }
         val terminalEnv = rememberTerminalEnv(terminalManager)
+
+        val helpMode = LocalHelpMode.current
+        val helpSink = remember(helpMode) {
+            object : TerminalHelpAnchorSink {
+                override fun register(id: String, bounds: androidx.compose.ui.geometry.Rect) {
+                    helpMode.register("terminal", id, bounds)
+                }
+
+                override fun unregister(id: String) {
+                    helpMode.unregister("terminal", id)
+                }
+            }
+        }
 
         Box(
             modifier = Modifier
@@ -46,11 +63,13 @@ fun ComputerScreen() {
                 }
         ) {
             // Show the terminal interface instead of the web desktop
-            TerminalScreen(
-                env = terminalEnv,
-                useLocalImeHandling = false,
-                checkUpdatesOnEnter = false,
-            )
+            CompositionLocalProvider(LocalTerminalHelpAnchorSink provides helpSink) {
+                TerminalScreen(
+                    env = terminalEnv,
+                    useLocalImeHandling = false,
+                    checkUpdatesOnEnter = false,
+                )
+            }
         }
     }
 } 

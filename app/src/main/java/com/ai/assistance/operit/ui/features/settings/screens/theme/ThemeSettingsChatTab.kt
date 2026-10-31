@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.toArgb
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
+import com.ai.assistance.operit.ui.features.settings.components.AvatarGalleryDialog
 import com.ai.assistance.operit.ui.features.settings.components.ColorPickerDialog
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsAvatarSection
 import com.ai.assistance.operit.ui.features.settings.sections.ThemeSettingsChatStyleSection
@@ -82,6 +83,7 @@ internal data class ThemeSettingsChatRuntime(
     val onClearBubbleAiImage: () -> Unit,
     val avatarImagePicker: ManagedActivityResultLauncher<String, Uri?>,
     val onAvatarPickerModeChange: (String) -> Unit,
+    val onCreateAvatar: (String) -> Unit,
 )
 
 private fun isNinePatchMarker(colorInt: Int): Boolean {
@@ -345,6 +347,7 @@ internal fun rememberThemeSettingsChatRuntime(
         }
 
     var avatarPickerMode by remember { mutableStateOf(ThemeSettingsAvatarPickerMode.USER) }
+    var avatarGalleryTarget by remember { mutableStateOf<ThemeSettingsAvatarPickerMode?>(null) }
     val cropAvatarLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
             val croppedUri = result.uriContent
@@ -456,6 +459,7 @@ internal fun rememberThemeSettingsChatRuntime(
         onAvatarPickerModeChange = {
             avatarPickerMode = ThemeSettingsAvatarPickerMode.fromKey(it)
         },
+        onCreateAvatar = { modeKey -> avatarGalleryTarget = ThemeSettingsAvatarPickerMode.fromKey(modeKey) },
     )
 }
 
@@ -648,7 +652,58 @@ internal fun ThemeSettingsChatTab(
         avatarCornerRadiusInput = avatarCornerRadiusInput,
         avatarImagePicker = runtime.avatarImagePicker,
         onAvatarPickerModeChange = runtime.onAvatarPickerModeChange,
+        onCreateAvatar = runtime.onCreateAvatar,
     )
+
+    avatarGalleryTarget?.let { target ->
+        val currentUri = when (target) {
+            ThemeSettingsAvatarPickerMode.USER -> userAvatarUriInput
+            ThemeSettingsAvatarPickerMode.AI -> aiAvatarUriInput
+            ThemeSettingsAvatarPickerMode.GLOBAL_USER -> globalUserAvatarUriInput
+        }
+        AvatarGalleryDialog(
+            title = when (target) {
+                ThemeSettingsAvatarPickerMode.USER -> "User avatar"
+                ThemeSettingsAvatarPickerMode.AI -> "AI avatar"
+                ThemeSettingsAvatarPickerMode.GLOBAL_USER -> "Global user avatar"
+            },
+            currentAvatarUri = currentUri,
+            onDismiss = { avatarGalleryTarget = null },
+            onPickImage = { avatarPickerMode = target; runtime.avatarImagePicker.launch("image/*") },
+            onImageReady = { uri ->
+                when (target) {
+                    ThemeSettingsAvatarPickerMode.USER -> {
+                        editorSession.registerStagedAsset(uri.toString())
+                        editorSession.setOptionalString("custom_user_avatar_uri", uri.toString())
+                    }
+                    ThemeSettingsAvatarPickerMode.AI -> {
+                        editorSession.registerStagedAsset(uri.toString())
+                        editorSession.setOptionalString("custom_ai_avatar_uri", uri.toString())
+                    }
+                    ThemeSettingsAvatarPickerMode.GLOBAL_USER -> {
+                        globalUserAvatarUriInput = uri.toString()
+                        shared.scope.launch {
+                            displayPreferencesManager.saveDisplaySettings(globalUserAvatarUri = uri.toString())
+                        }
+                    }
+                }
+                avatarGalleryTarget = null
+            },
+            onReset = {
+                when (target) {
+                    ThemeSettingsAvatarPickerMode.USER -> editorSession.setOptionalString("custom_user_avatar_uri", null)
+                    ThemeSettingsAvatarPickerMode.AI -> editorSession.setOptionalString("custom_ai_avatar_uri", null)
+                    ThemeSettingsAvatarPickerMode.GLOBAL_USER -> {
+                        globalUserAvatarUriInput = null
+                        shared.scope.launch {
+                            displayPreferencesManager.saveDisplaySettings(globalUserAvatarUri = "")
+                        }
+                    }
+                }
+                avatarGalleryTarget = null
+            },
+        )
+    }
 
     ThemeSettingsDisplayOptionsSection(
         cardColors = cardColors,

@@ -201,3 +201,22 @@ TFLite/ONNX export published, so Bonsai cannot run inside the Operit APK as
 shipped. It is reached as an HTTP image endpoint, which the
 OpenAI-compatible client already covers. Concrete Colab integration is
 deferred until the user provides their existing notes.
+
+## Implemented in this iteration
+
+- `data/avatar/AvatarPresetRepository`: fetches `presets.json` from
+  `lagovi/OperitAvatarAssets`, downloads a chosen glTF, verifies sha256, caches
+  the license next to the model. Nothing is bundled in the APK.
+- `data/avatar/AvatarAssetStore`: single save path for square portraits; every
+  creator (device, draw, compose, generate) returns a `file://` URI in
+  `filesDir/avatar_assets`.
+- `data/avatar/AvatarImageGenerator` plus `AvatarImageGenerationSettings`:
+  OpenAI-compatible `POST /v1/images/generations` with `b64_json` or `url`,
+  explicit endpoint, key and model, stored in their own DataStore.
+- `ui/.../AvatarGalleryDialog`: Presets / Device / Create / Backend tabs.
+  Create has Draw (canvas), Compose (shape, background, accent) and Generate.
+- Entry points unified: character card, group card, per-card user portrait and
+  global user portrait all open the gallery. Preset choice installs the model
+  into `AvatarRepository` so the assistant sees it.
+- `AvatarRepository.installGltfPreset` copies a verified preset into the
+  normal avatar directory so the existing scan treats it as an import.

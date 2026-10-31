@@ -5,8 +5,9 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
@@ -22,12 +23,14 @@ import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.R
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AvatarPicker(
     label: String,
     avatarUri: String?,
     onAvatarChange: () -> Unit,
-    onAvatarReset: () -> Unit
+    onAvatarReset: () -> Unit,
+    onLongClick: (() -> Unit)? = null
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -44,7 +47,7 @@ fun AvatarPicker(
                 .size(70.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-                .clickable(onClick = onAvatarChange)
+                .combinedClickable(onClick = onAvatarChange, onLongClick = onLongClick)
                 .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
             contentAlignment = Alignment.Center
         ) {

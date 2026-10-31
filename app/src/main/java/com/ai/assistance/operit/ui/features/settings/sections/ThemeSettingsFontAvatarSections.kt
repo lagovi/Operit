@@ -269,6 +269,7 @@ internal fun ThemeSettingsAvatarSection(
     avatarCornerRadiusInput: Float,
     avatarImagePicker: ManagedActivityResultLauncher<String, Uri?>,
     onAvatarPickerModeChange: (String) -> Unit,
+    onCreateAvatar: (String) -> Unit = {},
 ) {
     ThemeSettingsSectionTitle(
         title = stringResource(id = R.string.avatar_customization_title),
@@ -286,6 +287,10 @@ internal fun ThemeSettingsAvatarSection(
                     avatarUri = userAvatarUriInput,
                     onAvatarChange = {
                         onAvatarPickerModeChange("user")
+                        onCreateAvatar("user")
+                    },
+                    onLongClick = {
+                        onAvatarPickerModeChange("user")
                         avatarImagePicker.launch("image/*")
                     },
                     onAvatarReset = {
@@ -297,6 +302,10 @@ internal fun ThemeSettingsAvatarSection(
                     label = stringResource(id = R.string.global_user_avatar_label),
                     avatarUri = globalUserAvatarUriInput,
                     onAvatarChange = {
+                        onAvatarPickerModeChange("global_user")
+                        onCreateAvatar("global_user")
+                    },
+                    onLongClick = {
                         onAvatarPickerModeChange("global_user")
                         avatarImagePicker.launch("image/*")
                     },

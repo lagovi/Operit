@@ -824,6 +824,33 @@ class AvatarRepository(
         UNSUPPORTED
     }
 
+    /**
+     * Installs a downloaded preset model so the existing glTF scan picks it up
+     * like a normal import. The catalog keeps the checksum; this method only
+     * places the verified file and refreshes the list.
+     */
+    suspend fun installGltfPreset(presetId: String, name: String, sourceFile: File): String? =
+        withContext(Dispatchers.IO) {
+            if (!sourceFile.isFile) {
+                AppLogger.w(TAG, "Preset source missing: ${sourceFile.absolutePath}")
+                return@withContext null
+            }
+            val safeId = sanitizeImportDirectoryName(presetId)
+            val targetDir = File(userAvatarDir, safeId)
+            targetDir.mkdirs()
+            val target = File(targetDir, sourceFile.name)
+            sourceFile.copyTo(target, overwrite = true)
+            File(targetDir, "preset_name.txt").writeText(name)
+            refreshAvatars()
+            val config = _configs.value.firstOrNull {
+                it.type == AvatarType.GLTF &&
+                    normalizeAvatarPath(it.getBasePath().orEmpty()) ==
+                        normalizeAvatarPath(targetDir.absolutePath)
+            }
+            AppLogger.i(TAG, "Installed avatar preset $presetId at ${targetDir.absolutePath}")
+            config?.id
+        }
+
     suspend fun importAvatarFromUri(uri: Uri): Boolean {
         return when (detectImportKind(uri)) {
             AvatarImportKind.ZIP -> importAvatarFromZip(uri)

@@ -82,6 +82,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.toArgb
 import com.ai.assistance.operit.ui.features.settings.components.CharacterCardDialog
+import com.ai.assistance.operit.ui.features.settings.components.AvatarGalleryDialog
 import com.ai.assistance.operit.ui.features.settings.components.CompactAvatarPicker
 import com.ai.assistance.operit.ui.features.settings.components.CompactTextFieldWithExpand
 import coil.compose.rememberAsyncImagePainter
@@ -155,6 +156,9 @@ fun ModelPromptsSettingsScreen(
     var editingGroupCard by remember { mutableStateOf<CharacterGroupCard?>(null) }
     var showDeleteGroupCardConfirm by remember { mutableStateOf(false) }
     var deletingGroupCard by remember { mutableStateOf<CharacterGroupCard?>(null) }
+
+    // Avatar gallery state; target decides where a picked result is saved.
+    var avatarGalleryTarget by remember { mutableStateOf<AvatarGalleryTarget?>(null) }
 
     // 重置确认对话框状态
     var showResetDefaultConfirm by remember { mutableStateOf(false) }
@@ -281,6 +285,48 @@ fun ModelPromptsSettingsScreen(
     ) { uri: Uri? ->
         if (uri != null) {
             launchGroupAvatarCrop(uri)
+        }
+    }
+
+    val avatarGalleryDevicePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            when (val target = avatarGalleryTarget) {
+                is AvatarGalleryTarget.CharacterCard -> {
+                    editingCharacterCard?.let { card ->
+                        scope.launch {
+                            val internalUri = FileUtils.copyFileToInternalStorage(context, uri, "avatar_${card.id}")
+                            if (internalUri != null) {
+                                activePromptManager.saveAiAvatarForPrompt(
+                                    ActivePrompt.CharacterCard(card.id),
+                                    internalUri.toString(),
+                                )
+                                refreshTrigger++
+                            } else {
+                                Toast.makeText(context, context.getString(R.string.theme_copy_failed), Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                }
+                is AvatarGalleryTarget.GroupCard -> {
+                    editingGroupCard?.let { group ->
+                        scope.launch {
+                            val internalUri = FileUtils.copyFileToInternalStorage(context, uri, "group_avatar_${group.id}")
+                            if (internalUri != null) {
+                                activePromptManager.saveAiAvatarForPrompt(
+                                    ActivePrompt.CharacterGroup(group.id),
+                                    internalUri.toString(),
+                                )
+                                refreshTrigger++
+                            } else {
+                                Toast.makeText(context, context.getString(R.string.theme_copy_failed), Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                }
+                null -> Unit
+            }
         }
     }
 
@@ -1213,6 +1259,75 @@ fun ModelPromptsSettingsScreen(
         }
     }
 
+    avatarGalleryTarget?.let { target ->
+        val galleryCardId = when (target) {
+            is AvatarGalleryTarget.CharacterCard -> editingCharacterCard?.id
+            is AvatarGalleryTarget.GroupCard -> editingGroupCard?.id
+        }
+        val galleryTitle = when (target) {
+            is AvatarGalleryTarget.CharacterCard -> "Character avatar"
+            is AvatarGalleryTarget.GroupCard -> "Group avatar"
+        }
+        val galleryCurrentUri = galleryCardId?.let { id ->
+            when (target) {
+                is AvatarGalleryTarget.CharacterCard ->
+                    userPreferencesManager.getAiAvatarForCharacterCardFlow(id)
+                is AvatarGalleryTarget.GroupCard ->
+                    userPreferencesManager.getAiAvatarForCharacterGroupFlow(id)
+            }
+        }
+        AvatarGalleryDialog(
+            title = galleryTitle,
+            currentAvatarUri = galleryCurrentUri?.collectAsState(initial = null)?.value,
+            onDismiss = { avatarGalleryTarget = null },
+            onPickImage = { avatarGalleryDevicePicker.launch("image/*") },
+            onImageReady = { uri ->
+                scope.launch {
+                    when (target) {
+                        is AvatarGalleryTarget.CharacterCard ->
+                            editingCharacterCard?.let { card ->
+                                activePromptManager.saveAiAvatarForPrompt(
+                                    ActivePrompt.CharacterCard(card.id),
+                                    uri.toString(),
+                                )
+                            }
+                        is AvatarGalleryTarget.GroupCard ->
+                            editingGroupCard?.let { group ->
+                                activePromptManager.saveAiAvatarForPrompt(
+                                    ActivePrompt.CharacterGroup(group.id),
+                                    uri.toString(),
+                                )
+                            }
+                    }
+                    avatarGalleryTarget = null
+                    refreshTrigger++
+                }
+            },
+            onReset = {
+                scope.launch {
+                    when (target) {
+                        is AvatarGalleryTarget.CharacterCard ->
+                            editingCharacterCard?.let { card ->
+                                activePromptManager.saveAiAvatarForPrompt(
+                                    ActivePrompt.CharacterCard(card.id),
+                                    null,
+                                )
+                            }
+                        is AvatarGalleryTarget.GroupCard ->
+                            editingGroupCard?.let { group ->
+                                activePromptManager.saveAiAvatarForPrompt(
+                                    ActivePrompt.CharacterGroup(group.id),
+                                    null,
+                                )
+                            }
+                    }
+                    avatarGalleryTarget = null
+                    refreshTrigger++
+                }
+            },
+        )
+    }
+
     // 新建角色卡对话框
     if (showAddCharacterCardDialog) {
         CharacterCardDialog(
@@ -1237,7 +1352,7 @@ fun ModelPromptsSettingsScreen(
                 saveCharacterCard()
             },
             onAvatarChange = {
-                avatarImagePicker.launch("image/*")
+                avatarGalleryTarget = AvatarGalleryTarget.CharacterCard
             },
             onAvatarReset = {
                 scope.launch {
@@ -1278,7 +1393,7 @@ fun ModelPromptsSettingsScreen(
                 saveCharacterCard()
                                 },
             onAvatarChange = {
-                avatarImagePicker.launch("image/*")
+                avatarGalleryTarget = AvatarGalleryTarget.CharacterCard
             },
             onAvatarReset = {
                 scope.launch {
@@ -1350,7 +1465,7 @@ fun ModelPromptsSettingsScreen(
                 saveGroupCard()
             },
             onAvatarChange = {
-                groupAvatarImagePicker.launch("image/*")
+                avatarGalleryTarget = AvatarGalleryTarget.GroupCard
             },
             onAvatarReset = {
                 scope.launch {
@@ -1381,7 +1496,7 @@ fun ModelPromptsSettingsScreen(
                 saveGroupCard()
             },
             onAvatarChange = {
-                groupAvatarImagePicker.launch("image/*")
+                avatarGalleryTarget = AvatarGalleryTarget.GroupCard
             },
             onAvatarReset = {
                 scope.launch {
@@ -3686,3 +3801,8 @@ private fun centerCropSquare(src: Bitmap, size: Int): Bitmap {
 }
 
 // 旧配置查看对话框已废弃
+
+private sealed interface AvatarGalleryTarget {
+    data object CharacterCard : AvatarGalleryTarget
+    data object GroupCard : AvatarGalleryTarget
+}

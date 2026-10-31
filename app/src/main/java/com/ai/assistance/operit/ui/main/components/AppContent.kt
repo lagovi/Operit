@@ -280,6 +280,7 @@ fun AppContent(
         // 使用Scaffold来正确处理顶部栏和内容的布局
         // contentWindowInsets = WindowInsets(0) 让内容可以延伸到系统栏下方，使背景能够完全填充
         Scaffold(
+            modifier = Modifier.helpTapInterceptor(helpMode),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 // 单一工具栏 - 使用小型化的设计
@@ -750,9 +751,7 @@ fun AppContent(
                                             }
                                 ) {
                                     Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .helpTapInterceptor(helpMode)
+                                        modifier = Modifier.fillMaxSize()
                                     ) {
                                         screenStateHolder.SaveableStateProvider(screenKey) {
                                             CompositionLocalProvider(

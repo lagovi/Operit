@@ -50,7 +50,12 @@ Update this file after every completed item. Do not rely on chat context.
 - [x] G1. Clear installed/available/updatable status text in package lists.
 - [x] G2. System Prompt Monitor in `ModelPromptsSettingsScreen.kt`: assembled
       prompt view plus safe toggles for managed parts.
-- [!] G3. Avatar presets downloaded on demand. Blocked: the fork has no preset metadata, assets or download URLs, and adding a third-party avatar service needs a product decision.
+- [ ] G3. Avatar presets and a user-friendly avatar workflow. This is the next large task, but only after the current backlog and full regression testing are complete. Start with research and a written options proposal for user approval:
+  - define which avatars are needed (character portraits, group avatars, assistant avatar, style variants);
+  - clarify how they are supposed to be created or chosen today, and why the current flow is unclear;
+  - compare implementation options: bundled presets, fork-hosted downloadable presets, optional third-party image services, local import/crop improvements, or user-provided images only;
+  - document privacy, licensing, network and storage consequences of each option;
+  - do not implement any option until the user approves one.
 - [x] G4. Workflow guided explanation for triggers, variables and tool steps.
 
 ## H. Acceptance follow-ups

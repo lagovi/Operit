@@ -23,12 +23,18 @@ committed/pushed before the parent pointer.
 Open after this batch:
 - H4/V2/V3: build, install, smoke-test at 360 dp / font scale 1.0, archive the
   APK under `/home/uzzzver/operit-fork/apk/<UTC-CI-start>/` with `CHANGES.md`.
-- G3: avatar presets downloaded on demand is blocked. No preset metadata,
-  images or download URLs exist in the fork; the only known local avatar is
-  `file:///android_asset/operit.png`. Adding a preset gallery needs a product
-  decision on the asset host/privacy, then a new `CharacterCardDialog` section
-  that downloads into internal storage on tap. Do not invent a third-party
-  avatar service silently.
+- G3: avatar presets and a user-friendly avatar workflow are the next large
+  task, but only after the current backlog and full regression testing are
+  complete. Start with research and a written options proposal for user
+  approval; do not implement before approval. Cover: which avatars are needed
+  (character portraits, group avatars, assistant avatar, style variants); how
+  users are supposed to create/choose them now and why the current flow is
+  unclear; options such as bundled presets, fork-hosted downloads, optional
+  third-party image services, better local import/crop, or user-provided
+  images only; and privacy, licensing, network and storage consequences.
+  Current facts: no preset metadata, images or download URLs exist in the
+  fork; the only known local avatar is `file:///android_asset/operit.png`.
+  `CharacterCardDialog` is the main current entry point.
 - F3: Settings subtitle rows now allow two lines and chat rows already use
   weighted text, but the 360 dp visual check still has to happen on the phone
   (`SettingsScreen.kt`, `ClassicChatSettingsBar.kt`, `ModelApiSettingsSection.kt`).

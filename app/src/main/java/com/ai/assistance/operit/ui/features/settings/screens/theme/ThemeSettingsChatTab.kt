@@ -83,7 +83,6 @@ internal data class ThemeSettingsChatRuntime(
     val onClearBubbleAiImage: () -> Unit,
     val avatarImagePicker: ManagedActivityResultLauncher<String, Uri?>,
     val onAvatarPickerModeChange: (String) -> Unit,
-    val onCreateAvatar: (String) -> Unit,
 )
 
 private fun isNinePatchMarker(colorInt: Int): Boolean {
@@ -347,7 +346,6 @@ internal fun rememberThemeSettingsChatRuntime(
         }
 
     var avatarPickerMode by remember { mutableStateOf(ThemeSettingsAvatarPickerMode.USER) }
-    var avatarGalleryTarget by remember { mutableStateOf<ThemeSettingsAvatarPickerMode?>(null) }
     val cropAvatarLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
             val croppedUri = result.uriContent
@@ -459,7 +457,6 @@ internal fun rememberThemeSettingsChatRuntime(
         onAvatarPickerModeChange = {
             avatarPickerMode = ThemeSettingsAvatarPickerMode.fromKey(it)
         },
-        onCreateAvatar = { modeKey -> avatarGalleryTarget = ThemeSettingsAvatarPickerMode.fromKey(modeKey) },
     )
 }
 
@@ -471,6 +468,8 @@ internal fun ThemeSettingsChatTab(
     val editorSession = shared.editorSession
     val displayPreferencesManager = shared.displayPreferencesManager
     val values by editorSession.values.collectAsState()
+    var avatarPickerMode by remember { mutableStateOf(ThemeSettingsAvatarPickerMode.USER) }
+    var avatarGalleryTarget by remember { mutableStateOf<ThemeSettingsAvatarPickerMode?>(null) }
     val defaultCursorUserBubbleColor = MaterialTheme.colorScheme.primaryContainer.toArgb()
     val defaultBubbleUserBubbleColor = MaterialTheme.colorScheme.primaryContainer.toArgb()
     val defaultBubbleAiBubbleColor = MaterialTheme.colorScheme.surface.toArgb()
@@ -652,7 +651,10 @@ internal fun ThemeSettingsChatTab(
         avatarCornerRadiusInput = avatarCornerRadiusInput,
         avatarImagePicker = runtime.avatarImagePicker,
         onAvatarPickerModeChange = runtime.onAvatarPickerModeChange,
-        onCreateAvatar = runtime.onCreateAvatar,
+        onCreateAvatar = { modeKey ->
+            avatarPickerMode = ThemeSettingsAvatarPickerMode.fromKey(modeKey)
+            avatarGalleryTarget = avatarPickerMode
+        },
     )
 
     avatarGalleryTarget?.let { target ->
@@ -669,7 +671,11 @@ internal fun ThemeSettingsChatTab(
             },
             currentAvatarUri = currentUri,
             onDismiss = { avatarGalleryTarget = null },
-            onPickImage = { avatarPickerMode = target; runtime.avatarImagePicker.launch("image/*") },
+            onPickImage = {
+                avatarPickerMode = target
+                runtime.avatarImagePicker.launch("image/*")
+                avatarGalleryTarget = null
+            },
             onImageReady = { uri ->
                 when (target) {
                     ThemeSettingsAvatarPickerMode.USER -> {

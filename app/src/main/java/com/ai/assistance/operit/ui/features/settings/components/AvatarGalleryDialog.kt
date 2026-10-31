@@ -76,6 +76,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ai.assistance.operit.data.avatar.AvatarAssetStore
+import com.ai.assistance.operit.data.avatar.AvatarImageGenerationSettings
+import com.ai.assistance.operit.data.avatar.AvatarImageGenerator
 import com.ai.assistance.operit.data.avatar.AvatarPresetRepository
 import com.ai.assistance.operit.data.repository.AvatarRepository
 import com.ai.assistance.operit.core.avatar.impl.factory.AvatarModelFactoryImpl

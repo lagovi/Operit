@@ -56,8 +56,19 @@ Update this file after every completed item. Do not rely on chat context.
   - compare implementation options: bundled presets, fork-hosted downloadable presets, optional third-party image services, local import/crop improvements, user-provided images only, and self-creation of a new avatar (drawing, generative prompt, or local composition) as a mandatory option;
   - document privacy, licensing, network and storage consequences of each option;
   - do not implement any option until the user approves one.
-  - [x] Research written in `docs/FORK-REGISTRY/AVATAR-RESEARCH.md`; options are
-    waiting for the user to pick one.
+  - [x] Research written in `docs/FORK-REGISTRY/AVATAR-RESEARCH.md`; the user
+    chose fork-hosted presets, all avatar kinds, two preset sets, and all three
+    creation modes.
+  - [x] Animated Assistant avatars researched in
+    `docs/FORK-REGISTRY/AVATAR-3D-RESEARCH.md`; six glTF presets published to
+    `lagovi/OperitAvatarAssets` with a `presets.json` catalog and per-model
+    `LICENSE.txt`.
+  - [ ] Implement the gallery: Presets / Device / Create tabs, catalog fetch
+    and verified download into app storage, and the same picker from the card,
+    group, per-card user and global user avatar entry points.
+  - [ ] Implement Create: draw on a canvas, local composition, and generation
+    through the user's OpenAI-compatible image endpoint.
+  - [ ] Implement the Assistant import doctor and the Blender guide/skill.
 - [x] G4. Workflow guided explanation for triggers, variables and tool steps.
 
 ## H. Acceptance follow-ups

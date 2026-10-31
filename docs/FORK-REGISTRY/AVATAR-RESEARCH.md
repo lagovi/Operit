@@ -155,12 +155,22 @@ A base that combines D with F, then presets layered on top:
   the bound model reports image support.
 - Option C is left out of the first iteration.
 
-## Open questions for the user
+## Decisions from the user
 
-1. Presets: bundled only, fork-hosted only, or bundled first and hosted later?
-2. Should Generate be included in the first iteration, or only Draw and
-   Compose?
-3. Should presets also apply to the user portrait and the assistant avatar, or
-   only to character cards and groups?
-4. Style set for presets: neutral assistant portraits, stylised characters, or
-   both?
+1. Presets are hosted on the fork, not embedded in the APK. They live in the
+   separate public repository `lagovi/OperitAvatarAssets`.
+2. Generate, Draw and Compose are all in the first iteration.
+3. The gallery applies to every avatar: character card, group card, per-card
+   user portrait, and the global user portrait.
+4. Two preset sets: neutral assistant portraits and stylised characters.
+
+Asset weight is not a selection constraint because the assets live in the
+repository, not in the APK.
+
+Animated Assistant avatars are a separate system; see `AVATAR-3D-RESEARCH.md`.
+
+## Open questions
+
+1. For generation, only OpenAI-compatible image endpoints are planned. Is that
+   enough, or must other providers be covered in the first iteration?
+2. Who reviews preset licences before a pack is published?

@@ -184,9 +184,20 @@ backends are planned, all reachable through the same client:
 | --- | --- | --- |
 | OpenAI-compatible images API | Any provider the user already has | `POST /v1/images/generations`, returns `b64_json` or URL |
 | Google Colab notebook | User's own Colab runtime | Free GPU hours; user supplies their existing workflow later |
-| Bonsai Image 4B (Prism ML) | User's CUDA machine or a hosted instance | Apache-2.0; binary 4.09 GB or ternary 4.55 GB payload; 4-step sampler; Flash-like speed on A100 |
+| Bonsai Image 4B (Prism ML) | User's CUDA machine, Apple Silicon, or a hosted instance | Apache-2.0; 4-step sampler; the transformer alone is 0.93 GB (1-bit) / 1.21 GB (ternary) |
 
-Bonsai's own card says it needs an NVIDIA GPU with CUDA and runs on Linux and
-Windows, so it cannot run inside the Android app. The app only needs to reach
-it over HTTP, which the OpenAI-compatible client already covers. Concrete
-Colab integration is deferred until the user provides their existing notes.
+Bonsai's headline number is the diffusion transformer, and that part is small:
+0.93 GB binary or 1.21 GB ternary, against 7.75 GB for FP16 FLUX.2 Klein 4B.
+But the transformer is not the whole generator. The text encoder and VAE are
+separate, so the complete runtime payload is about 4.1 GB on CUDA (gemlite
+1-bit), 4.55 GB on CUDA (gemlite ternary) and 3.42 GB on Apple Silicon (MLX
+1-bit). At runtime the text encoder is offloaded after the prompt is encoded,
+which is why peak memory stays around 1.95 GB on an M4 Pro and the model fits
+an iPhone with 12 GB unified memory.
+
+Supported execution paths today are NVIDIA CUDA (Linux, Windows) and MLX
+(Apple Silicon, including MLX Swift on iOS). There is no Android/JNI or
+TFLite/ONNX export published, so Bonsai cannot run inside the Operit APK as
+shipped. It is reached as an HTTP image endpoint, which the
+OpenAI-compatible client already covers. Concrete Colab integration is
+deferred until the user provides their existing notes.

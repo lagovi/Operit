@@ -31,7 +31,9 @@ Open after this batch:
   users are supposed to create/choose them now and why the current flow is
   unclear; options such as bundled presets, fork-hosted downloads, optional
   third-party image services, better local import/crop, or user-provided
-  images only; and privacy, licensing, network and storage consequences.
+  images only, and self-creation of a new avatar (drawing, generative prompt,
+  or local composition) as a mandatory option; and privacy, licensing, network
+  and storage consequences.
   Current facts: no preset metadata, images or download URLs exist in the
   fork; the only known local avatar is `file:///android_asset/operit.png`.
   `CharacterCardDialog` is the main current entry point.

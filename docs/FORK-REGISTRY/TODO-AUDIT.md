@@ -53,7 +53,7 @@ Update this file after every completed item. Do not rely on chat context.
 - [ ] G3. Avatar presets and a user-friendly avatar workflow. This is the next large task, but only after the current backlog and full regression testing are complete. Start with research and a written options proposal for user approval:
   - define which avatars are needed (character portraits, group avatars, assistant avatar, style variants);
   - clarify how they are supposed to be created or chosen today, and why the current flow is unclear;
-  - compare implementation options: bundled presets, fork-hosted downloadable presets, optional third-party image services, local import/crop improvements, or user-provided images only;
+  - compare implementation options: bundled presets, fork-hosted downloadable presets, optional third-party image services, local import/crop improvements, user-provided images only, and self-creation of a new avatar (drawing, generative prompt, or local composition) as a mandatory option;
   - document privacy, licensing, network and storage consequences of each option;
   - do not implement any option until the user approves one.
 - [x] G4. Workflow guided explanation for triggers, variables and tool steps.

@@ -843,16 +843,20 @@ class AvatarRepository(
             val safeId = sanitizeImportDirectoryName(presetId)
             val targetDir = File(userAvatarDir, safeId)
             targetDir.mkdirs()
-            val target = File(targetDir, modelFileName)
-            sourceFile.copyTo(target, overwrite = true)
-            File(targetDir, "preset_name.txt").writeText(name)
+            val displayDir = File(userAvatarDir, "$safeId $name".replace(" ", "_"))
+            if (displayDir != targetDir) {
+                targetDir.deleteRecursively()
+                displayDir.mkdirs()
+                sourceFile.copyTo(File(displayDir, modelFileName), overwrite = true)
+            }
+            File(displayDir, "preset_name.txt").writeText(name)
             refreshAvatars()
             val config = _configs.value.firstOrNull {
                 it.type == AvatarType.GLTF &&
                     normalizeAvatarPath(it.getBasePath().orEmpty()) ==
-                        normalizeAvatarPath(targetDir.absolutePath)
+                        normalizeAvatarPath(displayDir.absolutePath)
             }
-            AppLogger.i(TAG, "Installed avatar preset $presetId at ${targetDir.absolutePath}")
+            AppLogger.i(TAG, "Installed avatar preset $presetId at ${displayDir.absolutePath}")
             config?.id
         }
 

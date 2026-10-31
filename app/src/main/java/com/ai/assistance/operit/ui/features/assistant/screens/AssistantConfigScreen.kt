@@ -32,6 +32,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
 import com.ai.assistance.operit.api.speech.PersonalWakeEnrollment
 import com.ai.assistance.operit.ui.features.assistant.components.AvatarConfigSection
+import com.ai.assistance.operit.ui.features.settings.components.AvatarPresetGalleryDialog
 import com.ai.assistance.operit.ui.features.assistant.components.AvatarPreviewSection
 import com.ai.assistance.operit.ui.features.assistant.components.CompactSwitchRow
 import com.ai.assistance.operit.ui.features.assistant.components.VoiceAutoAttachGrid
@@ -186,6 +187,18 @@ fun AssistantConfigScreen() {
         }
     }
 
+    var showPresetGallery by remember { mutableStateOf(false) }
+
+    if (showPresetGallery) {
+        AvatarPresetGalleryDialog(
+            onDismiss = { showPresetGallery = false },
+            onInstalled = { modelId ->
+                showPresetGallery = false
+                viewModel.switchAvatar(modelId)
+            }
+        )
+    }
+
     CustomScaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -262,7 +275,8 @@ fun AssistantConfigScreen() {
                                 viewModel = viewModel,
                                 uiState = uiState,
                                 avatarController = sharedAvatarController,
-                                onImportClick = { openZipFilePicker() }
+                                onImportClick = { openZipFilePicker() },
+                                onPresetGalleryClick = { showPresetGallery = true }
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))

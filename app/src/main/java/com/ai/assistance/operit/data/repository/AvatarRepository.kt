@@ -829,7 +829,12 @@ class AvatarRepository(
      * like a normal import. The catalog keeps the checksum; this method only
      * places the verified file and refreshes the list.
      */
-    suspend fun installGltfPreset(presetId: String, name: String, sourceFile: File): String? =
+    suspend fun installGltfPreset(
+        presetId: String,
+        name: String,
+        sourceFile: File,
+        modelFileName: String = "model.glb"
+    ): String? =
         withContext(Dispatchers.IO) {
             if (!sourceFile.isFile) {
                 AppLogger.w(TAG, "Preset source missing: ${sourceFile.absolutePath}")
@@ -838,7 +843,7 @@ class AvatarRepository(
             val safeId = sanitizeImportDirectoryName(presetId)
             val targetDir = File(userAvatarDir, safeId)
             targetDir.mkdirs()
-            val target = File(targetDir, sourceFile.name)
+            val target = File(targetDir, modelFileName)
             sourceFile.copyTo(target, overwrite = true)
             File(targetDir, "preset_name.txt").writeText(name)
             refreshAvatars()

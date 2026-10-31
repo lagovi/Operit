@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
@@ -60,7 +61,8 @@ fun AvatarConfigSection(
     viewModel: AssistantConfigViewModel,
     uiState: AssistantConfigViewModel.UiState,
     avatarController: AvatarController?,
-    onImportClick: () -> Unit
+    onImportClick: () -> Unit,
+    onPresetGalleryClick: () -> Unit = {}
 ) {
     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(
@@ -169,6 +171,13 @@ fun AvatarConfigSection(
                     )
                 }
                 Spacer(modifier = Modifier.width(6.dp))
+                IconButton(onClick = onPresetGalleryClick) {
+                    Icon(
+                        imageVector = Icons.Default.CloudDownload,
+                        contentDescription = "Preset gallery",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
                 IconButton(onClick = onImportClick) {
                     Icon(
                         imageVector = Icons.Default.AddPhotoAlternate,

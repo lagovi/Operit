@@ -242,10 +242,16 @@ private fun PresetTab(
                                     val modelId = repository.installGltfPreset(
                                         presetId = preset.id,
                                         name = preset.name,
-                                        sourceFile = File(model.basePath, model.modelFile)
+                                        sourceFile = File(model.basePath, model.modelFile),
+                                        modelFileName = model.modelFile
                                     )
                                     downloadingId = null
                                     onPresetInstalled?.invoke(modelId ?: preset.id)
+                                    if (modelId != null) {
+                                        File(model.basePath, model.modelFile)
+                                            .parentFile
+                                            ?.deleteRecursively()
+                                    }
                                 }.onFailure { error = it.message }
                                 downloadingId = null
                             }
@@ -897,4 +903,31 @@ private fun GenerationEndpointSettings(modifier: Modifier = Modifier) {
             Text("Saved", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
         }
     }
+}
+
+/**
+ * Preset-only gallery for the Assistant avatar list. It installs a verified
+ * model through [AvatarRepository.installGltfPreset] and reports the resulting
+ * avatar config id so the caller can switch to it.
+ */
+@Composable
+fun AvatarPresetGalleryDialog(
+    onDismiss: () -> Unit,
+    onInstalled: (modelId: String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Avatar presets", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
+                PresetTab(
+                    currentAvatarUri = null,
+                    onPresetInstalled = { modelId -> onInstalled(modelId) }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        }
+    )
 }

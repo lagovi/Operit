@@ -21,6 +21,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -120,7 +122,15 @@ internal fun ThemeSettingsFooter(
     Button(
         onClick = onSave,
         enabled = saveEnabled,
-        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp)
+            .onGloballyPositioned { c ->
+                com.ai.assistance.operit.util.AppLogger.d(
+                    "AvatarSectionDiag",
+                    "footerSave root=${c.positionInRoot()} size=${c.size}",
+                )
+            },
     ) {
         if (isSaving) {
             CircularProgressIndicator(

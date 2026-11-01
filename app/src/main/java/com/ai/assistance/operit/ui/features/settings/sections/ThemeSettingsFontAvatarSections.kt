@@ -5,6 +5,9 @@ import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,8 +32,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -282,6 +283,22 @@ internal fun ThemeSettingsAvatarSection(
             "ThemeSettingsAvatarSection composed",
         )
     }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.ai.assistance.operit.util.AppLogger.d(
+            "AvatarSectionDiag",
+            "title about to compose",
+        )
+    }
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .onGloballyPositioned { c ->
+                com.ai.assistance.operit.util.AppLogger.d(
+                    "AvatarSectionDiag",
+                    "probeBox local=${c.positionInParent()} root=${c.positionInRoot()} size=${c.size}",
+                )
+            },
+    )
     ThemeSettingsSectionTitle(
         title = stringResource(id = R.string.avatar_customization_title),
         icon = Icons.Default.Person,

@@ -37,19 +37,20 @@ Delivered and verified on a real T4, not on paper:
   a ~70 second generation finished. It now uses a 10 minute read timeout and a
   12 minute call timeout (commit `ac8cf2d7`).
 
-OPEN BLOCKER — the theme editor hides the avatar section. From the theme
-screen (`Settings` -> `Theme and Appearance` -> the Chat tab) the avatar block
-that opens the gallery never appears, so the gallery cannot be reached from
-there at all. Measured facts on CI build `41286214609`: the section composes
-(diagnostic log fires) and is laid out at `664 x 956`, but at root `top=1645`
-while the scroll area is `ScrollView [0,397][720,1422]`, and the list already
-shows its last items (`Save`, `Reset to Default Theme`). So it sits below the
-end of scrollable content. The call order in `ThemeSettingsChatTab.kt` is
-correct on paper (style section line 569, avatar section line 640). Next step
-is to bisect `ThemeSettingsChatStyleSection` in `ThemeSettingsCoreSections.kt`
-by disabling its later sub-blocks and re-reading the logged `top`. Full detail
-in `TODO-AUDIT.md` section H2. The `AvatarSectionDiag` log is still in the
-tree and must be removed with the fix.
+RESOLVED, was a false alarm — the theme editor avatar section is fine.
+For a while it looked unreachable in `Settings` -> `Theme and Appearance` ->
+Chat tab: the section composed and measured 664 x 956 but was never visible.
+Cause was the verification method, not the app. Scrolling in 700-1000 px jumps
+skips the block entirely, and `uiautomator` returns truncated trees at those
+positions (node count falls to 17-20, section missing from the dump). With slow
+swipes of 150-250 px the marker at the top of the section is plainly visible at
+`scroll value=772`, `Avatar Customization` / `User Avatar` / `Global User
+Avatar` / both `Reset` buttons appear, and tapping the avatar circle
+(`content-desc "Default Avatar"`) opens the gallery with
+`Presets / Device / Create / Backend`. Diagnostics were removed in `c915fc71`.
+
+Lesson for the next session: in that screen, scroll gently and confirm the
+expected text exists before concluding something is missing.
 
 Also noted, unrelated and not fixed: after finishing onboarding the app lands
 on an empty start screen; tapping `New Chat` renders normally.

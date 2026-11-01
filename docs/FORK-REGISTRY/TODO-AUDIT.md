@@ -98,40 +98,30 @@ Update this file after every completed item. Do not rely on chat context.
   - [x] Archived as `/home/uzzzver/operit-fork/apk/20261031_160912Z/` with
     `CHANGES.md`, APK sha256 `d3a14d17135db5b749b46a9a57920aedc75ad2528ab20596b38c52f027775f16`.
 
-## H2. Avatar section is unreachable in the theme editor
+## H2. Avatar section in the theme editor — not a code defect
 
-Found during acceptance on 1 November 2026 on CI build `41286214609`. The
-avatar block never appears in the Chat tab of `Theme Settings`, so the gallery
-cannot be opened from the theme screen at all.
+Closed as a false alarm. On 1 November 2026 the avatar block was reported
+unreachable in `Settings` -> `Theme and Appearance` -> Chat tab, and several
+debug builds were spent looking for a layout defect.
 
-What is measured, not guessed:
+The section was never broken. A magenta marker painted at the top of
+`ThemeSettingsAvatarSection` is clearly visible at `scroll value=772`, and
+`uiautomator` lists `Avatar Customization`, `User Avatar`, `Global User
+Avatar`, both `Reset` buttons and `Global User Name`. Tapping the avatar
+circle (content-desc `Default Avatar`) opens the gallery dialog with
+`Presets / Device / Create / Backend`.
 
-- Composition does reach it. A temporary log in
-  `ThemeSettingsAvatarSection` prints `ThemeSettingsAvatarSection composed`.
-- It is laid out with a real size: `avatar card size=664 x 956`
-  (`onGloballyPositioned`).
-- Its root position is `top=1645`, while the scrolling area is
-  `ScrollView [0,397][720,1422]`. The list is scrolled to its end and shows
-  `Save` and `Reset to Default Theme`, so the section sits below the end of
-  the scrollable content and cannot be reached by scrolling.
-- The order in `ThemeSettingsChatTab.kt` looks correct on paper:
-  `ThemeSettingsChatStyleSection` at line 569, then
-  `ThemeSettingsAvatarSection` at line 640, then the
-  `avatarGalleryTarget?.let { ... }` dialog. There is no early return and no
-  conditional around the section.
-- `uiautomator` shows no `Avatar` text anywhere on the Chat tab, which matches
-  the geometry above: the nodes exist but are outside the viewport.
+What made it look broken: verification scrolled in jumps of 700-1000 px, which
+skipped the block, and `uiautomator` returned truncated trees at those scroll
+positions — the node count dropped to 17-20 and the section was simply absent
+from the dump. Slow swipes of about 150-250 px land on it every time.
 
-Not yet determined: which composable between the two sections leaks content
-outside the `ScrollView`, or gives the scroll content an extra offset.
-`ThemeSettingsChatStyleSection` in `ThemeSettingsCoreSections.kt` is about
-47 KB of source and issues many nested `Column(Modifier.weight(1f))` inside
-`Row`s; the next attempt should bisect it by commenting out its later
-sub-blocks and re-measuring the logged `top` value.
+Practical note for future acceptance: scroll the theme editor gently and check
+for `Avatar Customization` text before concluding anything is missing.
 
-- [ ] H2.1. Find the layout defect and make the avatar section reachable.
-- [ ] H2.2. Remove the temporary `AvatarSectionDiag` logging when fixed.
-- [ ] H2.3. Re-check on device that the gallery opens from the theme screen.
+- [x] H2.1. Confirmed the section renders and the gallery opens.
+- [x] H2.2. Diagnostics removed in `c915fc71`.
+- [x] H2.3. Verified on device at scroll 772.
 
 ## I. Generated avatars through the Colab Qwen endpoint
 

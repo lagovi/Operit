@@ -285,7 +285,18 @@ internal fun ThemeSettingsAvatarSection(
         icon = Icons.Default.Person,
     )
 
-    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = cardColors) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+            .androidx.compose.ui.layout.onGloballyPositioned { coords ->
+                com.ai.assistance.operit.util.AppLogger.d(
+                    "AvatarSectionDiag",
+                    "avatar card size=${coords.size} top=${coords.positionInParent()}",
+                )
+            },
+        colors = cardColors,
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

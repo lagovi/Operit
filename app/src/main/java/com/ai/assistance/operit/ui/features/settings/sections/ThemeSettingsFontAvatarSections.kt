@@ -276,12 +276,7 @@ internal fun ThemeSettingsAvatarSection(
         icon = Icons.Default.Person,
     )
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp)
-        colors = cardColors,
-    ) {
+    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = cardColors) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -9,6 +9,56 @@
 **Date:** 2026-10-31, HEAD `c96de0f4` plus the uncommitted batch below,
 branch `feat/english-only-build`
 
+**CURRENT 01.11 late — Colab Qwen-Image 2.1 endpoint works end to end; app
+side has one open layout bug.**
+
+New documents: `docs/FORK-REGISTRY/COLAB-AND-QWEN-IMAGE.md` (the full Colab
+operating notes, the Qwen-Image 2.1 model facts, the INT8 decision with its
+reasons, and the verified T4 recipe). The rule "stop the Colab session as soon
+as you finish" is in `AGENTS.md` and applies to every session.
+
+Delivered and verified on a real T4, not on paper:
+
+- `tools/colab/setup_colab.sh` downloads `qwen_image_2.1_turbo_int8_convrot`
+  (7.26 GB), `qwen3vl_8b_int8_convrot` (9.35 GB) and the VAE (0.68 GB) into an
+  empty VM and starts nothing else.
+- `tools/colab/qwen_openai_server.py` starts ComfyUI on `:8188` and serves the
+  OpenAI images shape on `:8000`: `/health`, `/v1/models`,
+  `POST /v1/images/generations`, and `/v1/images/content/<name>` for
+  `response_format: url`. Requests are serialised by a lock.
+- Verified: a request identical to the one `AvatarImageGenerator` sends
+  (`512x512`, `b64_json`) returned a valid 512x512 RGBA PNG of 210800 bytes in
+  67 s.
+- Reaching the VM from the phone: `ssh -N -L 0.0.0.0:8020:127.0.0.1:8000
+  colab-runtime` with `ProxyCommand ... colab ssh --proxy-mode -s <name>` in
+  `~/.ssh/config`. The test phone reaches `http://192.168.1.55:8020/health`.
+- Real bug found and fixed by the live test: `AvatarImageGenerator` used the
+  default OkHttp client, whose 10 second read timeout closed the socket before
+  a ~70 second generation finished. It now uses a 10 minute read timeout and a
+  12 minute call timeout (commit `ac8cf2d7`).
+
+OPEN BLOCKER — the theme editor hides the avatar section. From the theme
+screen (`Settings` -> `Theme and Appearance` -> the Chat tab) the avatar block
+that opens the gallery never appears, so the gallery cannot be reached from
+there at all. Measured facts on CI build `41286214609`: the section composes
+(diagnostic log fires) and is laid out at `664 x 956`, but at root `top=1645`
+while the scroll area is `ScrollView [0,397][720,1422]`, and the list already
+shows its last items (`Save`, `Reset to Default Theme`). So it sits below the
+end of scrollable content. The call order in `ThemeSettingsChatTab.kt` is
+correct on paper (style section line 569, avatar section line 640). Next step
+is to bisect `ThemeSettingsChatStyleSection` in `ThemeSettingsCoreSections.kt`
+by disabling its later sub-blocks and re-reading the logged `top`. Full detail
+in `TODO-AUDIT.md` section H2. The `AvatarSectionDiag` log is still in the
+tree and must be removed with the fix.
+
+Also noted, unrelated and not fixed: after finishing onboarding the app lands
+on an empty start screen; tapping `New Chat` renders normally.
+
+Backlog added: `TODO-AUDIT.md` sections I (generate every avatar kind through
+this model and review them) and J (free-tier T4 video models supplied by the
+user, Wan 2.1 / CogVideoX 2b and 5b / LTX-Video / Wan 2.2 TIW2V via Wan2GP,
+for testing whether an animated assistant avatar is feasible).
+
 **CURRENT 01.11 — avatar gallery accepted in CI `41251376299`.**
 Commit `dfdc111e`, APK
 `/home/uzzzver/operit-fork/apk/20261031_231010Z/app-debug.apk`

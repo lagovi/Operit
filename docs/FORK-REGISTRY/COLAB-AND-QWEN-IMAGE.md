@@ -202,8 +202,55 @@ survived, and a fresh `colab new` was needed.
 
 ## Where this fits in the app
 
-The avatar generator sends `POST` to an OpenAI-compatible
-`/v1/images/generations` and expects `b64_json` or `url`. Any server exposing
-that shape works behind it. A Colab VM with ComfyUI needs a thin adapter in
-front, because ComfyUI's own protocol is a workflow graph, not that endpoint.
-That adapter is the remaining piece of the integration.
+The avatar generator in `AvatarImageGenerator.kt` sends `POST` to an
+OpenAI-compatible `/v1/images/generations` with
+`{"prompt": ..., "n": 1, "size": "512x512", "model": ..., "response_format":
+"b64_json"}` and reads `data[0].b64_json` or `data[0].url`. ComfyUI speaks a
+workflow graph instead, so `tools/colab/qwen_openai_server.py` bridges the two.
+
+### The adapter
+
+    tools/colab/setup_colab.sh          # ComfyUI + the three INT8 files
+    tools/colab/qwen_openai_server.py   # ComfyUI on :8188, images API on :8000
+
+The adapter starts ComfyUI itself, waits for `/system_stats`, then serves:
+
+    GET  /health                     readiness, backend name, model file
+    GET  /v1/models                  a single qwen-image-2.1-turbo entry
+    POST /v1/images/generations      the OpenAI images shape
+    GET  /v1/images/content/<name>   only for response_format "url"
+
+It builds the verified graph, queues it on `/prompt`, polls `/history`, and
+fetches the PNG from `/view`. Requests are serialised with a lock because a T4
+cannot run two generations at once and interleaving them only produces
+out-of-memory errors.
+
+Verified end-to-end on a fresh T4 session on 1 November 2026: setup.sh
+downloaded 7.26 + 9.35 + 0.68 GB into an empty VM, the adapter answered
+`/health`, and a request identical to the app's (`512x512`, `b64_json`)
+returned a valid 512x512 RGBA PNG of 210800 bytes in 67 seconds, matching the
+`elapsed_seconds` reported by the server.
+
+### Pointing the app at it
+
+In Settings → Avatar generation → Backend, the endpoint is
+`http://<vm-address>:8000/v1/images/generations`. The address is the VM's own;
+Colab does not proxy this port publicly, so the phone and the VM must be
+reachable from each other. API key is unused by the adapter and can be left
+empty. Model name is optional and is ignored, because the adapter always runs
+the single downloaded model.
+
+### Ports
+
+8080 belongs to the Colab frontend proxy and is already listening on a fresh
+VM, so binding it fails with `Address already in use`. 8188 is ComfyUI,
+2222 is sshd, 9000 is jupyter-server, 6000 is the kernel manager, 3453 is the
+file shim. The adapter uses 8000, overridable with `PUBLIC_PORT`.
+
+### Running it on the VM
+
+`colab exec -f` sends a Python file and executes it as Python, so a shell
+script there fails with `SyntaxError`. Either wrap the shell script in Python
+with `subprocess.run(["bash", path])`, or upload it with `colab upload` and run
+it the same way. The server must be started from inside the VM, not from the
+host, because only the VM can reach ComfyUI on loopback.

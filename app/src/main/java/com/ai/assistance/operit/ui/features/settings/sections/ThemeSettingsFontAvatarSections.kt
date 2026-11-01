@@ -271,6 +271,15 @@ internal fun ThemeSettingsAvatarSection(
     onAvatarPickerModeChange: (String) -> Unit,
     onCreateAvatar: (String) -> Unit = {},
 ) {
+    // Temporary diagnostic: this section was reported missing from the Chat tab
+    // on a built APK even though the call site is present. Log once so the
+    // device log says whether composition reaches this point at all.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        com.ai.assistance.operit.util.AppLogger.d(
+            "AvatarSectionDiag",
+            "ThemeSettingsAvatarSection composed",
+        )
+    }
     ThemeSettingsSectionTitle(
         title = stringResource(id = R.string.avatar_customization_title),
         icon = Icons.Default.Person,

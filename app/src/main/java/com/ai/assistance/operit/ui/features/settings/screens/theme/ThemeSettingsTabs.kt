@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -64,6 +65,15 @@ internal fun ThemeSettingsTabbedContent(
         }
     }
 
+    androidx.compose.runtime.LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.value to scrollState.maxValue }
+            .collect { (v, max) ->
+                com.ai.assistance.operit.util.AppLogger.d(
+                    "AvatarSectionDiag",
+                    "scroll value=$v max=$max",
+                )
+            }
+    }
     Column(modifier = modifier) {
         ScrollableTabRow(
             selectedTabIndex = selectedTab.ordinal,

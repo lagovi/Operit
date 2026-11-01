@@ -208,6 +208,15 @@ OpenAI-compatible `/v1/images/generations` with
 "b64_json"}` and reads `data[0].b64_json` or `data[0].url`. ComfyUI speaks a
 workflow graph instead, so `tools/colab/qwen_openai_server.py` bridges the two.
 
+### Slow endpoints need a long timeout
+
+The first live attempt from the phone failed with `java.net.SocketException:
+Socket closed` while the server was still generating. OkHttp's default read
+timeout is 10 seconds and a T4 generation takes about 70. `AvatarImageGenerator`
+now uses a 10 minute read timeout and a 12 minute call timeout, which is a
+property of the generator, not of this particular backend: any self-hosted
+diffusion server is slower than a short default.
+
 ### The adapter
 
     tools/colab/setup_colab.sh          # ComfyUI + the three INT8 files
@@ -230,6 +239,31 @@ downloaded 7.26 + 9.35 + 0.68 GB into an empty VM, the adapter answered
 `/health`, and a request identical to the app's (`512x512`, `b64_json`)
 returned a valid 512x512 RGBA PNG of 210800 bytes in 67 seconds, matching the
 `elapsed_seconds` reported by the server.
+
+### Reaching the VM from the phone
+
+Colab does not publish port 8000. The cheapest working path uses the SSH
+bridge the CLI already provides:
+
+    ssh -N -o ExitOnForwardFailure=yes -L 0.0.0.0:8020:127.0.0.1:8000 colab-runtime
+
+with the `colab-runtime` entry in `~/.ssh/config` using
+`ProxyCommand /home/uzzzver/.local/bin/colab ssh --proxy-mode -s <name>`.
+Forwarding to `0.0.0.0` lets the phone on the same LAN reach it. The host has
+two LAN addresses; `192.168.1.55` is the one the test phone uses.
+
+Pitfalls met while setting this up:
+
+- `colab ssh --proxy-mode` is a ProxyCommand, not a tunnel. It needs a real
+  `ssh -L` on top.
+- The CLI looks for an ed25519 key and refuses to start without one, even if
+  an RSA key exists.
+- Port 8000 on the host was already occupied by an unrelated service that
+  answered `{"detail":"Not Found"}`, which looks like a broken adapter rather
+  than a port clash. The forward silently failed until read from the ssh log.
+  The tunnel was moved to 8020.
+- Port 8080 on the VM belongs to the Colab frontend proxy, so the adapter
+  defaults to 8000.
 
 ### Pointing the app at it
 

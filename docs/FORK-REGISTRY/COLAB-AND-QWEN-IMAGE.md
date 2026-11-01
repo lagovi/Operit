@@ -5,11 +5,11 @@ phone, and which model build is chosen for that job.
 
 ## Operating rule
 
-A Colab session costs resources for as long as it exists. Close it with
-`colab stop -s <name>` immediately after the work is done. Do not leave an
-IDLE session between tasks and do not run two sessions at once. This rule also
-lives in `AGENTS.md` so it applies to every agent session, not only to whoever
-reads this file.
+Any Colab session, GPU or CPU, burns quota slightly faster than wall-clock
+time, so close it as soon as the work is done. Do not leave an IDLE session
+between tasks and do not run two sessions at once. This rule also lives in
+`AGENTS.md` so it applies to every agent session, not only to whoever reads
+this file.
 
 ## Why Colab
 
@@ -36,8 +36,10 @@ exchange with a URL file and a code file instead, which removal does not
 depend on a terminal.
 
 The account used for the fork is `inno0772@gmail.com`. Its compute balance is
-0.00 units, which is enough because CPU sessions are free and the GPU quota is
-separate.
+0.00 units. That is enough for CPU work, but the GPU quota is separate and
+recovers slowly: after it runs out, `colab new --gpu T4` answers "Service
+Unavailable" for days, so a GPU session is worth closing the moment a run
+finishes.
 
 ## Session lifecycle
 
@@ -50,6 +52,23 @@ separate.
 Always pass `-s`. Without it the CLI invents a random name. A session can be
 revoked by the backend without warning; when `exec` fails with "Session not
 found", run `colab sessions` and create a new one.
+
+`colab sessions` does not read the local state file. It prints whatever the
+server currently has assigned, labelled by endpoint id, and an assignment can
+outlive the name it was created under. `colab stop -s <name>` only works while
+that name is still known, so it answers "Session not found" for such a leftover
+while the VM keeps burning quota. Release it the way the CLI does internally:
+
+    GET  /tun/m/unassign/<endpoint-id>?authuser=0   -> )]}' {"token": "..."}
+    POST /tun/m/unassign/<endpoint-id>?authuser=0
+         X-Goog-Colab-Token: <that token>           -> 204
+
+Both requests carry `Authorization: Bearer <access token>` from
+`~/.config/colab-cli/token.json`. The token returned by GET goes in the
+`X-Goog-Colab-Token` header, not in the body; a POST with an empty body and no
+such header is rejected with 400. On 1 November 2026 a CPU assignment created
+after the last successful stop could not be stopped by name at all and was
+released this way.
 
 `~/.config/colab-cli/current` is a convenience file for the SSH wrapper and is
 not used by the CLI itself.

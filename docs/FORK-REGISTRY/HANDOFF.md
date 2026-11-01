@@ -9,8 +9,20 @@
 **Date:** 2026-10-31, HEAD `c96de0f4` plus the uncommitted batch below,
 branch `feat/english-only-build`
 
-**CURRENT 01.11 late — Colab Qwen-Image 2.1 endpoint works end to end; app
-side has one open layout bug.**
+**CURRENT 02.11 — Colab is on pause (GPU quota exhausted); the user is
+testing the app by hand.**
+
+`colab new --gpu T4` answers "Service Unavailable". The quota recovers over a
+couple of days, so no Colab work starts until the user says so. All server-side
+sessions were released on 02.11 and `colab sessions` reports none.
+
+Done while finishing up: the theme editor avatar section was never broken (see
+below), so no layout work is pending. The remaining Colab-dependent work is
+section I in `TODO-AUDIT.md` (generate every avatar kind through the endpoint)
+and section J (video models), both waiting for quota.
+
+The user is doing manual acceptance right now. Expect reports about the UI
+rather than build requests, and do not start a GPU session to chase one.
 
 New documents: `docs/FORK-REGISTRY/COLAB-AND-QWEN-IMAGE.md` (the full Colab
 operating notes, the Qwen-Image 2.1 model facts, the INT8 decision with its

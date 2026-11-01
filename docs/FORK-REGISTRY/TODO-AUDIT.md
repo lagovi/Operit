@@ -98,6 +98,78 @@ Update this file after every completed item. Do not rely on chat context.
   - [x] Archived as `/home/uzzzver/operit-fork/apk/20261031_160912Z/` with
     `CHANGES.md`, APK sha256 `d3a14d17135db5b749b46a9a57920aedc75ad2528ab20596b38c52f027775f16`.
 
+## I. Generated avatars through the Colab Qwen endpoint
+
+Context: the OpenAI-compatible adapter in `tools/colab/qwen_openai_server.py`
+was verified on a T4 on 1 November 2026, returning a valid 512x512 RGBA PNG in
+67 seconds for a request identical to the one the app sends. The app has not
+yet produced an avatar through it live.
+
+- [ ] I1. Point Settings -> Avatar generation -> Backend at the tunnel and
+      confirm the dialog shows the returned portrait in the Create tab.
+- [ ] I2. Try the endpoint on every avatar kind the app offers: character card,
+      group card, per-card user portrait, global user portrait, assistant
+      avatar. Record which prompts produce usable square portraits and which
+      come back unusable.
+- [ ] I3. Build a prompt set for all avatar kinds and both style sets chosen
+      earlier (see `AVATAR-RESEARCH.md`), generate the full set through the
+      model, and review the results on the device.
+- [ ] I4. Decide what to do with the generated set: keep it local, publish it
+      to `lagovi/OperitAvatarAssets` as an optional pack, or discard. Do not
+      publish anything before the licence question in I5 is settled.
+- [ ] I5. Check that outputs of Qwen-Image-2.1 under the `qwen-research`
+      licence may be redistributed, and record the answer in
+      `COLAB-AND-QWEN-IMAGE.md`. This blocks I4.
+- [ ] I6. Measure the cost of a full set: seconds per image, total session
+      time, and whether the T4 session survives the whole run.
+
+## J. Video models on a free-tier T4, for testing
+
+Not started. All of these are claimed to work on a free T4, none verified
+here yet. Purpose is to find out which ones can produce an animated assistant
+avatar from an existing portrait, as a candidate path next to the glTF presets
+in `AVATAR-3D-RESEARCH.md`.
+
+| Model | Params | Task | Reported VRAM |
+| --- | --- | --- | --- |
+| Wan 2.1 T2V | 1.3B | text-to-video 480p | 8-11 GB |
+| CogVideoX-2b | 2B | t2v, i2v | 4-10 GB fp16 + offload |
+| CogVideoX-5b | 5B | t2v, i2v | 7-14 GB INT8 / sequential offload |
+| LTX-Video | 2B, distilled 13B | t2v, i2v | fits 15-16 GB, model card claims |
+| Wan 2.2 TI2V via Wan2GP | 5B | t2v, i2v 480p | 10-14 GB |
+
+Sources supplied by the user and confirmed to run on free T4:
+
+- `Wan-AI/Wan2.1-T2V-1.3B`, run via
+  `Isi-dev/Google-Colab_Notebooks/blob/main/Wan2_1_1_3B_T2V_Free.ipynb`
+  and `colab.research.google.com/drive/1x5ch4kcTj1mAeSEcMniwrNwX3jITngHE`.
+- `THUDM/CogVideoX-2b`, official free-T4 notebook
+  `colab.research.google.com/drive/1pCe5s0bC_xuXbBlpvIH1z0kfdTLQPzCS`.
+- `THUDM/CogVideoX-5b`, same notebook for t2v, plus INT8
+  `drive/1DUffhcjrU-uz7_cpuJO3E_D4BaJT7OPa` and i2v
+  `drive/17CqYCqSwz39nZAX2YyonDxosVKUZGzcX`.
+- `Lightricks/LTX-Video`, notebooks `LTX_Video_*` and
+  `LTXV_0_9_7_13B_Distilled_*` in `Isi-dev/Google-Colab_Notebooks`.
+- Wan 2.2 TI2V 5B through
+  `Square-Zero-Labs/Wan2GP-on-Colab`, `wan2gp-google-colab.ipynb`.
+
+Notebook collections: `Isi-dev/Google-Colab_Notebooks`,
+`Square-Zero-Labs/Wan2GP-on-Colab`.
+
+- [ ] J1. Pilot one model end to end on a T4 and record real VRAM, wall time
+      per clip, output length and resolution. CogVideoX-2b has the official
+      notebook and the lowest claim, so it is the cheapest first test.
+- [ ] J2. Test image-to-video from an existing avatar portrait, because that is
+      the only use that matters here; text-to-video alone does not produce an
+      avatar of the user's assistant.
+- [ ] J3. Compare against the glTF route already shipped: file size, load time
+      on the phone, whether the phone can even play the produced format.
+- [ ] J4. Write the findings into `AVATAR-3D-RESEARCH.md` and decide whether
+      any of it belongs in the app.
+
+Operating rule for both sections: stop the session with `colab stop -s <name>`
+the moment the run is finished. See `AGENTS.md`.
+
 ## Verification
 
 - [x] V1. `python3 ci/script/fork_audit.py --no-color --no-hotspots` (pass, 44 anchors, 0 lost).

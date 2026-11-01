@@ -20,6 +20,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.TimeUnit
 
 private val Context.avatarGenerationDataStore by preferencesDataStore(name = "avatar_generation")
 
@@ -74,8 +75,18 @@ object AvatarImageGenerator {
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
+    // Image generation is not a fast request: a local diffusion model can take
+    // a minute or more per image, and OkHttp's 10 second default closes the
+    // socket before the server answers. A slow reply is normal here, so the
+    // timeouts cover a full generation plus the download of the result.
     private val httpClient by lazy {
-        OkHttpClient.Builder().followRedirects(true).build()
+        OkHttpClient.Builder()
+            .followRedirects(true)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.MINUTES)
+            .writeTimeout(1, TimeUnit.MINUTES)
+            .callTimeout(12, TimeUnit.MINUTES)
+            .build()
     }
 
     suspend fun generate(

@@ -159,6 +159,47 @@ the decision above.
 so a second `exec` while a download runs waits; use `colab restart-kernel -s
 <name>` to abandon a stuck call, which keeps the VM but wipes the kernel state.
 
+## Verified end-to-end on a T4
+
+Measured on this account on 1 November 2026.
+
+- `colab new -s qwen --gpu T4` on `gpu-t4-s-euw4c0-...`, SM 7.5, 15.6 GB VRAM,
+  120 GB free.
+- ComfyUI 0.43.0 cloned from `comfyanonymous/ComfyUI`, requirements installed
+  from the repository, `comfy-kitchen` 0.2.35 present.
+- Weights from `Comfy-Org/Qwen-Image-2.1`:
+  `diffusion_models/qwen_image_2.1_turbo_int8_convrot.safetensors` (7.26 GB),
+  `text_encoders/qwen3vl_8b_int8_convrot.safetensors` (9.35 GB),
+  `vae/qwen_image_2.1_vae_bf16.safetensors` (0.68 GB). Download took a few
+  minutes each.
+- Server started with `--disable-pinned-memory --mmap-torch-files --fp16-vae
+  --preview-method none` and answered `/system_stats`.
+- Result: a 1024x1024 PNG in 90 seconds including weight loading, so the
+  subsequent images in the same session are faster. The file is 1.48 MB and
+  contains a real image, not noise.
+
+### Working workflow
+
+The `TextEncodeQwenImage21` node carries both prompts and the resolution, so no
+separate negative encoder is needed. Minimal graph:
+
+    UNETLoader (turbo int8) -> ModelSamplingAuraFlow (shift 3.0) -> KSampler
+    CLIPLoader (type qwen_image) -> TextEncodeQwenImage21 (prompt, negative_prompt, resolution 1024)
+    VAELoader + EmptySD3LatentImage -> KSampler (steps 8, cfg 1.0, euler, simple) -> VAEDecode -> SaveImage
+
+`KSampler` takes the positive and negative conditioning from outputs 0 and 1 of
+the same `TextEncodeQwenImage21` node. A request without a `SaveImage` node is
+rejected with `prompt_no_outputs`.
+
+### Pitfalls met
+
+A second `exec` while one is running waits for the kernel and then fails
+confusingly. Use `colab restart-kernel -s <name>` to abandon it; the VM and
+the downloaded weights survive because they live on disk.
+`colab download` of a single PNG worked without SSH.
+The session was revoked once between two of my calls; nothing in `/content`
+survived, and a fresh `colab new` was needed.
+
 ## Where this fits in the app
 
 The avatar generator sends `POST` to an OpenAI-compatible

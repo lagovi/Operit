@@ -12,9 +12,15 @@ branch `feat/english-only-build`
 **CURRENT 02.11 — Colab is on pause (GPU quota exhausted); the user is
 testing the app by hand.**
 
-`colab new --gpu T4` answers "Service Unavailable". The quota recovers over a
-couple of days, so no Colab work starts until the user says so. All server-side
-sessions were released on 02.11 and `colab sessions` reports none.
+`colab new --gpu T4` answers "Service Unavailable". The account is drained: on
+02.11 the Colab web page showed no CPU quota left while CPU sessions were still
+being granted. A fresh account gets about 60 CPU hours, or about 5.5 GPU hours
+from the same pool, and the amount is not fixed because Google adjusts it; the
+web page is the only real source and the CLI cannot report it. Recovery takes
+more than a day, so the plan is to look at the web page again on 03.11-04.11.
+The likely cause is leftover GPU and CPU sessions from earlier runs that the
+idle reaper never reclaimed; all server-side sessions were released on 02.11
+and `colab sessions` reports none. No Colab work starts until the user says so.
 
 Done while finishing up: the theme editor avatar section was never broken (see
 below), so no layout work is pending. The remaining Colab-dependent work is

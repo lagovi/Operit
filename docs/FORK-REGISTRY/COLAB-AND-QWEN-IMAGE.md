@@ -5,11 +5,34 @@ phone, and which model build is chosen for that job.
 
 ## Operating rule
 
-Any Colab session, GPU or CPU, burns quota slightly faster than wall-clock
-time, so close it as soon as the work is done. Do not leave an IDLE session
-between tasks and do not run two sessions at once. This rule also lives in
-`AGENTS.md` so it applies to every agent session, not only to whoever reads
-this file.
+Any Colab session, GPU or CPU, draws on the account's quota, so close it as
+soon as the work is done (`colab stop`). Do not leave an IDLE session between
+tasks and do not run two sessions at once. This rule also lives in `AGENTS.md`
+so it applies to every agent session, not only to whoever reads this file.
+
+## What the quota actually is
+
+A fresh account gets roughly 60 hours of CPU session and roughly 5.5 hours of
+GPU session. The two are not independent: they draw on the same pool at a
+different rate, which is why the GPU figure is the small one. Running a CPU
+session may not visibly reduce the remaining time.
+
+These numbers are not a contract. Google adjusts them, so yesterday's budget,
+today's budget and tomorrow's budget can all differ. No local command knows the
+real remainder; the CLI has no such command at all. The only trustworthy source
+is the account's Colab web page, the one that lists compute units and the
+"usage limits" popup. Check it there before planning a run.
+
+When the quota is spent, CPU sessions may still be granted while the GPU
+request keeps answering "Service Unavailable". That combination means the
+account is drained, not that the GPU machines are busy. The quota recovers over
+more than a day, so wait a day or two and look at the web page again rather
+than retrying in a loop.
+
+Sessions are supposed to be reclaimed automatically after a long idle period,
+but that did not happen here: leftover GPU and CPU sessions were found still
+assigned, and they are the likely reason this account ran dry. Always stop your
+own session; do not rely on the idle reaper.
 
 ## Why Colab
 

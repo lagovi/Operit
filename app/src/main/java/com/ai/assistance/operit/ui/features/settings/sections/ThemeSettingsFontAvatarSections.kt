@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
@@ -283,21 +284,11 @@ internal fun ThemeSettingsAvatarSection(
             "ThemeSettingsAvatarSection composed",
         )
     }
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        com.ai.assistance.operit.util.AppLogger.d(
-            "AvatarSectionDiag",
-            "title about to compose",
-        )
-    }
     androidx.compose.foundation.layout.Box(
         modifier = Modifier
             .fillMaxWidth()
-            .onGloballyPositioned { c ->
-                com.ai.assistance.operit.util.AppLogger.d(
-                    "AvatarSectionDiag",
-                    "probeBox local=${c.positionInParent()} root=${c.positionInRoot()} size=${c.size}",
-                )
-            },
+            .height(24.dp)
+            .background(androidx.compose.ui.graphics.Color.Magenta),
     )
     ThemeSettingsSectionTitle(
         title = stringResource(id = R.string.avatar_customization_title),
@@ -311,7 +302,7 @@ internal fun ThemeSettingsAvatarSection(
             .onGloballyPositioned { coords ->
                 com.ai.assistance.operit.util.AppLogger.d(
                     "AvatarSectionDiag",
-                    "avatar card size=${coords.size} top=${coords.positionInRoot()}",
+                    "avatar card size=${coords.size} top=${coords.positionInRoot()} parent=${coords.positionInParent()}",
                 )
             },
         colors = cardColors,

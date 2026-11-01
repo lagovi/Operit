@@ -21,9 +21,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -65,15 +62,6 @@ internal fun ThemeSettingsTabbedContent(
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(scrollState) {
-        snapshotFlow { scrollState.value to scrollState.maxValue }
-            .collect { (v, max) ->
-                com.ai.assistance.operit.util.AppLogger.d(
-                    "AvatarSectionDiag",
-                    "scroll value=$v max=$max",
-                )
-            }
-    }
     Column(modifier = modifier) {
         ScrollableTabRow(
             selectedTabIndex = selectedTab.ordinal,
@@ -132,15 +120,7 @@ internal fun ThemeSettingsFooter(
     Button(
         onClick = onSave,
         enabled = saveEnabled,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 16.dp)
-            .onGloballyPositioned { c ->
-                com.ai.assistance.operit.util.AppLogger.d(
-                    "AvatarSectionDiag",
-                    "footerSave root=${c.positionInRoot()} size=${c.size}",
-                )
-            },
+        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
     ) {
         if (isSaving) {
             CircularProgressIndicator(

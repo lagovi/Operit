@@ -4,11 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -275,21 +271,6 @@ internal fun ThemeSettingsAvatarSection(
     onAvatarPickerModeChange: (String) -> Unit,
     onCreateAvatar: (String) -> Unit = {},
 ) {
-    // Temporary diagnostic: this section was reported missing from the Chat tab
-    // on a built APK even though the call site is present. Log once so the
-    // device log says whether composition reaches this point at all.
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        com.ai.assistance.operit.util.AppLogger.d(
-            "AvatarSectionDiag",
-            "ThemeSettingsAvatarSection composed",
-        )
-    }
-    androidx.compose.foundation.layout.Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(24.dp)
-            .background(androidx.compose.ui.graphics.Color.Magenta),
-    )
     ThemeSettingsSectionTitle(
         title = stringResource(id = R.string.avatar_customization_title),
         icon = Icons.Default.Person,
@@ -299,12 +280,6 @@ internal fun ThemeSettingsAvatarSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 16.dp)
-            .onGloballyPositioned { coords ->
-                com.ai.assistance.operit.util.AppLogger.d(
-                    "AvatarSectionDiag",
-                    "avatar card size=${coords.size} top=${coords.positionInRoot()} parent=${coords.positionInParent()}",
-                )
-            },
         colors = cardColors,
     ) {
         Column(modifier = Modifier.padding(16.dp)) {

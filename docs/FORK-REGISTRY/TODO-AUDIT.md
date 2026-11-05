@@ -195,6 +195,60 @@ Notebook collections: `Isi-dev/Google-Colab_Notebooks`,
 Operating rule for both sections: stop the session with `colab stop -s <name>`
 the moment the run is finished. See `AGENTS.md`.
 
+## K. Avatar configuration screen and preinstalled models — 2026-11-06
+
+Work on the Assistant Config -> Avatar Configuration screen, driven by the
+user's own look at the preinstalled models.
+
+- [x] K1. `Mood Trigger Mapping` moved below `Current Model`. The mapping is
+      meaningless before a model is chosen, because the animation list comes
+      from the model. Commit `c9662af2`.
+- [x] K2. The glTF camera distance is computed instead of fixed. The old
+      constant `BASE_CAMERA_DISTANCE = 0.5` with a default scale of 0.5 put the
+      camera 0.25 units from a model normalised to a unit cube, i.e. inside it.
+      `updateFittedCameraDistance()` now derives the distance from the model
+      span, the viewport aspect and a 45 degree vertical field of view, with a
+      12% margin. The slider still multiplies that distance, so 1.0 means
+      "fits exactly".
+- [x] K2.1. `asset.boundingBox` turned out to be useless for skinned meshes: it
+      reports unskinned vertex bounds, which for Xbot is 0.9 cm across. Framing
+      on it produced distance 0.03 and an empty preview. Bounds now come from
+      the world positions of the skeleton bones.
+- [x] K2.2. The orbit pivot was hardcoded to y=0 while the camera targets the
+      model centre, so changing pitch/yaw threw the model out of frame. The
+      pivot now follows the target.
+- [x] K3. The preset's `defaultAnimation` was dropped twice: `installGltfPreset`
+      never accepted it and `GltfPersistenceDelegate.scanDirectory` never read
+      it, so after a restart the controller got null and the preview showed the
+      file's rest pose. Xbot rests in a T-pose, which is what made it look
+      broken. The clip is now stored as `preset_default_animation.txt`.
+
+### What the preinstalled models actually are — 2026-11-06
+
+Measured from the files, not guessed:
+
+| model | clips | verdict |
+| --- | --- | --- |
+| Xbot | agree, headShake, idle, run, sad_pose, sneak_pose, walk | Structurally sound. Rest pose is a T-pose. `sad_pose` and `sneak_pose` are 2-frame 0.07 s stills, not motion. Walk/run/sneak carry root translation. |
+| Fox | Survey, Walk, Run | Two scene roots (skeleton and mesh are siblings), geometry in centimetres with no root scale. |
+| Morph Cube | Square | Morph-target cube only, node scale 100 and a combined X/Y rotation. Morph targets move only top-face vertices. |
+| Soldier | Idle, Run, TPose, Walk | Sound; `TPose` is a 2-frame still. |
+
+**Mood coverage is the real problem, not the rendering.** None of the four
+expresses the five product moods (angry, happy, shy, aojiao, cry) with a
+dedicated clip. At best Xbot can be faked: `agree` reads as a weak happy,
+`headShake` as a weak aojiao. There is no anger, shyness or crying clip
+anywhere. These presets are locomotion and tech demos, not character avatars.
+
+- [ ] K4. Replace the preinstalled presets with models that ship mood clips.
+      All current ones are to be dropped. Search brief for an external
+      research model: `AVATAR-MODEL-SEARCH-BRIEF.md`.
+- [ ] K5. Accept the camera fit visually on a device once K2/K2.1/K2.2 are in a
+      build: the model should sit centred, fill most of the preview, and stay
+      put when pitch and yaw change.
+- [ ] K6. Decide whether the avatar preview should always play the default clip,
+      so a T-posed rig never shows its rest pose.
+
 ## Status snapshot — 2026-11-05
 
 Written down so the next session does not have to re-derive it by reading

@@ -1317,6 +1317,10 @@ class GltfSurfaceView @JvmOverloads constructor(
         var maxZ = -Double.MAX_VALUE
         var counted = 0
 
+        // Bone world positions are the only reliable source here. The asset bounds are unusable
+        // for skinned meshes, and Filament exposes no skinned vertex bounds, so the skeleton is
+        // what we frame on. A rig may carry helper bones outside the body; the fit margin absorbs
+        // that, and centring on the bone span keeps the character in the middle of the view.
         asset.entities.forEach { entity ->
             val instance = transformManager.getInstance(entity)
             if (instance == 0) {
@@ -1616,8 +1620,12 @@ class GltfSurfaceView @JvmOverloads constructor(
     }
 
     private fun buildPivotedRotation(rotation: FloatArray): FloatArray {
-        val translateToPivot = createTranslationMatrix(0f, MODEL_ORBIT_PIVOT_Y, 0f)
-        val translateBack = createTranslationMatrix(0f, -MODEL_ORBIT_PIVOT_Y, 0f)
+        // Orbit around the same point the camera looks at, otherwise a model whose origin is at its
+        // feet swings out of frame as soon as the user changes pitch or yaw.
+        val pivotY = cameraTargetY.toFloat()
+        val pivotZ = cameraTargetZ.toFloat()
+        val translateToPivot = createTranslationMatrix(0f, pivotY, pivotZ)
+        val translateBack = createTranslationMatrix(0f, -pivotY, -pivotZ)
         return multiplyMat4(translateToPivot, multiplyMat4(rotation, translateBack))
     }
 

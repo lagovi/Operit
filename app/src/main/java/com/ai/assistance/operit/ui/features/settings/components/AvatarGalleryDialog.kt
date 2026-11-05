@@ -243,7 +243,8 @@ private fun PresetTab(
                                         presetId = preset.id,
                                         name = preset.name,
                                         sourceFile = File(model.basePath, model.modelFile),
-                                        modelFileName = model.modelFile
+                                        modelFileName = model.modelFile,
+                                        defaultAnimation = preset.defaultAnimation
                                     )
                                     downloadingId = null
                                     onPresetInstalled?.invoke(modelId ?: preset.id)

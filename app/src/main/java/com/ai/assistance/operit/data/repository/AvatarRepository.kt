@@ -409,15 +409,23 @@ class GltfPersistenceDelegate : AvatarPersistenceDelegate {
 
         val modelFile = modelCandidates.firstOrNull() ?: return allConfigs
 
+        val data = mutableMapOf<String, Any>(
+            "basePath" to directory.absolutePath,
+            "modelFile" to modelFile.name
+        )
+        File(directory, "preset_default_animation.txt")
+            .takeIf { it.isFile }
+            ?.readText()
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { data["defaultAnimation"] = it }
+
         val config = AvatarConfig(
             id = buildAvatarConfigId(AvatarType.GLTF, directory, isBuiltIn),
             name = directory.name,
             type = AvatarType.GLTF,
             isBuiltIn = isBuiltIn,
-            data = mapOf(
-                "basePath" to directory.absolutePath,
-                "modelFile" to modelFile.name
-            )
+            data = data
         )
         AppLogger.i(
             "AvatarRepository",
@@ -833,7 +841,8 @@ class AvatarRepository(
         presetId: String,
         name: String,
         sourceFile: File,
-        modelFileName: String = "model.glb"
+        modelFileName: String = "model.glb",
+        defaultAnimation: String? = null
     ): String? =
         withContext(Dispatchers.IO) {
             if (!sourceFile.isFile) {
@@ -850,6 +859,12 @@ class AvatarRepository(
                 sourceFile.copyTo(File(displayDir, modelFileName), overwrite = true)
             }
             File(displayDir, "preset_name.txt").writeText(name)
+            // Persist the clip the preset wants to show at rest. Without it the controller gets a
+            // null default and the preview sits in whatever pose the file's rest pose describes,
+            // which for a T-posed rig reads as a broken avatar.
+            defaultAnimation?.trim()?.takeIf { it.isNotEmpty() }?.let { clip ->
+                File(displayDir, "preset_default_animation.txt").writeText(clip)
+            }
             refreshAvatars()
             val config = _configs.value.firstOrNull {
                 it.type == AvatarType.GLTF &&

@@ -195,6 +195,59 @@ Notebook collections: `Isi-dev/Google-Colab_Notebooks`,
 Operating rule for both sections: stop the session with `colab stop -s <name>`
 the moment the run is finished. See `AGENTS.md`.
 
+## Status snapshot — 2026-11-05
+
+Written down so the next session does not have to re-derive it by reading
+sections I and J again.
+
+**Everything except I and J is finished.** Sections A through H are closed, and
+the theme-editor avatar scare is closed as a false alarm (section H2). There is
+no open code defect anywhere in the backlog. What remains is two Colab-dependent
+research tracks, and both need a GPU VM that cannot currently be rented.
+
+**Section I in one paragraph.** `tools/colab/qwen_openai_server.py` is written
+and was proved on a real T4: a request byte-for-byte like the one
+`AvatarImageGenerator` sends (`512x512`, `b64_json`) came back as a valid
+512x512 RGBA PNG, 210800 bytes, in 67 s. The OkHttp timeouts that killed that
+request were fixed in `ac8cf2d7` (30 s connect, 10 min read, 1 min write, 12 min
+call). What has never happened is a generation started *from the installed app
+on the phone*. I1 answers exactly that question and nothing else. I2-I3 are
+breadth (every avatar kind, both style sets). I4 is a decision, not work, and it
+is blocked by I5, the licence question: Qwen-Image-2.1 ships under
+`qwen-research`, and whether its outputs may be redistributed is still unknown.
+I6 is cost measurement.
+
+**Section J in one paragraph.** Not started, no code exists. The goal is an
+animated avatar built from an existing portrait, which is why J2 (image-to-video)
+matters more than text-to-video: a clip made from a text prompt is not a
+portrait of the user's assistant. Five candidates are listed with their claimed
+VRAM, and the recommended first pilot is CogVideoX-2b because it has an official
+free-T4 notebook and the lowest claim. J3 compares any result against the glTF
+presets already shipped, and the phone must actually be able to play the format.
+
+**Why nothing moved since 02.11.** The Colab account is drained. On 02.11 the
+web page showed no CPU quota left while CPU sessions were still being granted,
+and `colab new --gpu T4` keeps answering "Service Unavailable". A fresh account
+gets roughly 60 CPU hours or roughly 5.5 GPU hours from the same pool, the
+figures are not fixed, and only the Colab web page shows the real remainder. On
+05.11 the environment still could not rent a T4. Likely cause of the drain:
+leftover GPU and CPU sessions that the idle reaper never reclaimed; all
+server-side sessions were released on 02.11 and `colab sessions` reported none.
+
+**Practical trap, worth remembering.** `colab sessions` lists server-side
+assignments by endpoint id, while `colab stop -s <name>` only knows the name it
+was created under. A leftover assignment therefore answers "Session not found"
+while still burning quota. The release procedure that works is written down in
+`COLAB-AND-QWEN-IMAGE.md` (GET the endpoint to obtain a token, then POST with
+that token in `X-Goog-Colab-Token`; expect 204).
+
+**What to do first when the quota is back.** Check the Colab web page, not the
+CLI. If a GPU is available, run I1 only: start the T4, run
+`tools/colab/setup_colab.sh`, start `tools/colab/qwen_openai_server.py`, open the
+SSH tunnel, point the app's Backend field at it and generate one portrait.
+Everything else in I and J is only worth doing after that single end-to-end path
+is seen working from the phone.
+
 ## Verification
 
 - [x] V1. `python3 ci/script/fork_audit.py --no-color --no-hotspots` (pass, 44 anchors, 0 lost).

@@ -9,7 +9,7 @@
 **Date:** 2026-10-31, HEAD `c96de0f4` plus the uncommitted batch below,
 branch `feat/english-only-build`
 
-**CURRENT 02.11 — Colab is on pause (GPU quota exhausted); the user is
+**CURRENT 05.11 — Colab is on pause (GPU quota exhausted); the user is
 testing the app by hand.**
 
 `colab new --gpu T4` answers "Service Unavailable". The account is drained: on
@@ -21,6 +21,9 @@ more than a day, so the plan is to look at the web page again on 03.11-04.11.
 The likely cause is leftover GPU and CPU sessions from earlier runs that the
 idle reaper never reclaimed; all server-side sessions were released on 02.11
 and `colab sessions` reports none. No Colab work starts until the user says so.
+On 05.11 a T4 still could not be rented. The full state of the remaining
+backlog, including what I1 is and what the trap with releasing sessions is, is
+summarised under "Status snapshot — 2026-11-05" in `TODO-AUDIT.md`.
 
 Done while finishing up: the theme editor avatar section was never broken (see
 below), so no layout work is pending. The remaining Colab-dependent work is

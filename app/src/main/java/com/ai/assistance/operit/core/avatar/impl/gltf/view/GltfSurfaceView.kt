@@ -14,6 +14,7 @@ import com.google.android.filament.LightManager
 import com.google.android.filament.Renderer
 import com.google.android.filament.View
 import com.google.android.filament.android.UiHelper
+import com.google.android.filament.gltfio.FilamentAsset
 import com.google.android.filament.utils.Manipulator
 import com.google.android.filament.utils.ModelViewer
 import com.google.android.filament.utils.Utils
@@ -1287,6 +1288,82 @@ class GltfSurfaceView @JvmOverloads constructor(
         return entity
     }
 
+    private data class PosedBounds(
+        val centerX: Double,
+        val centerY: Double,
+        val centerZ: Double,
+        val halfExtentX: Double,
+        val halfExtentY: Double,
+        val halfExtentZ: Double
+    )
+
+    /**
+     * Returns the bounds of the model as it is actually posed, not as its mesh data was authored.
+     *
+     * Filament's `asset.boundingBox` is computed from the unskinned vertex positions, so for a
+     * skinned character it describes the mesh in its own local space (a humanoid collapses to a few
+     * centimetres) and framing from it puts the camera inside the model. The bone world positions
+     * cover the real silhouette instead: for a rigged character the joints span the body, and the
+     * mesh never strays far outside them. Non-skinned assets fall back to the asset bounds, which
+     * are correct for them.
+     */
+    private fun resolvePosedBounds(asset: com.google.android.filament.gltfio.FilamentAsset): PosedBounds? {
+        val transformManager = modelViewer.engine.transformManager
+        var minX = Double.MAX_VALUE
+        var minY = Double.MAX_VALUE
+        var minZ = Double.MAX_VALUE
+        var maxX = -Double.MAX_VALUE
+        var maxY = -Double.MAX_VALUE
+        var maxZ = -Double.MAX_VALUE
+        var counted = 0
+
+        asset.entities.forEach { entity ->
+            val instance = transformManager.getInstance(entity)
+            if (instance == 0) {
+                return@forEach
+            }
+            val transform = transformManager.getTransform(instance, FloatArray(16))
+            if (!transform.all(::isFiniteFloat)) {
+                return@forEach
+            }
+            val x = transform[12].toDouble()
+            val y = transform[13].toDouble()
+            val z = transform[14].toDouble()
+            if (x < minX) minX = x
+            if (y < minY) minY = y
+            if (z < minZ) minZ = z
+            if (x > maxX) maxX = x
+            if (y > maxY) maxY = y
+            if (z > maxZ) maxZ = z
+            counted += 1
+        }
+
+        if (counted < 2 || minX > maxX) {
+            val halfExtent = asset.boundingBox.halfExtent
+            val center = asset.boundingBox.center
+            if (halfExtent.size < 3 || !halfExtent.all(::isFiniteFloat)) {
+                return null
+            }
+            return PosedBounds(
+                centerX = center[0].toDouble(),
+                centerY = center[1].toDouble(),
+                centerZ = center[2].toDouble(),
+                halfExtentX = halfExtent[0].toDouble(),
+                halfExtentY = halfExtent[1].toDouble(),
+                halfExtentZ = halfExtent[2].toDouble()
+            )
+        }
+
+        return PosedBounds(
+            centerX = (minX + maxX) / 2.0,
+            centerY = (minY + maxY) / 2.0,
+            centerZ = (minZ + maxZ) / 2.0,
+            halfExtentX = (maxX - minX) / 2.0,
+            halfExtentY = (maxY - minY) / 2.0,
+            halfExtentZ = (maxZ - minZ) / 2.0
+        )
+    }
+
     /**
      * Computes the camera distance that makes the whole model fit the viewport.
      *
@@ -1302,26 +1379,21 @@ class GltfSurfaceView @JvmOverloads constructor(
             return
         }
 
-        val halfExtent = asset.boundingBox.halfExtent
-        if (halfExtent.size < 3 || !halfExtent.all(::isFiniteFloat)) {
-            AppLogger.w(TAG, "Skip camera auto-fit due to invalid bounds: halfExtent=${halfExtent.joinToString()}")
+        val bounds = resolvePosedBounds(asset)
+        if (bounds == null) {
+            AppLogger.w(TAG, "Skip camera auto-fit: no usable bounds for the loaded asset")
             fittedCameraDistance = 0.0
             return
         }
 
-        // Centre of the bounding box becomes the target, so the model rotates around its middle
-        // rather than around the origin, which the root transform may not coincide with.
-        val center = asset.boundingBox.center
-        if (center.size >= 3 && center.take(3).all(::isFiniteFloat)) {
-            cameraTargetX = center[0].toDouble()
-            cameraTargetY = center[1].toDouble()
-            cameraTargetZ = center[2].toDouble()
-        }
+        cameraTargetX = bounds.centerX
+        cameraTargetY = bounds.centerY
+        cameraTargetZ = bounds.centerZ
 
         // The model can be yawed, so the largest horizontal extent is what must fit horizontally.
-        val halfWidth = max(max(halfExtent[0], halfExtent[2]), 1e-4f).toDouble()
-        val halfHeight = max(halfExtent[1], 1e-4f).toDouble()
-        val halfDepth = max(max(halfExtent[2], halfExtent[0]), 1e-4f).toDouble()
+        val halfWidth = max(max(bounds.halfExtentX, bounds.halfExtentZ), 1e-4)
+        val halfHeight = max(bounds.halfExtentY, 1e-4)
+        val halfDepth = max(max(bounds.halfExtentZ, bounds.halfExtentX), 1e-4)
 
         val viewportWidth = max(width, 1).toDouble()
         val viewportHeight = max(height, 1).toDouble()
@@ -1345,8 +1417,9 @@ class GltfSurfaceView @JvmOverloads constructor(
 
         AppLogger.i(
             TAG,
-            "Camera auto-fit: halfExtent=${halfExtent.joinToString()}, aspect=${"%.3f".format(aspect)}, " +
-                "distance=${"%.4f".format(fittedCameraDistance)}"
+            "Camera auto-fit: halfExtent=${"%.4f".format(halfWidth)}, ${"%.4f".format(halfHeight)}, ${"%.4f".format(halfDepth)}, " +
+                "centre=(${"%.4f".format(cameraTargetX)}, ${"%.4f".format(cameraTargetY)}, ${"%.4f".format(cameraTargetZ)}), " +
+                "aspect=${"%.3f".format(aspect)}, distance=${"%.4f".format(fittedCameraDistance)}"
         )
     }
 

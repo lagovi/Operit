@@ -1450,7 +1450,7 @@ class GltfSurfaceView @JvmOverloads constructor(
             val eyeY = targetY + distance * sin(pitchRadians)
             val eyeZ = cameraTargetZ + distance * horizontalFactor * cos(yawRadians)
 
-            applyManipulatorPose(
+            val manipulatorApplied = applyManipulatorPose(
                 eyeX = eyeX.toFloat(),
                 eyeY = eyeY.toFloat(),
                 eyeZ = eyeZ.toFloat(),
@@ -1471,8 +1471,12 @@ class GltfSurfaceView @JvmOverloads constructor(
                 0.0
             )
 
-            // Always apply model-space orbit fallback so pitch/yaw works even when manipulator behavior differs by device.
-            applyModelOrbitFallback(pitchDegrees = cameraPitchDegrees, yawDegrees = cameraYawDegrees)
+            // The camera position above already orbits the target, so rotating the model as well
+            // would apply pitch and yaw twice and throw it out of frame. The model-space rotation
+            // exists only for devices where the manipulator cannot be installed.
+            if (!manipulatorApplied) {
+                applyModelOrbitFallback(pitchDegrees = cameraPitchDegrees, yawDegrees = cameraYawDegrees)
+            }
         }.onFailure { error ->
             dispatchError("Failed to apply glTF camera: ${error.message ?: "unknown error"}")
         }

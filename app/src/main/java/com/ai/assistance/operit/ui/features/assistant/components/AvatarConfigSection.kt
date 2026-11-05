@@ -139,25 +139,6 @@ fun AvatarConfigSection(
                 }
             }
 
-            if (currentAvatarModel != null) {
-                MoodTriggerMappingSection(
-                    sectionStateKey = currentAvatarModel.id,
-                    avatarController = avatarController,
-                    availableAnimations = availableAnimations,
-                    moodAnimationMapping = uiState.moodAnimationMapping,
-                    customMoodDefinitions = uiState.customMoodDefinitions,
-                    onMoodAnimationMappingChange = { triggerKey, animationName ->
-                        viewModel.updateMoodAnimationMapping(triggerKey, animationName)
-                    },
-                    onUpsertCustomMoodDefinition = { originalKey, key, promptHint ->
-                        viewModel.upsertCustomMoodDefinition(originalKey, key, promptHint)
-                    },
-                    onDeleteCustomMoodDefinition = viewModel::deleteCustomMoodDefinition
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.weight(1f)) {
                     ModelSelector(
@@ -199,6 +180,25 @@ fun AvatarConfigSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 2.dp)
             )
+
+            if (currentAvatarModel != null) {
+                MoodTriggerMappingSection(
+                    sectionStateKey = currentAvatarModel.id,
+                    avatarController = avatarController,
+                    availableAnimations = availableAnimations,
+                    moodAnimationMapping = uiState.moodAnimationMapping,
+                    customMoodDefinitions = uiState.customMoodDefinitions,
+                    onMoodAnimationMappingChange = { triggerKey, animationName ->
+                        viewModel.updateMoodAnimationMapping(triggerKey, animationName)
+                    },
+                    onUpsertCustomMoodDefinition = { originalKey, key, promptHint ->
+                        viewModel.upsertCustomMoodDefinition(originalKey, key, promptHint)
+                    },
+                    onDeleteCustomMoodDefinition = viewModel::deleteCustomMoodDefinition
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             if (currentAvatarConfig != null && currentSettings != null) {
                 Spacer(modifier = Modifier.height(6.dp))
@@ -333,7 +333,7 @@ fun AvatarConfigSection(
                     val cameraYaw =
                         currentSettings.customSettings[AvatarSettingKeys.GLTF_CAMERA_YAW] ?: 0f
                     val cameraDistanceScale =
-                        currentSettings.customSettings[AvatarSettingKeys.GLTF_CAMERA_DISTANCE_SCALE] ?: 0.5f
+                        currentSettings.customSettings[AvatarSettingKeys.GLTF_CAMERA_DISTANCE_SCALE] ?: 1f
                     val cameraTargetHeight =
                         currentSettings.customSettings[AvatarSettingKeys.GLTF_CAMERA_TARGET_HEIGHT] ?: 0f
 

@@ -55,13 +55,19 @@ class GltfSurfaceView @JvmOverloads constructor(
         private const val TAG = "GltfSurfaceView"
         private const val DEFAULT_CAMERA_PITCH = 8.0f
         private const val DEFAULT_CAMERA_YAW = 0.0f
-        private const val DEFAULT_CAMERA_DISTANCE_SCALE = 0.5f
+        // 1.0 means "exactly the distance at which the model fits"; see updateFittedCameraDistance.
+        private const val DEFAULT_CAMERA_DISTANCE_SCALE = 1.0f
         private const val MIN_CAMERA_DISTANCE_SCALE = 0.0f
         private const val MAX_CAMERA_DISTANCE_SCALE = 10.0f
         private const val MIN_CAMERA_TARGET_HEIGHT = -2.0f
         private const val MAX_CAMERA_TARGET_HEIGHT = 2.0f
         private const val BASE_CAMERA_DISTANCE = 0.5
         private const val CAMERA_DISTANCE_EPSILON = 1e-6
+        // Vertical field of view used for the auto-fit calculation. Filament's default camera
+        // is 45 degrees; keep the two in sync if the projection is ever changed explicitly.
+        private const val CAMERA_VERTICAL_FOV_DEGREES = 45.0
+        // Leave a small margin so the silhouette does not touch the frame edges.
+        private const val CAMERA_FIT_MARGIN = 1.12
         private const val CAMERA_TARGET_X = 0.0
         private const val CAMERA_TARGET_Y = 0.0
         private const val CAMERA_TARGET_Z = 0.0
@@ -104,6 +110,11 @@ class GltfSurfaceView @JvmOverloads constructor(
     private var cameraTargetX: Double = CAMERA_TARGET_X
     private var cameraTargetY: Double = CAMERA_TARGET_Y
     private var cameraTargetZ: Double = CAMERA_TARGET_Z
+
+    // Distance, in scene units, at which the loaded model fills the view. Computed from the
+    // model bounds after loading, then multiplied by the user's distance scale so that the
+    // slider keeps meaning "times the fitted distance" for every model.
+    private var fittedCameraDistance: Double = 0.0
 
     private var activeAnimationIndex: Int = -1
     private var animationStartNanos: Long = System.nanoTime()
@@ -255,6 +266,13 @@ class GltfSurfaceView @JvmOverloads constructor(
         if (hasValidSurfaceSize) {
             schedulePendingModelLoad()
         }
+        // The fit depends on the aspect ratio, so recompute it whenever the surface changes size.
+        if (currentModelPath != null && fittedCameraDistance > 0.0) {
+            val viewportChanged = w != oldw || h != oldh
+            if (viewportChanged) {
+                updateFittedCameraDistance()
+            }
+        }
         applyCameraPose()
     }
 
@@ -342,6 +360,7 @@ class GltfSurfaceView @JvmOverloads constructor(
             currentModelPath = modelPath
             applySafeUnitCubeTransform()
             captureBaseRootTransform()
+            updateFittedCameraDistance()
             applyCameraPose()
             refreshDiscoveredAnimations()
             restartAnimationClock()
@@ -1268,11 +1287,79 @@ class GltfSurfaceView @JvmOverloads constructor(
         return entity
     }
 
+    /**
+     * Computes the camera distance that makes the whole model fit the viewport.
+     *
+     * Both the vertical and the horizontal half-angle are considered, because a portrait-shaped
+     * preview crops a wide model sideways: the horizontal angle is the vertical one scaled by the
+     * aspect ratio. The larger of the two required distances wins, so nothing is clipped on any
+     * side. The result is stored in scene units and later scaled by the user's distance slider.
+     */
+    private fun updateFittedCameraDistance() {
+        val asset = modelViewer.asset
+        if (asset == null) {
+            fittedCameraDistance = 0.0
+            return
+        }
+
+        val halfExtent = asset.boundingBox.halfExtent
+        if (halfExtent.size < 3 || !halfExtent.all(::isFiniteFloat)) {
+            AppLogger.w(TAG, "Skip camera auto-fit due to invalid bounds: halfExtent=${halfExtent.joinToString()}")
+            fittedCameraDistance = 0.0
+            return
+        }
+
+        // Centre of the bounding box becomes the target, so the model rotates around its middle
+        // rather than around the origin, which the root transform may not coincide with.
+        val center = asset.boundingBox.center
+        if (center.size >= 3 && center.take(3).all(::isFiniteFloat)) {
+            cameraTargetX = center[0].toDouble()
+            cameraTargetY = center[1].toDouble()
+            cameraTargetZ = center[2].toDouble()
+        }
+
+        // The model can be yawed, so the largest horizontal extent is what must fit horizontally.
+        val halfWidth = max(max(halfExtent[0], halfExtent[2]), 1e-4f).toDouble()
+        val halfHeight = max(halfExtent[1], 1e-4f).toDouble()
+        val halfDepth = max(max(halfExtent[2], halfExtent[0]), 1e-4f).toDouble()
+
+        val viewportWidth = max(width, 1).toDouble()
+        val viewportHeight = max(height, 1).toDouble()
+        val aspect = viewportWidth / viewportHeight
+
+        val verticalHalfFov = Math.toRadians(CAMERA_VERTICAL_FOV_DEGREES / 2.0)
+        val horizontalHalfFov = Math.atan(Math.tan(verticalHalfFov) * aspect)
+
+        // The model is also rotated by pitch and yaw, so reserve for its depth as well: orbit
+        // moves the silhouette towards the camera by up to halfDepth.
+        val distanceForHeight = halfHeight / Math.tan(verticalHalfFov)
+        val distanceForWidth = halfWidth / Math.tan(horizontalHalfFov)
+        val fitTarget = max(distanceForHeight, distanceForWidth)
+
+        val fitted = (fitTarget + halfDepth) * CAMERA_FIT_MARGIN
+        fittedCameraDistance = if (!isFiniteFloat(fitted.toFloat()) || fitted <= 0.0) {
+            BASE_CAMERA_DISTANCE.toDouble()
+        } else {
+            fitted
+        }
+
+        AppLogger.i(
+            TAG,
+            "Camera auto-fit: halfExtent=${halfExtent.joinToString()}, aspect=${"%.3f".format(aspect)}, " +
+                "distance=${"%.4f".format(fittedCameraDistance)}"
+        )
+    }
+
     private fun applyCameraPose() {
         runCatching {
             val pitchRadians = Math.toRadians(cameraPitchDegrees.toDouble())
             val yawRadians = Math.toRadians(cameraYawDegrees.toDouble())
-            val rawDistance = BASE_CAMERA_DISTANCE * cameraDistanceScale.toDouble()
+            val baseDistance = if (fittedCameraDistance > 0.0) {
+                fittedCameraDistance
+            } else {
+                BASE_CAMERA_DISTANCE.toDouble()
+            }
+            val rawDistance = baseDistance * cameraDistanceScale.toDouble()
             val distance = if (abs(rawDistance) < CAMERA_DISTANCE_EPSILON) {
                 CAMERA_DISTANCE_EPSILON
             } else {

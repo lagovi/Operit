@@ -34,7 +34,7 @@ class GltfAvatarController(
     private val _cameraYaw = MutableStateFlow(0.0f)
     val cameraYaw: StateFlow<Float> = _cameraYaw.asStateFlow()
 
-    private val _cameraDistanceScale = MutableStateFlow(0.5f)
+    private val _cameraDistanceScale = MutableStateFlow(1.0f)
     val cameraDistanceScale: StateFlow<Float> = _cameraDistanceScale.asStateFlow()
 
     private val _cameraTargetHeight = MutableStateFlow(0.0f)

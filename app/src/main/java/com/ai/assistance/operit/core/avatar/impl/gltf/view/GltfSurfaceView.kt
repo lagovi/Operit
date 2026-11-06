@@ -1308,6 +1308,28 @@ class GltfSurfaceView @JvmOverloads constructor(
 
     private enum class BoundsSource { MESH, BONES }
 
+    /**
+     * Chooses the bounds source without a skin query, which this Filament build does not expose.
+     *
+     * A skinned character reports mesh bounds in its own local space, so `asset.boundingBox`
+     * collapses to millimetres, while its joints span the body in the same units the mesh is drawn
+     * in. That mismatch is unambiguous: if the mesh bounds are orders of magnitude smaller than
+     * the joint span, the asset is skinned and the joints are the honest source.
+     */
+    private fun resolveAutoBoundsSource(asset: com.google.android.filament.gltfio.FilamentAsset): BoundsSource {
+        val meshLargest = (asset.boundingBox.halfExtent.maxOrNull() ?: 0f).toDouble()
+        val boneBounds = resolvePosedBounds(asset) ?: return BoundsSource.MESH
+        val boneLargest = max(
+            max(boneBounds.halfExtentX, boneBounds.halfExtentY),
+            boneBounds.halfExtentZ
+        )
+        if (boneLargest <= 0.0 || meshLargest <= 0.0) {
+            return BoundsSource.MESH
+        }
+        val ratio = boneLargest / meshLargest
+        return if (ratio > 10.0) BoundsSource.BONES else BoundsSource.MESH
+    }
+
     /** `asset.boundingBox`: the range Filament reports for the mesh it draws. */
     private fun resolveMeshBounds(asset: com.google.android.filament.gltfio.FilamentAsset): PosedBounds? {
         val halfExtent = asset.boundingBox.halfExtent
@@ -1406,12 +1428,7 @@ class GltfSurfaceView @JvmOverloads constructor(
         val resolvedSource = when (tuner.boundsSource) {
             GltfTuner.BoundsSource.MESH -> BoundsSource.MESH
             GltfTuner.BoundsSource.BONES -> BoundsSource.BONES
-            GltfTuner.BoundsSource.AUTO ->
-                if (runCatching { asset.skinCount > 0 }.getOrDefault(false)) {
-                    BoundsSource.BONES
-                } else {
-                    BoundsSource.MESH
-                }
+            GltfTuner.BoundsSource.AUTO -> resolveAutoBoundsSource(asset)
         }
 
         val bounds = when (resolvedSource) {
@@ -1619,10 +1636,9 @@ class GltfSurfaceView @JvmOverloads constructor(
         // which put the camera inside the model. The camera fit reads bone positions, so the mesh
         // has to stay in that same space.
         val tuner = GltfTuner.settings(context)
-        val isSkinned = runCatching { asset.skinCount > 0 }.getOrDefault(false)
-        val skipForSkin = tuner.skipUnitCube ?: isSkinned
+        val skipForSkin = tuner.skipUnitCube ?: (resolveAutoBoundsSource(asset) == BoundsSource.BONES)
         if (skipForSkin) {
-            AppLogger.i(TAG, "Skip transformToUnitCube: skinned=$isSkinned, tuner=${tuner.skipUnitCube}")
+            AppLogger.i(TAG, "Skip transformToUnitCube: tuner=${tuner.skipUnitCube}")
             return
         }
 

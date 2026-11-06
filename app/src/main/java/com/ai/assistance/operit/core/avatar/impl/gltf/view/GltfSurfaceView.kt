@@ -1636,10 +1636,13 @@ class GltfSurfaceView @JvmOverloads constructor(
         // two different spaces: the camera was framed from one and the mesh rendered in the other,
         // which put the camera inside the model. The camera fit reads bone positions, so the mesh
         // has to stay in that same space.
+        // transformToUnitCube stays on for skinned models as well. Suppressing it to keep the mesh
+        // in the same space as its joints sounded right, but it made the model vanish: the renderer
+        // draws nothing usable when a skinned mesh is left in authoring scale. The unit-cube
+        // transform is what puts the geometry where the camera can see it.
         val tuner = GltfTuner.settings(context)
-        val skipForSkin = tuner.skipUnitCube ?: (resolveAutoBoundsSource(asset) == BoundsSource.BONES)
-        if (skipForSkin) {
-            AppLogger.i(TAG, "Skip transformToUnitCube: tuner=${tuner.skipUnitCube}")
+        if (tuner.skipUnitCube == true) {
+            AppLogger.i(TAG, "Skip transformToUnitCube: requested by tuner")
             return
         }
 

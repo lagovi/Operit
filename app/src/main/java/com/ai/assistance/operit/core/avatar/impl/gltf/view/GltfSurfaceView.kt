@@ -171,6 +171,15 @@ class GltfSurfaceView @JvmOverloads constructor(
         setupTransparentSurface()
         setupCameraDefaults()
         setupSceneLighting()
+        // A tap on the preview re-reads the tuner file and re-applies the camera, so a value edited
+        // through adb is visible without restarting the app.
+        setOnClickListener {
+            GltfTuner.invalidate()
+            GltfTuner.settings(context)
+            updateFittedCameraDistance()
+            applyCameraPose()
+            AppLogger.i(TAG, "Re-applied glTF tuner after tap: ${GltfTuner.settings(context)}")
+        }
     }
 
     fun setOnRenderErrorListener(listener: ((String) -> Unit)?) {
@@ -1297,23 +1306,19 @@ class GltfSurfaceView @JvmOverloads constructor(
         val halfExtentZ: Double
     )
 
-    /**
-     * Returns the bounds of what is actually drawn.
-     *
-     * After `transformToUnitCube` the mesh is normalised, but the skeleton keeps its authoring
-     * scale, so bone world positions describe a different space than the rendered geometry and
-     * cannot be used for framing. `asset.boundingBox` is the mesh space Filament renders, and it
-     * is already normalised by that point, so it is the correct source once the root transform
-     * has been applied.
-     */
-    private fun resolveRenderedBounds(asset: com.google.android.filament.gltfio.FilamentAsset): PosedBounds? {
+    private enum class BoundsSource { MESH, BONES }
+
+    /** `asset.boundingBox`: the range Filament reports for the mesh it draws. */
+    private fun resolveMeshBounds(asset: com.google.android.filament.gltfio.FilamentAsset): PosedBounds? {
         val halfExtent = asset.boundingBox.halfExtent
         val center = asset.boundingBox.center
-        if (halfExtent.size < 3 || !halfExtent.all(::isFiniteFloat) || !center.all(::isFiniteFloat)) {
+        if (halfExtent.size < 3 || !halfExtent.all(::isFiniteFloat)) {
             return null
         }
-        val largest = max(max(halfExtent[0], halfExtent[1]), halfExtent[2])
-        if (largest <= 1e-6f) {
+        if (center.size < 3 || !center.all(::isFiniteFloat)) {
+            return null
+        }
+        if (halfExtent.maxOrNull() ?: 0f <= 1e-6f) {
             return null
         }
         return PosedBounds(
@@ -1323,6 +1328,62 @@ class GltfSurfaceView @JvmOverloads constructor(
             halfExtentX = halfExtent[0].toDouble(),
             halfExtentY = halfExtent[1].toDouble(),
             halfExtentZ = halfExtent[2].toDouble()
+        )
+    }
+
+    /**
+     * Returns the world bounds of the loaded model.
+     *
+     * Bone origins are used rather than `asset.boundingBox`: for a skinned mesh the latter reports
+     * the unskinned vertex range, which for a humanoid is a few millimetres and frames the camera
+     * inside the body. Joint world positions follow the pose and span the visible figure.
+     *
+     * This is only meaningful because the model is no longer forced into a unit cube; see
+     * [applySafeUnitCubeTransform]. Keeping both the skeleton and the mesh in their authoring space
+     * is what makes these numbers comparable to what is drawn.
+     */
+    private fun resolvePosedBounds(asset: com.google.android.filament.gltfio.FilamentAsset): PosedBounds? {
+        val transformManager = modelViewer.engine.transformManager
+        var minX = Double.MAX_VALUE
+        var minY = Double.MAX_VALUE
+        var minZ = Double.MAX_VALUE
+        var maxX = -Double.MAX_VALUE
+        var maxY = -Double.MAX_VALUE
+        var maxZ = -Double.MAX_VALUE
+        var counted = 0
+
+        asset.entities.forEach { entity ->
+            val instance = transformManager.getInstance(entity)
+            if (instance == 0) {
+                return@forEach
+            }
+            val transform = transformManager.getTransform(instance, FloatArray(16))
+            if (!transform.all(::isFiniteFloat)) {
+                return@forEach
+            }
+            val x = transform[12].toDouble()
+            val y = transform[13].toDouble()
+            val z = transform[14].toDouble()
+            if (x < minX) minX = x
+            if (y < minY) minY = y
+            if (z < minZ) minZ = z
+            if (x > maxX) maxX = x
+            if (y > maxY) maxY = y
+            if (z > maxZ) maxZ = z
+            counted += 1
+        }
+
+        if (counted < 2 || minX > maxX) {
+            return null
+        }
+
+        return PosedBounds(
+            centerX = (minX + maxX) / 2.0,
+            centerY = (minY + maxY) / 2.0,
+            centerZ = (minZ + maxZ) / 2.0,
+            halfExtentX = (maxX - minX) / 2.0,
+            halfExtentY = (maxY - minY) / 2.0,
+            halfExtentZ = (maxZ - minZ) / 2.0
         )
     }
 
@@ -1341,16 +1402,31 @@ class GltfSurfaceView @JvmOverloads constructor(
             return
         }
 
-        val bounds = resolveRenderedBounds(asset)
+        val tuner = GltfTuner.settings(context)
+        val resolvedSource = when (tuner.boundsSource) {
+            GltfTuner.BoundsSource.MESH -> BoundsSource.MESH
+            GltfTuner.BoundsSource.BONES -> BoundsSource.BONES
+            GltfTuner.BoundsSource.AUTO ->
+                if (runCatching { asset.skinCount > 0 }.getOrDefault(false)) {
+                    BoundsSource.BONES
+                } else {
+                    BoundsSource.MESH
+                }
+        }
+
+        val bounds = when (resolvedSource) {
+            BoundsSource.BONES -> resolvePosedBounds(asset)
+            BoundsSource.MESH -> resolveMeshBounds(asset)
+        }
         if (bounds == null) {
-            AppLogger.w(TAG, "Skip camera auto-fit: no usable bounds for the loaded asset")
+            AppLogger.w(TAG, "Skip camera auto-fit: no usable bounds ($resolvedSource) for the loaded asset")
             fittedCameraDistance = 0.0
             return
         }
 
-        cameraTargetX = bounds.centerX
-        cameraTargetY = bounds.centerY
-        cameraTargetZ = bounds.centerZ
+        cameraTargetX = tuner.targetX?.toDouble() ?: bounds.centerX
+        cameraTargetY = tuner.targetY?.toDouble() ?: bounds.centerY
+        cameraTargetZ = tuner.targetZ?.toDouble() ?: bounds.centerZ
 
         // The model can be yawed, so the largest horizontal extent is what must fit horizontally.
         val halfWidth = max(max(bounds.halfExtentX, bounds.halfExtentZ), 1e-4)
@@ -1361,7 +1437,8 @@ class GltfSurfaceView @JvmOverloads constructor(
         val viewportHeight = max(height, 1).toDouble()
         val aspect = viewportWidth / viewportHeight
 
-        val verticalHalfFov = Math.toRadians(CAMERA_VERTICAL_FOV_DEGREES / 2.0)
+        val fovDegrees = tuner.verticalFovDegrees ?: CAMERA_VERTICAL_FOV_DEGREES
+        val verticalHalfFov = Math.toRadians(fovDegrees / 2.0)
         val horizontalHalfFov = Math.atan(Math.tan(verticalHalfFov) * aspect)
 
         // The model is also rotated by pitch and yaw, so reserve for its depth as well: orbit
@@ -1370,7 +1447,8 @@ class GltfSurfaceView @JvmOverloads constructor(
         val distanceForWidth = halfWidth / Math.tan(horizontalHalfFov)
         val fitTarget = max(distanceForHeight, distanceForWidth)
 
-        val fitted = (fitTarget + halfDepth) * CAMERA_FIT_MARGIN
+        val margin = tuner.fitMargin ?: CAMERA_FIT_MARGIN
+        val fitted = (fitTarget + halfDepth) * margin * (tuner.distanceMultiplier ?: 1.0f)
         fittedCameraDistance = if (!isFiniteFloat(fitted.toFloat()) || fitted <= 0.0) {
             BASE_CAMERA_DISTANCE.toDouble()
         } else {
@@ -1379,7 +1457,7 @@ class GltfSurfaceView @JvmOverloads constructor(
 
         AppLogger.i(
             TAG,
-            "Camera auto-fit: halfExtent=${"%.4f".format(halfWidth)}, ${"%.4f".format(halfHeight)}, ${"%.4f".format(halfDepth)}, " +
+            "Camera auto-fit[$resolvedSource]: halfExtent=${"%.4f".format(halfWidth)}, ${"%.4f".format(halfHeight)}, ${"%.4f".format(halfDepth)}, " +
                 "centre=(${"%.4f".format(cameraTargetX)}, ${"%.4f".format(cameraTargetY)}, ${"%.4f".format(cameraTargetZ)}), " +
                 "aspect=${"%.3f".format(aspect)}, distance=${"%.4f".format(fittedCameraDistance)}"
         )
@@ -1432,7 +1510,8 @@ class GltfSurfaceView @JvmOverloads constructor(
             // The camera position above already orbits the target, so rotating the model as well
             // would apply pitch and yaw twice and throw it out of frame. The model-space rotation
             // exists only for devices where the manipulator cannot be installed.
-            if (!manipulatorApplied) {
+            val disableModelOrbit = GltfTuner.settings(context).disableModelOrbit == true
+            if (!manipulatorApplied && !disableModelOrbit) {
                 applyModelOrbitFallback(pitchDegrees = cameraPitchDegrees, yawDegrees = cameraYawDegrees)
             }
         }.onFailure { error ->
@@ -1533,6 +1612,20 @@ class GltfSurfaceView @JvmOverloads constructor(
 
     private fun applySafeUnitCubeTransform() {
         val asset = modelViewer.asset ?: return
+
+        // A skinned model is left in its authoring space on purpose. transformToUnitCube scales the
+        // mesh but not the joints, so afterwards the drawn geometry and the bone positions describe
+        // two different spaces: the camera was framed from one and the mesh rendered in the other,
+        // which put the camera inside the model. The camera fit reads bone positions, so the mesh
+        // has to stay in that same space.
+        val tuner = GltfTuner.settings(context)
+        val isSkinned = runCatching { asset.skinCount > 0 }.getOrDefault(false)
+        val skipForSkin = tuner.skipUnitCube ?: isSkinned
+        if (skipForSkin) {
+            AppLogger.i(TAG, "Skip transformToUnitCube: skinned=$isSkinned, tuner=${tuner.skipUnitCube}")
+            return
+        }
+
         val halfExtent = asset.boundingBox.halfExtent
         val maxHalfExtent = halfExtent.maxOrNull() ?: 0f
         val maxExtent = maxHalfExtent * 2f

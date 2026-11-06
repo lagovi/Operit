@@ -248,6 +248,22 @@ Supported keys, all optional; anything absent keeps the normal value:
 | `skipUnitCube` | skip `transformToUnitCube` |
 | `disableModelOrbit` | do not rotate the model on top of the camera orbit |
 
+What the tuner already established on Xbot, so nobody repeats it:
+
+- `skipUnitCube: true` makes a skinned model **disappear**. The unit-cube
+  transform is what puts its geometry where the camera can see it, even though
+  it scales the mesh and not the joints. Keeping it on is correct.
+- With the transform on, framing from the mesh bounds and framing from the bone
+  bounds both produce a visible model after normalisation, because the two spans
+  agree. The automatic choice therefore resolves to the mesh.
+- On Xbot the model renders at about 39-49% of the preview height, horizontally
+  centred, and `distanceMultiplier` between 0.5 and 1.0 scales it predictably.
+  `targetY` shifts it vertically only above roughly 30 units, because the model
+  sits at a large Y offset (centre near Y=29 in authoring units).
+- The app writes its own log to `files/logs/operit.log`; `adb logcat` shows
+  almost nothing from this code, so read that file instead:
+  `adb shell "run-as com.ai.assistance.operit.debug cat files/logs/operit.log"`.
+
 The log line `Camera auto-fit[SOURCE]` reports which bounds were used and the
 resulting distance, so the effect of a value is visible in `adb logcat -s
 GltfSurfaceView`. This is a testing aid: it reads a file the user would have to

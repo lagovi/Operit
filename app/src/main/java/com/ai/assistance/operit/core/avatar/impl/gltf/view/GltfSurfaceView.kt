@@ -1454,7 +1454,7 @@ class GltfSurfaceView @JvmOverloads constructor(
         val viewportHeight = max(height, 1).toDouble()
         val aspect = viewportWidth / viewportHeight
 
-        val fovDegrees = tuner.verticalFovDegrees ?: CAMERA_VERTICAL_FOV_DEGREES
+        val fovDegrees: Double = tuner.verticalFovDegrees?.toDouble() ?: CAMERA_VERTICAL_FOV_DEGREES
         val verticalHalfFov = Math.toRadians(fovDegrees / 2.0)
         val horizontalHalfFov = Math.atan(Math.tan(verticalHalfFov) * aspect)
 
@@ -1464,8 +1464,9 @@ class GltfSurfaceView @JvmOverloads constructor(
         val distanceForWidth = halfWidth / Math.tan(horizontalHalfFov)
         val fitTarget = max(distanceForHeight, distanceForWidth)
 
-        val margin = tuner.fitMargin ?: CAMERA_FIT_MARGIN
-        val fitted = (fitTarget + halfDepth) * margin * (tuner.distanceMultiplier ?: 1.0f)
+        val margin: Double = tuner.fitMargin?.toDouble() ?: CAMERA_FIT_MARGIN
+        val distanceMultiplier: Double = tuner.distanceMultiplier?.toDouble() ?: 1.0
+        val fitted = (fitTarget + halfDepth) * margin * distanceMultiplier
         fittedCameraDistance = if (!isFiniteFloat(fitted.toFloat()) || fitted <= 0.0) {
             BASE_CAMERA_DISTANCE.toDouble()
         } else {

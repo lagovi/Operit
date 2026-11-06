@@ -289,10 +289,28 @@ anywhere. These presets are locomotion and tech demos, not character avatars.
 - [ ] K4. Replace the preinstalled presets with models that ship mood clips.
       All current ones are to be dropped. Search brief for an external
       research model: `AVATAR-MODEL-SEARCH-BRIEF.md`.
-- [x] K5. The camera fit is accepted on Xbot: with the defaults the model
-      renders centred horizontally at about 39% of the preview height and is
-      fully visible. The tuner stays as a testing aid for the models still to
-      come; it does nothing unless its file exists.
+- [ ] K5. The camera fit alone does not centre a skinned model, and that is now
+      understood rather than open. Measured on Xbot in the 678x385 preview
+      (screenshots at 650 px height):
+
+      | setting | figure height | top gap | bottom gap | centre |
+      | --- | --- | --- | --- | --- |
+      | neutral | 345 px | 95 | 301 | 261..514 |
+      | scale 1.35, translateY 50.9 | 345 px | 143 | 158 | 313..657 |
+
+      The first row is what the user saw as an off-centre figure. The second is
+      the shipped default, applied in `AssistantConfigViewModel` to glTF only.
+
+      Why the camera cannot do this: `asset.boundingBox` for a skinned mesh is
+      in the mesh's own space (Xbot: 0.009), while the joints the camera fit
+      reads are in authoring space (74 units). The two never agree, so moving
+      the camera changes the size but keeps the figure anchored high. The
+      per-instance post transform the preview already applies is the right
+      lever, and that is where the values now live.
+
+      Not yet: confirming the new defaults on a freshly installed build, and
+      checking that Fox and Soldier land sensibly with the same values (Fox is a
+      quadruped, so its centre may differ).
 - [ ] K6. Decide whether the avatar preview should always play the default clip,
       so a T-posed rig never shows its rest pose.
 

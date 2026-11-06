@@ -223,6 +223,36 @@ user's own look at the preinstalled models.
       file's rest pose. Xbot rests in a T-pose, which is what made it look
       broken. The clip is now stored as `preset_default_animation.txt`.
 
+### Live tuning the glTF preview — 2026-11-06
+
+Chasing framing defects through CI is too slow: one hypothesis costs a build,
+an install and a phone reset. `GltfTuner` (`core/avatar/impl/gltf/view/GltfTuner.kt`)
+reads a JSON file from the app files directory and overrides the framing inputs.
+The renderer re-reads it on every model load and on a tap on the preview.
+
+    cat > /tmp/t.json <<'EOF'
+    { "boundsSource": "bones", "distanceMultiplier": 1.0, "verticalFovDegrees": 45 }
+    EOF
+    adb -s 192.168.1.69:5555 shell "run-as com.ai.assistance.operit.debug sh -c 'cat > files/gltf_tuner.json'" < /tmp/t.json
+    adb -s 192.168.1.69:5555 shell input tap <preview-x> <preview-y>
+
+Supported keys, all optional; anything absent keeps the normal value:
+
+| key | meaning |
+| --- | --- |
+| `boundsSource` | `auto` (bones for skinned, mesh otherwise), `mesh`, `bones` |
+| `distanceMultiplier` | scales the computed fit distance, 1.0 = as computed |
+| `verticalFovDegrees` | vertical field of view used for fitting |
+| `fitMargin` | extra margin as a multiplier, default 1.12 |
+| `targetX`, `targetY`, `targetZ` | override the camera target in model units |
+| `skipUnitCube` | skip `transformToUnitCube` |
+| `disableModelOrbit` | do not rotate the model on top of the camera orbit |
+
+The log line `Camera auto-fit[SOURCE]` reports which bounds were used and the
+resulting distance, so the effect of a value is visible in `adb logcat -s
+GltfSurfaceView`. This is a testing aid: it reads a file the user would have to
+create by hand, and the app behaves normally without it.
+
 ### What the preinstalled models actually are — 2026-11-06
 
 Measured from the files, not guessed:
@@ -243,9 +273,9 @@ anywhere. These presets are locomotion and tech demos, not character avatars.
 - [ ] K4. Replace the preinstalled presets with models that ship mood clips.
       All current ones are to be dropped. Search brief for an external
       research model: `AVATAR-MODEL-SEARCH-BRIEF.md`.
-- [ ] K5. Accept the camera fit visually on a device once K2/K2.1/K2.2 are in a
-      build: the model should sit centred, fill most of the preview, and stay
-      put when pitch and yaw change.
+- [ ] K5. Accept the camera fit visually on a device. Use the live tuner to find
+      the combination that frames a skinned model correctly, then make that the
+      default and delete the tuner.
 - [ ] K6. Decide whether the avatar preview should always play the default clip,
       so a T-posed rig never shows its rest pose.
 

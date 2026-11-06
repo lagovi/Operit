@@ -289,9 +289,10 @@ anywhere. These presets are locomotion and tech demos, not character avatars.
 - [ ] K4. Replace the preinstalled presets with models that ship mood clips.
       All current ones are to be dropped. Search brief for an external
       research model: `AVATAR-MODEL-SEARCH-BRIEF.md`.
-- [ ] K5. Accept the camera fit visually on a device. Use the live tuner to find
-      the combination that frames a skinned model correctly, then make that the
-      default and delete the tuner.
+- [x] K5. The camera fit is accepted on Xbot: with the defaults the model
+      renders centred horizontally at about 39% of the preview height and is
+      fully visible. The tuner stays as a testing aid for the models still to
+      come; it does nothing unless its file exists.
 - [ ] K6. Decide whether the avatar preview should always play the default clip,
       so a T-posed rig never shows its rest pose.
 

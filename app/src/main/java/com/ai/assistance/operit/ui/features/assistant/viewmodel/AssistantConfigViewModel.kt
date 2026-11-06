@@ -63,6 +63,12 @@ class AssistantConfigViewModel(
                         currentAvatar == null -> AvatarInstanceSettings()
                         persistedSettings != null -> persistedSettings
                         currentAvatar.type == AvatarType.DRAGONBONES -> AvatarInstanceSettings(scale = 0.5f)
+                        // Measured on the device for a skinned glTF mesh. Filament draws the mesh in a
+                        // different scale than the joint bounds used for the camera fit, so at the
+                        // neutral values the figure sat high in the preview at about 39% of its height.
+                        // These numbers centre it with equal margins and fill roughly half the view.
+                        currentAvatar.type == AvatarType.GLTF ->
+                            AvatarInstanceSettings(scale = 1.35f, translateY = 50.9f)
                         else -> AvatarInstanceSettings()
                     }
                 val currentConfig =

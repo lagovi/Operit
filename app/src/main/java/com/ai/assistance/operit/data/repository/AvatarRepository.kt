@@ -176,6 +176,13 @@ private fun avatarSourceKey(config: AvatarConfig): String? {
 /**
  * Data class for avatar instance settings like scale and position.
  */
+/**
+ * Per-instance geometry on top of the renderer's own framing.
+ *
+ * Defaults are neutral here on purpose. The glTF-specific starting values are
+ * chosen in the view model, because the compensation they carry is a property
+ * of how Filament draws a skinned glTF mesh, not of every avatar type.
+ */
 data class AvatarInstanceSettings(
     val scale: Float = 1.0f,
     val translateX: Float = 0f,

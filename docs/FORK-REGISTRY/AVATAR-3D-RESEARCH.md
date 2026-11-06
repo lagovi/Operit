@@ -124,3 +124,37 @@ before broader redistribution.
   need a check before redistribution; DragonBones and MMD models frequently
   forbid redistribution, so those folders should only receive verified assets.
 - APK size: unchanged, because nothing is embedded.
+
+## Screening a glTF avatar without running the app
+
+These checks came out of dissecting the six preinstalled presets. Each one is
+decidable by reading the GLB with a few lines of Python, and each corresponds to
+a defect that was actually seen on the device. A model that fails any of them is
+unusable no matter how good its screenshots look.
+
+Read the JSON chunk (12-byte header, then chunk length and type, JSON first).
+
+| # | Check | Fails when | What you see on device |
+| --- | --- | --- | --- |
+| 1 | `len(scenes[0].nodes) == 1` | two or more scene roots | Mesh and skeleton are siblings, so framing and posing break. Fox shipped this way. |
+| 2 | Root scale present when geometry is in centimetres | `mesh size` is in the tens or hundreds and the root has no `scale` | Model is metres off; camera fit lands inside or far outside it. |
+| 3 | World size plausible: after multiplying mesh bounds by the root scale, the largest axis is between about 0.5 and 3 | anything else | Model is a speck or fills nothing. Cube had `scale 100` on a 0.02 mesh; Xbot reports 0.018 world units for a 1.8 m mannequin. |
+| 4 | Every primitive has `JOINTS_0` | a skinned character without skin attributes, or morph-only geometry | The thing deforms as an object, not as a character. Morph Cube only moves 12 top-face vertices. |
+| 5 | Every animation duration is at least about 0.3 s | a clip of 0.03-0.07 s | It is a static pose, not motion. Xbot's `sad_pose` and `sneak_pose` are 0.067 s; Soldier's `TPose` is 0.033 s. |
+| 6 | Clip names, read literally, cover the five moods | no clip can plausibly read as angry, happy, shy, aojiao, cry | This is the decisive one, and no structural repair can fix it. |
+
+Measured on the shipped presets, for reference:
+
+| model | roots | world size | skin | clips | shortest clip |
+| --- | --- | --- | --- | --- | --- |
+| Xbot | 1 | 0.018 (needs 0.01 root) | yes | agree, headShake, idle, run, sad_pose, sneak_pose, walk | 0.067 s |
+| Fox | 2 | 25 x 79 x 155 cm | yes | Survey, Walk, Run | 0.708 s |
+| Soldier | 1 | 184 cm mesh, 0.01 root | yes (2 skins) | Idle, Run, TPose, Walk | 0.033 s |
+| Morph Cube | 1 | 2 m via `scale 100` | no, morph only | Square | 4.2 s |
+
+Check 6 is the one that matters most here. Structural checks 1-5 describe
+whether a model will *render*; they do not make it a mood avatar. Xbot passes
+1-4 and still cannot express anger, shyness or crying, because its clips are a
+locomotion and gesture demo. A model for this app has to ship clips that
+actually embody the five moods; there is no way to derive that from the file
+structure, only from the clip list and from watching them.

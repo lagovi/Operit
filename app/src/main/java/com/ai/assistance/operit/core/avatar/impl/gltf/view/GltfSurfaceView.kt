@@ -1298,73 +1298,31 @@ class GltfSurfaceView @JvmOverloads constructor(
     )
 
     /**
-     * Returns the bounds of the model as it is actually posed, not as its mesh data was authored.
+     * Returns the bounds of what is actually drawn.
      *
-     * Filament's `asset.boundingBox` is computed from the unskinned vertex positions, so for a
-     * skinned character it describes the mesh in its own local space (a humanoid collapses to a few
-     * centimetres) and framing from it puts the camera inside the model. The bone world positions
-     * cover the real silhouette instead: for a rigged character the joints span the body, and the
-     * mesh never strays far outside them. Non-skinned assets fall back to the asset bounds, which
-     * are correct for them.
+     * After `transformToUnitCube` the mesh is normalised, but the skeleton keeps its authoring
+     * scale, so bone world positions describe a different space than the rendered geometry and
+     * cannot be used for framing. `asset.boundingBox` is the mesh space Filament renders, and it
+     * is already normalised by that point, so it is the correct source once the root transform
+     * has been applied.
      */
-    private fun resolvePosedBounds(asset: com.google.android.filament.gltfio.FilamentAsset): PosedBounds? {
-        val transformManager = modelViewer.engine.transformManager
-        var minX = Double.MAX_VALUE
-        var minY = Double.MAX_VALUE
-        var minZ = Double.MAX_VALUE
-        var maxX = -Double.MAX_VALUE
-        var maxY = -Double.MAX_VALUE
-        var maxZ = -Double.MAX_VALUE
-        var counted = 0
-
-        // Bone world positions are the only reliable source here. The asset bounds are unusable
-        // for skinned meshes, and Filament exposes no skinned vertex bounds, so the skeleton is
-        // what we frame on. A rig may carry helper bones outside the body; the fit margin absorbs
-        // that, and centring on the bone span keeps the character in the middle of the view.
-        asset.entities.forEach { entity ->
-            val instance = transformManager.getInstance(entity)
-            if (instance == 0) {
-                return@forEach
-            }
-            val transform = transformManager.getTransform(instance, FloatArray(16))
-            if (!transform.all(::isFiniteFloat)) {
-                return@forEach
-            }
-            val x = transform[12].toDouble()
-            val y = transform[13].toDouble()
-            val z = transform[14].toDouble()
-            if (x < minX) minX = x
-            if (y < minY) minY = y
-            if (z < minZ) minZ = z
-            if (x > maxX) maxX = x
-            if (y > maxY) maxY = y
-            if (z > maxZ) maxZ = z
-            counted += 1
+    private fun resolveRenderedBounds(asset: com.google.android.filament.gltfio.FilamentAsset): PosedBounds? {
+        val halfExtent = asset.boundingBox.halfExtent
+        val center = asset.boundingBox.center
+        if (halfExtent.size < 3 || !halfExtent.all(::isFiniteFloat) || !center.all(::isFiniteFloat)) {
+            return null
         }
-
-        if (counted < 2 || minX > maxX) {
-            val halfExtent = asset.boundingBox.halfExtent
-            val center = asset.boundingBox.center
-            if (halfExtent.size < 3 || !halfExtent.all(::isFiniteFloat)) {
-                return null
-            }
-            return PosedBounds(
-                centerX = center[0].toDouble(),
-                centerY = center[1].toDouble(),
-                centerZ = center[2].toDouble(),
-                halfExtentX = halfExtent[0].toDouble(),
-                halfExtentY = halfExtent[1].toDouble(),
-                halfExtentZ = halfExtent[2].toDouble()
-            )
+        val largest = max(max(halfExtent[0], halfExtent[1]), halfExtent[2])
+        if (largest <= 1e-6f) {
+            return null
         }
-
         return PosedBounds(
-            centerX = (minX + maxX) / 2.0,
-            centerY = (minY + maxY) / 2.0,
-            centerZ = (minZ + maxZ) / 2.0,
-            halfExtentX = (maxX - minX) / 2.0,
-            halfExtentY = (maxY - minY) / 2.0,
-            halfExtentZ = (maxZ - minZ) / 2.0
+            centerX = center[0].toDouble(),
+            centerY = center[1].toDouble(),
+            centerZ = center[2].toDouble(),
+            halfExtentX = halfExtent[0].toDouble(),
+            halfExtentY = halfExtent[1].toDouble(),
+            halfExtentZ = halfExtent[2].toDouble()
         )
     }
 
@@ -1383,7 +1341,7 @@ class GltfSurfaceView @JvmOverloads constructor(
             return
         }
 
-        val bounds = resolvePosedBounds(asset)
+        val bounds = resolveRenderedBounds(asset)
         if (bounds == null) {
             AppLogger.w(TAG, "Skip camera auto-fit: no usable bounds for the loaded asset")
             fittedCameraDistance = 0.0

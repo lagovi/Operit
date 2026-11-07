@@ -69,6 +69,16 @@ class GltfSurfaceView @JvmOverloads constructor(
         private const val CAMERA_VERTICAL_FOV_DEGREES = 45.0
         // Leave a small margin so the silhouette does not touch the frame edges.
         private const val CAMERA_FIT_MARGIN = 1.12
+        // Share of the preview height the drawn figure should occupy after silhouette framing.
+        // Measured by eye on Xbot and RobotExpressive: at 0.80 the figure nearly touches the frame,
+        // 0.70 leaves a visible band above and below, which is what the user asked for.
+        private const val SILHOUETTE_TARGET_FILL = 0.70
+        // Alpha above which a pixel counts as part of the model. The surface is TRANSLUCENT, so the
+        // empty background is fully transparent and only antialiased edges sit in between.
+        private const val SILHOUETTE_ALPHA_THRESHOLD = 16
+        // A row must carry this many opaque pixels to count, which rejects stray specks from
+        // bloom or from a shadow that leaked past the figure.
+        private const val SILHOUETTE_MIN_PIXELS_PER_ROW = 2
         private const val CAMERA_TARGET_X = 0.0
         private const val CAMERA_TARGET_Y = 0.0
         private const val CAMERA_TARGET_Z = 0.0
@@ -163,6 +173,7 @@ class GltfSurfaceView @JvmOverloads constructor(
 
     @Volatile
     private var onRenderErrorListener: ((String) -> Unit)? = null
+    private var onCameraDistanceScaleChanged: ((Float) -> Unit)? = null
 
     @Volatile
     private var onAnimationsDiscoveredListener: ((List<String>, Map<String, Long>) -> Unit)? = null
@@ -188,6 +199,14 @@ class GltfSurfaceView @JvmOverloads constructor(
 
     fun setOnAnimationsDiscoveredListener(listener: ((List<String>, Map<String, Long>) -> Unit)?) {
         onAnimationsDiscoveredListener = listener
+    }
+
+    /**
+     * Receives the distance scale chosen by [scheduleSilhouetteFraming] so the settings layer can
+     * persist it. Without this the correction would survive only until the next UI emission.
+     */
+    fun setOnCameraDistanceScaleChangedListener(listener: ((Float) -> Unit)?) {
+        onCameraDistanceScaleChanged = listener
     }
 
     fun setModelPath(path: String) {
@@ -375,6 +394,9 @@ class GltfSurfaceView @JvmOverloads constructor(
             refreshDiscoveredAnimations()
             restartAnimationClock()
             applyRequestedAnimationSelection()
+            // Reframe on the pixels actually drawn; asset bounds do not describe them for a
+            // skinned model (see scheduleSilhouetteFraming).
+            scheduleSilhouetteFraming()
 
             AppLogger.i(TAG, "Loaded glTF model: $modelPath")
         } catch (e: Exception) {
@@ -1479,6 +1501,136 @@ class GltfSurfaceView @JvmOverloads constructor(
                 "centre=(${"%.4f".format(cameraTargetX)}, ${"%.4f".format(cameraTargetY)}, ${"%.4f".format(cameraTargetZ)}), " +
                 "aspect=${"%.3f".format(aspect)}, distance=${"%.4f".format(fittedCameraDistance)}"
         )
+    }
+
+    /**
+     * Measures the drawn silhouette once and reframes the camera on it.
+     *
+     * The asset bounds cannot be trusted for a skinned glTF: after
+     * [applySafeUnitCubeTransform] the mesh lives in a unit cube while the joints stay in
+     * authoring space, so `asset.boundingBox` and [resolvePosedBounds] describe two different
+     * spaces, neither of which matches the pixels on screen. Measured proof is in TODO-AUDIT.md
+     * under the slider reference: the logged bounds predict a figure at 57% of the preview height
+     * while the phone shows about 9%.
+     *
+     * So the only dependable source is the rendered image itself. Filament renders one frame into
+     * a Bitmap for us through ModelViewer, the background is transparent, and everything opaque is
+     * the model. The silhouette then gives both the size correction and the vertical offset in one
+     * pass, which is why this replaces guessing from geometry.
+     *
+     * Called after the first frame of a newly loaded model. It runs at most once per model, because
+     * each call costs a full read-back and allocates a Bitmap.
+     */
+    private fun scheduleSilhouetteFraming() {
+        if (!hasValidSurfaceSize || width <= 0 || height <= 0) {
+            return
+        }
+        modelViewer.debugGetNextFrameCallback { bitmap ->
+            try {
+                applySilhouetteFraming(bitmap)
+            } catch (e: Exception) {
+                AppLogger.w(TAG, "Silhouette framing failed: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Reframes the camera so the figure fills [SILHOUETTE_TARGET_FILL] of the viewport height and
+     * sits in the middle.
+     *
+     * Both corrections are derived from the same measurement: the distance is scaled by the ratio
+     * between the current fill and the target fill, and the camera target is shifted by the pixel
+     * distance between the silhouette centre and the viewport centre, converted to scene units at
+     * the current distance. Vertical only, because the camera looks straight at the model and the
+     * horizontal placement already comes out centred when the target follows the bounds centre.
+     */
+    private fun applySilhouetteFraming(bitmap: android.graphics.Bitmap) {
+        val box = measureSilhouette(bitmap) ?: run {
+            AppLogger.w(TAG, "Silhouette framing skipped: nothing opaque was drawn")
+            return
+        }
+
+        val viewportHeight = bitmap.height.toDouble()
+        if (viewportHeight <= 0.0) {
+            return
+        }
+
+        val currentFill = box.heightPixels / viewportHeight
+        if (currentFill <= 1e-4) {
+            return
+        }
+
+        val desiredDistanceScale = (cameraDistanceScale * (currentFill / SILHOUETTE_TARGET_FILL)).toFloat()
+        val clampedDistanceScale = desiredDistanceScale.coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
+        cameraDistanceScale = clampedDistanceScale
+        // The distance is now owned by the measurement rather than by the slider, so report it back
+        // and let the settings layer persist it; otherwise the next setCameraPose from the UI would
+        // undo the correction on the first recomposition.
+        onCameraDistanceScaleChanged?.invoke(clampedDistanceScale)
+
+        val centreOffsetPixels = box.centerY - viewportHeight / 2.0
+        if (abs(centreOffsetPixels) > 1.0) {
+            val visibleHalfHeight = kotlin.math.tan(Math.toRadians(CAMERA_VERTICAL_FOV_DEGREES / 2.0)) *
+                fittedCameraDistance * clampedDistanceScale
+            val sceneUnitsPerPixel = (2.0 * visibleHalfHeight) / viewportHeight
+            cameraTargetY -= centreOffsetPixels * sceneUnitsPerPixel
+        }
+
+        applyCameraPose()
+
+        AppLogger.i(
+            TAG,
+            "Silhouette framing: fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
+                "distanceScale=${"%.4f".format(clampedDistanceScale)}, " +
+                "centreOffsetPx=${"%.1f".format(centreOffsetPixels)}, " +
+                "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}"
+        )
+    }
+
+    private data class SilhouetteBox(val top: Double, val bottom: Double, val heightPixels: Double) {
+        val centerY: Double get() = (top + bottom) / 2.0
+    }
+
+    /**
+     * Returns the vertical extent of opaque pixels, or null when the frame holds nothing drawn.
+     *
+     * A pixel counts as model when its alpha is above a threshold. The surface is TRANSLUCENT, so
+     * the background arrives fully transparent and the antialiased edges carry alpha in between;
+     * the threshold keeps those edges out of the measurement without cutting into the body.
+     */
+    private fun measureSilhouette(bitmap: android.graphics.Bitmap): SilhouetteBox? {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width <= 0 || height <= 0) {
+            return null
+        }
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+
+        var top = -1
+        var bottom = -1
+        for (y in 0 until height) {
+            val rowStart = y * width
+            var opaqueCount = 0
+            for (x in 0 until width) {
+                val alpha = (pixels[rowStart + x] ushr 24) and 0xFF
+                if (alpha >= SILHOUETTE_ALPHA_THRESHOLD) {
+                    opaqueCount++
+                }
+            }
+            // A handful of stray pixels is not the model; require a small run on the row.
+            if (opaqueCount >= SILHOUETTE_MIN_PIXELS_PER_ROW) {
+                if (top < 0) {
+                    top = y
+                }
+                bottom = y
+            }
+        }
+
+        if (top < 0 || bottom < 0) {
+            return null
+        }
+        return SilhouetteBox(top = top.toDouble(), bottom = bottom.toDouble(), heightPixels = (bottom - top + 1).toDouble())
     }
 
     private fun applyCameraPose() {

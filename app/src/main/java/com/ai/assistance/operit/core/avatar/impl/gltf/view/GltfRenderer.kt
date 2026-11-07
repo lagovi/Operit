@@ -98,6 +98,9 @@ fun GltfRenderer(
                             durationMillisByName = durationMillisByName
                         )
                     }
+                    setOnCameraDistanceScaleChangedListener { measured ->
+                        gltfController.onSilhouetteDistanceScaleMeasured(measured)
+                    }
                     setModelPath(model.modelPath)
                     setAnimationState(
                         avatarState.currentAnimation,

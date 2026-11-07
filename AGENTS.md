@@ -23,6 +23,12 @@ They are working instructions, so they do not belong in product documentation.
   after each one.
 - Producing an APK for acceptance happens only through CI after a push (manual
   dispatch). Do not build or install a local debug APK.
+  - If dispatch answers `HTTP 422: Actions has been disabled for this
+    repository`, GitHub has switched workflows off on the fork by itself to stop
+    inherited schedules from wasting compute. Do not investigate, and do not
+    look at billing or at `actions/permissions` (which still reports
+    `enabled: true`). Send the user straight to
+    https://github.com/lagovi/Operit/actions and ask them to re-enable.
 - Google Colab: every session, CPU or GPU, consumes the account's shared limit
   (a fresh account gets roughly 60 hours of CPU session time, about 5.5 hours of
   GPU session time; the figures vary because Google changes them). Close the

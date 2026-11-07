@@ -9,6 +9,23 @@
 **Date:** 2026-10-31, HEAD `c96de0f4` plus the uncommitted batch below,
 branch `feat/english-only-build`
 
+**CURRENT 07.11 — CI on the fork can be switched off by GitHub itself.**
+
+`gh workflow run` fails with `HTTP 422: Actions has been disabled for this
+repository`. This is not a local problem, not a billing problem and not
+something to diagnose: GitHub disables workflows on forked repositories
+automatically to stop inherited schedules from burning compute, and it says so
+on the Actions page:
+
+> Workflows on this fork have been disabled. GitHub disabled workflows on this
+> forked repository to reduce the amount of compute that is wasted.
+
+The fix is one click by the user, and the only thing the agent should do is send
+them to **https://github.com/lagovi/Operit/actions** and ask to re-enable. Do not
+inspect `gh api repos/.../actions/permissions`, which answers `enabled: true`
+even while dispatch is refused, and do not propose billing changes. The last
+successful run before this happened is `42184391446`.
+
 **CURRENT 05.11 — Colab is on pause (GPU quota exhausted); the user is
 testing the app by hand.**
 

@@ -311,6 +311,124 @@ anywhere. These presets are locomotion and tech demos, not character avatars.
       Not yet: confirming the new defaults on a freshly installed build, and
       checking that Fox and Soldier land sensibly with the same values (Fox is a
       quadruped, so its centre may differ).
+## Slider reference for the avatar preview (measured 2026-11-07)
+
+Written after reading the code and watching the effect of each slider on the
+phone with RobotExpressive. The sliders are not one mechanism: two of them move
+a finished picture, and two move the camera inside the renderer. Knowing which
+is which is what makes automatic framing possible at all.
+
+### `Scale` and `Translation X/Y` — a Compose transform of the whole surface
+
+Defined in `AvatarConfigSection.kt` (scale `0.1..2.0`, the two translations
+`-500..500`), passed to the controller, and applied in `GltfRenderer.kt:77-78`
+as
+
+```kotlin
+Modifier.scale(safeScale).offset(x = translateX.dp, y = translateY.dp)
+```
+
+`safeScale` is `scale.coerceIn(0.2f, 5.0f)`. These scale and shift the already
+rendered surface, like a magnifying glass over a photograph. The camera does not
+move.
+
+Consequences seen on the phone:
+
+- Scaling grows the figure away from the centre of the box, so a figure that is
+  not centred is pushed further out as it grows.
+- `Translation X/Y` move the picture in dp, independent of model units. The
+  scale is not proportional to the viewport: at 720 px wide, one dp is one px.
+- At `Scale` 2.00 the robot fills about 60% of the preview height and touches
+  neither edge. This is the practical ceiling of this slider, not 1.0.
+
+### `glTF Camera Distance` — the lever inside the renderer
+
+`AvatarSettingKeys.GLTF_CAMERA_DISTANCE_SCALE`, range `0.0..10.0`, default 1.0.
+Read in `GltfSurfaceView.applyCameraPose()` as
+
+```kotlin
+val rawDistance = baseDistance * cameraDistanceScale
+```
+
+where `baseDistance` comes from `updateFittedCameraDistance()`. This one really
+moves the camera and therefore changes perspective, not just picture size.
+
+### How `baseDistance` is computed
+
+`updateFittedCameraDistance()` picks a bounds source and then:
+
+```kotlin
+distanceForHeight = halfHeight / tan(verticalHalfFov / 2)
+distanceForWidth  = halfWidth  / tan(horizontalHalfFov / 2)
+fitted = (max(distanceForHeight, distanceForWidth) + halfDepth) * margin * multiplier
+```
+
+with `CAMERA_VERTICAL_FOV_DEGREES = 45`, `CAMERA_FIT_MARGIN = 1.12`. It also
+places the camera target at the bounds centre, which is why `targetY` moves the
+framed point rather than the figure within the frame.
+
+Two bounds sources exist and they disagree on skinned assets:
+
+| model | `asset.boundingBox` half-extent | joint bounds half-extent | chosen |
+| --- | --- | --- | --- |
+| Xbot | 0.009 | 74 | BONES (ratio 8000) |
+| RobotExpressive | 3.31 | 23.8 | MESH (bones larger here) |
+
+`resolveAutoBoundsSource()` compares the two and prefers BONES when the joint
+spread is much larger, on the assumption that a tiny mesh box means unskinned
+authoring-space vertices. RobotExpressive breaks that assumption: its two
+skinned hand nodes carry `scale 100`, so the mesh box is already large and the
+joints are larger still. The heuristic still frames it, but only by luck.
+
+### Facts that matter for automatic framing
+
+- The figure the user sees is the Compose-scaled picture, so `Scale` 2.0 hides
+  everything the camera did by making the picture bigger. Automatic framing must
+  be judged with `Scale` at 1.0, otherwise the numbers are meaningless.
+- A per-model post transform is the wrong fix: the shipped default (`scale 1.35`,
+  `translateY 50.9`) suits Xbot and leaves RobotExpressive 56 px tall in a
+  645 px preview. Framing has to come from each model's own bounds.
+- Both bounds sources are unreliable for skinned glTF: the mesh box ignores the
+  skin, and the joint box ignores the mesh. The dependable quantity is the
+  rendered silhouette, which the renderer does not currently expose.
+
+### Arithmetic that proves the bounds are not what is drawn
+
+Checking the camera formula against the screen settles the question. For
+RobotExpressive the log reports `halfExtent 3.31, 2.40, 3.31` and
+`distance 10.194`. Feeding those back into the formula reproduces the distance
+exactly, and at that distance the visible half-height is
+`tan(22.5 deg) * 10.194 = 4.22`, so a mesh of half-height 2.40 should fill
+`2.40 / 4.22 = 57%` of the preview.
+
+On the phone, at `Scale` 1.0 and `Translation 0`, it filled about 9%.
+
+So `asset.boundingBox` does not describe the drawn geometry, even though the
+camera formula consumes it correctly. The cause is `applySafeUnitCubeTransform`:
+`transformToUnitCube()` scales the mesh into a unit cube but leaves the joints in
+authoring space, so afterwards neither the mesh box nor the joint box matches
+what is on screen. Any auto-fit built on those numbers will be right by accident
+at best, which is exactly what the two shipped models show.
+
+### What automatic framing therefore has to be
+
+Framing must be derived from the drawn silhouette, not from asset bounds. The
+options, in order of how much they depend on unknown APIs:
+
+1. Render one frame and read it back (`RenderTarget.readPixels`, present in
+   Filament 1.69 but not verifiable offline here), then fit the camera to the
+   non-background pixel extents. Exact, but needs the readback to work on the
+   SurfaceView.
+2. Compute the skinned vertex positions on the CPU once per model from the glTF
+   joint matrices and inverse bind matrices, and use their extents. Independent
+   of Filament, but duplicates work the renderer already did.
+3. Keep the current bounds fit and give each preset an explicit framing pair
+   measured once by hand. Cheap, but does not generalise to imported models,
+   which is the case that matters for users.
+
+Option 1 is preferred if the readback works; the check is a small experiment,
+not a rewrite.
+
 - [ ] K6. Decide whether the avatar preview should always play the default clip,
       so a T-posed rig never shows its rest pose.
 

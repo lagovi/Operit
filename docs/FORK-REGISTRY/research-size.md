@@ -46,58 +46,59 @@ Do not re-propose them without new facts.
    61 MB tarball stays in the APK until Q2 hosting exists. Still movable
    (pure data, no symlinks, `AppDataLocation` infra already in the app):
    subpack (~59 MB), apktool (~26 MB) — queue items 2–3.
-3. **Update 2026-10-08 — что изменилось:**
-   - subpack Q1 п.2: МЕХАНИКА ГОТОВА (`a4fddb40`, CI `37709173132`,
-     APK 247299182 Б, дельта +10 КБ к задаче 10). `SubpackStorage`
-     (leaf `subpack`), стейджинг из cacheDir переведён на leaf
-     (фалбэк сохранён), пикер в Settings → Data & Permissions.
-     Принято на телефоне: переезд internal → external → SD
-     (`/storage/5982-1724/.../files/subpack/` создан), ошибок нет.
-     Файлы из APK НЕ УБРАНЫ (это Q2); выигрыш installed — только через
-     переезд на SD, выигрыш APK — ноль. E2E «файлы в leaf после экспорта»
-     отложено в совместное ручное тестирование.
-   - R8: DONE (не blocked). Keep-fix `b4ff4a30`, minify debug ON навсегда
-     (решение пользователя), mapping-артефакты каждого зелёного CI.
-   - ДРЕЙФ РАЗМЕРОВ на Drive (замерено 08.10 в APK CI `37709173132`):
-     `assets/subpack/android.apk` — 48 МБ против 24.2 МБ в таблице ниже.
-     Архив апстрима ВЫРОС вдвое; цифры таблицы 03.10 для subpack
-     протухли — перед Q2 перемерить все payload байт-в-байт
-     (`python zipfile`, не `unzip -l` — тот молча врёт нулём).
-   - apktool Q1 п.3 ЗАКРЫТ УДАЛЕНИЕМ 08.10 (HANDOFF 12a): `apktool`
-     вычеркнут из `tools/example_packages/packages_whitelist.txt`,
-     CI sync больше не пакует `examples/apktool/` в `assets/packages/`.
-     Основания: `enabled_by_default: false`, чтение только из assets
-     с распаковкой в кэш (~27 МБ × 2 installed), импорт `.toolpkg`
-     извне уже работает, stale-кэш чистит `reconcileToolPkgCaches`,
-     ссылок/тестов ноль. DoD ЗАКРЫТ: CI `37722980127` success,
-     APK 247299182 → 220307769 Б (−26991413, сошлось с 26985716 Б
-     тулкита), `assets/packages/` — 1429723 Б чистого .js, папка
-     `2026-10-08_03-29-43Z`. `desktop.apk`+`desktop_version.txt`
-     УДАЛЕНЫ 08.10 тем же заходом (HANDOFF 12b: ноль ссылок,
-     `git rm`; CI `37726800230`: 220307769 → 214210621 Б, −6097148;
-     папка `2026-10-08_04-17-45Z`). Живые остатки для Q2 с картой
-     читателей: helper APK shizuku/accessibility 5.4 МБ
+3. **Update 2026-10-08 — what changed:**
+   - subpack Q1 item 2: MECHANICS DONE (`a4fddb40`, CI `37709173132`,
+     APK 247299182 B, delta +10 KB over task 10). `SubpackStorage`
+     (leaf `subpack`), staging from cacheDir moved to the leaf
+     (fallback kept), picker in Settings -> Data & Permissions.
+     Accepted on the phone: migration internal -> external -> SD
+     (`/storage/5982-1724/.../files/subpack/` created), no errors.
+     Files NOT REMOVED from the APK (that is Q2); installed saving comes
+     only from the move to SD, the APK saving is zero. E2E "files in the
+     leaf after export" deferred to joint manual testing.
+   - R8: DONE (not blocked). Keep-fix `b4ff4a30`, minify debug ON for good
+     (the user's decision), mapping artefacts for every green CI.
+   - SIZE DRIFT on Drive (measured 08.10 in APK CI `37709173132`):
+     `assets/subpack/android.apk` is 48 MB against 24.2 MB in the table
+     below. The upstream archive DOUBLED; the 03.10 figures for subpack
+     are stale - before Q2 re-measure every payload byte for byte
+     (`python zipfile`, not `unzip -l`, which silently reports zero).
+   - apktool Q1 item 3 CLOSED BY REMOVAL 08.10 (HANDOFF 12a): `apktool`
+     struck from `tools/example_packages/packages_whitelist.txt`, CI sync
+     no longer packs `examples/apktool/` into `assets/packages/`.
+     Rationale: `enabled_by_default: false`, read only from assets with
+     unpacking into the cache (~27 MB x 2 installed), importing `.toolpkg`
+     from outside already works, the stale cache is cleaned by
+     `reconcileToolPkgCaches`, zero references and zero tests. DoD CLOSED:
+     CI `37722980127` success, APK 247299182 -> 220307769 B (-26991413,
+     matched the toolkit's 26985716 B), `assets/packages/` is 1429723 B of
+     plain .js, folder `2026-10-08_03-29-43Z`. `desktop.apk` and
+     `desktop_version.txt` REMOVED 08.10 in the same pass (HANDOFF 12b:
+     zero references, `git rm`; CI `37726800230`: 220307769 -> 214210621 B,
+     -6097148; folder `2026-10-08_04-17-45Z`). Live leftovers for Q2 with
+     a reader map: helper APK shizuku/accessibility 5.4 MB
      (`ShizukuInstaller:37`, `UIHierarchyManager:89-91`), templates
-     9.8 МБ (`WorkspaceUtils.copyTemplateFiles:682`), emoji 3.6 МБ
-     (`CustomEmojiRepository:298`); js/ 1.4 МБ — горячий рантайм,
-     НЕ ТРОГАТЬ. Desktop Q1 п.4 ЗАКРЫТ,
-    - Q2-SUBPACK ГОТОВ 08.10 (HANDOFF 13): `SUBPACK_ANDROID/WINDOWS` +
-      `ensureTemplate`, оба flow `ExportDialogs`, CI без `subpack.zip`,
-      релиз `v1.12.1+4` (2 файла, sha сошлись), CI `37772193743`:
-      APK 214210621 → 177474049 Б (−36736572), папка
-      `2026-10-08_11-45-43Z`. LIVE-FIRE 09.10: закачка ДОКАЗАНА
-      (`files/subpack/apk_editor_android.apk` 48139093 Б + sha
-      `c56b23a8...` — сошлись); репак УПАЛ R8-крашем
-      (`AsiExtraField.<init>`, `copyZipEntry:339`), фикс keep
-      конструкторов запушен (`b54dffbe`); CI не стартует (422 Actions
-      disabled — нужен владелец). Итог ночи: 247 → 177 МБ (−70 МБ).
-      CLOSE-OUT 10.10: сборка `2026-10-10_00-41-11Z` (CI `38010108122`,
-      APK 179691879 Б, +2.1 МБ за целый BouncyCastle): чистый install →
-      закачка → репак → подпись (фикс `a2764e9c`: BC keep + платформе
-      больше не удаляется) → выходной APK 48094313 Б ставится;
-      offline-повтор без докачки, размер тот же. DoD ЗАКРЫТ.
-     (HANDOFF 12b), Q2 on-demand открыт (хостинг РЕШЁН: GitHub Releases
-     в том же репо, HANDOFF задача 13), GigaAM на SD (done, M6).
+     9.8 MB (`WorkspaceUtils.copyTemplateFiles:682`), emoji 3.6 MB
+     (`CustomEmojiRepository:298`); js/ 1.4 MB is the hot runtime,
+     DO NOT TOUCH. Desktop Q1 item 4 CLOSED,
+   - Q2-SUBPACK DONE 08.10 (HANDOFF 13): `SUBPACK_ANDROID/WINDOWS` plus
+     `ensureTemplate`, both `ExportDialogs` flows, CI without
+     `subpack.zip`, release `v1.12.1+4` (2 files, sha matched), CI
+     `37772193743`: APK 214210621 -> 177474049 B (-36736572), folder
+     `2026-10-08_11-45-43Z`. LIVE-FIRE 09.10: download PROVED
+     (`files/subpack/apk_editor_android.apk` 48139093 B + sha
+     `c56b23a8...` matched); repack FAILED with an R8 crash
+     (`AsiExtraField.<init>`, `copyZipEntry:339`), the constructor keep
+     fix was pushed (`b54dffbe`); CI does not start (422 Actions
+     disabled - the owner is needed). Result of the night: 247 -> 177 MB
+     (-70 MB). CLOSE-OUT 10.10: build `2026-10-10_00-41-11Z` (CI
+     `38010108122`, APK 179691879 B, +2.1 MB for the whole of
+     BouncyCastle): clean install -> download -> repack -> signing (fix
+     `a2764e9c`: BC keep plus the platform one is no longer deleted) ->
+     the output APK of 48094313 B installs; offline repeat without
+     re-download, same size. DoD CLOSED.
+     (HANDOFF 12b), Q2 on-demand open (hosting DECIDED: GitHub Releases
+     in the same repo, HANDOFF task 13), GigaAM on SD (done, M6).
 
 ## 2026-10-03: internal-storage prospects, ranked (APK anatomy at e9c7e0e1)
 
@@ -110,7 +111,7 @@ Do not re-investigate DONE rows; do not re-propose DEAD ones.
 
 | # | lever | internal saving | cost | status 2026-10-06 |
 |---|-------|----------------:|------|-------------------|
-| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | DONE: subpack MECHANICS (`a4fddb40`); apktool REMOVED (CI `37722980127`: 247299182 → 220307769 Б); desktop.apk REMOVED (CI `37726800230`: → 214210621 Б); Q2 hosted helper APK/templates/emoji/OCR/speech; rootfs MOVED OUT 18.10 (SIZE-010, release `terminal-rootfs-v1`, host `RootfsArchiveProvider`; the installed tree still stays internal, E3 stands) |
+| 1 | Heavy assets out of the APK (`assets` stored 155 MB) + their `files/` copies (92 MB: rootfs 61, toolpkg_cache 31) | up to ~150–240 MB | hosting or SD-first-run flow + File-based loading; biggest work | DONE: subpack MECHANICS (`a4fddb40`); apktool REMOVED (CI `37722980127`: 247299182 -> 220307769 B); desktop.apk REMOVED (CI `37726800230`: -> 214210621 B); Q2 hosted helper APK/templates/emoji/OCR/speech; rootfs MOVED OUT 18.10 (SIZE-010, release `terminal-rootfs-v1`, host `RootfsArchiveProvider`; the installed tree still stays internal, E3 stands) |
 | 2 | GigaAM model (225 MB) to SD via the existing picker | 225 MB | zero code; operational, needs the SD present | DONE (M6 2026-10-05: SD round-trip byte-identical, engine inits from card) |
 | 3 | Drop `tensorflow.lite` + `mediapipe.tasks.text` (comment says "if needed", zero code references) | ~11.5 MB | two dependency lines; CI-verifiable | DONE (CI `37127299796`: APK 386 -> 373 MB, both .so gone from APK) |
 | 4 | R8/minify for debug builds too (dex stored ~75 MB over 43 files, no minification today) | est. 25–35 MB | slower CI builds; measure like the packaging lever | DONE 08.10 (keep-fix `b4ff4a30`, minify debug ON forever, −40.1 MB measured: 287428400 -> 247288710; mapping artifacts per green CI) |
@@ -301,5 +302,9 @@ The audio is the official GigaAM test clip, from the URL in
 https://cdn.chatwm.opensmodel.sberdevices.ru/GigaAM/example.wav
 ```
 
-The transcript on that clip is Pushkin and reads
-`ничьих не требуя похвал счастлив уж я надеждой сладкой ... у лукоморья дуб зеленый`.
+The transcript on that clip is Pushkin (Eugene Onegin, the dedication) and
+reads, in the original Russian, the first and last line of the excerpt:
+`ничьих не требуя похвал` ... `у лукоморья дуб зеленый` ("asking no praise
+from anyone" ... "a green oak by the curving shore"). The middle of the
+excerpt is omitted here because this line records only which clip was used;
+the full text lives in the test itself.

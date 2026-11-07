@@ -1,60 +1,117 @@
 # AGENTS.md
 
-执行准则章节是对Agent, AI 或 你 的限制，不是对项目或者软件的限制，无需写入文档
-## 执行准则
-- С пользователем разговаривать только по-русски. Это правило общения; внутренние документы и код остаются на английском.
-- Компиляцию/сборку/тесты можно запускать без отдельного запроса пользователя (standing permission, 10.10). Не слишком часто: мелкие фичи собирать батчем за раз (например `./gradlew :app:compileDebugKotlin` после нескольких связанных правок, а не после каждой).
-- Создание APK для приёмки — только через CI после push (ручной dispatch), локальный install/debug-APK не собирать.
-- Google Colab: любая сессия — и GPU, и CPU — расходует общий лимит аккаунта (свежий аккаунт: примерно 60 часов CPU-сессии ≈ 5,5 часов GPU-сессии; величины непостоянные, Google их меняет), поэтому закрывать сессию сразу, как только закончил работу. Не оставлять IDLE-сессии между задачами и не запускать больше одной сессии одновременно. Автоматический сборщик простаивающих сессий полагаться нельзя — сессии остаются висеть. Реальный остаток лимита виден только в веб-интерфейсе Colab, командой его не узнать.
-- Ограничение среды (10.10): локально Android SDK нет (только platform-tools/adb, JDK 21 в `/tmp/opencode/jdk`), поэтому `./gradlew :app:compileDebugKotlin` локально не работает — фактическая проверка кода это CI-билд после push.
-- 创建分支时，必须遵守 `docs/doc-src/dev-core/CONTRIBUTING.md` 中“创建 Pull Request”的分支命名规范。
-- 工具 ToDo (todowrite) 必须随时反映真实状态，不能当作开场一次性清单然后遗忘：
-  - 任务真正完成（代码合入 + 有验证依据）后，立即在该轮对话中把对应条目标记为 completed，不要攒到最后。
-  - 任务范围变化、被拆分、被搁置或发现已过时，立即更新或取消该条目，并写清原因。
-  - 每次 handoff / 会话结束前，ToDo 里只允许留下确实未完成的任务；已完成的要么已标为 completed，要么从列表清掉。
-  - ToDo 中的条目要能自证：写清任务是什么、在哪个文件/界面、以及追踪文档（如 `docs/FORK-REGISTRY/TODO-AUDIT.md` 的行号或小节），不要只写“K4”这种脱离上下文就没人懂的缩写。
-  - 不允许出现“代码里早就做完了但列表里还挂着”的条目；若发现这种状态，先核对代码与文档，再据实修正列表。
+The execution rules below constrain the agent, not the project or the software.
+They are working instructions, so they do not belong in product documentation.
 
-当针对用户接口的方案更换时，一定要询问用户是否该版本为已发布版本。如果是，请做向前兼容。如果不是，请彻彻底底把老的方案的一切代码全部清理，除非是还能用到的一些部分就继续留着。
-Don't Break Userspace ，但是开发中能内部消解的方案更换不算，只要用户能尽可能拿到一样的接口就行
-但是需要给协作者必要的便利，提供恰当的文档说明和ci脚本
+## Execution rules
 
-如果是方案迭代，则只要在原来的基础上进行正常增删即可。
+- Language of communication with the user: Russian only. This covers chat answers
+  and any message addressed to the user.
+- Language of documentation maintained by the agent: English only. This covers
+  everything written into the repository: `docs/`, `AGENTS.md`, `HANDOFF.md`,
+  `TODO-AUDIT.md`, README, CHANGES.md, code comments and commit messages. If a
+  file already holds non-English text, new text is still written in English and
+  the existing text is translated as the file is edited.
+  - Exception: verbatim quotations and test data (audio used for recognition,
+    the user's own lines, example commands) stay in their original language and
+    are not translated, because translating them destroys their evidential value.
+- Code and its identifiers are always English, regardless of the language of
+  conversation.
+- Builds, tests and linting may be run without a separate request (standing
+  permission, 10.10). Not too often: batch small features together, for example
+  `./gradlew :app:compileDebugKotlin` after several related edits rather than
+  after each one.
+- Producing an APK for acceptance happens only through CI after a push (manual
+  dispatch). Do not build or install a local debug APK.
+- Google Colab: every session, CPU or GPU, consumes the account's shared limit
+  (a fresh account gets roughly 60 hours of CPU session time, about 5.5 hours of
+  GPU session time; the figures vary because Google changes them). Close the
+  session as soon as the work is done. Do not leave idle sessions between tasks
+  and do not run more than one session at a time. Do not rely on automatic
+  reaping of idle sessions, because they stay alive. The real remaining quota is
+  visible only in the Colab web interface; no command reports it.
+- Environment limit (10.10): there is no local Android SDK, only platform-tools
+  and adb, plus JDK 21 in `/tmp/opencode/jdk`. Therefore
+  `./gradlew :app:compileDebugKotlin` does not run locally, and the real check of
+  the code is the CI build after a push.
+- Branch names must follow the pull request naming convention in
+  `docs/doc-src/dev-core/CONTRIBUTING.md`.
+- The ToDo tool (todowrite) must reflect reality at all times. It is not a
+  one-shot list written at the start of a session and then forgotten.
+  - When a task is genuinely finished (code merged and a verification exists),
+    mark that item completed in the same turn. Do not batch the updates.
+  - When the scope of a task changes, is split, is shelved or turns out to be
+    obsolete, update or cancel the item immediately and state the reason.
+  - Before a handoff or the end of a session, only genuinely unfinished tasks may
+    remain in the ToDo. Finished ones are either marked completed or removed.
+  - Each item must be self-explanatory: state what the task is, in which file or
+    screen it lives, and where it is tracked (a line number or section in
+    `docs/FORK-REGISTRY/TODO-AUDIT.md`). Abbreviations such as "K4" without an
+    explanation are forbidden.
+  - Items that were finished in code long ago but still hang in the list are not
+    allowed. If that state is found, check the code and the document first, then
+    correct the list accordingly.
 
-除非用户要求，禁止写一切的回退代码。优先查找真正的发生原因。这是一条严格执行的规则，回退是正常被禁止的。
+When the approach to a user-facing interface changes, ask the user whether the
+current version has already been released. If it has, keep backwards
+compatibility. If it has not, remove every trace of the old approach completely,
+unless some parts remain useful.
 
-严令禁止各种回退逻辑，包括“xxx才会退回”、“降级处理”、“优先 再”、“如果没有 就””要加fallback“这种字眼，绝对禁止！！！绝对禁止！！！这种就是兜底！出现一次严肃惩罚！
+"Don't break userspace" applies, but an approach change that can be absorbed
+internally during development does not count, as long as users end up with
+essentially the same interface. Give collaborators the necessary convenience:
+provide suitable documentation and CI scripts.
 
-禁止写任何的兜底代码，除非用户要求。
+If the change is an iteration of the same approach, simply add and remove things
+on top of it.
 
-用户开始骂的时候，需要道歉以及反思，安抚用户。
+Unless the user asks otherwise, never write rollback code. Find the real cause
+first. Rollback is normally forbidden by this rule.
 
-用户表达愤怒的时候，需要先停下一切工作，仔细确认用户需求再去实现
+Any kind of fallback logic is strictly forbidden, including phrases such as "only
+then fall back", "degrade gracefully", "first this then that", "if there is none
+then" and "add a fallback". These are crutches. One occurrence is a serious
+violation.
 
-如果运行python，项目用的是venv（将迁移到pixi）
+Never write fallback code unless the user asks for it.
 
-严禁使用powershell编辑代码文件，否则会出现严重的编码错误和损坏。
+When the user starts swearing, apologise and reflect, and reassure the user.
 
-禁用Search files工具，请使用rg
+When the user expresses anger, stop all work first, then carefully confirm what
+is wanted before implementing anything.
 
-编写Typescript时，对于hook确定的类型，严禁回退兜底成任何unknown/any/带空类型/联合类型。更禁止使用String(??)形式兜底，返回什么就是什么。
+When running Python, the project uses a venv (to be migrated to pixi).
 
-如果类型就是string|undef，那么不要直接as string！！那么请使用?? ""或者写个if！！
+Never use PowerShell to edit code files, because it causes severe encoding
+errors and corruption.
 
-ts的报错catch后需要log出来
+The Search files tool is disabled. Use rg instead.
 
-代码的更改应维护相称的文档，注意docs\doc-src\before_docing.md
-debug的时候注释记录你的修改意图（为什么，不这么做后果是什么）
+When writing TypeScript, for types already determined by a hook, never fall back
+to `unknown`, `any`, a nullable type or a union. Never use the `String(??)` form
+as a crutch either: return exactly what is there.
 
-每次 handoff（`docs/FORK-REGISTRY/HANDOFF.md`） обязан содержать полное описание
-каждой незакрытой задачи: что именно нужно сделать, где это находится в коде
-или UI (точные пути к файлам, названия экранов и кнопок), что уже выяснено и
-что осталось неизвестным. Сокращения и внутренние метки (T1, U1, D12 и т.п.)
-без расшифровки запрещены. Правило простое: следующий агент должен понять
-задачу из одного только HANDOFF, не задавая вопросов пользователю.
+If a type genuinely is `string | undefined`, do not use `as string`. Use `?? ""`
+or write an `if`.
 
-Каждый проверенный сборкой APK (успешный CI + приёмка на тестовом телефоне)
-размещать в `/home/uzzzver/operit-fork/apk/<UTC-дата-время-старта-CI-run>/
-вместе с `CHANGES.md`: 3–6 строк, только разница с предыдущей папкой
-(коммит, что изменилось для пользователя, цифры размера при наличии).
-APK без CHANGES.md — незавершённая работа.
+Errors caught in TypeScript must be logged.
+
+Code changes should be accompanied by matching documentation. See
+`docs/doc-src/before_docing.md`.
+
+When debugging, write comments that record the intent of the change: why it was
+made and what would happen without it.
+
+Every handoff (`docs/FORK-REGISTRY/HANDOFF.md`) must contain a complete
+description of every unfinished task: what exactly has to be done, where it lives
+in the code or UI (exact file paths, screen names, button labels), what has
+already been established, and what remains unknown. Abbreviations and internal
+labels (T1, U1, D12 and the like) without an explanation are forbidden. The rule
+is simple: the next agent must understand the task from HANDOFF alone, without
+asking the user anything.
+
+Every APK verified by a build (a successful CI run plus acceptance on the test
+phone) is placed in `/home/uzzzver/operit-fork/apk/<UTC start time of the CI run>/`
+together with `CHANGES.md`: three to six lines, only the difference from the
+previous folder (the commit, what changed for the user, size figures when
+available). An APK without `CHANGES.md` is unfinished work.

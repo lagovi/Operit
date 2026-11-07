@@ -1403,9 +1403,9 @@ Spoken text: "В дистрибутиве Omarchy под
 Hyprland мы запустили браузер Helium с аппаратным ускорением через
 VA-API и настроили Neovim под виндовые хоткеи. Сейчас мы тестируем
 модель GigaAM в связке с PipeWire, замеряя inference и потребление
-памяти в btop." (Russian — the recognition target is Russian audio;
-this paragraph stays Russian on purpose.) Fuzzy scoring (any variant in
-parens = 100% hit): omarchy (омарчи, омачи); hyperland (хайперлэнд,
+памяти в btop." (Russian: these are verbatim benchmark data, not prose, so
+they are not translated. The recognition target is Russian audio.) Fuzzy
+scoring (any variant in parens = 100% hit): omarchy (омарчи, омачи); hyperland (хайперлэнд,
 хайперланд); helium (хелиум, хилиум); pipewire (пайпваер, пайпвайр);
 neovim (неовим); btop (битоп); inference (инференс).
 METHODOLOGY ANSWER (was the open question; resolved by implementation,
@@ -1481,27 +1481,27 @@ until this line was corrected 19.10.
 - Every build-checked APK: `/home/uzzzver/operit-fork/apk/<UTC-CI-start>/`
   + `CHANGES.md` (3–6 delta lines). Recent (older — same dir, CHANGES.md
   each):
-  `20261010_215026Z` (evict-fix 17: 179391284 Б, CI `38089152700`,
+  `20261010_215026Z` (evict-fix 17: 179391284 B, CI `38089152700`,
   accept10 PASS=10 — closed 14/15/17; LAST signing build),
-  `20261011_015941Z` (Q2 helper-APK: 175947764 Б, CI `38103675524`,
+  `20261011_015941Z` (Q2 helper-APK: 175947764 B, CI `38103675524`,
   walker PASS=6),
-  `20261011_123918Z` (B+C identity: 175947900 Б, CI `38140082342`, PASS=8),
-  `20261011_141729Z` (Q2 seeds: 167739638 Б, CI `38146579269`, PASS=8),
-  `20261012_104102Z` (ports batch-1+2 + help: 168064813 Б, CI
+  `20261011_123918Z` (B+C identity: 175947900 B, CI `38140082342`, PASS=8),
+  `20261011_141729Z` (Q2 seeds: 167739638 B, CI `38146579269`, PASS=8),
+  `20261012_104102Z` (ports batch-1+2 + help: 168064813 B, CI
   `38224488511`; tour 102 steps PASS, OCR baseline 5/5),
-  `20261013_025022Z` (Antigravity: 168086401 Б, CI `38332016760`;
+  `20261013_025022Z` (Antigravity: 168086401 B, CI `38332016760`;
   OAuth reaches Google; Default Config restored),
-  `20261014_025827Z` (PaddleOCR: 163082823 Б, CI `38499450049`;
+  `20261014_025827Z` (PaddleOCR: 163082823 B, CI `38499450049`;
   12/12 + Russian),
-  `20261014_062241Z` (provider proxy: 163102271 Б, CI `38520434647`;
+  `20261014_062241Z` (provider proxy: 163102271 B, CI `38520434647`;
   DIRECT+HTTP+SOCKS5(+auth)+dead-proxy acceptance, Default Config
   restored),
-  `20261015_194503Z` (transcribe_file: 163105731 Б, CI `38796418126`;
+  `20261015_194503Z` (transcribe_file: 163105731 B, CI `38796418126`;
   GigaAM 3/7 file benchmark),
-  `20261016_034748Z` (Parakeet preset: 163162083 Б, CI `38847296082`;
+  `20261016_034748Z` (Parakeet preset: 163162083 B, CI `38847296082`;
   matrix build),
-  `20261016_085455Z` (move/guard fixes: 163163419 Б, CI `38876872783`),
-  `20261016_104352Z` (guard message fix: 163163615 Б, CI `38889147136` —
+  `20261016_085455Z` (move/guard fixes: 163163419 B, CI `38876872783`),
+  `20261016_104352Z` (guard message fix: 163163615 B, CI `38889147136` —
   CURRENT; on phone now: Parakeet on SD, guard verified).
   Disk `/` 99% CRITICAL (N46: clean MY scratch first, then escalate —
   never the `apk/` archive): `/tmp` cleaned by agent (stale

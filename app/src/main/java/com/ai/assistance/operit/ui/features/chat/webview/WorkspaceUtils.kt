@@ -701,7 +701,7 @@ private fun copyTemplateFilesRecursive(sourceDir: File, destDir: File) {
         for (sourceFile in files) {
             val filename = sourceFile.name
             // 特殊处理：gitignore (无点) -> .gitignore (有点)
-            // (legacy assets-имени; в seed-zip имя сохранено как было)
+            // (legacy asset name; the seed zip keeps the original name)
             val destFileName = if (filename == "gitignore") ".gitignore" else filename
             val destFile = File(destDir, destFileName)
 

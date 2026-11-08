@@ -182,7 +182,12 @@ class GltfAvatarController(
      * pushes the old slider value back and the framing is lost on the first recomposition.
      */
     fun onSilhouetteDistanceScaleMeasured(distanceScale: Float) {
-        _cameraDistanceScale.value = distanceScale.coerceIn(0.0f, 10.0f)
+        val clamped = distanceScale.coerceIn(0.0f, 10.0f)
+        com.ai.assistance.operit.util.AppLogger.i(
+            "GltfAvatarController",
+            "Silhouette distance scale accepted: $clamped (was ${_cameraDistanceScale.value})"
+        )
+        _cameraDistanceScale.value = clamped
     }
 
     override fun updateEmotionAnimationMapping(mapping: Map<AvatarEmotion, String>) {

@@ -1581,6 +1581,7 @@ class GltfSurfaceView @JvmOverloads constructor(
 
         val desiredDistanceScale = (cameraDistanceScale * (currentFill / SILHOUETTE_TARGET_FILL)).toFloat()
         val clampedDistanceScale = desiredDistanceScale.coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
+        AppLogger.i(TAG, "Silhouette framing reported distanceScale=$clampedDistanceScale, listener=${if (onCameraDistanceScaleChanged != null) "set" else "NULL"}")
         cameraDistanceScale = clampedDistanceScale
         // The distance is now owned by the measurement rather than by the slider, so report it back
         // and let the settings layer persist it; otherwise the next setCameraPose from the UI would

@@ -91,8 +91,10 @@ class GltfSurfaceView @JvmOverloads constructor(
         private const val SILHOUETTE_CENTRE_TOLERANCE_PIXELS = 4.0
         // One framing step may scale the distance by at most this much in either direction, so a
         // single bad measurement cannot jump the camera into or out of the model in one go.
-        private const val SILHOUETTE_MIN_DISTANCE_STEP = 0.5f
-        private const val SILHOUETTE_MAX_DISTANCE_STEP = 2.0f
+        // Lower bound of the distance-scale bisection bracket. The distance scale may go to zero in
+        // principle, but the bracket is kept strictly positive so the geometric midpoint stays
+        // meaningful; RobotExpressive needed a scale of about 0.02 to reach the target fill.
+        private const val SILHOUETTE_MIN_BISECTION_SCALE = 1e-4f
         private const val CAMERA_TARGET_X = 0.0
         private const val CAMERA_TARGET_Y = 0.0
         private const val CAMERA_TARGET_Z = 0.0
@@ -141,12 +143,15 @@ class GltfSurfaceView @JvmOverloads constructor(
     // slider keeps meaning "times the fitted distance" for every model.
     private var fittedCameraDistance: Double = 0.0
 
-    // State of the best silhouette framing reached so far, kept while the framing converges. If a
-    // step makes the figure smaller than the best seen (it happens when the eye passes the near
-    // plane or crosses the model), the framing restores this state and stops instead of wandering.
-    private var bestDistanceScale: Float = Float.NaN
-    private var bestTargetY: Double = Double.NaN
-    private var bestFillError: Double = Double.MAX_VALUE
+    // Distance-scale bracket for the silhouette framing. The drawn fill decreases monotonically as
+    // the distance grows, so the scale that reaches the target fill can be found by bisecting:
+    // `framingLowScale` always yields too small a figure, `framingHighScale` too large a one. The
+    // bracket is kept across frames because each bisection step needs a rendered frame to measure.
+    // The relation between distance and fill is only reciprocal while the whole figure is in frame,
+    // and the authored bounds cannot be trusted (RobotExpressive draws as if it were ~48 times
+    // smaller than its bounds claim), so bisection is safer than extrapolating the ratio.
+    private var framingLowScale: Float = Float.NaN
+    private var framingHighScale: Float = Float.NaN
 
     private var activeAnimationIndex: Int = -1
     private var animationStartNanos: Long = System.nanoTime()
@@ -1540,9 +1545,8 @@ class GltfSurfaceView @JvmOverloads constructor(
      * each call costs a full read-back and allocates a Bitmap.
      */
     private fun scheduleSilhouetteFraming() {
-        bestDistanceScale = Float.NaN
-        bestTargetY = Double.NaN
-        bestFillError = Double.MAX_VALUE
+        framingLowScale = Float.NaN
+        framingHighScale = Float.NaN
         scheduleSilhouetteFramingAttempt(SILHOUETTE_MAX_ATTEMPTS, SILHOUETTE_SETTLE_ITERATIONS)
     }
 
@@ -1628,26 +1632,6 @@ class GltfSurfaceView @JvmOverloads constructor(
         val fillSettled = abs(fillError) <= SILHOUETTE_FILL_TOLERANCE
         val centreSettled = abs(centreOffsetPixels) <= SILHOUETTE_CENTRE_TOLERANCE_PIXELS
 
-        // Keep the state with the smallest fill error seen so far. A later step can make the figure
-        // smaller (the eye crosses the near plane or the model), and there is no point continuing
-        // past that point: restoring the best state is where the figure is closest to the target.
-        if (abs(fillError) < bestFillError) {
-            bestFillError = abs(fillError)
-            bestDistanceScale = cameraDistanceScale
-            bestTargetY = cameraTargetY
-        } else if (abs(fillError) > bestFillError + SILHOUETTE_FILL_TOLERANCE) {
-            AppLogger.i(
-                TAG,
-                "Silhouette framing regressed (fill=${"%.3f".format(currentFill)}), restoring the best state " +
-                    "(distanceScale=${"%.4f".format(bestDistanceScale)}, fillError=${"%.3f".format(bestFillError)})"
-            )
-            cameraDistanceScale = bestDistanceScale.coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
-            cameraTargetY = bestTargetY
-            onCameraDistanceScaleChanged?.invoke(cameraDistanceScale)
-            applyCameraPose()
-            return true
-        }
-
         if ((fillSettled && centreSettled) || settleLeft <= 0) {
             AppLogger.i(
                 TAG,
@@ -1684,22 +1668,38 @@ class GltfSurfaceView @JvmOverloads constructor(
             return false
         }
 
-        // The figure is centred; correct the fill. The fill is roughly the reciprocal of the distance
-        // while the whole figure is in the frame, so the ratio of current to target fill is the
-        // factor the distance must be multiplied by. The step is bounded so one bad measurement
-        // cannot throw the camera inside the model, but generously enough that a model drawn several
-        // times too small closes the gap within the step budget.
-        val ratio = (currentFill / SILHOUETTE_TARGET_FILL).toFloat()
-            .coerceIn(SILHOUETTE_MIN_DISTANCE_STEP, SILHOUETTE_MAX_DISTANCE_STEP)
+        // The figure is centred; correct the fill. Update the bisection bracket from this
+        // measurement: a fill above the target means the distance must grow, below means it must
+        // shrink. The bracket is kept between frames because each step needs a rendered frame.
+        if (currentFill > SILHOUETTE_TARGET_FILL) {
+            // Too large: the scale that produced it is a lower bound (smaller scale = closer).
+            if (framingLowScale.isNaN() || cameraDistanceScale > framingLowScale) {
+                framingLowScale = cameraDistanceScale
+            }
+        } else {
+            // Too small: this scale is an upper bound (larger scale = farther).
+            if (framingHighScale.isNaN() || cameraDistanceScale < framingHighScale) {
+                framingHighScale = cameraDistanceScale
+            }
+        }
+        if (framingHighScale.isNaN()) {
+            framingHighScale = MAX_CAMERA_DISTANCE_SCALE
+        }
+        if (framingLowScale.isNaN()) {
+            framingLowScale = SILHOUETTE_MIN_BISECTION_SCALE
+        }
+
+        // Geometric midpoint, because the fill responds multiplicatively to the distance.
         val nextDistanceScale =
-            (cameraDistanceScale * ratio).coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
-        cameraDistanceScale = nextDistanceScale
-        onCameraDistanceScaleChanged?.invoke(nextDistanceScale)
+            kotlin.math.sqrt(framingLowScale.toDouble() * framingHighScale.toDouble()).toFloat()
+        cameraDistanceScale = nextDistanceScale.coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
+        onCameraDistanceScaleChanged?.invoke(cameraDistanceScale)
         applyCameraPose()
         AppLogger.i(
             TAG,
             "Silhouette framing step(fill): fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
-                "distanceScale=${"%.4f".format(nextDistanceScale)}, " +
+                "bracket=[${"%.4f".format(framingLowScale)}, ${"%.4f".format(framingHighScale)}], " +
+                "nextDistanceScale=${"%.4f".format(cameraDistanceScale)}, " +
                 "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}, stepsLeft=$settleLeft"
         )
         return false

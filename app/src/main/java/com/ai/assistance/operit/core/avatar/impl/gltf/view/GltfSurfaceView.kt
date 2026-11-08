@@ -89,10 +89,10 @@ class GltfSurfaceView @JvmOverloads constructor(
         private const val SILHOUETTE_FILL_TOLERANCE = 0.02
         // The figure is considered centred when its centre is this close to the viewport centre.
         private const val SILHOUETTE_CENTRE_TOLERANCE_PIXELS = 4.0
-        // How many times the model's own half depth the eye must stay away from the pivot when the
-        // silhouette framing shortens the distance. Below this the near faces get clipped and the
-        // measured silhouette shrinks instead of growing, so the framing becomes unstable.
-        private const val CAMERA_MIN_DEPTH_CLEARANCE = 1.5
+        // One framing step may scale the distance by at most this much in either direction, so a
+        // single bad measurement cannot jump the camera into or out of the model in one go.
+        private const val SILHOUETTE_MIN_DISTANCE_STEP = 0.5f
+        private const val SILHOUETTE_MAX_DISTANCE_STEP = 2.0f
         private const val CAMERA_TARGET_X = 0.0
         private const val CAMERA_TARGET_Y = 0.0
         private const val CAMERA_TARGET_Z = 0.0
@@ -141,12 +141,12 @@ class GltfSurfaceView @JvmOverloads constructor(
     // slider keeps meaning "times the fitted distance" for every model.
     private var fittedCameraDistance: Double = 0.0
 
-    // Half of the model depth along the widest horizontal axis, in scene units, kept from the
-    // last auto-fit. The silhouette framing uses it to keep the camera outside the geometry: a
-    // distance smaller than this puts the eye inside the model, which renders as an unexpectedly
-    // tiny silhouette instead of a large one, because the near faces are clipped and the far ones
-    // fill the frame. For RobotExpressive this is 3.31 while the naive scaling wanted 1.66.
-    private var fittedHalfDepth: Double = 0.0
+    // State of the best silhouette framing reached so far, kept while the framing converges. If a
+    // step makes the figure smaller than the best seen (it happens when the eye passes the near
+    // plane or crosses the model), the framing restores this state and stops instead of wandering.
+    private var bestDistanceScale: Float = Float.NaN
+    private var bestTargetY: Double = Double.NaN
+    private var bestFillError: Double = Double.MAX_VALUE
 
     private var activeAnimationIndex: Int = -1
     private var animationStartNanos: Long = System.nanoTime()
@@ -1461,7 +1461,6 @@ class GltfSurfaceView @JvmOverloads constructor(
         val asset = modelViewer.asset
         if (asset == null) {
             fittedCameraDistance = 0.0
-            fittedHalfDepth = 0.0
             return
         }
 
@@ -1479,7 +1478,6 @@ class GltfSurfaceView @JvmOverloads constructor(
         if (bounds == null) {
             AppLogger.w(TAG, "Skip camera auto-fit: no usable bounds ($resolvedSource) for the loaded asset")
             fittedCameraDistance = 0.0
-            fittedHalfDepth = 0.0
             return
         }
 
@@ -1491,7 +1489,6 @@ class GltfSurfaceView @JvmOverloads constructor(
         val halfWidth = max(max(bounds.halfExtentX, bounds.halfExtentZ), 1e-4)
         val halfHeight = max(bounds.halfExtentY, 1e-4)
         val halfDepth = max(max(bounds.halfExtentZ, bounds.halfExtentX), 1e-4)
-        fittedHalfDepth = halfDepth
 
         val viewportWidth = max(width, 1).toDouble()
         val viewportHeight = max(height, 1).toDouble()
@@ -1543,6 +1540,9 @@ class GltfSurfaceView @JvmOverloads constructor(
      * each call costs a full read-back and allocates a Bitmap.
      */
     private fun scheduleSilhouetteFraming() {
+        bestDistanceScale = Float.NaN
+        bestTargetY = Double.NaN
+        bestFillError = Double.MAX_VALUE
         scheduleSilhouetteFramingAttempt(SILHOUETTE_MAX_ATTEMPTS, SILHOUETTE_SETTLE_ITERATIONS)
     }
 
@@ -1629,6 +1629,26 @@ class GltfSurfaceView @JvmOverloads constructor(
         val centreSettled = abs(centreOffsetPixels) <= SILHOUETTE_CENTRE_TOLERANCE_PIXELS
         val atMinimumDistanceScale = cameraDistanceScale <= MIN_CAMERA_DISTANCE_SCALE + 1e-4
 
+        // Keep the state with the smallest fill error seen so far. A later step can make the figure
+        // smaller (the eye crosses the near plane or the model), and there is no point continuing
+        // past that point: restoring the best state is where the figure is closest to the target.
+        if (abs(fillError) < bestFillError) {
+            bestFillError = abs(fillError)
+            bestDistanceScale = cameraDistanceScale
+            bestTargetY = cameraTargetY
+        } else if (abs(fillError) > bestFillError + SILHOUETTE_FILL_TOLERANCE) {
+            AppLogger.i(
+                TAG,
+                "Silhouette framing regressed (fill=${"%.3f".format(currentFill)}), restoring the best state " +
+                    "(distanceScale=${"%.4f".format(bestDistanceScale)}, fillError=${"%.3f".format(bestFillError)})"
+            )
+            cameraDistanceScale = bestDistanceScale.coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
+            cameraTargetY = bestTargetY
+            onCameraDistanceScaleChanged?.invoke(cameraDistanceScale)
+            applyCameraPose()
+            return true
+        }
+
         if ((fillSettled && centreSettled) || settleLeft <= 0 || (atMinimumDistanceScale && centreSettled)) {
             AppLogger.i(
                 TAG,
@@ -1640,18 +1660,16 @@ class GltfSurfaceView @JvmOverloads constructor(
             return true
         }
 
-        val safeMinimumDistanceScale =
-            if (fittedCameraDistance > 1e-6 && fittedHalfDepth > 0.0) {
-                (fittedHalfDepth * CAMERA_MIN_DEPTH_CLEARANCE / fittedCameraDistance).toFloat()
-            } else {
-                MIN_CAMERA_DISTANCE_SCALE
-            }
-        val desiredDistanceScale = (cameraDistanceScale * (currentFill / SILHOUETTE_TARGET_FILL)).toFloat()
+        // The fill is roughly the reciprocal of the distance while the whole figure is in the frame,
+        // so the ratio of current to target fill is the factor the distance must be multiplied by.
+        // The step is bounded so one bad measurement cannot throw the camera inside the model; the
+        // iterative caller corrects the rest on the next frame. No geometric lower bound is used
+        // here: for RobotExpressive the authored half depth is 3.31 while the drawn figure behaves
+        // like a much smaller body, so a clearance derived from it kept the figure at 18% forever.
+        val ratio = (currentFill / SILHOUETTE_TARGET_FILL).toFloat()
+            .coerceIn(SILHOUETTE_MIN_DISTANCE_STEP, SILHOUETTE_MAX_DISTANCE_STEP)
         val clampedDistanceScale =
-            desiredDistanceScale.coerceIn(
-                max(MIN_CAMERA_DISTANCE_SCALE, safeMinimumDistanceScale),
-                MAX_CAMERA_DISTANCE_SCALE
-            )
+            (cameraDistanceScale * ratio).coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
         cameraDistanceScale = clampedDistanceScale
         onCameraDistanceScaleChanged?.invoke(clampedDistanceScale)
 

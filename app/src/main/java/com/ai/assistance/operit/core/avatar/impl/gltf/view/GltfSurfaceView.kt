@@ -81,6 +81,14 @@ class GltfSurfaceView @JvmOverloads constructor(
         private const val SILHOUETTE_MIN_PIXELS_PER_ROW = 2
         // Frames to wait for a model to become visible before giving up on measuring it.
         private const val SILHOUETTE_MAX_ATTEMPTS = 30
+        // How many measure-and-correct steps the framing may take once the model is visible. Models
+        // whose authored bounds are far off need a handful of steps; the budget stops a model that
+        // cannot reach the target from looping forever.
+        private const val SILHOUETTE_SETTLE_ITERATIONS = 6
+        // The fill is considered reached when it is this close (absolute share of the viewport).
+        private const val SILHOUETTE_FILL_TOLERANCE = 0.02
+        // The figure is considered centred when its centre is this close to the viewport centre.
+        private const val SILHOUETTE_CENTRE_TOLERANCE_PIXELS = 4.0
         // How many times the model's own half depth the eye must stay away from the pivot when the
         // silhouette framing shortens the distance. Below this the near faces get clipped and the
         // measured silhouette shrinks instead of growing, so the framing becomes unstable.
@@ -1535,19 +1543,27 @@ class GltfSurfaceView @JvmOverloads constructor(
      * each call costs a full read-back and allocates a Bitmap.
      */
     private fun scheduleSilhouetteFraming() {
-        scheduleSilhouetteFramingAttempt(SILHOUETTE_MAX_ATTEMPTS)
+        scheduleSilhouetteFramingAttempt(SILHOUETTE_MAX_ATTEMPTS, SILHOUETTE_SETTLE_ITERATIONS)
     }
 
     /**
-     * Takes one read-back and, when the frame is still empty, asks for another.
+     * Takes one read-back, retries while the frame is still empty, then converges the framing.
      *
      * A model is not drawn on the very next frame after `loadModelGlb`: the resource loader
      * finishes textures asynchronously and `populateScene` only adds renderables once they are
      * ready. Measuring the first frame therefore produced "nothing opaque was drawn" on a real
      * device while the model appeared a moment later. Each retry waits for one more frame, and the
      * attempt count is small because by then the model is either ready or genuinely invisible.
+     *
+     * Once something is drawn, the frame is measured and the camera corrected, then another frame
+     * is requested to measure the result. A single correction is not enough for models whose
+     * authored bounds lie about their size: the relationship between distance and fill is only
+     * linear while the whole figure stays inside the frame, and a model that is far too small on
+     * the first frame needs several steps to settle. Each step re-registers itself from inside the
+     * callback, the same way the empty-frame retry does, because that is the only registration
+     * point that Filament services after `loadModelGlb`.
      */
-    private fun scheduleSilhouetteFramingAttempt(attemptsLeft: Int) {
+    private fun scheduleSilhouetteFramingAttempt(attemptsLeft: Int, settleLeft: Int) {
         if (!hasValidSurfaceSize || width <= 0 || height <= 0 || attemptsLeft <= 0) {
             if (attemptsLeft <= 0) {
                 AppLogger.w(TAG, "Silhouette framing gave up after ${SILHOUETTE_MAX_ATTEMPTS} frames")
@@ -1557,10 +1573,13 @@ class GltfSurfaceView @JvmOverloads constructor(
         modelViewer.debugGetNextFrameCallback { bitmap ->
             try {
                 if (measureSilhouette(bitmap) == null) {
-                    scheduleSilhouetteFramingAttempt(attemptsLeft - 1)
+                    scheduleSilhouetteFramingAttempt(attemptsLeft - 1, settleLeft)
                     return@debugGetNextFrameCallback
                 }
-                applySilhouetteFraming(bitmap)
+                val settled = applySilhouetteFraming(bitmap, settleLeft)
+                if (!settled) {
+                    scheduleSilhouetteFramingAttempt(attemptsLeft - 1, settleLeft - 1)
+                }
             } catch (e: Exception) {
                 AppLogger.w(TAG, "Silhouette framing failed: ${e.message}")
             }
@@ -1569,38 +1588,58 @@ class GltfSurfaceView @JvmOverloads constructor(
 
     /**
      * Reframes the camera so the figure fills [SILHOUETTE_TARGET_FILL] of the viewport height and
-     * sits in the middle.
+     * sits in the middle, and reports whether the goal is reached.
      *
-     * Both corrections are derived from the same measurement: the distance is scaled by the ratio
-     * between the current fill and the target fill, and the camera target is shifted by the pixel
-     * distance between the silhouette centre and the viewport centre, converted to scene units at
-     * the current distance. Vertical only, because the camera looks straight at the model and the
-     * horizontal placement already comes out centred when the target follows the bounds centre.
+     * The measurement is the only trustworthy source of the model's on-screen size, because
+     * `asset.boundingBox` and the posed joints both describe authoring spaces that do not match the
+     * pixels for a skinned model (RobotExpressive reports a 2.4 half height while it draws at 11% of
+     * the preview, and the fox draws nothing at all). A single correction is not enough: the
+     * distance-to-fill relation is only its reciprocal while the whole figure stays inside the
+     * frame, so a model that starts far too small needs several steps. Each step therefore returns
+     * "not settled" and the caller measures again.
+     *
+     * The distance is scaled by the ratio between the current and target fill, bounded below so the
+     * eye never enters the geometry (below that the near faces are clipped and the silhouette
+     * shrinks instead of growing). The target is shifted by the pixel distance between the
+     * silhouette centre and the viewport centre at the current distance, so the figure ends centred
+     * even when its authored bounds centre lies somewhere else.
+     *
+     * @return true when the fill and the centre are within tolerance, false when another step is
+     *   needed.
      */
-    private fun applySilhouetteFraming(bitmap: android.graphics.Bitmap) {
+    private fun applySilhouetteFraming(bitmap: android.graphics.Bitmap, settleLeft: Int): Boolean {
         val box = measureSilhouette(bitmap) ?: run {
             AppLogger.w(TAG, "Silhouette framing skipped: nothing opaque was drawn")
-            return
+            return true
         }
 
         val viewportHeight = bitmap.height.toDouble()
         if (viewportHeight <= 0.0) {
-            return
+            return true
         }
 
         val currentFill = box.heightPixels / viewportHeight
         if (currentFill <= 1e-4) {
-            return
+            return true
         }
 
-        // The distance needed for a target fill is d = h / (2 * fill * tan(vFov/2)). The current
-        // frame already encodes h / d as (fill * 2 * tan(vFov/2)), so scaling the *actual* distance
-        // by (currentFill / targetFill) reaches the target exactly. The catch is that the distance
-        // used here must be the real eye-to-model distance, and it must never shrink below the
-        // geometry: when the eye enters the model the near faces are clipped and the silhouette
-        // comes out tiny instead of large, so a second measurement would swing the other way.
-        // RobotExpressive showed this: the unbounded ratio asked for a 1.66 distance while its own
-        // half depth is 3.31, and the figure stayed as small as before.
+        val centreOffsetPixels = box.centerY - viewportHeight / 2.0
+        val fillError = currentFill - SILHOUETTE_TARGET_FILL
+        val fillSettled = abs(fillError) <= SILHOUETTE_FILL_TOLERANCE
+        val centreSettled = abs(centreOffsetPixels) <= SILHOUETTE_CENTRE_TOLERANCE_PIXELS
+        val atMinimumDistanceScale = cameraDistanceScale <= MIN_CAMERA_DISTANCE_SCALE + 1e-4
+
+        if ((fillSettled && centreSettled) || settleLeft <= 0 || (atMinimumDistanceScale && centreSettled)) {
+            AppLogger.i(
+                TAG,
+                "Silhouette framing settled: fill=${"%.3f".format(currentFill)} (target ${"%.3f".format(SILHOUETTE_TARGET_FILL)}), " +
+                    "distanceScale=${"%.4f".format(cameraDistanceScale)}, " +
+                    "centreOffsetPx=${"%.1f".format(centreOffsetPixels)}, " +
+                    "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}, stepsLeft=$settleLeft"
+            )
+            return true
+        }
+
         val safeMinimumDistanceScale =
             if (fittedCameraDistance > 1e-6 && fittedHalfDepth > 0.0) {
                 (fittedHalfDepth * CAMERA_MIN_DEPTH_CLEARANCE / fittedCameraDistance).toFloat()
@@ -1614,15 +1653,12 @@ class GltfSurfaceView @JvmOverloads constructor(
                 MAX_CAMERA_DISTANCE_SCALE
             )
         cameraDistanceScale = clampedDistanceScale
-        // The distance is now owned by the measurement rather than by the slider, so report it back
-        // and let the settings layer persist it; otherwise the next setCameraPose from the UI would
-        // undo the correction on the first recomposition.
         onCameraDistanceScaleChanged?.invoke(clampedDistanceScale)
 
-        val centreOffsetPixels = box.centerY - viewportHeight / 2.0
         if (abs(centreOffsetPixels) > 1.0) {
-            val visibleHalfHeight = kotlin.math.tan(Math.toRadians(CAMERA_VERTICAL_FOV_DEGREES / 2.0)) *
-                fittedCameraDistance * clampedDistanceScale
+            val visibleHalfHeight =
+                kotlin.math.tan(Math.toRadians(CAMERA_VERTICAL_FOV_DEGREES / 2.0)) *
+                    fittedCameraDistance * clampedDistanceScale
             val sceneUnitsPerPixel = (2.0 * visibleHalfHeight) / viewportHeight
             cameraTargetY -= centreOffsetPixels * sceneUnitsPerPixel
         }
@@ -1631,46 +1667,13 @@ class GltfSurfaceView @JvmOverloads constructor(
 
         AppLogger.i(
             TAG,
-            "Silhouette framing: fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
+            "Silhouette framing step: fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
                 "distanceScale=${"%.4f".format(clampedDistanceScale)}, " +
                 "centreOffsetPx=${"%.1f".format(centreOffsetPixels)}, " +
-                "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}"
+                "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}, stepsLeft=$settleLeft"
         )
 
-        runSilhouetteSweep()
-    }
-
-    private fun runSilhouetteSweep() {
-        val scales = floatArrayOf(1.0f, 0.7f, 0.487f, 0.3f, 0.2f, 0.12f)
-        val savedScale = cameraDistanceScale
-        sweepStep(scales, 0, savedScale)
-    }
-
-    private fun sweepStep(scales: FloatArray, index: Int, savedScale: Float) {
-        if (index >= scales.size) {
-            cameraDistanceScale = savedScale
-            applyCameraPose()
-            return
-        }
-        val s = scales[index]
-        cameraDistanceScale = s
-        applyCameraPose()
-        postDelayed({
-            modelViewer.debugGetNextFrameCallback { bitmap ->
-                val box = measureSilhouette(bitmap)
-                val fill = box?.let { it.heightPixels / bitmap.height.toDouble() } ?: -1.0
-                val top = box?.top?.toInt() ?: -1
-                val bottom = box?.bottom?.toInt() ?: -1
-                AppLogger.i(
-                    TAG,
-                    "SILHOUETTE-SWEEP scale=${"%.3f".format(s)} distance=${"%.3f".format(fittedCameraDistance * s)} " +
-                        "fill=${"%.4f".format(fill)} top=$top bottom=$bottom vh=${bitmap.height}"
-                )
-                postDelayed({
-                    sweepStep(scales, index + 1, savedScale)
-                }, 80L)
-            }
-        }, 80L)
+        return false
     }
     private data class SilhouetteBox(val top: Double, val bottom: Double, val heightPixels: Double) {
         val centerY: Double get() = (top + bottom) / 2.0

@@ -79,12 +79,15 @@ class GltfSurfaceView @JvmOverloads constructor(
         // A row must carry this many opaque pixels to count, which rejects stray specks from
         // bloom or from a shadow that leaked past the figure.
         private const val SILHOUETTE_MIN_PIXELS_PER_ROW = 2
-        // Frames to wait for a model to become visible before giving up on measuring it.
-        private const val SILHOUETTE_MAX_ATTEMPTS = 30
-        // How many measure-and-correct steps the framing may take once the model is visible. Models
-        // whose authored bounds are far off need a handful of steps; the budget stops a model that
-        // cannot reach the target from looping forever.
-        private const val SILHOUETTE_SETTLE_ITERATIONS = 10
+        // Frames to wait for a model to become visible before giving up on measuring it. This is
+        // also the overall frame budget: retries for an empty frame and settle steps share it, so it
+        // must exceed the settle budget.
+        private const val SILHOUETTE_MAX_ATTEMPTS = 80
+        // How many measure-and-correct steps the framing may take once the model is visible. The
+        // first steps go to centring, the rest to the fill. A model whose drawn size is far smaller
+        // than its authored bounds (RobotExpressive is about 48 times smaller) needs many halvings,
+        // because the ratio step shrinks along with the remaining fill gap.
+        private const val SILHOUETTE_SETTLE_ITERATIONS = 30
         // The fill is considered reached when it is this close (absolute share of the viewport).
         private const val SILHOUETTE_FILL_TOLERANCE = 0.02
         // The figure is considered centred when its centre is this close to the viewport centre.

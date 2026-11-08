@@ -1689,9 +1689,14 @@ class GltfSurfaceView @JvmOverloads constructor(
             framingLowScale = SILHOUETTE_MIN_BISECTION_SCALE
         }
 
-        // Geometric midpoint, because the fill responds multiplicatively to the distance.
-        val nextDistanceScale =
-            kotlin.math.sqrt(framingLowScale.toDouble() * framingHighScale.toDouble()).toFloat()
+        // Geometric midpoint of the bracket would jump across the whole range on the first step and
+        // spend the budget far from the answer. Instead, the ratio of current to target fill seeds
+        // the next candidate (exact while the fill is reciprocal to the distance, which holds for a
+        // normally sized model) and the bracket keeps it from stepping outside the region proven to
+        // contain the answer. This is the false-position method and it converges for both the
+        // near-linear Xbot and the strongly sub-linear RobotExpressive.
+        val ratioCandidate = cameraDistanceScale * (currentFill / SILHOUETTE_TARGET_FILL).toFloat()
+        val nextDistanceScale = ratioCandidate.coerceIn(framingLowScale, framingHighScale)
         cameraDistanceScale = nextDistanceScale.coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
         onCameraDistanceScaleChanged?.invoke(cameraDistanceScale)
         applyCameraPose()

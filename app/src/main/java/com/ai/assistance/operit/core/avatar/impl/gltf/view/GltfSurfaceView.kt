@@ -1566,9 +1566,10 @@ class GltfSurfaceView @JvmOverloads constructor(
      * is requested to measure the result. A single correction is not enough for models whose
      * authored bounds lie about their size: the relationship between distance and fill is only
      * linear while the whole figure stays inside the frame, and a model that is far too small on
-     * the first frame needs several steps to settle. Each step re-registers itself from inside the
-     * callback, the same way the empty-frame retry does, because that is the only registration
-     * point that Filament services after `loadModelGlb`.
+     * the first frame needs several steps to settle. Each step re-registers itself one loop turn
+     * later through [post], so a real frame is rendered with the new pose before it is measured;
+     * registering synchronously inside the callback was served with the same captured frame and
+     * froze the reading at the first value.
      */
     private fun scheduleSilhouetteFramingAttempt(attemptsLeft: Int, settleLeft: Int) {
         if (!hasValidSurfaceSize || width <= 0 || height <= 0 || attemptsLeft <= 0) {
@@ -1580,12 +1581,17 @@ class GltfSurfaceView @JvmOverloads constructor(
         modelViewer.debugGetNextFrameCallback { bitmap ->
             try {
                 if (measureSilhouette(bitmap) == null) {
-                    scheduleSilhouetteFramingAttempt(attemptsLeft - 1, settleLeft)
+                    post { scheduleSilhouetteFramingAttempt(attemptsLeft - 1, settleLeft) }
                     return@debugGetNextFrameCallback
                 }
                 val settled = applySilhouetteFraming(bitmap, settleLeft)
                 if (!settled) {
-                    scheduleSilhouetteFramingAttempt(attemptsLeft - 1, settleLeft - 1)
+                    // Re-register on the next loop turn, not synchronously: a callback registered
+                    // from inside the current callback is served with the same already captured
+                    // frame, so the camera change would never be measured. Letting the choreographer
+                    // render one frame in between is what makes the next reading reflect the pose
+                    // that was just applied.
+                    post { scheduleSilhouetteFramingAttempt(attemptsLeft - 1, settleLeft - 1) }
                 }
             } catch (e: Exception) {
                 AppLogger.w(TAG, "Silhouette framing failed: ${e.message}")

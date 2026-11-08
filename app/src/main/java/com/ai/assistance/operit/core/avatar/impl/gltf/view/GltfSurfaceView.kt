@@ -79,6 +79,8 @@ class GltfSurfaceView @JvmOverloads constructor(
         // A row must carry this many opaque pixels to count, which rejects stray specks from
         // bloom or from a shadow that leaked past the figure.
         private const val SILHOUETTE_MIN_PIXELS_PER_ROW = 2
+        // Frames to wait for a model to become visible before giving up on measuring it.
+        private const val SILHOUETTE_MAX_ATTEMPTS = 30
         private const val CAMERA_TARGET_X = 0.0
         private const val CAMERA_TARGET_Y = 0.0
         private const val CAMERA_TARGET_Z = 0.0
@@ -1522,11 +1524,31 @@ class GltfSurfaceView @JvmOverloads constructor(
      * each call costs a full read-back and allocates a Bitmap.
      */
     private fun scheduleSilhouetteFraming() {
-        if (!hasValidSurfaceSize || width <= 0 || height <= 0) {
+        scheduleSilhouetteFramingAttempt(SILHOUETTE_MAX_ATTEMPTS)
+    }
+
+    /**
+     * Takes one read-back and, when the frame is still empty, asks for another.
+     *
+     * A model is not drawn on the very next frame after `loadModelGlb`: the resource loader
+     * finishes textures asynchronously and `populateScene` only adds renderables once they are
+     * ready. Measuring the first frame therefore produced "nothing opaque was drawn" on a real
+     * device while the model appeared a moment later. Each retry waits for one more frame, and the
+     * attempt count is small because by then the model is either ready or genuinely invisible.
+     */
+    private fun scheduleSilhouetteFramingAttempt(attemptsLeft: Int) {
+        if (!hasValidSurfaceSize || width <= 0 || height <= 0 || attemptsLeft <= 0) {
+            if (attemptsLeft <= 0) {
+                AppLogger.w(TAG, "Silhouette framing gave up after ${SILHOUETTE_MAX_ATTEMPTS} frames")
+            }
             return
         }
         modelViewer.debugGetNextFrameCallback { bitmap ->
             try {
+                if (measureSilhouette(bitmap) == null) {
+                    scheduleSilhouetteFramingAttempt(attemptsLeft - 1)
+                    return@debugGetNextFrameCallback
+                }
                 applySilhouetteFraming(bitmap)
             } catch (e: Exception) {
                 AppLogger.w(TAG, "Silhouette framing failed: ${e.message}")

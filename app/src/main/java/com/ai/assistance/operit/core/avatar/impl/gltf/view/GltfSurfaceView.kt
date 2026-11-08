@@ -1636,6 +1636,39 @@ class GltfSurfaceView @JvmOverloads constructor(
                 "centreOffsetPx=${"%.1f".format(centreOffsetPixels)}, " +
                 "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}"
         )
+
+        runSilhouetteSweep()
+    }
+
+    private fun runSilhouetteSweep() {
+        val scales = floatArrayOf(1.0f, 0.7f, 0.487f, 0.3f, 0.2f, 0.12f)
+        val savedScale = cameraDistanceScale
+        sweepStep(scales, 0, savedScale)
+    }
+
+    private fun sweepStep(scales: FloatArray, index: Int, savedScale: Float) {
+        if (index >= scales.size) {
+            cameraDistanceScale = savedScale
+            applyCameraPose()
+            return
+        }
+        val s = scales[index]
+        cameraDistanceScale = s
+        applyCameraPose()
+        modelViewer.debugGetNextFrameCallback { bitmap ->
+            modelViewer.debugGetNextFrameCallback { bitmap2 ->
+                val box = measureSilhouette(bitmap2)
+                val fill = box?.let { it.heightPixels / bitmap2.height.toDouble() } ?: -1.0
+                val top = box?.top?.toInt() ?: -1
+                val bottom = box?.bottom?.toInt() ?: -1
+                AppLogger.i(
+                    TAG,
+                    "SILHOUETTE-SWEEP scale=${"%.3f".format(s)} distance=${"%.3f".format(fittedCameraDistance * s)} " +
+                        "fill=${"%.4f".format(fill)} top=$top bottom=$bottom vh=${bitmap2.height}"
+                )
+                sweepStep(scales, index + 1, savedScale)
+            }
+        }
     }
 
     private data class SilhouetteBox(val top: Double, val bottom: Double, val heightPixels: Double) {

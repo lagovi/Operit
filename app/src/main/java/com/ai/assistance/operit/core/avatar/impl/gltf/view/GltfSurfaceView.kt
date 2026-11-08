@@ -81,6 +81,10 @@ class GltfSurfaceView @JvmOverloads constructor(
         private const val SILHOUETTE_MIN_PIXELS_PER_ROW = 2
         // Frames to wait for a model to become visible before giving up on measuring it.
         private const val SILHOUETTE_MAX_ATTEMPTS = 30
+        // How many times the model's own half depth the eye must stay away from the pivot when the
+        // silhouette framing shortens the distance. Below this the near faces get clipped and the
+        // measured silhouette shrinks instead of growing, so the framing becomes unstable.
+        private const val CAMERA_MIN_DEPTH_CLEARANCE = 1.5
         private const val CAMERA_TARGET_X = 0.0
         private const val CAMERA_TARGET_Y = 0.0
         private const val CAMERA_TARGET_Z = 0.0
@@ -128,6 +132,13 @@ class GltfSurfaceView @JvmOverloads constructor(
     // model bounds after loading, then multiplied by the user's distance scale so that the
     // slider keeps meaning "times the fitted distance" for every model.
     private var fittedCameraDistance: Double = 0.0
+
+    // Half of the model depth along the widest horizontal axis, in scene units, kept from the
+    // last auto-fit. The silhouette framing uses it to keep the camera outside the geometry: a
+    // distance smaller than this puts the eye inside the model, which renders as an unexpectedly
+    // tiny silhouette instead of a large one, because the near faces are clipped and the far ones
+    // fill the frame. For RobotExpressive this is 3.31 while the naive scaling wanted 1.66.
+    private var fittedHalfDepth: Double = 0.0
 
     private var activeAnimationIndex: Int = -1
     private var animationStartNanos: Long = System.nanoTime()
@@ -1442,6 +1453,7 @@ class GltfSurfaceView @JvmOverloads constructor(
         val asset = modelViewer.asset
         if (asset == null) {
             fittedCameraDistance = 0.0
+            fittedHalfDepth = 0.0
             return
         }
 
@@ -1459,6 +1471,7 @@ class GltfSurfaceView @JvmOverloads constructor(
         if (bounds == null) {
             AppLogger.w(TAG, "Skip camera auto-fit: no usable bounds ($resolvedSource) for the loaded asset")
             fittedCameraDistance = 0.0
+            fittedHalfDepth = 0.0
             return
         }
 
@@ -1470,6 +1483,7 @@ class GltfSurfaceView @JvmOverloads constructor(
         val halfWidth = max(max(bounds.halfExtentX, bounds.halfExtentZ), 1e-4)
         val halfHeight = max(bounds.halfExtentY, 1e-4)
         val halfDepth = max(max(bounds.halfExtentZ, bounds.halfExtentX), 1e-4)
+        fittedHalfDepth = halfDepth
 
         val viewportWidth = max(width, 1).toDouble()
         val viewportHeight = max(height, 1).toDouble()
@@ -1579,8 +1593,26 @@ class GltfSurfaceView @JvmOverloads constructor(
             return
         }
 
+        // The distance needed for a target fill is d = h / (2 * fill * tan(vFov/2)). The current
+        // frame already encodes h / d as (fill * 2 * tan(vFov/2)), so scaling the *actual* distance
+        // by (currentFill / targetFill) reaches the target exactly. The catch is that the distance
+        // used here must be the real eye-to-model distance, and it must never shrink below the
+        // geometry: when the eye enters the model the near faces are clipped and the silhouette
+        // comes out tiny instead of large, so a second measurement would swing the other way.
+        // RobotExpressive showed this: the unbounded ratio asked for a 1.66 distance while its own
+        // half depth is 3.31, and the figure stayed as small as before.
+        val safeMinimumDistanceScale =
+            if (fittedCameraDistance > 1e-6 && fittedHalfDepth > 0.0) {
+                (fittedHalfDepth * CAMERA_MIN_DEPTH_CLEARANCE / fittedCameraDistance).toFloat()
+            } else {
+                MIN_CAMERA_DISTANCE_SCALE
+            }
         val desiredDistanceScale = (cameraDistanceScale * (currentFill / SILHOUETTE_TARGET_FILL)).toFloat()
-        val clampedDistanceScale = desiredDistanceScale.coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
+        val clampedDistanceScale =
+            desiredDistanceScale.coerceIn(
+                max(MIN_CAMERA_DISTANCE_SCALE, safeMinimumDistanceScale),
+                MAX_CAMERA_DISTANCE_SCALE
+            )
         cameraDistanceScale = clampedDistanceScale
         // The distance is now owned by the measurement rather than by the slider, so report it back
         // and let the settings layer persist it; otherwise the next setCameraPose from the UI would

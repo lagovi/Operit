@@ -174,17 +174,6 @@ class GltfAvatarController(
         }
     }
 
-    /**
-     * Records the distance scale chosen by the renderer's silhouette framing.
-     *
-     * The renderer measures the drawn pixels after a model loads and lifts it to the target fill.
-     * That result has to live in the controller, otherwise the next emission from the settings UI
-     * pushes the old slider value back and the framing is lost on the first recomposition.
-     */
-    fun onSilhouetteDistanceScaleMeasured(distanceScale: Float) {
-        _cameraDistanceScale.value = distanceScale.coerceIn(0.0f, 10.0f)
-    }
-
     override fun updateEmotionAnimationMapping(mapping: Map<AvatarEmotion, String>) {
         emotionAnimationMapping = mapping
             .mapValues { (_, animationName) -> animationName.trim() }

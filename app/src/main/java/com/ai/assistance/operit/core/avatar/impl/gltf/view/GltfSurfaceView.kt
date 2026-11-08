@@ -136,6 +136,12 @@ class GltfSurfaceView @JvmOverloads constructor(
     private var cameraPitchDegrees: Float = DEFAULT_CAMERA_PITCH
     private var cameraYawDegrees: Float = DEFAULT_CAMERA_YAW
     private var cameraDistanceScale: Float = DEFAULT_CAMERA_DISTANCE_SCALE
+
+    // Distance factor chosen by the automatic silhouette framing, applied on top of the user's
+    // distance scale. It is kept here, in the view, and never round-trips through the settings: the
+    // settings UI resends its stored customSettings on every recomposition, so a value written back
+    // into the controller was overwritten with 1.0 on the next frame and the framing never showed.
+    private var autoFramingScale: Float = 1.0f
     private var cameraTargetHeightOffset: Float = 0.0f
     private var cameraTargetX: Double = CAMERA_TARGET_X
     private var cameraTargetY: Double = CAMERA_TARGET_Y
@@ -155,7 +161,6 @@ class GltfSurfaceView @JvmOverloads constructor(
     // smaller than its bounds claim), so bisection is safer than extrapolating the ratio.
     private var framingLowScale: Float = Float.NaN
     private var framingHighScale: Float = Float.NaN
-    private var framingActive: Boolean = false
 
     private var activeAnimationIndex: Int = -1
     private var animationStartNanos: Long = System.nanoTime()
@@ -203,7 +208,6 @@ class GltfSurfaceView @JvmOverloads constructor(
 
     @Volatile
     private var onRenderErrorListener: ((String) -> Unit)? = null
-    private var onCameraDistanceScaleChanged: ((Float) -> Unit)? = null
 
     @Volatile
     private var onAnimationsDiscoveredListener: ((List<String>, Map<String, Long>) -> Unit)? = null
@@ -229,14 +233,6 @@ class GltfSurfaceView @JvmOverloads constructor(
 
     fun setOnAnimationsDiscoveredListener(listener: ((List<String>, Map<String, Long>) -> Unit)?) {
         onAnimationsDiscoveredListener = listener
-    }
-
-    /**
-     * Receives the distance scale chosen by [scheduleSilhouetteFraming] so the settings layer can
-     * persist it. Without this the correction would survive only until the next UI emission.
-     */
-    fun setOnCameraDistanceScaleChangedListener(listener: ((Float) -> Unit)?) {
-        onCameraDistanceScaleChanged = listener
     }
 
     fun setModelPath(path: String) {
@@ -1551,7 +1547,7 @@ class GltfSurfaceView @JvmOverloads constructor(
     private fun scheduleSilhouetteFraming() {
         framingLowScale = Float.NaN
         framingHighScale = Float.NaN
-        framingActive = true
+        autoFramingScale = 1.0f
         scheduleSilhouetteFramingAttempt(SILHOUETTE_MAX_ATTEMPTS, SILHOUETTE_SETTLE_ITERATIONS)
     }
 
@@ -1576,7 +1572,6 @@ class GltfSurfaceView @JvmOverloads constructor(
     private fun scheduleSilhouetteFramingAttempt(attemptsLeft: Int, settleLeft: Int) {
         if (!hasValidSurfaceSize || width <= 0 || height <= 0 || attemptsLeft <= 0) {
             if (attemptsLeft <= 0) {
-                framingActive = false
                 AppLogger.w(TAG, "Silhouette framing gave up after ${SILHOUETTE_MAX_ATTEMPTS} frames")
             }
             return
@@ -1645,11 +1640,10 @@ class GltfSurfaceView @JvmOverloads constructor(
         val centreSettled = abs(centreOffsetPixels) <= SILHOUETTE_CENTRE_TOLERANCE_PIXELS
 
         if ((fillSettled && centreSettled) || settleLeft <= 0) {
-            framingActive = false
             AppLogger.i(
                 TAG,
                 "Silhouette framing settled: fill=${"%.3f".format(currentFill)} (target ${"%.3f".format(SILHOUETTE_TARGET_FILL)}), " +
-                    "distanceScale=${"%.4f".format(cameraDistanceScale)}, " +
+                    "autoFramingScale=${"%.4f".format(autoFramingScale)}, " +
                     "centreOffsetPx=${"%.1f".format(centreOffsetPixels)}, " +
                     "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}, stepsLeft=$settleLeft"
             )
@@ -1668,31 +1662,28 @@ class GltfSurfaceView @JvmOverloads constructor(
             // scene units, independent of the authored bounds.
             val centreVisibleHalfHeight =
                 kotlin.math.tan(Math.toRadians(CAMERA_VERTICAL_FOV_DEGREES / 2.0)) *
-                    fittedCameraDistance * cameraDistanceScale.toDouble()
+                    fittedCameraDistance * (cameraDistanceScale * autoFramingScale).toDouble()
             val centreSceneUnitsPerPixel = (2.0 * centreVisibleHalfHeight) / viewportHeight
             cameraTargetY -= centreOffsetPixels * centreSceneUnitsPerPixel
             applyCameraPose()
             AppLogger.i(
                 TAG,
                 "Silhouette framing step(centre): centreOffsetPx=${"%.1f".format(centreOffsetPixels)}, " +
-                    "fill=${"%.3f".format(currentFill)}, distanceScale=${"%.4f".format(cameraDistanceScale)}, " +
+                    "fill=${"%.3f".format(currentFill)}, autoFramingScale=${"%.4f".format(autoFramingScale)}, " +
                     "targetY=${"%.4f".format(cameraTargetY)}, stepsLeft=$settleLeft"
             )
             return false
         }
 
-        // The figure is centred; correct the fill. Update the bisection bracket from this
-        // measurement: a fill above the target means the distance must grow, below means it must
-        // shrink. The bracket is kept between frames because each step needs a rendered frame.
+        // The figure is centred; correct the fill. Update the bracket from this measurement: a fill
+        // above the target means the distance must grow, below means it must shrink.
         if (currentFill > SILHOUETTE_TARGET_FILL) {
-            // Too large: the scale that produced it is a lower bound (smaller scale = closer).
-            if (framingLowScale.isNaN() || cameraDistanceScale > framingLowScale) {
-                framingLowScale = cameraDistanceScale
+            if (framingLowScale.isNaN() || autoFramingScale > framingLowScale) {
+                framingLowScale = autoFramingScale
             }
         } else {
-            // Too small: this scale is an upper bound (larger scale = farther).
-            if (framingHighScale.isNaN() || cameraDistanceScale < framingHighScale) {
-                framingHighScale = cameraDistanceScale
+            if (framingHighScale.isNaN() || autoFramingScale < framingHighScale) {
+                framingHighScale = autoFramingScale
             }
         }
         if (framingHighScale.isNaN()) {
@@ -1702,22 +1693,19 @@ class GltfSurfaceView @JvmOverloads constructor(
             framingLowScale = SILHOUETTE_MIN_BISECTION_SCALE
         }
 
-        // Geometric midpoint of the bracket would jump across the whole range on the first step and
-        // spend the budget far from the answer. Instead, the ratio of current to target fill seeds
-        // the next candidate (exact while the fill is reciprocal to the distance, which holds for a
-        // normally sized model) and the bracket keeps it from stepping outside the region proven to
-        // contain the answer. This is the false-position method and it converges for both the
+        // The ratio of current to target fill is exact while the fill is reciprocal to the distance
+        // (a normally sized model) and the bracket keeps it from stepping outside the region proven
+        // to contain the answer. This is the false-position method and it converges for both the
         // near-linear Xbot and the strongly sub-linear RobotExpressive.
-        val ratioCandidate = cameraDistanceScale * (currentFill / SILHOUETTE_TARGET_FILL).toFloat()
-        val nextDistanceScale = ratioCandidate.coerceIn(framingLowScale, framingHighScale)
-        cameraDistanceScale = nextDistanceScale.coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
-        onCameraDistanceScaleChanged?.invoke(cameraDistanceScale)
+        val ratioCandidate = autoFramingScale * (currentFill / SILHOUETTE_TARGET_FILL).toFloat()
+        val nextScale = ratioCandidate.coerceIn(framingLowScale, framingHighScale)
+        autoFramingScale = nextScale.coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
         applyCameraPose()
         AppLogger.i(
             TAG,
             "Silhouette framing step(fill): fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
                 "bracket=[${"%.4f".format(framingLowScale)}, ${"%.4f".format(framingHighScale)}], " +
-                "nextDistanceScale=${"%.4f".format(cameraDistanceScale)}, " +
+                "nextAutoFramingScale=${"%.4f".format(autoFramingScale)}, " +
                 "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}, stepsLeft=$settleLeft"
         )
         return false
@@ -1777,7 +1765,7 @@ class GltfSurfaceView @JvmOverloads constructor(
             } else {
                 BASE_CAMERA_DISTANCE.toDouble()
             }
-            val rawDistance = baseDistance * cameraDistanceScale.toDouble()
+            val rawDistance = baseDistance * cameraDistanceScale.toDouble() * autoFramingScale.toDouble()
             val distance = if (abs(rawDistance) < CAMERA_DISTANCE_EPSILON) {
                 CAMERA_DISTANCE_EPSILON
             } else {
@@ -1785,10 +1773,6 @@ class GltfSurfaceView @JvmOverloads constructor(
             }
 
             val targetY = cameraTargetY + cameraTargetHeightOffset.toDouble()
-
-            if (framingActive) {
-                AppLogger.i(TAG, "applyCameraPose: scale=${"%.4f".format(cameraDistanceScale)} distance=${"%.5f".format(distance)} eyeZ=${"%.5f".format(cameraTargetZ + distance * cos(pitchRadians) * cos(yawRadians))} targetY=${"%.4f".format(targetY)}")
-            }
 
             val horizontalFactor = cos(pitchRadians)
             val eyeX = cameraTargetX + distance * horizontalFactor * sin(yawRadians)

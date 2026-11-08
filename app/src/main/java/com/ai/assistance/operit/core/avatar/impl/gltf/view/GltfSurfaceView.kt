@@ -84,7 +84,7 @@ class GltfSurfaceView @JvmOverloads constructor(
         // How many measure-and-correct steps the framing may take once the model is visible. Models
         // whose authored bounds are far off need a handful of steps; the budget stops a model that
         // cannot reach the target from looping forever.
-        private const val SILHOUETTE_SETTLE_ITERATIONS = 6
+        private const val SILHOUETTE_SETTLE_ITERATIONS = 10
         // The fill is considered reached when it is this close (absolute share of the viewport).
         private const val SILHOUETTE_FILL_TOLERANCE = 0.02
         // The figure is considered centred when its centre is this close to the viewport centre.
@@ -1627,7 +1627,6 @@ class GltfSurfaceView @JvmOverloads constructor(
         val fillError = currentFill - SILHOUETTE_TARGET_FILL
         val fillSettled = abs(fillError) <= SILHOUETTE_FILL_TOLERANCE
         val centreSettled = abs(centreOffsetPixels) <= SILHOUETTE_CENTRE_TOLERANCE_PIXELS
-        val atMinimumDistanceScale = cameraDistanceScale <= MIN_CAMERA_DISTANCE_SCALE + 1e-4
 
         // Keep the state with the smallest fill error seen so far. A later step can make the figure
         // smaller (the eye crosses the near plane or the model), and there is no point continuing
@@ -1649,7 +1648,7 @@ class GltfSurfaceView @JvmOverloads constructor(
             return true
         }
 
-        if ((fillSettled && centreSettled) || settleLeft <= 0 || (atMinimumDistanceScale && centreSettled)) {
+        if ((fillSettled && centreSettled) || settleLeft <= 0) {
             AppLogger.i(
                 TAG,
                 "Silhouette framing settled: fill=${"%.3f".format(currentFill)} (target ${"%.3f".format(SILHOUETTE_TARGET_FILL)}), " +
@@ -1660,37 +1659,49 @@ class GltfSurfaceView @JvmOverloads constructor(
             return true
         }
 
-        // The fill is roughly the reciprocal of the distance while the whole figure is in the frame,
-        // so the ratio of current to target fill is the factor the distance must be multiplied by.
-        // The step is bounded so one bad measurement cannot throw the camera inside the model; the
-        // iterative caller corrects the rest on the next frame. No geometric lower bound is used
-        // here: for RobotExpressive the authored half depth is 3.31 while the drawn figure behaves
-        // like a much smaller body, so a clearance derived from it kept the figure at 18% forever.
-        val ratio = (currentFill / SILHOUETTE_TARGET_FILL).toFloat()
-            .coerceIn(SILHOUETTE_MIN_DISTANCE_STEP, SILHOUETTE_MAX_DISTANCE_STEP)
-        val clampedDistanceScale =
-            (cameraDistanceScale * ratio).coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
-        cameraDistanceScale = clampedDistanceScale
-        onCameraDistanceScaleChanged?.invoke(clampedDistanceScale)
-
-        if (abs(centreOffsetPixels) > 1.0) {
-            val visibleHalfHeight =
+        // Only one quantity is corrected per step. Moving the distance changes both the fill and the
+        // apparent centre (the pivot sits on the authored bounds centre, which is not the drawn
+        // centre), so interleaving the two corrections made neither converge. The centre is fixed
+        // first: a figure that hangs below the frame is clipped at the bottom, its measured height
+        // saturates and the fill loop keeps shrinking the distance without ever reaching the target.
+        // Once the figure is centred and fully in frame, the fill is reciprocal to the distance and
+        // converges in a couple of steps.
+        if (!centreSettled) {
+            // One pixel at the current distance maps to 2 * distance * tan(vFov/2) / viewportHeight
+            // scene units, independent of the authored bounds.
+            val centreVisibleHalfHeight =
                 kotlin.math.tan(Math.toRadians(CAMERA_VERTICAL_FOV_DEGREES / 2.0)) *
-                    fittedCameraDistance * clampedDistanceScale
-            val sceneUnitsPerPixel = (2.0 * visibleHalfHeight) / viewportHeight
-            cameraTargetY -= centreOffsetPixels * sceneUnitsPerPixel
+                    fittedCameraDistance * cameraDistanceScale.toDouble()
+            val centreSceneUnitsPerPixel = (2.0 * centreVisibleHalfHeight) / viewportHeight
+            cameraTargetY -= centreOffsetPixels * centreSceneUnitsPerPixel
+            applyCameraPose()
+            AppLogger.i(
+                TAG,
+                "Silhouette framing step(centre): centreOffsetPx=${"%.1f".format(centreOffsetPixels)}, " +
+                    "fill=${"%.3f".format(currentFill)}, distanceScale=${"%.4f".format(cameraDistanceScale)}, " +
+                    "targetY=${"%.4f".format(cameraTargetY)}, stepsLeft=$settleLeft"
+            )
+            return false
         }
 
+        // The figure is centred; correct the fill. The fill is roughly the reciprocal of the distance
+        // while the whole figure is in the frame, so the ratio of current to target fill is the
+        // factor the distance must be multiplied by. The step is bounded so one bad measurement
+        // cannot throw the camera inside the model, but generously enough that a model drawn several
+        // times too small closes the gap within the step budget.
+        val ratio = (currentFill / SILHOUETTE_TARGET_FILL).toFloat()
+            .coerceIn(SILHOUETTE_MIN_DISTANCE_STEP, SILHOUETTE_MAX_DISTANCE_STEP)
+        val nextDistanceScale =
+            (cameraDistanceScale * ratio).coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
+        cameraDistanceScale = nextDistanceScale
+        onCameraDistanceScaleChanged?.invoke(nextDistanceScale)
         applyCameraPose()
-
         AppLogger.i(
             TAG,
-            "Silhouette framing step: fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
-                "distanceScale=${"%.4f".format(clampedDistanceScale)}, " +
-                "centreOffsetPx=${"%.1f".format(centreOffsetPixels)}, " +
+            "Silhouette framing step(fill): fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
+                "distanceScale=${"%.4f".format(nextDistanceScale)}, " +
                 "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}, stepsLeft=$settleLeft"
         )
-
         return false
     }
     private data class SilhouetteBox(val top: Double, val bottom: Double, val heightPixels: Double) {

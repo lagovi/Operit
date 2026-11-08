@@ -1656,21 +1656,18 @@ class GltfSurfaceView @JvmOverloads constructor(
         cameraDistanceScale = s
         applyCameraPose()
         modelViewer.debugGetNextFrameCallback { bitmap ->
-            modelViewer.debugGetNextFrameCallback { bitmap2 ->
-                val box = measureSilhouette(bitmap2)
-                val fill = box?.let { it.heightPixels / bitmap2.height.toDouble() } ?: -1.0
-                val top = box?.top?.toInt() ?: -1
-                val bottom = box?.bottom?.toInt() ?: -1
-                AppLogger.i(
-                    TAG,
-                    "SILHOUETTE-SWEEP scale=${"%.3f".format(s)} distance=${"%.3f".format(fittedCameraDistance * s)} " +
-                        "fill=${"%.4f".format(fill)} top=$top bottom=$bottom vh=${bitmap2.height}"
-                )
-                sweepStep(scales, index + 1, savedScale)
-            }
+            val box = measureSilhouette(bitmap)
+            val fill = box?.let { it.heightPixels / bitmap.height.toDouble() } ?: -1.0
+            val top = box?.top?.toInt() ?: -1
+            val bottom = box?.bottom?.toInt() ?: -1
+            AppLogger.i(
+                TAG,
+                "SILHOUETTE-SWEEP scale=${"%.3f".format(s)} distance=${"%.3f".format(fittedCameraDistance * s)} " +
+                    "fill=${"%.4f".format(fill)} top=$top bottom=$bottom vh=${bitmap.height}"
+            )
+            sweepStep(scales, index + 1, savedScale)
         }
     }
-
     private data class SilhouetteBox(val top: Double, val bottom: Double, val heightPixels: Double) {
         val centerY: Double get() = (top + bottom) / 2.0
     }

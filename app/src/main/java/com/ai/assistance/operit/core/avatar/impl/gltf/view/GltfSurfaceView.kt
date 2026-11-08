@@ -155,6 +155,7 @@ class GltfSurfaceView @JvmOverloads constructor(
     // smaller than its bounds claim), so bisection is safer than extrapolating the ratio.
     private var framingLowScale: Float = Float.NaN
     private var framingHighScale: Float = Float.NaN
+    private var framingActive: Boolean = false
 
     private var activeAnimationIndex: Int = -1
     private var animationStartNanos: Long = System.nanoTime()
@@ -1550,6 +1551,7 @@ class GltfSurfaceView @JvmOverloads constructor(
     private fun scheduleSilhouetteFraming() {
         framingLowScale = Float.NaN
         framingHighScale = Float.NaN
+        framingActive = true
         scheduleSilhouetteFramingAttempt(SILHOUETTE_MAX_ATTEMPTS, SILHOUETTE_SETTLE_ITERATIONS)
     }
 
@@ -1574,6 +1576,7 @@ class GltfSurfaceView @JvmOverloads constructor(
     private fun scheduleSilhouetteFramingAttempt(attemptsLeft: Int, settleLeft: Int) {
         if (!hasValidSurfaceSize || width <= 0 || height <= 0 || attemptsLeft <= 0) {
             if (attemptsLeft <= 0) {
+                framingActive = false
                 AppLogger.w(TAG, "Silhouette framing gave up after ${SILHOUETTE_MAX_ATTEMPTS} frames")
             }
             return
@@ -1642,6 +1645,7 @@ class GltfSurfaceView @JvmOverloads constructor(
         val centreSettled = abs(centreOffsetPixels) <= SILHOUETTE_CENTRE_TOLERANCE_PIXELS
 
         if ((fillSettled && centreSettled) || settleLeft <= 0) {
+            framingActive = false
             AppLogger.i(
                 TAG,
                 "Silhouette framing settled: fill=${"%.3f".format(currentFill)} (target ${"%.3f".format(SILHOUETTE_TARGET_FILL)}), " +
@@ -1781,6 +1785,10 @@ class GltfSurfaceView @JvmOverloads constructor(
             }
 
             val targetY = cameraTargetY + cameraTargetHeightOffset.toDouble()
+
+            if (framingActive) {
+                AppLogger.i(TAG, "applyCameraPose: scale=${"%.4f".format(cameraDistanceScale)} distance=${"%.5f".format(distance)} eyeZ=${"%.5f".format(cameraTargetZ + distance * cos(pitchRadians) * cos(yawRadians))} targetY=${"%.4f".format(targetY)}")
+            }
 
             val horizontalFactor = cos(pitchRadians)
             val eyeX = cameraTargetX + distance * horizontalFactor * sin(yawRadians)

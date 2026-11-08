@@ -36,7 +36,9 @@ import com.ai.assistance.operit.ui.features.settings.components.AvatarPresetGall
 import com.ai.assistance.operit.ui.features.assistant.components.AvatarPreviewSection
 import com.ai.assistance.operit.ui.features.assistant.components.CompactSwitchRow
 import com.ai.assistance.operit.ui.features.assistant.components.VoiceAutoAttachGrid
+import com.ai.assistance.operit.core.avatar.common.control.AvatarSettingKeys
 import com.ai.assistance.operit.core.avatar.impl.factory.AvatarControllerFactoryImpl
+import com.ai.assistance.operit.core.avatar.impl.gltf.control.GltfAvatarController
 import com.ai.assistance.operit.ui.features.assistant.viewmodel.AssistantConfigViewModel
 import com.ai.assistance.operit.ui.features.help.helpAnchor
 import kotlinx.coroutines.launch
@@ -54,6 +56,29 @@ fun AssistantConfigScreen() {
         uiState.currentAvatarModel?.let { model ->
             avatarControllerFactory.createController(model)
         }
+
+    // The renderer measures the drawn silhouette after a model loads and corrects the camera
+    // distance, because asset bounds do not describe what a skinned glTF actually draws. That
+    // correction has to reach the persisted settings: the preview sends customSettings back to the
+    // controller on every recomposition, so a value living only in the controller is overwritten by
+    // the stale slider value and the figure jumps back to its old size.
+    val gltfController = sharedAvatarController as? GltfAvatarController
+    if (gltfController != null) {
+        val measuredDistanceScale by gltfController.cameraDistanceScale.collectAsState()
+        val persistedDistanceScale =
+            uiState.config?.customSettings?.get(AvatarSettingKeys.GLTF_CAMERA_DISTANCE_SCALE)
+        LaunchedEffect(gltfController, measuredDistanceScale, persistedDistanceScale) {
+            val differs =
+                persistedDistanceScale == null ||
+                    kotlin.math.abs(persistedDistanceScale - measuredDistanceScale) > 1e-3f
+            if (differs) {
+                viewModel.updateCustomSetting(
+                    AvatarSettingKeys.GLTF_CAMERA_DISTANCE_SCALE,
+                    measuredDistanceScale
+                )
+            }
+        }
+    }
 
     val wakePrefs = remember { WakeWordPreferences(context.applicationContext) }
     val wakeListeningEnabled by wakePrefs.alwaysListeningEnabledFlow.collectAsState(initial = WakeWordPreferences.DEFAULT_ALWAYS_LISTENING_ENABLED)

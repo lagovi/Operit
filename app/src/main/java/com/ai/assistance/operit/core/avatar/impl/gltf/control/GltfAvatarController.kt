@@ -40,6 +40,16 @@ class GltfAvatarController(
     private val _cameraTargetHeight = MutableStateFlow(0.0f)
     val cameraTargetHeight: StateFlow<Float> = _cameraTargetHeight.asStateFlow()
 
+    // Automatic 2D framing of the rendered image, measured once per loaded model by the renderer.
+    // It is deliberately not persisted as an avatar setting: the settings UI resends its stored
+    // values on every recomposition, and this factor is derived from the drawn pixels, not chosen
+    // by the user.
+    private val _autoFrameScale = MutableStateFlow(1.0f)
+    val autoFrameScale: StateFlow<Float> = _autoFrameScale.asStateFlow()
+
+    private val _autoFrameOffsetY = MutableStateFlow(0.0f)
+    val autoFrameOffsetY: StateFlow<Float> = _autoFrameOffsetY.asStateFlow()
+
     private val _availableAnimations = MutableStateFlow(model.normalizedDeclaredAnimationNames)
     override val availableAnimations: List<String>
         get() = _availableAnimations.value
@@ -172,6 +182,12 @@ class GltfAvatarController(
                 _cameraTargetHeight.value = it.toFloat().coerceIn(-2.0f, 2.0f)
             }
         }
+    }
+
+    /** Records the automatic 2D framing measured from the rendered image. */
+    fun updateAutoFrame(scale: Float, offsetY: Float) {
+        _autoFrameScale.value = scale
+        _autoFrameOffsetY.value = offsetY
     }
 
     override fun updateEmotionAnimationMapping(mapping: Map<AvatarEmotion, String>) {

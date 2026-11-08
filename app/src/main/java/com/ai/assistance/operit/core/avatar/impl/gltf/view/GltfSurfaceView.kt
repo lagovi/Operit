@@ -73,6 +73,9 @@ class GltfSurfaceView @JvmOverloads constructor(
         // Measured by eye on Xbot and RobotExpressive: at 0.80 the figure nearly touches the frame,
         // 0.70 leaves a visible band above and below, which is what the user asked for.
         private const val SILHOUETTE_TARGET_FILL = 0.70
+        // Bounds for the 2D image scale the framing applies, as a guard against a bogus measurement.
+        private const val SILHOUETTE_FRAME_MIN_SCALE = 0.05f
+        private const val SILHOUETTE_FRAME_MAX_SCALE = 20.0f
         // Alpha above which a pixel counts as part of the model. The surface is TRANSLUCENT, so the
         // empty background is fully transparent and only antialiased edges sit in between.
         private const val SILHOUETTE_ALPHA_THRESHOLD = 16
@@ -83,21 +86,8 @@ class GltfSurfaceView @JvmOverloads constructor(
         // also the overall frame budget: retries for an empty frame and settle steps share it, so it
         // must exceed the settle budget.
         private const val SILHOUETTE_MAX_ATTEMPTS = 80
-        // How many measure-and-correct steps the framing may take once the model is visible. The
-        // first steps go to centring, the rest to the fill. A model whose drawn size is far smaller
-        // than its authored bounds (RobotExpressive is about 48 times smaller) needs many halvings,
-        // because the ratio step shrinks along with the remaining fill gap.
-        private const val SILHOUETTE_SETTLE_ITERATIONS = 30
-        // The fill is considered reached when it is this close (absolute share of the viewport).
-        private const val SILHOUETTE_FILL_TOLERANCE = 0.02
-        // The figure is considered centred when its centre is this close to the viewport centre.
-        private const val SILHOUETTE_CENTRE_TOLERANCE_PIXELS = 4.0
         // One framing step may scale the distance by at most this much in either direction, so a
         // single bad measurement cannot jump the camera into or out of the model in one go.
-        // Lower bound of the distance-scale bisection bracket. The distance scale may go to zero in
-        // principle, but the bracket is kept strictly positive so the geometric midpoint stays
-        // meaningful; RobotExpressive needed a scale of about 0.02 to reach the target fill.
-        private const val SILHOUETTE_MIN_BISECTION_SCALE = 1e-4f
         private const val CAMERA_TARGET_X = 0.0
         private const val CAMERA_TARGET_Y = 0.0
         private const val CAMERA_TARGET_Z = 0.0
@@ -136,12 +126,6 @@ class GltfSurfaceView @JvmOverloads constructor(
     private var cameraPitchDegrees: Float = DEFAULT_CAMERA_PITCH
     private var cameraYawDegrees: Float = DEFAULT_CAMERA_YAW
     private var cameraDistanceScale: Float = DEFAULT_CAMERA_DISTANCE_SCALE
-
-    // Distance factor chosen by the automatic silhouette framing, applied on top of the user's
-    // distance scale. It is kept here, in the view, and never round-trips through the settings: the
-    // settings UI resends its stored customSettings on every recomposition, so a value written back
-    // into the controller was overwritten with 1.0 on the next frame and the framing never showed.
-    private var autoFramingScale: Float = 1.0f
     private var cameraTargetHeightOffset: Float = 0.0f
     private var cameraTargetX: Double = CAMERA_TARGET_X
     private var cameraTargetY: Double = CAMERA_TARGET_Y
@@ -151,16 +135,6 @@ class GltfSurfaceView @JvmOverloads constructor(
     // model bounds after loading, then multiplied by the user's distance scale so that the
     // slider keeps meaning "times the fitted distance" for every model.
     private var fittedCameraDistance: Double = 0.0
-
-    // Distance-scale bracket for the silhouette framing. The drawn fill decreases monotonically as
-    // the distance grows, so the scale that reaches the target fill can be found by bisecting:
-    // `framingLowScale` always yields too small a figure, `framingHighScale` too large a one. The
-    // bracket is kept across frames because each bisection step needs a rendered frame to measure.
-    // The relation between distance and fill is only reciprocal while the whole figure is in frame,
-    // and the authored bounds cannot be trusted (RobotExpressive draws as if it were ~48 times
-    // smaller than its bounds claim), so bisection is safer than extrapolating the ratio.
-    private var framingLowScale: Float = Float.NaN
-    private var framingHighScale: Float = Float.NaN
 
     private var activeAnimationIndex: Int = -1
     private var animationStartNanos: Long = System.nanoTime()
@@ -208,6 +182,7 @@ class GltfSurfaceView @JvmOverloads constructor(
 
     @Volatile
     private var onRenderErrorListener: ((String) -> Unit)? = null
+    private var onAutoFrameChanged: ((Float, Float) -> Unit)? = null
 
     @Volatile
     private var onAnimationsDiscoveredListener: ((List<String>, Map<String, Long>) -> Unit)? = null
@@ -229,6 +204,14 @@ class GltfSurfaceView @JvmOverloads constructor(
 
     fun setOnRenderErrorListener(listener: ((String) -> Unit)?) {
         onRenderErrorListener = listener
+    }
+
+    /**
+     * Receives the 2D framing chosen by [scheduleSilhouetteFraming]: an image scale and a vertical
+     * offset in pixels. The renderer applies them on top of the user's own scale and translation.
+     */
+    fun setOnAutoFrameChangedListener(listener: ((Float, Float) -> Unit)?) {
+        onAutoFrameChanged = listener
     }
 
     fun setOnAnimationsDiscoveredListener(listener: ((List<String>, Map<String, Long>) -> Unit)?) {
@@ -1545,10 +1528,7 @@ class GltfSurfaceView @JvmOverloads constructor(
      * each call costs a full read-back and allocates a Bitmap.
      */
     private fun scheduleSilhouetteFraming() {
-        framingLowScale = Float.NaN
-        framingHighScale = Float.NaN
-        autoFramingScale = 1.0f
-        scheduleSilhouetteFramingAttempt(SILHOUETTE_MAX_ATTEMPTS, SILHOUETTE_SETTLE_ITERATIONS)
+        scheduleSilhouetteFramingAttempt(SILHOUETTE_MAX_ATTEMPTS)
     }
 
     /**
@@ -1569,7 +1549,7 @@ class GltfSurfaceView @JvmOverloads constructor(
      * registering synchronously inside the callback was served with the same captured frame and
      * froze the reading at the first value.
      */
-    private fun scheduleSilhouetteFramingAttempt(attemptsLeft: Int, settleLeft: Int) {
+    private fun scheduleSilhouetteFramingAttempt(attemptsLeft: Int) {
         if (!hasValidSurfaceSize || width <= 0 || height <= 0 || attemptsLeft <= 0) {
             if (attemptsLeft <= 0) {
                 AppLogger.w(TAG, "Silhouette framing gave up after ${SILHOUETTE_MAX_ATTEMPTS} frames")
@@ -1579,18 +1559,10 @@ class GltfSurfaceView @JvmOverloads constructor(
         modelViewer.debugGetNextFrameCallback { bitmap ->
             try {
                 if (measureSilhouette(bitmap) == null) {
-                    post { scheduleSilhouetteFramingAttempt(attemptsLeft - 1, settleLeft) }
+                    scheduleSilhouetteFramingAttempt(attemptsLeft - 1)
                     return@debugGetNextFrameCallback
                 }
-                val settled = applySilhouetteFraming(bitmap, settleLeft)
-                if (!settled) {
-                    // Re-register on the next loop turn, not synchronously: a callback registered
-                    // from inside the current callback is served with the same already captured
-                    // frame, so the camera change would never be measured. Letting the choreographer
-                    // render one frame in between is what makes the next reading reflect the pose
-                    // that was just applied.
-                    post { scheduleSilhouetteFramingAttempt(attemptsLeft - 1, settleLeft - 1) }
-                }
+                applySilhouetteFraming(bitmap)
             } catch (e: Exception) {
                 AppLogger.w(TAG, "Silhouette framing failed: ${e.message}")
             }
@@ -1618,7 +1590,7 @@ class GltfSurfaceView @JvmOverloads constructor(
      * @return true when the fill and the centre are within tolerance, false when another step is
      *   needed.
      */
-    private fun applySilhouetteFraming(bitmap: android.graphics.Bitmap, settleLeft: Int): Boolean {
+    private fun applySilhouetteFraming(bitmap: android.graphics.Bitmap): Boolean {
         val box = measureSilhouette(bitmap) ?: run {
             AppLogger.w(TAG, "Silhouette framing skipped: nothing opaque was drawn")
             return true
@@ -1634,82 +1606,33 @@ class GltfSurfaceView @JvmOverloads constructor(
             return true
         }
 
-        val centreOffsetPixels = box.centerY - viewportHeight / 2.0
-        val fillError = currentFill - SILHOUETTE_TARGET_FILL
-        val fillSettled = abs(fillError) <= SILHOUETTE_FILL_TOLERANCE
-        val centreSettled = abs(centreOffsetPixels) <= SILHOUETTE_CENTRE_TOLERANCE_PIXELS
+        // The framing is applied as a plain 2D transform of the rendered image, not by moving the
+        // camera. Scaling the picture scales the measured height by exactly the same factor, while
+        // moving the camera only does so while the whole figure is in frame and the authored bounds
+        // are honest, neither of which holds for the skinned models in the presets (RobotExpressive
+        // draws as if it were ~48 times smaller than its bounds, and both it and the fox saturate
+        // when the camera approaches). The 2D transform is exact from a single measurement.
+        //
+        // `Modifier.scale` scales about the centre of the composable, so a silhouette centre `c`
+        // lands at `H/2 + (c - H/2) * k`. Moving it back to the centre needs the offset `(H/2 - c)
+        // * k`. The result is published to the renderer, which applies it on top of the user's own
+        // scale and translation.
+        val scale = (SILHOUETTE_TARGET_FILL / currentFill).toFloat()
+            .coerceIn(SILHOUETTE_FRAME_MIN_SCALE, SILHOUETTE_FRAME_MAX_SCALE)
+        val offsetY = ((viewportHeight / 2.0 - box.centerY) * scale).toFloat()
 
-        if ((fillSettled && centreSettled) || settleLeft <= 0) {
-            AppLogger.i(
-                TAG,
-                "Silhouette framing settled: fill=${"%.3f".format(currentFill)} (target ${"%.3f".format(SILHOUETTE_TARGET_FILL)}), " +
-                    "autoFramingScale=${"%.4f".format(autoFramingScale)}, " +
-                    "centreOffsetPx=${"%.1f".format(centreOffsetPixels)}, " +
-                    "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}, stepsLeft=$settleLeft"
-            )
-            return true
-        }
+        onAutoFrameChanged?.invoke(scale, offsetY)
 
-        // Only one quantity is corrected per step. Moving the distance changes both the fill and the
-        // apparent centre (the pivot sits on the authored bounds centre, which is not the drawn
-        // centre), so interleaving the two corrections made neither converge. The centre is fixed
-        // first: a figure that hangs below the frame is clipped at the bottom, its measured height
-        // saturates and the fill loop keeps shrinking the distance without ever reaching the target.
-        // Once the figure is centred and fully in frame, the fill is reciprocal to the distance and
-        // converges in a couple of steps.
-        if (!centreSettled) {
-            // One pixel at the current distance maps to 2 * distance * tan(vFov/2) / viewportHeight
-            // scene units, independent of the authored bounds.
-            val centreVisibleHalfHeight =
-                kotlin.math.tan(Math.toRadians(CAMERA_VERTICAL_FOV_DEGREES / 2.0)) *
-                    fittedCameraDistance * (cameraDistanceScale * autoFramingScale).toDouble()
-            val centreSceneUnitsPerPixel = (2.0 * centreVisibleHalfHeight) / viewportHeight
-            cameraTargetY -= centreOffsetPixels * centreSceneUnitsPerPixel
-            applyCameraPose()
-            AppLogger.i(
-                TAG,
-                "Silhouette framing step(centre): centreOffsetPx=${"%.1f".format(centreOffsetPixels)}, " +
-                    "fill=${"%.3f".format(currentFill)}, autoFramingScale=${"%.4f".format(autoFramingScale)}, " +
-                    "targetY=${"%.4f".format(cameraTargetY)}, stepsLeft=$settleLeft"
-            )
-            return false
-        }
-
-        // The figure is centred; correct the fill. Update the bracket from this measurement: a fill
-        // above the target means the distance must grow, below means it must shrink.
-        if (currentFill > SILHOUETTE_TARGET_FILL) {
-            if (framingLowScale.isNaN() || autoFramingScale > framingLowScale) {
-                framingLowScale = autoFramingScale
-            }
-        } else {
-            if (framingHighScale.isNaN() || autoFramingScale < framingHighScale) {
-                framingHighScale = autoFramingScale
-            }
-        }
-        if (framingHighScale.isNaN()) {
-            framingHighScale = MAX_CAMERA_DISTANCE_SCALE
-        }
-        if (framingLowScale.isNaN()) {
-            framingLowScale = SILHOUETTE_MIN_BISECTION_SCALE
-        }
-
-        // The ratio of current to target fill is exact while the fill is reciprocal to the distance
-        // (a normally sized model) and the bracket keeps it from stepping outside the region proven
-        // to contain the answer. This is the false-position method and it converges for both the
-        // near-linear Xbot and the strongly sub-linear RobotExpressive.
-        val ratioCandidate = autoFramingScale * (currentFill / SILHOUETTE_TARGET_FILL).toFloat()
-        val nextScale = ratioCandidate.coerceIn(framingLowScale, framingHighScale)
-        autoFramingScale = nextScale.coerceIn(MIN_CAMERA_DISTANCE_SCALE, MAX_CAMERA_DISTANCE_SCALE)
-        applyCameraPose()
         AppLogger.i(
             TAG,
-            "Silhouette framing step(fill): fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
-                "bracket=[${"%.4f".format(framingLowScale)}, ${"%.4f".format(framingHighScale)}], " +
-                "nextAutoFramingScale=${"%.4f".format(autoFramingScale)}, " +
-                "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}, stepsLeft=$settleLeft"
+            "Silhouette framing: fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
+                "imageScale=${"%.4f".format(scale)}, offsetYpx=${"%.1f".format(offsetY)}, " +
+                "centreOffsetPx=${"%.1f".format(box.centerY - viewportHeight / 2.0)}, " +
+                "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}"
         )
-        return false
+        return true
     }
+
     private data class SilhouetteBox(val top: Double, val bottom: Double, val heightPixels: Double) {
         val centerY: Double get() = (top + bottom) / 2.0
     }
@@ -1765,7 +1688,7 @@ class GltfSurfaceView @JvmOverloads constructor(
             } else {
                 BASE_CAMERA_DISTANCE.toDouble()
             }
-            val rawDistance = baseDistance * cameraDistanceScale.toDouble() * autoFramingScale.toDouble()
+            val rawDistance = baseDistance * cameraDistanceScale.toDouble()
             val distance = if (abs(rawDistance) < CAMERA_DISTANCE_EPSILON) {
                 CAMERA_DISTANCE_EPSILON
             } else {

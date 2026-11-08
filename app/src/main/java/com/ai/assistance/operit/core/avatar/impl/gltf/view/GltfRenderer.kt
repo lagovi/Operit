@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -46,8 +47,17 @@ fun GltfRenderer(
     val cameraDistanceScale by gltfController.cameraDistanceScale.collectAsState()
     val cameraTargetHeight by gltfController.cameraTargetHeight.collectAsState()
     val avatarState by gltfController.state.collectAsState()
+    val autoFrameScale by gltfController.autoFrameScale.collectAsState()
+    val autoFrameOffsetY by gltfController.autoFrameOffsetY.collectAsState()
 
     val safeScale = scale.coerceIn(0.2f, 5.0f)
+
+    // Combine the user's scale and translation with the automatic framing measured from the
+    // rendered image. The automatic part only compensates for models whose drawn size and position
+    // do not match the camera setup; it does not touch the stored settings or the user's sliders.
+    val composedScale = (safeScale * autoFrameScale).coerceIn(0.05f, 100.0f)
+    val autoFrameOffsetYDp = with(LocalDensity.current) { autoFrameOffsetY.toDp() }
+    val composedTranslateY = translateY.dp + autoFrameOffsetYDp
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val surfaceViewState = remember { mutableStateOf<GltfSurfaceView?>(null) }
@@ -55,6 +65,7 @@ fun GltfRenderer(
 
     LaunchedEffect(model.modelPath) {
         renderErrorState.value = null
+        gltfController.updateAutoFrame(1.0f, 0.0f)
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -76,8 +87,8 @@ fun GltfRenderer(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .scale(safeScale)
-            .offset(x = translateX.dp, y = translateY.dp)
+            .scale(composedScale)
+            .offset(x = translateX.dp, y = composedTranslateY)
             .background(Color.Transparent)
     ) {
         AndroidView(
@@ -97,6 +108,9 @@ fun GltfRenderer(
                             discoveredAnimations = animationNames,
                             durationMillisByName = durationMillisByName
                         )
+                    }
+                    setOnAutoFrameChangedListener { autoScale, offsetY ->
+                        gltfController.updateAutoFrame(autoScale, offsetY)
                     }
                     setModelPath(model.modelPath)
                     setAnimationState(

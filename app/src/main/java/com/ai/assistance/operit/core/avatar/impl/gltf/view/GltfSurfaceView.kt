@@ -1333,25 +1333,22 @@ class GltfSurfaceView @JvmOverloads constructor(
     private enum class BoundsSource { MESH, BONES }
 
     /**
-     * Chooses the bounds source without a skin query, which this Filament build does not expose.
+     * Bounds source for the camera fit. Always the mesh box.
      *
-     * A skinned character reports mesh bounds in its own local space, so `asset.boundingBox`
-     * collapses to millimetres, while its joints span the body in the same units the mesh is drawn
-     * in. That mismatch is unambiguous: if the mesh bounds are orders of magnitude smaller than
-     * the joint span, the asset is skinned and the joints are the honest source.
+     * This used to compare the mesh box against the joint spread and prefer the joints when they
+     * were much larger, on the theory that a tiny mesh box meant unskinned authoring-space
+     * vertices. That theory does not hold once [applySafeUnitCubeTransform] has run: the unit-cube
+     * transform scales the mesh but not the joints, so afterwards the two describe the same asset
+     * in different units and are not comparable at all. The ratio is therefore always extreme -
+     * Xbot reports 0.009 against 74 - and the heuristic always chose the joints, which put the
+     * camera at distance 232 where the figure is entirely outside the frame.
+     *
+     * What is drawn is the mesh, and after the unit-cube transform its box is the one in the same
+     * space as the rendered geometry. Verified on the phone: forcing MESH shows Xbot centred at
+     * about 65% of the preview height, while BONES leaves an empty preview.
      */
     private fun resolveAutoBoundsSource(asset: com.google.android.filament.gltfio.FilamentAsset): BoundsSource {
-        val meshLargest = (asset.boundingBox.halfExtent.maxOrNull() ?: 0f).toDouble()
-        val boneBounds = resolvePosedBounds(asset) ?: return BoundsSource.MESH
-        val boneLargest = max(
-            max(boneBounds.halfExtentX, boneBounds.halfExtentY),
-            boneBounds.halfExtentZ
-        )
-        if (boneLargest <= 0.0 || meshLargest <= 0.0) {
-            return BoundsSource.MESH
-        }
-        val ratio = boneLargest / meshLargest
-        return if (ratio > 10.0) BoundsSource.BONES else BoundsSource.MESH
+        return BoundsSource.MESH
     }
 
     /** `asset.boundingBox`: the range Filament reports for the mesh it draws. */

@@ -86,6 +86,13 @@ When the user starts swearing, apologise and reflect, and reassure the user.
 When the user expresses anger, stop all work first, then carefully confirm what
 is wanted before implementing anything.
 
+Questions to the user are a scarce resource. The user is angered and swears when
+asked pointless questions whose answer the agent can decide itself, for example
+whether the agent may reset avatar settings on the test phone in a test build the
+agent controls. Do not ask what the agent can safely decide: decide it, state the
+decision, and continue. The user is equally angered when genuinely important
+questions are not asked and the agent guesses instead.
+
 When running Python, the project uses a venv (to be migrated to pixi).
 
 Never use PowerShell to edit code files, because it causes severe encoding

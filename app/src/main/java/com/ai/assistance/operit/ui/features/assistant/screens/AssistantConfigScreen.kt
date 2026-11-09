@@ -50,9 +50,15 @@ fun AssistantConfigScreen() {
         viewModel(factory = AssistantConfigViewModel.Factory(context))
     val uiState by viewModel.uiState.collectAsState()
     val avatarControllerFactory = remember { AvatarControllerFactoryImpl() }
+    // Remembered per model: without this a new controller is built on every recomposition. The
+    // renderer registers callbacks on the controller instance it is created with (the measured 2D
+    // framing among them), so a fresh instance on each recomposition made those callbacks write to
+    // a controller nobody reads and the framing never reached the screen.
     val sharedAvatarController =
-        uiState.currentAvatarModel?.let { model ->
-            avatarControllerFactory.createController(model)
+        remember(uiState.currentAvatarModel) {
+            uiState.currentAvatarModel?.let { model ->
+                avatarControllerFactory.createController(model)
+            }
         }
 
     val wakePrefs = remember { WakeWordPreferences(context.applicationContext) }

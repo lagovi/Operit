@@ -2,11 +2,10 @@ package com.ai.assistance.operit.core.avatar.impl.gltf.view
 
 import android.content.Context
 import android.net.Uri
-import android.graphics.PixelFormat
 import android.util.Base64
 import android.util.AttributeSet
 import android.view.Choreographer
-import android.view.SurfaceView
+import android.view.TextureView
 import com.ai.assistance.operit.util.AppLogger
 import com.google.android.filament.EntityManager
 import com.google.android.filament.IndirectLight
@@ -34,7 +33,7 @@ import kotlin.math.sin
 class GltfSurfaceView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null
-) : SurfaceView(context, attrs), Choreographer.FrameCallback {
+) : TextureView(context, attrs), Choreographer.FrameCallback {
 
     private data class PreparedGltfModel(
         val modelFile: File,
@@ -1228,9 +1227,11 @@ class GltfSurfaceView @JvmOverloads constructor(
     }
 
     private fun setupTransparentSurface() {
-        // Keep transparent composition but avoid onTop mode, which is more crash-prone on some drivers.
-        holder.setFormat(PixelFormat.TRANSLUCENT)
-        setZOrderOnTop(true)
+        // A TextureView draws into the view hierarchy, so Compose transforms on it (scale and
+        // offset, used by the user sliders and the automatic framing) actually apply. A SurfaceView
+        // draws into a separate window surface that no view transform reaches, which is why the
+        // preview ignored both before this was a TextureView.
+        isOpaque = false
 
         val clearOptions = Renderer.ClearOptions().apply {
             clear = true

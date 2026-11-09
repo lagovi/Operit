@@ -1355,7 +1355,11 @@ class GltfSurfaceView @JvmOverloads constructor(
      * about 65% of the preview height, while BONES leaves an empty preview.
      */
     private fun resolveAutoBoundsSource(asset: com.google.android.filament.gltfio.FilamentAsset): BoundsSource {
-        return BoundsSource.MESH
+        // `auto` picks the joints for a skinned asset and the mesh box otherwise. A skinned model is
+        // drawn through its joints, so their spread is the only description that follows the pose; a
+        // static model has no joints to follow, and its accessor-derived mesh box is exact.
+        val skinCount = runCatching { asset.instance.skinCount }.getOrDefault(0)
+        return if (skinCount > 0) BoundsSource.BONES else BoundsSource.MESH
     }
 
     /** `asset.boundingBox`: the range Filament reports for the mesh it draws. */
@@ -1382,17 +1386,23 @@ class GltfSurfaceView @JvmOverloads constructor(
     }
 
     /**
-     * Returns the world bounds of the loaded model.
+     * Returns the world bounds of the posed skeleton, from the joints of every skin.
      *
-     * Bone origins are used rather than `asset.boundingBox`: for a skinned mesh the latter reports
-     * the unskinned vertex range, which for a humanoid is a few millimetres and frames the camera
-     * inside the body. Joint world positions follow the pose and span the visible figure.
+     * The joints are the only parts of a skinned model whose world transforms follow the pose and
+     * therefore match what is drawn; `asset.boundingBox` is built from the glTF accessor min/max
+     * values at load time and does not follow the pose (Filament's own documentation says so). For a
+     * humanoid the joints span the visible figure, which is exactly the range the camera has to fit.
      *
-     * This is only meaningful because the model is no longer forced into a unit cube; see
-     * [applySafeUnitCubeTransform]. Keeping both the skeleton and the mesh in their authoring space
-     * is what makes these numbers comparable to what is drawn.
+     * A model with no joints yields null, and the caller logs that there is no usable bounds rather
+     * than inventing one.
      */
     private fun resolvePosedBounds(asset: com.google.android.filament.gltfio.FilamentAsset): PosedBounds? {
+        val instance = runCatching { asset.instance }.getOrNull() ?: return null
+        val skinCount = runCatching { instance.skinCount }.getOrDefault(0)
+        if (skinCount <= 0) {
+            return null
+        }
+
         val transformManager = modelViewer.engine.transformManager
         var minX = Double.MAX_VALUE
         var minY = Double.MAX_VALUE
@@ -1401,26 +1411,33 @@ class GltfSurfaceView @JvmOverloads constructor(
         var maxY = -Double.MAX_VALUE
         var maxZ = -Double.MAX_VALUE
         var counted = 0
+        val seen = HashSet<Int>()
 
-        asset.entities.forEach { entity ->
-            val instance = transformManager.getInstance(entity)
-            if (instance == 0) {
-                return@forEach
+        for (skinIndex in 0 until skinCount) {
+            val joints = runCatching { instance.getJointsAt(skinIndex) }.getOrNull() ?: continue
+            for (entity in joints) {
+                if (!seen.add(entity)) {
+                    continue
+                }
+                val jointInstance = transformManager.getInstance(entity)
+                if (jointInstance == 0) {
+                    continue
+                }
+                val transform = transformManager.getTransform(jointInstance, FloatArray(16))
+                if (!transform.all(::isFiniteFloat)) {
+                    continue
+                }
+                val x = transform[12].toDouble()
+                val y = transform[13].toDouble()
+                val z = transform[14].toDouble()
+                if (x < minX) minX = x
+                if (y < minY) minY = y
+                if (z < minZ) minZ = z
+                if (x > maxX) maxX = x
+                if (y > maxY) maxY = y
+                if (z > maxZ) maxZ = z
+                counted += 1
             }
-            val transform = transformManager.getTransform(instance, FloatArray(16))
-            if (!transform.all(::isFiniteFloat)) {
-                return@forEach
-            }
-            val x = transform[12].toDouble()
-            val y = transform[13].toDouble()
-            val z = transform[14].toDouble()
-            if (x < minX) minX = x
-            if (y < minY) minY = y
-            if (z < minZ) minZ = z
-            if (x > maxX) maxX = x
-            if (y > maxY) maxY = y
-            if (z > maxZ) maxZ = z
-            counted += 1
         }
 
         if (counted < 2 || minX > maxX) {
@@ -1458,6 +1475,27 @@ class GltfSurfaceView @JvmOverloads constructor(
             GltfTuner.BoundsSource.BONES -> BoundsSource.BONES
             GltfTuner.BoundsSource.AUTO -> resolveAutoBoundsSource(asset)
         }
+
+        // Diagnostic: log both bounds descriptions and the root scale so the disagreement between
+        // the drawn mesh and the joint space is visible in one place. This is the measurement the
+        // framing decisions are based on; it stays in the log on purpose.
+        val diagnosticMesh = resolveMeshBounds(asset)
+        val diagnosticPosed = resolvePosedBounds(asset)
+        val rootModel = runCatching { modelViewer.transformManager.getInstance(asset.root) }.getOrNull() ?: 0
+        val rootScaleText =
+            if (rootModel != 0) {
+                val m = modelViewer.transformManager.getTransform(rootModel, FloatArray(16))
+                "rootScale=(${"%.4f".format(m[0])}, ${"%.4f".format(m[5])}, ${"%.4f".format(m[10])})"
+            } else {
+                "rootScale=unknown"
+            }
+        AppLogger.i(
+            TAG,
+            "Bounds diagnostic: source=$resolvedSource, " +
+                "mesh=${diagnosticMesh?.let { "(h=${"%.4f".format(it.halfExtentY)}, c=${"%.4f".format(it.centerY)})" } ?: "null"}, " +
+                "posed=${diagnosticPosed?.let { "(h=${"%.4f".format(it.halfExtentY)}, c=${"%.4f".format(it.centerY)})" } ?: "null"}, " +
+                rootScaleText
+        )
 
         val bounds = when (resolvedSource) {
             BoundsSource.BONES -> resolvePosedBounds(asset)

@@ -1481,10 +1481,10 @@ class GltfSurfaceView @JvmOverloads constructor(
         // framing decisions are based on; it stays in the log on purpose.
         val diagnosticMesh = resolveMeshBounds(asset)
         val diagnosticPosed = resolvePosedBounds(asset)
-        val rootModel = runCatching { modelViewer.transformManager.getInstance(asset.root) }.getOrNull() ?: 0
+        val rootModel = runCatching { modelViewer.engine.transformManager.getInstance(asset.root) }.getOrDefault(0)
         val rootScaleText =
             if (rootModel != 0) {
-                val m = modelViewer.transformManager.getTransform(rootModel, FloatArray(16))
+                val m = modelViewer.engine.transformManager.getTransform(rootModel, FloatArray(16))
                 "rootScale=(${"%.4f".format(m[0])}, ${"%.4f".format(m[5])}, ${"%.4f".format(m[10])})"
             } else {
                 "rootScale=unknown"

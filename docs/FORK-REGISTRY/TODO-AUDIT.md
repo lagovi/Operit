@@ -311,6 +311,47 @@ anywhere. These presets are locomotion and tech demos, not character avatars.
       Not yet: confirming the new defaults on a freshly installed build, and
       checking that Fox and Soldier land sensibly with the same values (Fox is a
       quadruped, so its centre may differ).
+## Bounds space disagreement, measured — 2026-11-09
+
+The `Bounds diagnostic` line in `GltfSurfaceView` logs, for every model load,
+the mesh box, the posed-joint box and the root scale in one place. Two models
+measured on the phone in the same build (the diagnostic was added for exactly
+this comparison; keep the line, it is cheap and it is the evidence):
+
+| model | mesh half height | posed-joint half height | root scale | visible result |
+| --- | --- | --- | --- | --- |
+| RobotExpressive | 2.3993 | 0.0074 | 0.3022 | camera fine, figure visible |
+| Xbot | 0.0090 | 74.2097 | 110.5412 | camera at distance 232, empty preview |
+
+The ratio between the two boxes is not just large, it is **inverted** between
+the two models: for the robot the joints are smaller than the mesh, for Xbot
+they are about 8000 times larger. That settles the question from K2.1 and K5:
+neither source is universally right, and choosing by "is it skinned" is not
+enough either, because both models are skinned. The cause is
+`transformToUnitCube`, which scales the mesh and the joints into different
+spaces, and each model is authored in a different scale, so the discrepancy
+points in opposite directions.
+
+Consequences that hold regardless of the camera:
+
+- The mesh box, used alone, gives a sane starting distance for both models
+  (2.4 and 0.009 in the same space the renderer draws in), but is not the
+  drawn size for the robot (it draws about 48 times smaller).
+- The joint box, used alone, puts the camera outside the frame for Xbot
+  (distance 232) and nothing is drawn.
+- The framing that is exact for both is the pixel measurement: the robot came
+  out at 271 of about 380 preview pixels (71%) and centred, applied as a 2D
+  image scale of 1.75 on top of the user's sliders. It is only usable when the
+  camera already has the figure in frame, which is why the camera must start
+  from the mesh box.
+
+### New problem found while measuring — width crop
+
+At 70% of the **height**, a wide figure is cut sideways: RobotExpressive with
+arms out had both hands clipped once the 2D scale reached 1.75. The target has
+to be the **smaller** of the height and width fits, so the whole figure stays
+inside the preview. This is not yet implemented.
+
 ## Slider reference for the avatar preview (measured 2026-11-07)
 
 Written after reading the code and watching the effect of each slider on the

@@ -76,6 +76,9 @@ class GltfSurfaceView @JvmOverloads constructor(
         // Bounds for the 2D image scale the framing applies, as a guard against a bogus measurement.
         private const val SILHOUETTE_FRAME_MIN_SCALE = 0.05f
         private const val SILHOUETTE_FRAME_MAX_SCALE = 20.0f
+        // Widest share of the viewport the figure may occupy after framing, so a wide model is not
+        // cut off sideways when it is scaled up to the height target.
+        private const val SILHOUETTE_FRAME_WIDTH_FILL = 0.96
         // Alpha above which a pixel counts as part of the model. The surface is TRANSLUCENT, so the
         // empty background is fully transparent and only antialiased edges sit in between.
         private const val SILHOUETTE_ALPHA_THRESHOLD = 16
@@ -1355,11 +1358,16 @@ class GltfSurfaceView @JvmOverloads constructor(
      * about 65% of the preview height, while BONES leaves an empty preview.
      */
     private fun resolveAutoBoundsSource(asset: com.google.android.filament.gltfio.FilamentAsset): BoundsSource {
-        // `auto` picks the joints for a skinned asset and the mesh box otherwise. A skinned model is
-        // drawn through its joints, so their spread is the only description that follows the pose; a
-        // static model has no joints to follow, and its accessor-derived mesh box is exact.
-        val skinCount = runCatching { asset.instance.skinCount }.getOrDefault(0)
-        return if (skinCount > 0) BoundsSource.BONES else BoundsSource.MESH
+        // The camera always starts from the mesh box. Measured with the `Bounds diagnostic` line on
+        // two skinned presets in one build: RobotExpressive mesh half height 2.40 against joints
+        // 0.0074, Xbot mesh 0.0090 against joints 74.2. The two sources are not just different, they
+        // are inverted between models, because `transformToUnitCube` puts mesh and joints into
+        // different spaces and each model is authored at a different scale. The joints therefore put
+        // Xbot's camera at distance 232 with an empty preview, while the mesh box is the space the
+        // renderer actually draws in and gives a sane start for both. The mesh box is only the
+        // starting distance: the exact size and centring are corrected afterwards from the drawn
+        // pixels, which is the only description that matches what is visible.
+        return BoundsSource.MESH
     }
 
     /** `asset.boundingBox`: the range Filament reports for the mesh it draws. */
@@ -1655,7 +1663,16 @@ class GltfSurfaceView @JvmOverloads constructor(
         // lands at `H/2 + (c - H/2) * k`. Moving it back to the centre needs the offset `(H/2 - c)
         // * k`. The result is published to the renderer, which applies it on top of the user's own
         // scale and translation.
-        val scale = (SILHOUETTE_TARGET_FILL / currentFill).toFloat()
+        //
+        // The height fit is the goal, but a wide figure (RobotExpressive with its arms out) would be
+        // cut off sideways once it reaches 70% of the height, so the scale is also capped so the
+        // measured width stays inside the viewport with the framing margin.
+        val heightScale = SILHOUETTE_TARGET_FILL / currentFill
+        val viewportWidth = bitmap.width.toDouble()
+        val widthFill = if (viewportWidth <= 0.0) 0.0 else box.widthPixels / viewportWidth
+        val widthLimitScale =
+            if (widthFill <= 1e-4) Double.MAX_VALUE else SILHOUETTE_FRAME_WIDTH_FILL / widthFill
+        val scale = min(heightScale, widthLimitScale).toFloat()
             .coerceIn(SILHOUETTE_FRAME_MIN_SCALE, SILHOUETTE_FRAME_MAX_SCALE)
         val offsetY = ((viewportHeight / 2.0 - box.centerY) * scale).toFloat()
 
@@ -1664,15 +1681,24 @@ class GltfSurfaceView @JvmOverloads constructor(
         AppLogger.i(
             TAG,
             "Silhouette framing: fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
-                "imageScale=${"%.4f".format(scale)}, offsetYpx=${"%.1f".format(offsetY)}, " +
+                "widthFill=${"%.3f".format(widthFill)}, imageScale=${"%.4f".format(scale)}, " +
+                "offsetYpx=${"%.1f".format(offsetY)}, " +
                 "centreOffsetPx=${"%.1f".format(box.centerY - viewportHeight / 2.0)}, " +
-                "silhouettePx=${box.heightPixels.toInt()}/${viewportHeight.toInt()}"
+                "silhouettePx=${box.heightPixels.toInt()}x${box.widthPixels.toInt()}/${viewportHeight.toInt()}"
         )
         return true
     }
 
-    private data class SilhouetteBox(val top: Double, val bottom: Double, val heightPixels: Double) {
+    private data class SilhouetteBox(
+        val top: Double,
+        val bottom: Double,
+        val heightPixels: Double,
+        val left: Double,
+        val right: Double
+    ) {
         val centerY: Double get() = (top + bottom) / 2.0
+        val widthPixels: Double get() = right - left + 1.0
+        val centerX: Double get() = (left + right) / 2.0
     }
 
     /**
@@ -1693,6 +1719,8 @@ class GltfSurfaceView @JvmOverloads constructor(
 
         var top = -1
         var bottom = -1
+        var left = -1
+        var right = -1
         for (y in 0 until height) {
             val rowStart = y * width
             var opaqueCount = 0
@@ -1700,6 +1728,10 @@ class GltfSurfaceView @JvmOverloads constructor(
                 val alpha = (pixels[rowStart + x] ushr 24) and 0xFF
                 if (alpha >= SILHOUETTE_ALPHA_THRESHOLD) {
                     opaqueCount++
+                    // Horizontal extent is tracked from every opaque pixel; a few stray specks do not
+                    // widen it meaningfully, and the width is only used as an upper bound on scale.
+                    if (left < 0 || x < left) left = x
+                    if (x > right) right = x
                 }
             }
             // A handful of stray pixels is not the model; require a small run on the row.
@@ -1714,7 +1746,13 @@ class GltfSurfaceView @JvmOverloads constructor(
         if (top < 0 || bottom < 0) {
             return null
         }
-        return SilhouetteBox(top = top.toDouble(), bottom = bottom.toDouble(), heightPixels = (bottom - top + 1).toDouble())
+        return SilhouetteBox(
+            top = top.toDouble(),
+            bottom = bottom.toDouble(),
+            heightPixels = (bottom - top + 1).toDouble(),
+            left = left.toDouble(),
+            right = right.toDouble()
+        )
     }
 
     private fun applyCameraPose() {

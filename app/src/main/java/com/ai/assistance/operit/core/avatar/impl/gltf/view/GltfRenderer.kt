@@ -18,8 +18,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -53,19 +53,15 @@ fun GltfRenderer(
 
     val safeScale = scale.coerceIn(0.2f, 5.0f)
 
-    // Combine the user's scale and translation with the automatic framing measured from the
-    // rendered image. The automatic part only compensates for models whose drawn size and position
-    // do not match the camera setup; it does not touch the stored settings or the user's sliders.
-    val composedScale = (safeScale * autoFrameScale).coerceIn(0.05f, 100.0f)
-    val autoFrameOffsetYDp = with(LocalDensity.current) { autoFrameOffsetY.toDp() }
-    val composedTranslateY = translateY.dp + autoFrameOffsetYDp
-
-    LaunchedEffect(autoFrameScale, safeScale) {
+    // The automatic framing measured from the rendered image is applied as its own graphics layer
+    // on the render surface, with the scale and the vertical shift in the same coordinate space.
+    // Splitting them across Modifier.scale and Modifier.offset is ambiguous, because the offset then
+    // lands in post-scale space, and that ambiguity sent the figure off screen.
+    LaunchedEffect(autoFrameScale, autoFrameOffsetY) {
         AppLogger.i(
             "GltfRenderer",
             "Auto frame applied: autoFrameScale=${"%.4f".format(autoFrameScale)}, " +
-                "userScale=${"%.4f".format(safeScale)}, composedScale=${"%.4f".format(composedScale)}, " +
-                "offsetYDp=${"%.1f".format(autoFrameOffsetY)}"
+                "offsetYpx=${"%.1f".format(autoFrameOffsetY)}, userScale=${"%.4f".format(safeScale)}"
         )
     }
 
@@ -96,12 +92,18 @@ fun GltfRenderer(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .scale(composedScale)
-            .offset(x = translateX.dp, y = composedTranslateY)
+            .scale(safeScale)
+            .offset(x = translateX.dp, y = translateY.dp)
             .background(Color.Transparent)
     ) {
         AndroidView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = autoFrameScale
+                    scaleY = autoFrameScale
+                    translationY = autoFrameOffsetY
+                },
             factory = { context ->
                 GltfSurfaceView(context).apply {
                     surfaceViewState.value = this

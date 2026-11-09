@@ -348,9 +348,36 @@ Consequences that hold regardless of the camera:
 ### New problem found while measuring — width crop
 
 At 70% of the **height**, a wide figure is cut sideways: RobotExpressive with
-arms out had both hands clipped once the 2D scale reached 1.75. The target has
-to be the **smaller** of the height and width fits, so the whole figure stays
-inside the preview. This is not yet implemented.
+arms out had both hands clipped once the 2D scale reached 1.75. The target is
+now the **smaller** of the height and width fits, so the whole figure stays
+inside the preview. Implemented in the same 2D framing; the robot then came out
+at 275 of about 380 preview pixels with both hands visible.
+
+### The real blocker was the drawing surface — 2026-11-10
+
+For days the measured framing reached the renderer and changed nothing on
+screen. The cause was the widget: the preview was a `SurfaceView`, which draws
+into its own window surface that **no view transform reaches**. So neither the
+automatic framing nor the user's `Scale`/`Translation` sliders ever moved a
+pixel; the sliders only appeared to work when the camera happened to align.
+
+The preview is now a `TextureView`, which draws inside the view hierarchy, and
+the automatic framing is applied as one `graphicsLayer` (scale and vertical
+shift in the same coordinate space) on top of the user's sliders. Measured after
+the switch, both models land at about 71-72% of the preview height and centred:
+
+| model | 2D scale | offset | measured height | preview height |
+| --- | --- | --- | --- | --- |
+| RobotExpressive | 6.125 | -471.6 px | 275 px | about 380 px |
+| Xbot | 1.187 | -3 px | 270 px | about 380 px |
+
+Consequence worth keeping in mind: a surface that is drawn small and then
+stretched by a large factor (the robot at 6.1x) is visibly blocky, because the
+renderer drew it at 44 px and those pixels were stretched. The correct fix is
+to zoom **inside** the renderer (a projection zoom that draws the figure large
+in the first place) and use the 2D layer only for the small centring remainder.
+That is the remaining task, together with replacing `transformToUnitCube` by a
+single root transform applied to mesh and skeleton alike.
 
 ## Slider reference for the avatar preview (measured 2026-11-07)
 

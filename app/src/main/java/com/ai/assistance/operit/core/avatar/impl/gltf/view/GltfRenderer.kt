@@ -28,6 +28,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.ai.assistance.operit.core.avatar.common.control.AvatarController
 import com.ai.assistance.operit.core.avatar.impl.gltf.control.GltfAvatarController
 import com.ai.assistance.operit.core.avatar.impl.gltf.model.GltfAvatarModel
+import com.ai.assistance.operit.util.AppLogger
 
 @Composable
 fun GltfRenderer(
@@ -59,13 +60,21 @@ fun GltfRenderer(
     val autoFrameOffsetYDp = with(LocalDensity.current) { autoFrameOffsetY.toDp() }
     val composedTranslateY = translateY.dp + autoFrameOffsetYDp
 
+    LaunchedEffect(autoFrameScale, safeScale) {
+        AppLogger.i(
+            "GltfRenderer",
+            "Auto frame applied: autoFrameScale=${"%.4f".format(autoFrameScale)}, " +
+                "userScale=${"%.4f".format(safeScale)}, composedScale=${"%.4f".format(composedScale)}, " +
+                "offsetYDp=${"%.1f".format(autoFrameOffsetY)}"
+        )
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
     val surfaceViewState = remember { mutableStateOf<GltfSurfaceView?>(null) }
     val renderErrorState = remember(model.modelPath) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(model.modelPath) {
         renderErrorState.value = null
-        gltfController.updateAutoFrame(1.0f, 0.0f)
     }
 
     DisposableEffect(lifecycleOwner) {

@@ -373,11 +373,32 @@ the switch, both models land at about 71-72% of the preview height and centred:
 
 Consequence worth keeping in mind: a surface that is drawn small and then
 stretched by a large factor (the robot at 6.1x) is visibly blocky, because the
-renderer drew it at 44 px and those pixels were stretched. The correct fix is
-to zoom **inside** the renderer (a projection zoom that draws the figure large
-in the first place) and use the 2D layer only for the small centring remainder.
-That is the remaining task, together with replacing `transformToUnitCube` by a
-single root transform applied to mesh and skeleton alike.
+renderer drew it at 44 px and those pixels were stretched. The robot has no
+textures at all (flat materials), so this is not a texture-resolution issue:
+its geometry is fine (7214 vertices over 14 meshes; Xbot has 28374 over 2) and
+it looks sharp when drawn large. A live check with the tuner at
+`distanceMultiplier: 0.16` drew it large and clean, so the drawing resolution is
+the only thing missing.
+
+Two attempts to draw it large up front were tried and **rolled back** on
+2026-11-10; the branch is reset to the last verified state (both models at about
+71%, centred, robot soft):
+
+- **Camera zoom (reduce the distance in steps, re-measuring).** Made the fill
+  worse, not better: 0.114 -> 0.208 -> 0.140 -> 0.068 -> 0.023 as the distance
+  shrank, because the camera target sits on the mesh bounds centre and the
+  figure drops out of frame as the eye approaches. A camera loop has to move the
+  target with the zoom, which is a larger change than it looked.
+- **Projection zoom (`Camera.setScaling`).** An empty frame at 6.1x in both
+  directions (6.1 and 1/6.1). Whatever it does, it is not a scale about the
+  frame centre that keeps the geometry on screen.
+
+What is worth trying next, in order: (1) raise the render resolution — render
+the TextureView at a larger pixel size and let the view shrink it, so a 6x
+enlarge of a small figure is no longer visible; (2) the camera loop with the
+target moved in lockstep; (3) replace `transformToUnitCube` by a single root
+transform applied to mesh and skeleton alike, which would make the bounds honest
+and the framing a plain calculation.
 
 ## Slider reference for the avatar preview (measured 2026-11-07)
 

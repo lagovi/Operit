@@ -1742,12 +1742,6 @@ class GltfSurfaceView @JvmOverloads constructor(
                 .coerceIn(SILHOUETTE_ZOOM_MIN_TOTAL, SILHOUETTE_ZOOM_MAX_TOTAL)
         }
 
-        AppLogger.i(
-            TAG,
-            "Silhouette step: fill=${"%.3f".format(currentFill)} goal=${"%.3f".format(fillGoal)}, " +
-                "centreGapPx=${"%.1f".format(centreGapPx)}, distanceScale=${"%.4f".format(autoDistanceScale)}, " +
-                "targetShiftY=${"%.4f".format(autoTargetShiftY)}, worldPerPixel=${"%.6f".format(worldPerPixel)}"
-        )
         applyCameraPose()
         return false
     }

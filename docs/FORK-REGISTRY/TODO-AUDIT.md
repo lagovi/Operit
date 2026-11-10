@@ -408,6 +408,24 @@ the figure showed tiny in a corner of a stretched strip. Making it work means
 sizing the surface before the swapchain exists or recreating the swapchain on
 every resize; not worth the risk for a preview.
 
+**Attempt 3 (camera zoom with a moving aim point), 2026-11-10: kept, solves the
+softness.** The framing now moves the camera. Each step multiplies the distance
+by `currentFill / goal` and nudges the aim point down by the measured gap between
+the silhouette centre and the frame centre, converted to world units at the
+current distance, so the eye follows the figure instead of sliding past it. The
+camera stops growing the figure at a floor distance (`autoDistanceScale` bounded
+at `SILHOUETTE_ZOOM_MIN_TOTAL`), where the near faces start to clip; at that
+point it has reached 38.7% for Robot and 59.5% for Xbot, and only the small
+remainder goes to the 2D layer (1.81x and 1.18x, both sharper than the old 6.1x
+single stretch). Measured on the phone: Robot 271 px of 385 = 70%, centred, sharp;
+Xbot 270 px = 70%, centred, sharp.
+
+A separate defect surfaced while checking the two models: the AndroidView factory
+set the auto-frame listener once, so after the selected model changed the listener
+kept updating the old controller and the measured framing never reached the
+preview for any model but the first. The listener is now re-bound in the
+`update` block.
+
 ## Slider reference for the avatar preview (measured 2026-11-07)
 
 Written after reading the code and watching the effect of each slider on the

@@ -400,6 +400,14 @@ target moved in lockstep; (3) replace `transformToUnitCube` by a single root
 transform applied to mesh and skeleton alike, which would make the bounds honest
 and the framing a plain calculation.
 
+**Attempt 1 (supersampled render), 2026-11-10: rejected.** `UiHelper.setDesiredSize`
+plus a direct `SurfaceTexture.setDefaultBufferSize` and a matching render
+viewport did not resize the buffer: the swapchain created from the Surface keeps
+the old size, so Filament rendered into a viewport three times the surface and
+the figure showed tiny in a corner of a stretched strip. Making it work means
+sizing the surface before the swapchain exists or recreating the swapchain on
+every resize; not worth the risk for a preview.
+
 ## Slider reference for the avatar preview (measured 2026-11-07)
 
 Written after reading the code and watching the effect of each slider on the

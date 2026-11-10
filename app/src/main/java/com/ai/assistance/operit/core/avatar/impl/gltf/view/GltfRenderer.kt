@@ -141,6 +141,12 @@ fun GltfRenderer(
                         durationMillisByName = durationMillisByName
                     )
                 }
+                // Re-bind on every update: the controller is recreated when the selected model
+                // changes, and a listener captured once in the factory would keep updating the old
+                // instance, so the measured framing would never reach the preview.
+                view.setOnAutoFrameChangedListener { autoScale, offsetY ->
+                    gltfController.updateAutoFrame(autoScale, offsetY)
+                }
                 view.setModelPath(model.modelPath)
                 view.setAnimationState(
                     avatarState.currentAnimation,

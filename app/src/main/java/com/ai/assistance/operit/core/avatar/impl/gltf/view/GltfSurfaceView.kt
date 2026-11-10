@@ -29,6 +29,7 @@ import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
+import kotlin.math.tan
 
 class GltfSurfaceView @JvmOverloads constructor(
     context: Context,
@@ -88,6 +89,15 @@ class GltfSurfaceView @JvmOverloads constructor(
         // also the overall frame budget: retries for an empty frame and settle steps share it, so it
         // must exceed the settle budget.
         private const val SILHOUETTE_MAX_ATTEMPTS = 80
+        // How close the measured fill and centre must be before the framing stops stepping.
+        private const val SILHOUETTE_FILL_TOLERANCE = 0.03
+        private const val SILHOUETTE_CENTRE_TOLERANCE = 0.02
+        // One camera step scales the distance by at most this much, and the whole zoom is kept
+        // between these bounds so a bad measurement cannot collapse or blow up the preview.
+        private const val SILHOUETTE_ZOOM_MIN_STEP = 1.1
+        private const val SILHOUETTE_ZOOM_MAX_STEP = 2.5
+        private const val SILHOUETTE_ZOOM_MIN_TOTAL = 0.02
+        private const val SILHOUETTE_ZOOM_MAX_TOTAL = 50.0
         // One framing step may scale the distance by at most this much in either direction, so a
         // single bad measurement cannot jump the camera into or out of the model in one go.
         private const val CAMERA_TARGET_X = 0.0
@@ -137,6 +147,13 @@ class GltfSurfaceView @JvmOverloads constructor(
     // model bounds after loading, then multiplied by the user's distance scale so that the
     // slider keeps meaning "times the fitted distance" for every model.
     private var fittedCameraDistance: Double = 0.0
+
+    // Framing state that moves the camera instead of stretching the image, so the model is drawn at
+    // the size it is shown and stays sharp. `autoDistanceScale` multiplies the fitted distance,
+    // `autoTargetShiftY` moves the aim point in world units so the figure stays centred as the eye
+    // approaches it. Both are reset whenever the silhouette framing restarts.
+    private var autoDistanceScale: Double = 1.0
+    private var autoTargetShiftY: Double = 0.0
 
     private var activeAnimationIndex: Int = -1
     private var animationStartNanos: Long = System.nanoTime()
@@ -1575,6 +1592,8 @@ class GltfSurfaceView @JvmOverloads constructor(
      * each call costs a full read-back and allocates a Bitmap.
      */
     private fun scheduleSilhouetteFraming() {
+        autoDistanceScale = 1.0
+        autoTargetShiftY = 0.0
         scheduleSilhouetteFramingAttempt(SILHOUETTE_MAX_ATTEMPTS)
     }
 
@@ -1609,7 +1628,10 @@ class GltfSurfaceView @JvmOverloads constructor(
                     scheduleSilhouetteFramingAttempt(attemptsLeft - 1)
                     return@debugGetNextFrameCallback
                 }
-                applySilhouetteFraming(bitmap)
+                val settled = applySilhouetteFraming(bitmap)
+                if (!settled) {
+                    post { scheduleSilhouetteFramingAttempt(attemptsLeft - 1) }
+                }
             } catch (e: Exception) {
                 AppLogger.w(TAG, "Silhouette framing failed: ${e.message}")
             }
@@ -1644,7 +1666,8 @@ class GltfSurfaceView @JvmOverloads constructor(
         }
 
         val viewportHeight = bitmap.height.toDouble()
-        if (viewportHeight <= 0.0) {
+        val viewportWidth = bitmap.width.toDouble()
+        if (viewportHeight <= 0.0 || viewportWidth <= 0.0) {
             return true
         }
 
@@ -1653,41 +1676,62 @@ class GltfSurfaceView @JvmOverloads constructor(
             return true
         }
 
-        // The framing is applied as a plain 2D transform of the rendered image, not by moving the
-        // camera. Scaling the picture scales the measured height by exactly the same factor, while
-        // moving the camera only does so while the whole figure is in frame and the authored bounds
-        // are honest, neither of which holds for the skinned models in the presets (RobotExpressive
-        // draws as if it were ~48 times smaller than its bounds, and both it and the fox saturate
-        // when the camera approaches). The 2D transform is exact from a single measurement.
-        //
-        // `Modifier.scale` scales about the centre of the composable, so a silhouette centre `c`
-        // lands at `H/2 + (c - H/2) * k`. Moving it back to the centre needs the offset `(H/2 - c)
-        // * k`. The result is published to the renderer, which applies it on top of the user's own
-        // scale and translation.
-        //
-        // The height fit is the goal, but a wide figure (RobotExpressive with its arms out) would be
-        // cut off sideways once it reaches 70% of the height, so the scale is also capped so the
-        // measured width stays inside the viewport with the framing margin.
-        val heightScale = SILHOUETTE_TARGET_FILL / currentFill
-        val viewportWidth = bitmap.width.toDouble()
-        val widthFill = if (viewportWidth <= 0.0) 0.0 else box.widthPixels / viewportWidth
-        val widthLimitScale =
-            if (widthFill <= 1e-4) Double.MAX_VALUE else SILHOUETTE_FRAME_WIDTH_FILL / widthFill
-        val scale = min(heightScale, widthLimitScale).toFloat()
-            .coerceIn(SILHOUETTE_FRAME_MIN_SCALE, SILHOUETTE_FRAME_MAX_SCALE)
-        val offsetY = ((viewportHeight / 2.0 - box.centerY) * scale).toFloat()
+        // The camera is moved, not the picture, so the model is drawn at the size it is shown and
+        // stays sharp. Two things make that safe. First, the fill grows as the distance shrinks only
+        // while the whole figure stays inside the frame; the distance is therefore scaled by the
+        // ratio of the current fill to the target, and each step is measured before the next.
+        // Second, the eye would otherwise slide past the figure, because the aim point sits on the
+        // authored bounds centre rather than on the figure itself, so the aim point is moved by the
+        // measured pixel gap between the silhouette centre and the frame centre, converted to world
+        // units at the current distance.
+        val widthFill = box.widthPixels / viewportWidth
+        val widthLimitFill = SILHOUETTE_FRAME_WIDTH_FILL
+        val fillGoal = if (widthFill <= 1e-4) {
+            SILHOUETTE_TARGET_FILL
+        } else {
+            min(SILHOUETTE_TARGET_FILL, SILHOUETTE_TARGET_FILL * widthLimitFill / widthFill)
+        }
 
-        onAutoFrameChanged?.invoke(scale, offsetY)
+        val centreGapPx = box.centerY - viewportHeight / 2.0
+        val centreTolerancePx = viewportHeight * SILHOUETTE_CENTRE_TOLERANCE
+        val fillSettled = abs(fillGoal - currentFill) <= fillGoal * SILHOUETTE_FILL_TOLERANCE
+        val centreSettled = abs(centreGapPx) <= centreTolerancePx
+        if (fillSettled && centreSettled) {
+            onAutoFrameChanged?.invoke(1.0f, 0.0f)
+            AppLogger.i(
+                TAG,
+                "Silhouette framing: fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(fillGoal)}, " +
+                    "widthFill=${"%.3f".format(widthFill)}, distanceScale=${"%.4f".format(autoDistanceScale)}, " +
+                    "targetShiftY=${"%.4f".format(autoTargetShiftY)}, " +
+                    "centreOffsetPx=${"%.1f".format(centreGapPx)}, " +
+                    "silhouettePx=${box.heightPixels.toInt()}x${box.widthPixels.toInt()}/${viewportHeight.toInt()}"
+            )
+            return true
+        }
 
-        AppLogger.i(
-            TAG,
-            "Silhouette framing: fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(SILHOUETTE_TARGET_FILL)}, " +
-                "widthFill=${"%.3f".format(widthFill)}, imageScale=${"%.4f".format(scale)}, " +
-                "offsetYpx=${"%.1f".format(offsetY)}, " +
-                "centreOffsetPx=${"%.1f".format(box.centerY - viewportHeight / 2.0)}, " +
-                "silhouettePx=${box.heightPixels.toInt()}x${box.widthPixels.toInt()}/${viewportHeight.toInt()}"
+        // World units per pixel at the figure's plane, for the current camera distance.
+        val currentDistance = max(
+            CAMERA_DISTANCE_EPSILON,
+            (if (fittedCameraDistance > 0.0) fittedCameraDistance else BASE_CAMERA_DISTANCE.toDouble()) *
+                cameraDistanceScale.toDouble() * autoDistanceScale
         )
-        return true
+        val verticalHalfFov = Math.toRadians(CAMERA_VERTICAL_FOV_DEGREES / 2.0)
+        val worldPerPixel = 2.0 * currentDistance * tan(verticalHalfFov) / viewportHeight
+
+        // Move the aim point down in the world when the figure sits low on screen, so that shrinking
+        // the distance pulls the camera towards the figure rather than past it.
+        autoTargetShiftY -= centreGapPx * worldPerPixel
+
+        // Shrink the distance by the size ratio that is still missing, bounded so a single step is
+        // never extreme and the eye never enters the geometry.
+        if (!fillSettled) {
+            val step = (currentFill / fillGoal).coerceIn(SILHOUETTE_ZOOM_MIN_STEP, SILHOUETTE_ZOOM_MAX_STEP)
+            autoDistanceScale = (autoDistanceScale * step)
+                .coerceIn(SILHOUETTE_ZOOM_MIN_TOTAL, SILHOUETTE_ZOOM_MAX_TOTAL)
+        }
+
+        applyCameraPose()
+        return false
     }
 
     private data class SilhouetteBox(
@@ -1765,14 +1809,14 @@ class GltfSurfaceView @JvmOverloads constructor(
             } else {
                 BASE_CAMERA_DISTANCE.toDouble()
             }
-            val rawDistance = baseDistance * cameraDistanceScale.toDouble()
+            val rawDistance = baseDistance * cameraDistanceScale.toDouble() * autoDistanceScale
             val distance = if (abs(rawDistance) < CAMERA_DISTANCE_EPSILON) {
                 CAMERA_DISTANCE_EPSILON
             } else {
                 rawDistance
             }
 
-            val targetY = cameraTargetY + cameraTargetHeightOffset.toDouble()
+            val targetY = cameraTargetY + cameraTargetHeightOffset.toDouble() + autoTargetShiftY
 
             val horizontalFactor = cos(pitchRadians)
             val eyeX = cameraTargetX + distance * horizontalFactor * sin(yawRadians)

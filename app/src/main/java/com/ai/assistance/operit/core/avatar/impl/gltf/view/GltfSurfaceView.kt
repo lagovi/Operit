@@ -1696,12 +1696,20 @@ class GltfSurfaceView @JvmOverloads constructor(
         val centreTolerancePx = viewportHeight * SILHOUETTE_CENTRE_TOLERANCE
         val fillSettled = abs(fillGoal - currentFill) <= fillGoal * SILHOUETTE_FILL_TOLERANCE
         val centreSettled = abs(centreGapPx) <= centreTolerancePx
-        if (fillSettled && centreSettled) {
-            onAutoFrameChanged?.invoke(1.0f, 0.0f)
+        // The fill stops growing once the eye is as close as the geometry allows: the near faces are
+        // clipped and the silhouette saturates. When that floor is reached and the figure is still
+        // short of the goal, the camera has done all it can, so the remaining factor is applied by
+        // the 2D layer, which is small now compared with stretching the original frame.
+        val cameraAtLimit = autoDistanceScale <= SILHOUETTE_ZOOM_MIN_TOTAL * 1.01
+        if ((fillSettled && centreSettled) || (cameraAtLimit && !fillSettled)) {
+            val remainderScale = (fillGoal / currentFill).coerceAtLeast(1.0).toFloat()
+            val offsetY = ((viewportHeight / 2.0 - box.centerY) * remainderScale).toFloat()
+            onAutoFrameChanged?.invoke(remainderScale, offsetY)
             AppLogger.i(
                 TAG,
                 "Silhouette framing: fill=${"%.3f".format(currentFill)} -> ${"%.3f".format(fillGoal)}, " +
                     "widthFill=${"%.3f".format(widthFill)}, distanceScale=${"%.4f".format(autoDistanceScale)}, " +
+                    "remainderScale=${"%.4f".format(remainderScale)}, " +
                     "targetShiftY=${"%.4f".format(autoTargetShiftY)}, " +
                     "centreOffsetPx=${"%.1f".format(centreGapPx)}, " +
                     "silhouettePx=${box.heightPixels.toInt()}x${box.widthPixels.toInt()}/${viewportHeight.toInt()}"

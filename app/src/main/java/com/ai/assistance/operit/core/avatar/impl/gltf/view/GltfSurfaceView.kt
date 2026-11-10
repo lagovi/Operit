@@ -1725,7 +1725,11 @@ class GltfSurfaceView @JvmOverloads constructor(
         // Shrink the distance by the size ratio that is still missing, bounded so a single step is
         // never extreme and the eye never enters the geometry.
         if (!fillSettled) {
-            val step = (currentFill / fillGoal).coerceIn(SILHOUETTE_ZOOM_MIN_STEP, SILHOUETTE_ZOOM_MAX_STEP)
+            // The distance is multiplied by the missing-size ratio directly, so the step allowed is
+            // the reciprocal of the zoom bounds: a small fill shrinks the distance, a large one grows
+            // it, and neither jumps more than the bounds allow.
+            val step = (currentFill / fillGoal)
+                .coerceIn(1.0 / SILHOUETTE_ZOOM_MAX_STEP, 1.0 / SILHOUETTE_ZOOM_MIN_STEP)
             autoDistanceScale = (autoDistanceScale * step)
                 .coerceIn(SILHOUETTE_ZOOM_MIN_TOTAL, SILHOUETTE_ZOOM_MAX_TOTAL)
         }

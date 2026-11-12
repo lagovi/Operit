@@ -47,6 +47,21 @@ all five clips, plays on Preview). The how and the dead ends are written up in
 `AVATAR-RETARGET-PLAYBOOK.md`. The open work is the choice of shippable
 clips/character, not the mechanics.
 
+**Cloud model catalog with previews (2026-11-12).** The in-app "Import from
+cloud" flow now shows a list of repository models with a thumbnail and a
+one-line summary. Where: Assistant Config, the cloud icon next to the model
+dropdown opens `AvatarPresetGalleryDialog`. The catalog is `presets.json` in
+`lagovi/OperitAvatarAssets`; every preset carries a `thumbnail` path, and
+`AvatarPresetRepository.thumbnailUrlFor` turns it into an absolute URL that Coil
+loads and caches. Three new CC0 mood avatars are published there
+(`gltf.rose`, `gltf.kate`, `gltf.jennifer`, 100Avatars/Polygonal Mind, five
+retargeted moods from the MIT tk256ailab VRMA set). Thumbnails are 512x512 and
+were rendered and centred headless. Built with Blender 5.3.0 on Colab, which
+runs `tools/colab/build_avatar_moods.py` unchanged and also opens the Blender
+5.x Mesh2Motion `.blend` sources that 4.2 refuses. The catalog built is
+described in `AVATAR-MODEL-ACQUISITION-PLAN.md` (new section "Cloud catalog and
+in-app import").
+
 **EARLIER 07.11 — CI on the fork can be switched off by GitHub itself.**
 
 `gh workflow run` fails with `HTTP 422: Actions has been disabled for this

@@ -21,6 +21,12 @@ Run headless on the Colab VM:
         --clip cry=/content/work/mixamo-benchmark/22_Crying.vrma \
         --out /content/work/avatar_moods.glb
 
+Verified unchanged on Blender 4.2.3 LTS and 5.3.0 with the VRM Add-on
+4.10.5 extension (`bl_ext.user_default.vrm`); the pipeline uses no version
+specific API beyond the add-on's VRM1 humanoid API, which is the same in both.
+On 5.3 the same setup works, and 5.3 additionally opens the Blender 5.x
+Mesh2Motion `.blend` sources, which 4.2 refuses.
+
 The character must be a VRM whose licence the VRM Add-on accepts on import (a
 missing licence URL blocks the import). VRMA clips must carry the
 `VRMC_vrm_animation` extension; plain glTF animation files are not retargeted by

@@ -337,6 +337,15 @@ both measured, not guessed:
   needs **Blender 5.2/5.3**, which is downloadable (`download.blender.org/
   release/Blender5.3/`).
 
+Verified on 2026-11-12 with Blender 5.3.0: the `.blend` files open **directly,
+without decompressing first** (5.3 reads the zstd stream itself). The rig is a
+147-bone control rig (`DRV_*`/`CTRL_*`/`POLE_*`/`FK_*`) with the deform bones
+named close to humanoid (`DRV_hips`, `DRV_spine`, `DRV_head`, `DRV_upper_arm_L`,
+`DRV_forearm_L`, `DRV_thigh_L`, `foot_l`, `hand_l`); the file carries a single
+action (`Angry` etc.) and a 0-vertex `Mannequin` placeholder mesh, i.e. motion
+only, no skin. Note the 5.x action API change: `action.fcurves` no longer exists,
+fcurves live under `action.layers[].strips[].channelbags[].fcurves`.
+
 Clips here: `angry`, `clapping`, `greeting`, `head-nod`, `reject` (aojiao base),
 `shiver` (shy), `sit-ground-crying` (cry), `tired-hunched` (weak shy/cry).
 
@@ -472,3 +481,25 @@ exact. Free for non-commercial use.
   retarget) or CMU/MPI (needs mocap retarget) for that one mood. Both are more
   work and each adds its own tail (extra Blender, or attribution).
 - **Only then:** Bandai Namco CC BY-NC, with the licence decision written down.
+
+## Cloud catalog and in-app import (implemented 2026-11-12)
+
+The three mood avatars above are published in `lagovi/OperitAvatarAssets`
+(`presets/gltf/{rose,kate,jennifer}/model.glb`), each 100Avatars CC0 characters
+(Polygonal Mind) with five retargeted moods from the tk256ailab VRMA set (MIT).
+The build used Blender 5.3.0 on Colab with the same
+`tools/colab/build_avatar_moods.py`; the VRMA clips are Angry, Jump, Blush,
+Thinking, Sad mapped to angry/happy/shy/aojiao/cry.
+
+Every preset in the catalog now carries a `thumbnail` path
+(`presets/gltf/<id>/thumbnail.png`, 512x512, rendered headless with Workbench
+and auto-centred). The app fetches `presets.json`, and the cloud gallery
+(`AvatarPresetGalleryDialog`, opened by the cloud icon next to the model
+dropdown in Assistant Config) draws `thumbnail` next to `name` and `summary`.
+`AvatarPresetRepository.thumbnailUrlFor` turns the catalog-relative path into an
+absolute URL; Coil (with the app's disk cache) loads and caches it, so the list
+is browsable offline after the first view.
+
+This is the "import from cloud" flow: open Assistant Config, tap the cloud
+icon, the list of repository models appears with a preview and a one-line
+summary, tap one to download and install it into the avatar list.

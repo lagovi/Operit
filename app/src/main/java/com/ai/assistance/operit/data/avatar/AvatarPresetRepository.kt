@@ -91,6 +91,19 @@ object AvatarPresetRepository {
     }
 
     /**
+     * Absolute URL for a preset thumbnail. Returns null when the preset has no
+     * thumbnail, so the caller can draw a placeholder instead of requesting it.
+     */
+    fun thumbnailUrlFor(catalogUrl: String, preset: Preset): String? {
+        val path = preset.thumbnail?.takeIf { it.isNotBlank() } ?: return null
+        return if (path.startsWith("http://") || path.startsWith("https://")) {
+            path
+        } else {
+            baseUrlFor(catalogUrl) + path
+        }
+    }
+
+    /**
      * Downloads a glTF preset into `filesDir/avatar_presets/<id>/` and verifies
      * the sha256 from the catalog. The verified file is what the renderer gets.
      */

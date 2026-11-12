@@ -65,6 +65,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -187,7 +188,7 @@ private fun PresetTab(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            "Image presets load from the fork repository. 3D model presets install into the assistant avatar list.",
+            "Available models from the project repository. Pick one to download and add it to the avatar list.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -270,6 +271,9 @@ private fun PresetRow(
     busy: Boolean,
     onSelect: () -> Unit
 ) {
+    val thumbnailUrl = remember(preset.id) {
+        AvatarPresetRepository.thumbnailUrlFor(AvatarPresetRepository.DEFAULT_CATALOG_URL, preset)
+    }
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(enabled = !busy, onClick = onSelect),
         shape = RoundedCornerShape(10.dp),
@@ -281,11 +285,20 @@ private fun PresetRow(
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+                    .size(56.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Category, contentDescription = null)
+                if (thumbnailUrl != null) {
+                    AsyncImage(
+                        model = thumbnailUrl,
+                        contentDescription = "${preset.name} preview",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp))
+                    )
+                } else {
+                    Icon(Icons.Default.Category, contentDescription = null)
+                }
             }
             Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -918,7 +931,7 @@ fun AvatarPresetGalleryDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Avatar presets", fontWeight = FontWeight.Bold) },
+        title = { Text("Import from cloud", fontWeight = FontWeight.Bold) },
         text = {
             Column(modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
                 PresetTab(

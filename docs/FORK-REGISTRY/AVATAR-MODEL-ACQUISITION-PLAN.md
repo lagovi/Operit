@@ -235,6 +235,18 @@ as glTF with real motion:
 
 `Crying` and `Crying_2` are byte-identical in the source; one copy is enough.
 
+## Order of work: look first, then touch Blender
+
+The user's rule, decided 2026-11-12: before any Blender work on a model, it has
+to be checked on the phone as-is - does it show up at all, and does the user
+like how it looks. Only a model that renders and is visually acceptable is worth
+retargeting or editing in Blender. This avoids investing Blender/Colab time in a
+character that is rejected on sight or does not render for a structural reason.
+
+The fox is the precedent: it did not render at all (centimetre authoring under
+two scene roots) and was fixed in the data with a root scale, no Blender needed,
+and then judged on the phone (see TODO-AUDIT.md, "Fox resolved in the data").
+
 ## Concrete next actions
 
 1. Download Mesh2Motion emissions + emotes + relevant locomotion `.blend`, and

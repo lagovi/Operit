@@ -207,6 +207,34 @@ judge whether the CC0 `Sad.vrma` reads as well, and only then commit to a
 permissive clip or invest in hand-fixing. Because these stay available, the
 comparison can be repeated on any future build instead of being redone once.
 
+Source used for the benchmark: `dongping-chen/clawatar` (`public/animations/`).
+The repository code is MIT; its README states the 162 animations are Mixamo,
+"non-commercial use, credit required". Downloaded (kept locally at
+`/tmp/opencode/models/mixamo-benchmark/`, not committed), each verified to parse
+as glTF with real motion:
+
+| file | duration | maps to |
+| --- | --- | --- |
+| `0_Angry` | 19.2 s | angry |
+| `94_Angry Gesture` | 2.0 s | angry |
+| `116_Happy Hand Gesture` | 2.6 s | happy |
+| `49_Joyful Jump` | 1.8 s | happy |
+| `19_Clapping` | 1.2 s | happy |
+| `22_Crying` | 6.3 s | cry |
+| `142_Sad Idle` | 3.6 s | cry / sad |
+| `26_Defeat` | 6.6 s | cry / sad |
+| `53_Loser` | 3.3 s | cry / sad |
+| `64_Rejected` | 4.6 s | aojiao base |
+| `56_No` | 4.5 s | aojiao base |
+| `144_Shaking Head No` | 1.6 s | aojiao |
+| `145_Shrugging` | 1.9 s | shy |
+| `127_Leaning` | 3.0 s | shy |
+| `156_Thankful` | 2.8 s | shy / soft |
+| `161_Waving` | 2.9 s | happy / greeting |
+| `118_Head Nod Yes` | 2.3 s | happy |
+
+`Crying` and `Crying_2` are byte-identical in the source; one copy is enough.
+
 ## Concrete next actions
 
 1. Download Mesh2Motion emissions + emotes + relevant locomotion `.blend`, and

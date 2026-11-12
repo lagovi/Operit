@@ -300,31 +300,36 @@ dedicated clip. At best Xbot can be faked: `agree` reads as a weak happy,
 `headShake` as a weak aojiao. There is no anger, shyness or crying clip
 anywhere. These presets are locomotion and tech demos, not character avatars.
 
-- [ ] K4. Replace the preinstalled presets with models that ship mood clips.
-      All current ones are to be dropped. Search brief for an external
-      research model: `AVATAR-MODEL-SEARCH-BRIEF.md`.
-- [ ] K5. The camera fit alone does not centre a skinned model, and that is now
-      understood rather than open. Measured on Xbot in the 678x385 preview
-      (screenshots at 650 px height):
+- [x] K4. Decided and satisfied by design: no models ship in the APK
+      (2026-11-12). `app/src/main/assets/pets/` holds only `.keep`; every model
+      comes from the cloud catalog in `lagovi/OperitAvatarAssets` via the
+      "Import from cloud" gallery. The user's decision is "cloud only, nothing
+      in the APK", so the old wording "replace the preinstalled presets" does
+      not apply: there are no preinstalled presets to replace. The catalog now
+      carries three CC0 characters with five mood clips each (`gltf.rose`,
+      `gltf.kate`, `gltf.jennifer`) alongside the locomotion/tech demos, which
+      stay for smoke-testing. Adding or removing a catalog entry is a data
+      change in the assets repository, not an app change.
+- [x] K5. The camera fit is correct; the fox failure was stale data, fixed
+      (2026-11-12). Measured on the phone: the shipped `gltf.fox` still held the
+      pre-fix model, whose two scene roots made the mesh and joint bounds land
+      in different spaces, so the camera fitted bounds the drawn fox was not in
+      and the silhouette loop retried 80 frames then gave up ("draws nothing").
+      Replacing the catalog file with `fox_fixed.glb` (both roots under one
+      0.01-scale `FoxAvatarRoot`) makes the bounds agree: mesh h=0.3951 versus
+      the old 39.5, root scale 1.29 versus 0.0129, fit distance 2.05 versus 205,
+      and the fox then draws at about 70% of the preview height, centred and
+      sharp. Published as catalog version 3 (commit `17c511a` in the assets
+      repo). The Xbot/Robot centring numbers below stay as the measurement
+      record; the shipped 2D framing was already proven for them. What is left
+      is only to confirm the other presets on a fresh install, which the cloud
+      gallery now allows without rebuilding.
 
-      | setting | figure height | top gap | bottom gap | centre |
-      | --- | --- | --- | --- | --- |
-      | neutral | 345 px | 95 | 301 | 261..514 |
-      | scale 1.35, translateY 50.9 | 345 px | 143 | 158 | 313..657 |
-
-      The first row is what the user saw as an off-centre figure. The second is
-      the shipped default, applied in `AssistantConfigViewModel` to glTF only.
-
-      Why the camera cannot do this: `asset.boundingBox` for a skinned mesh is
-      in the mesh's own space (Xbot: 0.009), while the joints the camera fit
-      reads are in authoring space (74 units). The two never agree, so moving
-      the camera changes the size but keeps the figure anchored high. The
-      per-instance post transform the preview already applies is the right
-      lever, and that is where the values now live.
-
-      Not yet: confirming the new defaults on a freshly installed build, and
-      checking that Fox and Soldier land sensibly with the same values (Fox is a
-      quadruped, so its centre may differ).
+      Measurement record from 2026-11-09 (Xbot, 678x385 preview): neutral gave a
+      figure 345 px tall off-centre (top gap 95, bottom 301); the shipped
+      "scale 1.35, translateY 50.9" gave 345 px at top gap 143, bottom 158. The
+      per-instance post transform is the lever for this, and that is where the
+      values live.
 ## Bounds space disagreement, measured — 2026-11-09
 
 The `Bounds diagnostic` line in `GltfSurfaceView` logs, for every model load,

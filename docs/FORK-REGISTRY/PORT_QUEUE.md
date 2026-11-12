@@ -198,6 +198,38 @@ commits (breaks the tested line). Spot ports only. Fork-point: `1ed8687d`
   decision the alternative (stop returning the token; have the console ask
   for it) was NOT taken.
 
+## Upstream review 2026-11-12 (209 commits after merge-base 1ed8687d)
+
+A read-only classification of everything that landed upstream since our
+merge-base was done on 2026-11-12. Headline: **no upstream commit touches the
+avatar / preset / glTF / retarget code**, so the fork's recent avatar work has
+no counterpart to port and cannot conflict.
+
+16 high-priority candidates were identified (stability, security, crash and
+data-loss fixes), 24 medium, 13 needing a decision, and 54 skipped by policy
+(i18n/strings bulk, docs/README, release bumps, draw dev tools, features the
+fork dropped). The high-priority list, rough order:
+
+- `49be9a0f` ANR monitor OOM (new `AnrCaptureBudget.kt`; reapply fork EN logs);
+- `d6c22c9f` NUL in message content truncates history (silent data loss);
+- `7fbc7cdd` update download had no integrity check + flaky-mirror loop;
+- `fcd9b55a` + `d2e6584b` web-chat SSE disconnect crashes the app;
+- `7dbab534` stale functional-service cache after a model switch;
+- `84a6b6fd` (+ `7e3e8530`) chat send hang / registered render tags;
+- `2e2215ba` + `d5313b3a` terminal: interrupt without switching session, PTY
+  writes off the main thread (needs the terminal submodule bump);
+- `5a332577` permissions ConcurrentModificationException;
+- `d3c107dd` remote MCP tools not registered when discovery succeeds;
+- `51d2429a` A2A Part content member; `0e2e1911` grep context line numbers;
+- `128d4265` cleared default voice prompt re-seeds; `22319590` env-var warning.
+
+Decisions still needed (do not act without the user): the Antigravity revert
+(`b6dc07d3`, upstream dropped a feature the fork deliberately ported); the
+stream-revision pair (`3ca9a8ab`+`271e733b`, large); the terminal submodule
+rebase (`ecb93f2`+`9d01a2e`+`04a6457` onto `e464668`); and whether the fork
+ships the MCP stdio JS bridge (`4bb740d6`). None of this is started; it is a
+backlog, not in flight. The full per-commit table was produced in the session
+that wrote this note.
 
 ## Not taking (REJECTED, deliberate)
 

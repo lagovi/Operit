@@ -62,6 +62,25 @@ runs `tools/colab/build_avatar_moods.py` unchanged and also opens the Blender
 described in `AVATAR-MODEL-ACQUISITION-PLAN.md` (new section "Cloud catalog and
 in-app import").
 
+**K4 and K5 closed 2026-11-12 on the user's instruction ("cloud only, not in
+the APK"; "K5 — do it").** K4: nothing ships in the APK
+(`assets/pets/` is only `.keep`); every model comes from the cloud catalog, so
+"replace the preinstalled presets" no longer applies — adding/removing a model is
+an assets-repo change. K5: the camera framing is correct for every preset; the
+fox that "drew nothing" was the old catalog file, not the camera. The cloud
+`gltf.fox` was replaced with `fox_fixed.glb` (both scene roots under one
+0.01-scale root), which makes the mesh and joint bounds agree (fit distance 2.05
+instead of 205); the fox now draws at ~70%, centred and sharp. Published as
+assets catalog version 3 (`17c511a`). Confirmed on the phone: fox, Xbot, Soldier
+and Rose all framed ~70% centred. Evidence in
+`screenshots/k5-framing-2026-11-12/`.
+
+**Upstream review 2026-11-12.** 209 upstream commits after the merge-base were
+classified (read-only); 16 high-priority stability/security/data-loss fixes are
+listed with order and the open decisions in `PORT_QUEUE.md` ("Upstream review
+2026-11-12"). No upstream commit touches the avatar/glTF/retarget code. Nothing
+was ported; it is a backlog awaiting the user.
+
 **EARLIER 07.11 — CI on the fork can be switched off by GitHub itself.**
 
 `gh workflow run` fails with `HTTP 422: Actions has been disabled for this

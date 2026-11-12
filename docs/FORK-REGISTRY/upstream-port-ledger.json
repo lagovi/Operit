@@ -1,0 +1,274 @@
+{
+  "schema_version": 1,
+  "fork": "lagovi/Operit",
+  "upstream": "AAswordman/Operit",
+  "upstream_ref": "upstream/main",
+  "fork_point": "1ed8687d285271a0ea883cf5e3b63eebf9786368",
+  "note": "One entry per upstream commit after fork_point. status: ported | skipped | deferred | superseded. Keys: upstream_sha (7+ hex prefix), upstream_subject, status, fork_commit (our commit short-sha when ported, else null), reason (one line), decided (YYYY-MM-DD). An upstream commit with no entry is UNCLASSIFIED and reported by `python3 ci/script/fork_audit.py --ports`.",
+  "entries": [
+    {
+      "upstream_sha": "49be9a0f",
+      "upstream_subject": "fix(anr): bound thread dump memory and capture rate",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "ANR monitor OOM; new AnrCaptureBudget.kt, reapply fork EN log lines",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "d6c22c9f",
+      "upstream_subject": "fix(chat): read NUL message content without truncation",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "silent data loss: NUL in PDF text truncates message history",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "7fbc7cdd",
+      "upstream_subject": "fix(update): keep trying other sources and verify the downloaded package",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "update APK had no integrity check; flaky-mirror loop",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "fcd9b55a",
+      "upstream_subject": "fix(web): stop SSE client disconnect from crashing the app",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "web-chat disconnect crash",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "d2e6584b",
+      "upstream_subject": "fix(web): guard the external chat SSE writer close the same way",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "same crash class on external-chat path; after fcd9b55a",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "7dbab534",
+      "upstream_subject": "fix(functional): validate cached service against persisted config on every lookup",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "stale provider cache used after model switch",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "84a6b6fd",
+      "upstream_subject": "fix(chat): 保留已注册 XML 渲染标签并修复发送卡死",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "send hang; needs 7e3e8530 first",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "7e3e8530",
+      "upstream_subject": "fix(waifu): keep block LaTeX renderable in Waifu mode (#852)",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "prerequisite of 84a6b6fd",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "2e2215ba",
+      "upstream_subject": "fix(terminal): interrupt the requested session without switching the active one",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "Ctrl+C hijacks the terminal UI; needs terminal submodule bump",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "d5313b3a",
+      "upstream_subject": "fix(terminal): keep target-session writes off the main thread",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "ANR from blocking PTY writes; after 2e2215ba",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "5a332577",
+      "upstream_subject": "fix(permissions): synchronize concurrent tool descriptions",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "ConcurrentModificationException",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "d3c107dd",
+      "upstream_subject": "fix(mcp): register remote MCP tools when discovery succeeds",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "remote MCP tools never reach the AI",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "51d2429a",
+      "upstream_subject": "fix(a2a): identify text parts by the Part content member",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "A2A Part protocol compliance",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "0e2e1911",
+      "upstream_subject": "fix(tools): carry real line numbers through grep match context (#1346)",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "wrong line numbers returned to the model",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "128d4265",
+      "upstream_subject": "fix(character-card): keep cleared default voice prompt empty",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "cleared voice prompt re-seeds",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "22319590",
+      "upstream_subject": "fix(packages): clear the env var warning once a required value is set",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "env-var warning state bug",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "b6dc07d3",
+      "upstream_subject": "Revert \"feat(provider): add Antigravity OAuth login and fingerprint spoofing (#1257)\" (#1450)",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "decide: upstream dropped Antigravity which the fork deliberately ported",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "3ca9a8ab",
+      "upstream_subject": "fix(chat): keep streamed revisions aligned across retries and consumers",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "large; needs focused port session",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "271e733b",
+      "upstream_subject": "fix(chat): reconcile retry revisions for Waifu and final responses",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "large; depends on 3ca9a8ab",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "0a932692",
+      "upstream_subject": "fix: reconcile web history, functional service leases and A2A output",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "large; after terminal submodule move",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "1124d173",
+      "upstream_subject": "fix: complete terminal and subagent feedback corrections",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "forces terminal submodule bump",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "4bb740d6",
+      "upstream_subject": "fix(mcp): honor stdio cwd and surface local startup failures",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "decide whether fork ships the MCP stdio JS bridge",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "1140f8d5",
+      "upstream_subject": "DeepSeek Responses: commentary 改写为 reasoning item + 正文实时流式输出",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "DeepseekProvider deleted in fork; decide",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "664d87e1",
+      "upstream_subject": "feat(chat): allow memory rebuild over a selected date range",
+      "status": "deferred",
+      "fork_commit": null,
+      "reason": "feature, decide if wanted",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "614b022a",
+      "upstream_subject": "feat(chat): add nested conversation folders and independent ordering",
+      "status": "skipped",
+      "fork_commit": null,
+      "reason": "too large, DB migration; not taken",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "de01cd35",
+      "upstream_subject": "revert(chat): restore Room v21 for Operit2 imports",
+      "status": "skipped",
+      "fork_commit": null,
+      "reason": "part of the nested-folders revert; not taken",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "8b9d8539",
+      "upstream_subject": "test(chat): align entity conversion checks with folder identity",
+      "status": "skipped",
+      "fork_commit": null,
+      "reason": "nested-folders only",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "1957624d",
+      "upstream_subject": "feat(draw): support GPT Image 2.6 animated GIF output",
+      "status": "skipped",
+      "fork_commit": null,
+      "reason": "draw dev tooling, rejected by policy",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "c6b65b1a",
+      "upstream_subject": "fix(draw): support GPT Image models in OpenAI draw",
+      "status": "skipped",
+      "fork_commit": null,
+      "reason": "draw dev tooling, rejected by policy",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "b078c742",
+      "upstream_subject": "fix: gate market installation by ToolPkg API compatibility (#1474)",
+      "status": "skipped",
+      "fork_commit": null,
+      "reason": "depends on ToolPkg API 1.x absent in fork",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "7d83ae2e",
+      "upstream_subject": "docs: add missing Trendshift badges",
+      "status": "skipped",
+      "fork_commit": null,
+      "reason": "docs only, rejected",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "aeb569bf",
+      "upstream_subject": "chore(release): bump version to 1.12.2+2",
+      "status": "skipped",
+      "fork_commit": null,
+      "reason": "release bump, fork keeps its own version",
+      "decided": "2026-11-12"
+    },
+    {
+      "upstream_sha": "dd882918",
+      "upstream_subject": "chore(release): bump version to 1.12.2+1",
+      "status": "skipped",
+      "fork_commit": null,
+      "reason": "release bump",
+      "decided": "2026-11-12"
+    }
+  ]
+}

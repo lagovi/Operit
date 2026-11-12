@@ -22,6 +22,14 @@ four classes of regression:
 
 Exit status is non-zero only when a check actually fails, so it can gate CI and
 be run locally without ceremony.
+
+Passing ``--ports`` runs a different, independent report instead: it cross-checks
+the upstream commit ledger in
+``docs/FORK-REGISTRY/upstream-port-ledger.json`` against the real git history and
+lists every upstream commit after the fork point that the ledger does not
+classify yet, plus stale ledger entries whose upstream sha matches no commit in
+the range. That mode prints a report and exits zero unless the ledger itself is
+missing or unparseable.
 """
 
 from __future__ import annotations
@@ -39,6 +47,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = REPO_ROOT / "docs" / "FORK-REGISTRY" / "registry.json"
+LEDGER_PATH = REPO_ROOT / "docs" / "FORK-REGISTRY" / "upstream-port-ledger.json"
+DEFAULT_UPSTREAM_REF = "upstream/main"
 
 #: Modules that own their own resource package. Kotlin under these roots
 #: resolves ``R.string.*`` against that module's own ``values/``, not the app's.
@@ -413,6 +423,258 @@ def report_merge_hotspots(result: AuditResult, base: str | None) -> None:
     )
 
 
+@dataclass
+class UpstreamCommit:
+    sha: str
+    subject: str
+
+
+@dataclass
+class LedgerEntry:
+    upstream_sha: str
+    upstream_subject: str
+    status: str
+    fork_commit: str | None
+    reason: str
+
+
+def load_ledger() -> dict | None:
+    """Return the parsed ledger, or None when it is missing/unreadable/invalid."""
+    try:
+        raw = LEDGER_PATH.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def parse_ledger_entries(data: dict) -> tuple[list[LedgerEntry], list[str]]:
+    """Normalise ledger entries; malformed ones are reported, never fatal."""
+    entries: list[LedgerEntry] = []
+    problems: list[str] = []
+    raw_entries = data.get("entries", [])
+    if not isinstance(raw_entries, list):
+        return entries, ["ledger 'entries' is not a list; nothing to cross-check"]
+    for index, item in enumerate(raw_entries):
+        if not isinstance(item, dict):
+            problems.append(f"entry #{index} is not an object; ignored")
+            continue
+        sha = item.get("upstream_sha")
+        if not isinstance(sha, str) or not sha.strip():
+            problems.append(f"entry #{index} has no usable upstream_sha; ignored")
+            continue
+        status = item.get("status")
+        if not isinstance(status, str) or not status:
+            status = "unknown"
+        subject = item.get("upstream_subject")
+        reason = item.get("reason")
+        fork_commit = item.get("fork_commit")
+        entries.append(
+            LedgerEntry(
+                upstream_sha=sha.strip().lower(),
+                upstream_subject=subject if isinstance(subject, str) else "",
+                status=status,
+                fork_commit=fork_commit if isinstance(fork_commit, str) and fork_commit else None,
+                reason=reason if isinstance(reason, str) else "",
+            )
+        )
+    return entries, problems
+
+
+def sha_prefix_matches(prefix: str, full: str) -> bool:
+    """True when either side is a prefix of the other, up to the shorter length."""
+    prefix = prefix.strip().lower()
+    full = full.strip().lower()
+    if not prefix or not full:
+        return False
+    length = min(len(prefix), len(full))
+    return prefix[:length] == full[:length]
+
+
+def find_covering_entry(commit: UpstreamCommit, entries: list[LedgerEntry]) -> LedgerEntry | None:
+    for entry in entries:
+        if sha_prefix_matches(entry.upstream_sha, commit.sha):
+            return entry
+    return None
+
+
+def run_ports_report(color: bool) -> int:
+    """Cross-check the upstream commit ledger against the real git history."""
+    paint = _make_painter(color)
+
+    data = load_ledger()
+    if data is None:
+        sys.stderr.write(
+            f"port ledger missing or unparseable: {LEDGER_PATH.relative_to(REPO_ROOT).as_posix()}\n"
+        )
+        return 2
+
+    entries, problems = parse_ledger_entries(data)
+
+    ledger_fork_point = data.get("fork_point")
+    ledger_fork_point = ledger_fork_point.strip().lower() if isinstance(ledger_fork_point, str) else ""
+    upstream_ref = data.get("upstream_ref")
+    upstream_ref = upstream_ref.strip() if isinstance(upstream_ref, str) and upstream_ref.strip() else DEFAULT_UPSTREAM_REF
+
+    lines: list[str] = []
+    header = "Port ledger report"
+    lines.append(paint(BOLD, header))
+    lines.append("=" * len(header))
+
+    if not ledger_fork_point:
+        lines.append(paint(YELLOW, "warning: ledger has no fork_point; relying on git merge-base only"))
+
+    if run_git("rev-parse", "--verify", "--quiet", f"{upstream_ref}^{{commit}}") is None:
+        lines.append("")
+        lines.append(
+            f"upstream ref {upstream_ref!r} is not available; run `git fetch upstream` and retry"
+        )
+        sys.stdout.write("\n".join(lines) + "\n")
+        return 0
+
+    merge_base = run_git("merge-base", "HEAD", upstream_ref)
+    merge_base = merge_base.strip().lower() if merge_base else None
+    if not merge_base:
+        lines.append(paint(RED, f"error: could not compute merge-base of HEAD and {upstream_ref}"))
+        sys.stdout.write("\n".join(lines) + "\n")
+        return 1
+
+    # Re-enumerate from the git merge-base even when the ledger disagrees, so the
+    # report always reflects reality; the ledger value is only a consistency check.
+    if ledger_fork_point and ledger_fork_point != merge_base:
+        lines.append("")
+        lines.append(
+            paint(
+                RED,
+                f"WARNING: ledger fork_point is {ledger_fork_point} but git merge-base is {merge_base}; "
+                f"enumerating from git.",
+            )
+        )
+
+    log_output = run_git("log", "--no-merges", "--format=%H %s", f"{merge_base}..{upstream_ref}")
+    if log_output is None:
+        lines.append(paint(RED, f"error: could not enumerate commits in {merge_base}..{upstream_ref}"))
+        sys.stdout.write("\n".join(lines) + "\n")
+        return 1
+
+    commits: list[UpstreamCommit] = []
+    for raw in log_output.splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        sha, _, subject = raw.partition(" ")
+        commits.append(UpstreamCommit(sha=sha.lower(), subject=subject.strip()))
+
+    unclassified: list[UpstreamCommit] = []
+    classified: list[UpstreamCommit] = []
+    for commit in commits:
+        if find_covering_entry(commit, entries) is None:
+            unclassified.append(commit)
+        else:
+            classified.append(commit)
+
+    matched_full_shas: set[str] = set()
+    matched_prefixes: set[str] = set()
+    stale_entries: list[LedgerEntry] = []
+    for entry in entries:
+        matches = [commit for commit in commits if sha_prefix_matches(entry.upstream_sha, commit.sha)]
+        if not matches:
+            stale_entries.append(entry)
+            continue
+        # Prefer the full-sha match; a short prefix may cover several commits.
+        matched_prefixes.add(entry.upstream_sha)
+        for commit in matches:
+            matched_full_shas.add(commit.sha)
+
+    by_status: dict[str, list[LedgerEntry]] = defaultdict(list)
+    for entry in entries:
+        by_status[entry.status].append(entry)
+
+    def short(sha: str) -> str:
+        return sha[:12]
+
+    lines.append("")
+    lines.append(paint(RED, f"UNCLASSIFIED ({len(unclassified)})"))
+    if unclassified:
+        lines.append("  upstream commits after the fork point with no ledger entry:")
+        for commit in unclassified:
+            lines.append(f"  {short(commit.sha)}  {commit.subject}")
+    else:
+        lines.append("  none: every upstream commit in range is classified")
+
+    lines.append("")
+    ported = by_status.get("ported", [])
+    lines.append(paint(GREEN, f"PORTED ({len(ported)})"))
+    if ported:
+        for entry in ported:
+            target = entry.fork_commit if entry.fork_commit else "(no fork commit recorded)"
+            subject = entry.upstream_subject or entry.reason or "(no subject recorded)"
+            lines.append(f"  {entry.upstream_sha} -> {target}  {subject}")
+    else:
+        lines.append("  none")
+
+    for label, key in (("SKIPPED", "skipped"), ("DEFERRED", "deferred"), ("SUPERSEDED", "superseded")):
+        bucket = by_status.get(key, [])
+        lines.append("")
+        lines.append(paint(YELLOW, f"{label} ({len(bucket)})"))
+        if bucket:
+            for entry in bucket:
+                subject = entry.upstream_subject or entry.reason or "(no subject recorded)"
+                lines.append(f"  {short(entry.upstream_sha)}  {subject}")
+        else:
+            lines.append("  none")
+
+    other_statuses = sorted(status for status in by_status if status not in {"ported", "skipped", "deferred", "superseded"})
+    if other_statuses:
+        lines.append("")
+        lines.append(paint(YELLOW, "OTHER STATUSES"))
+        for status in other_statuses:
+            for entry in by_status[status]:
+                subject = entry.upstream_subject or entry.reason or "(no subject recorded)"
+                lines.append(f"  [{status}] {short(entry.upstream_sha)}  {subject}")
+
+    lines.append("")
+    lines.append(paint(RED, f"STALE-ENTRY ({len(stale_entries)})"))
+    if stale_entries:
+        for entry in stale_entries:
+            reason = entry.reason or "(no reason recorded)"
+            lines.append(f"  {short(entry.upstream_sha)} [{entry.status}]  {reason}")
+    else:
+        lines.append("  none")
+
+    lines.append("")
+    total = len(commits)
+    classified_count = len(classified)
+    lines.append(
+        f"Summary: {total} non-merge upstream commits after {short(merge_base)}; "
+        f"classified: {classified_count}; UNCLASSIFIED: {len(unclassified)}; "
+        f"ledger entries: {len(entries)}; stale entries: {len(stale_entries)}"
+    )
+
+    if problems:
+        lines.append("")
+        lines.append(paint(YELLOW, "Ledger problems"))
+        for problem in problems:
+            lines.append(f"  {problem}")
+
+    sys.stdout.write("\n".join(lines) + "\n")
+    return 0
+
+
+def _make_painter(color: bool):
+    def paint(code: str, text: str) -> str:
+        if not color:
+            return text
+        return f"{code}{text}{RESET}"
+
+    return paint
+
+
 def render(result: AuditResult, color: bool) -> str:
     def paint(code: str, text: str) -> str:
         if not color:
@@ -458,8 +720,19 @@ def main() -> int:
         help="merge base to compare against (default: merge-base with upstream/dev)",
     )
     parser.add_argument("--no-hotspots", action="store_true", help="skip the upstream overlap report")
+    parser.add_argument(
+        "--ports",
+        action="store_true",
+        help="cross-check the upstream port ledger against git history and report unclassified commits",
+    )
     parser.add_argument("--no-color", action="store_true")
     args = parser.parse_args()
+
+    color = not args.no_color and sys.stdout.isatty()
+    if args.ports:
+        # The port report is a focused, independent mode: it does not run the
+        # invariant checks and its status does not gate CI on findings.
+        return run_ports_report(color)
 
     result = AuditResult()
     check_anchors(result)

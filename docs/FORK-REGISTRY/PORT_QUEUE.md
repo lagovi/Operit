@@ -1,5 +1,10 @@
 # Port queue: upstream → fork (opened 11.10, user decision)
 
+> **Machine-readable status of every upstream commit is now in
+> [`upstream-port-ledger.json`](upstream-port-ledger.json). List it with
+> `python3 ci/script/fork_audit.py --ports`. This file keeps the detailed
+> human notes; see [`UPSTREAM-SYNC.md`](UPSTREAM-SYNC.md) for the mechanism.**
+
 > **Language rule (user directive, 15.10): talk to the user in Russian.
 > All agent-internal docs are in English.**
 
@@ -199,6 +204,9 @@ commits (breaks the tested line). Spot ports only. Fork-point: `1ed8687d`
   for it) was NOT taken.
 
 ## Upstream review 2026-11-12 (209 commits after merge-base 1ed8687d)
+
+The 16 high-priority fixes below and the decision items are now the
+"deferred" entries in `upstream-port-ledger.json`.
 
 A read-only classification of everything that landed upstream since our
 merge-base was done on 2026-11-12. Headline: **no upstream commit touches the

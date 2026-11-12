@@ -42,6 +42,11 @@ They are working instructions, so they do not belong in product documentation.
   the code is the CI build after a push.
 - Branch names must follow the pull request naming convention in
   `docs/doc-src/dev-core/CONTRIBUTING.md`.
+- After analysing any upstream commit, record it in
+  `docs/FORK-REGISTRY/upstream-port-ledger.json` with its sha and status
+  (`ported`, `skipped`, `deferred`, `superseded`). Before starting a port, run
+  `python3 ci/script/fork_audit.py --ports` to see what is still UNCLASSIFIED.
+  Never leave an upstream commit you have reviewed without a ledger entry.
 - The ToDo tool (todowrite) must reflect reality at all times. It is not a
   one-shot list written at the start of a session and then forgotten.
   - When a task is genuinely finished (code merged and a verification exists),

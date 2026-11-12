@@ -39,6 +39,14 @@ so exporting any `.blend` sources and retargeting is a Colab task (K7 in
 assets live in `/tmp/opencode/models/{vrma,m2m,mixamo-benchmark}` (not
 committed). The Mixamo benchmark is intentionally kept, not deleted.
 
+K7 was proven end to end on 2026-11-12: `tools/colab/build_avatar_moods.py`
+builds one plain `.glb` with five clips named `angry/aojiao/cry/happy/shy` from
+a VRM character and VRMA clips, using the VRM Add-on's T-pose-normalised
+retarget, and it was verified on the phone (renders, rest pose on load, lists
+all five clips, plays on Preview). The how and the dead ends are written up in
+`AVATAR-RETARGET-PLAYBOOK.md`. The open work is the choice of shippable
+clips/character, not the mechanics.
+
 **EARLIER 07.11 — CI on the fork can be switched off by GitHub itself.**
 
 `gh workflow run` fails with `HTTP 422: Actions has been disabled for this

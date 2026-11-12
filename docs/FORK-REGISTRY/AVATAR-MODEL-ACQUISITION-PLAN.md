@@ -7,7 +7,8 @@ external report claims it and it has not been checked here yet.
 
 Related: `AVATAR-MODEL-SEARCH-BRIEF.md` (what we ask for),
 `TODO-AUDIT.md` K4/K5 (measured model reality), `AVATAR-3D-RESEARCH.md`
-(formats and the asset repository layout).
+(formats and the asset repository layout), `AVATAR-RETARGET-PLAYBOOK.md` (the
+verified how-to for combining a character with clips into one multi-mood `.glb`).
 
 ## What is fixed by the product
 
@@ -263,3 +264,211 @@ and then judged on the phone (see TODO-AUDIT.md, "Fox resolved in the data").
 5. Download Mixamo/ZeroEGGS for the internal benchmark, keep them locally
    (not committed, not shipped) so the comparison can be repeated on later
    builds.
+
+## Source-by-source assessment (2026-11-12, after the K7 build)
+
+This section was written after the retarget pipeline was proven end to end (see
+`AVATAR-RETARGET-PLAYBOOK.md`). It says, for every source gathered earlier, how
+well it fits the five moods, what has to be finished by hand, and the exact
+procedure. "Verified" means inspected here; "reported" means only claimed by an
+external report and not checked. The five moods are angry, happy, shy, aojiao,
+cry.
+
+The pipeline that consumes the result takes one character plus one clip per
+mood and writes a single `.glb` with five named animations. So the practical
+question per source is only: can it give a **VRM-compatible humanoid clip** or a
+**character**, and how much work is between the raw download and that clip.
+
+### 1. tk256ailab VRMA set — MIT (best single motion source)
+
+Verified: 11 files, each a glTF binary carrying `VRMC_vrm_animation`, one
+animation with 52 channels, length 3.93 s, distinct sha256, real motion.
+Clips: `Angry`, `Blush`, `Clapping`, `Goodbye`, `Jump`, `LookAround`, `Relax`,
+`Sad`, `Sleepy`, `Surprised`, `Thinking`.
+
+- **Fit.** angry = `Angry`; happy = `Clapping` or `Jump`; shy = `Blush` (the
+  rare "tereru"/flustered motion almost no other permissive source has);
+  cry = `Sad`; aojiao = the weakest — no dedicated clip, so it needs `Angry`
+  then soften, or `Blush` + `LookAround` stitched, or accept `Angry` as
+  "tsundere annoyance". Four of five are strong, aojiao is the gap.
+- **Rework needed.** Almost none on the motion side. These load directly through
+  `import_scene.vrma` (they already carry the extension). For aojiao, the rework
+  is authoring: trim/stitch two clips into one mood clip, or accept a single
+  clip. Stitching is done in Blender by placing two actions back to back on one
+  NLA track before export, then renaming the track to `aojiao`.
+- **Procedure.** Choose clips, run `tools/colab/build_avatar_moods.py` with
+  `--clip angry=.../Angry.vrma` etc. against a CC0 character. For aojiao,
+  concatenate two actions first (add a small script step that appends the second
+  action's keys after the first action's last frame on the same track).
+- **Verdict.** Primary motion source. This is what the shipping build should
+  use for angry/happy/shy/cry, and the base for aojiao.
+
+### 2. Quaternius Universal Animation Library 1 + 2 — CC0 (characters + bulk motion)
+
+Reported, not yet fetched here. Large clip library (~85 usable) on a Quaternius
+mannequin, GLB/FBX/Blend. Locomotion, combat, some emotes (`Dance_Loop`,
+`Punch`, `Counter Angry`), plus stylised low-poly base characters.
+
+- **Fit.** Characters: good, CC0, small, and easy to pair. Motion: happy and
+  angry yes, shy/aojiao/cry no. So it is a **character and filler** source, not
+  a mood source.
+- **Rework needed.** Its rig is Quaternius' own, not VRM humanoid, so its
+  animations do not drop into our pipeline; only its **meshes** are directly
+  useful, and those need to be rigged to a VRM/Mixamo humanoid before they can
+  carry the VRMA clips. Rigging a mesh from scratch is real work (weight
+  painting, bone mapping), so treat Quaternius characters as a fallback if the
+  CC0 VRM characters (below) are rejected visually.
+- **Procedure.** Prefer a ready-rigged VRM character over a Quaternius mesh. If
+  a Quaternius character is chosen, import it, bind it to a humanoid armature
+  (or retarget its own rig to VRM humanoid with the add-on), then use it as the
+  `--character` for the same build.
+- **Verdict.** Secondary, for variety in characters; not a mood clip source.
+
+### 3. Mesh2Motion human animations — CC0 (rich emotion motion, heavy rework)
+
+Verified by opening the files: 8 `.blend` sources here, each **zstd-compressed**
+and saved by **Blender 5.3** (header `BLENDER17-01v0...`). Two real obstacles,
+both measured, not guessed:
+
+- the files are zstd streams; Blender's own open fails on the compressed
+  original, so they must be decompressed with `zstd -d` first;
+- even decompressed, the save format is **5.3**, and Blender 4.2 (what the
+  Colab session uses) refuses a file from a newer major version. Opening them
+  needs **Blender 5.2/5.3**, which is downloadable (`download.blender.org/
+  release/Blender5.3/`).
+
+Clips here: `angry`, `clapping`, `greeting`, `head-nod`, `reject` (aojiao base),
+`shiver` (shy), `sit-ground-crying` (cry), `tired-hunched` (weak shy/cry).
+
+- **Fit.** Best **hand-authored emotion** set of the permissive options: a real
+  angry, a real crying, a reject turn-away for aojiao, a shiver for shy. This is
+  closer to "an actor performing an emotion" than the game-clip VRMA set.
+  Gap: no dedicated shy blush (shiver is the nearest), and aojiao is "reject",
+  which reads as refusal, not sulky-cute.
+- **Rework needed.** Considerable, in three steps: (1) decompress with `zstd`;
+  (2) open in Blender 5.3, not 4.2; (3) the rig is Mesh2Motion's humanoid, not
+  the target character's, so each clip must be retargeted onto the chosen
+  character. The VRM Add-on T-pose route works only between VRM-humanoid rigs;
+  a Mesh2Motion rig first needs its bones mapped to a humanoid (auto-assign in
+  the add-on), then its action exported to VRMA or baked onto the character.
+- **Procedure.** In Blender 5.3: decompress, open, auto-map bones to VRM
+  humanoid, then either export each clip as an animation-only glTF and run it
+  through the same `import_scene.vrma` step, or bake the action onto the target
+  armature directly with `nla.bake(visual_keying=True)` and stash it. Because
+  4.2 cannot open the files, this step needs a second Blender in the session
+  (or a 5.3 session), which is extra setup but not a blocker.
+- **Verdict.** The quality ceiling for angry/cry/aojiao if the VRMA set feels
+  too "game-like". Expensive: two Blenders and a retarget per clip. Worth it
+  only for the moods where the VRMA set visibly disappoints on the phone.
+
+### 4. CMU Motion Capture Database — free, most permissive (targeted mocap)
+
+Reported clip names to pull: cry `79_72`, sad `79_71`; angry `18_10`, `18_11`,
+`79_74`; shy/timid `79_73`; aojiao has no clean clip (build from `79_74` + a
+huff). Raw ASF/AMC/BVH.
+
+- **Fit.** The cry and angry clips are direct, natural hits. shy is "scared",
+  only partial. aojiao is absent. Licence is the most permissive of all.
+- **Rework needed.** Heavy: BVH/AMC must be imported into Blender, retargeted to
+  the character's humanoid, trimmed to a few seconds, and cleaned (the raw
+  capture is long and has no looping). No skin, no character — motion only.
+- **Procedure.** Import the chosen BVH in Blender, map its joints to the
+  character's humanoid, `nla.bake` onto the character, trim, stash, export. Same
+  tail as Mesh2Motion.
+- **Verdict.** Reach for this only if cry or angry from the VRMA set is
+  rejected. It is the "borrow a real performance" option.
+
+### 5. MPI Emotional Body Expressions — CC BY (labelled emotions)
+
+Reported: 1447 stationary mocap clips labelled anger / joy / shame (shy) /
+pride (aojiao base) / sadness (cry). BVH/MVNX. Standing expression, which suits
+a mostly-standing avatar.
+
+- **Fit.** The cleanest one-to-one emotional labelling; "shame" and "pride"
+  directly target our two hardest moods (shy, aojiao).
+- **Rework needed.** Same as CMU: import, retarget to humanoid, trim, bake. CC BY
+  means attribution is required in the shipped credits.
+- **Procedure.** Identical tail to CMU. Pick one clip per mood by label, retarget
+  and bake onto the character.
+- **Verdict.** Best fallback specifically for shy and aojiao if the permissive
+  clips read poorly. Requires the attribution plumbing.
+
+### 6. 100STYLE Dataset — CC BY (styled locomotion)
+
+Reported: `Angry_ID`, `Depressed_ID` (cry), `Elated_ID` (happy), `Proud_ID`
+(aojiao), closed postures for shy. Style-tagged BVH but **locomotion**
+(walking in a mood), not standing emotes.
+
+- **Fit.** Poor for a standing avatar preview that mostly stands still: walking
+  expressions would look odd in the preview. Angry/proud labels are useful
+  concepts, but the delivery is a walk.
+- **Rework needed.** High, same mocap retarget as CMU, plus the walk has to be
+  cut to a standing beat.
+- **Verdict.** Backup only. Use if a "mood" is better conveyed as a short walk
+  cycle, which the current preview does not suit.
+
+### 7. Bandai Namco Research Motion Dataset 1 + 2 — CC BY-NC 4.0 (best quality, licence wall)
+
+Reported: huge (400k frames), professional actors, style labels `happy`,
+`angry`, `sad`, `proud`, `not-confident` (strong shy), etc.
+
+- **Fit.** Best motion quality and covers all five moods, including a genuine
+  `not-confident` shy and a `proud` aojiao base.
+- **Blocker.** CC BY-NC 4.0 forbids commercial use. The app is free and open
+  source, so shipping as a non-commercial asset pack with attribution is
+  arguably allowed, but this is a deliberate licensing decision (K4), not a
+  technical step, and it constrains anyone who forks further.
+- **Rework needed.** Mocap retarget as CMU/MPI, plus a written non-commercial
+  notice in the credits.
+- **Verdict.** Only if the fully permissive route visibly fails for a mood. Do
+  not take this path by accident; record the decision in K4 first.
+
+### 8. VRoid Studio sample models — CC0 (characters)
+
+Reported CC0 anime characters with expressions (happy/angry/sad/surprised). Note
+the caveat found while building: a VRM whose `licenseName` is "Other" with no
+licence URL is refused by the VRM Add-on (`LicenseConfirmationRequired`). Only a
+sample whose metadata states CC0 (or another allowed licence) will import.
+
+- **Fit.** Ready-rigged VRM humanoid characters, so they take the VRMA clips
+  directly through the proven pipeline with zero rigging. Strongest character
+  option.
+- **Rework needed.** None if the licence is CC0 and the metadata says so. Pick,
+  verify the licence in the file, run the build.
+- **Verdict.** Primary character source. The only work is choosing one the user
+  likes visually.
+
+### 9. 100Avatars / ToxSam open-source-avatars — CC0 / CC-BY (characters)
+
+Verified: the registry lists 300 avatars with per-avatar JSON and a VRM
+download URL; the sampled "Devil" (Polygonal Mind) has explicit
+`licenseName: CC0` and imported and animated correctly as the K7 test subject.
+
+- **Fit.** Ready-rigged VRM humanoids, CC0, many to choose from. Same zero-rigging
+  benefit as VRoid.
+- **Rework needed.** None if CC0; for CC-BY entries, add attribution.
+- **Verdict.** Primary character source alongside VRoid. The Devil was only a
+  functional test subject; the shipping character is a visual choice for the
+  user, avoiding ones whose theme clashes with the moods (devil horns, etc.).
+
+### 10. Mirai Komachi VRM — non-commercial (exact rig for Bandai Namco)
+
+Reported: the rig the Bandai Namco data was captured against, so retargeting is
+exact. Free for non-commercial use.
+
+- **Fit.** Only relevant if the Bandai Namco (CC BY-NC) route is taken; then it
+  gives a perfect retarget.
+- **Rework needed.** None for retarget; but it inherits the NC licence.
+- **Verdict.** Tie it to decision 7; not needed on the permissive route.
+
+### What this adds up to
+
+- **Permissive route (recommended first):** character from VRoid sample or
+  100Avatars (CC0); motion from the tk256ailab VRMA set for angry/happy/shy/cry;
+  aojiao assembled (Angry + soften, or Blush + LookAround). This needs no new
+  Blender versions and no rigging — only the proven build plus, for aojiao, a
+  small stitch step.
+- **If a mood reads weak on the phone:** Mesh2Motion (needs zstd + Blender 5.3 +
+  retarget) or CMU/MPI (needs mocap retarget) for that one mood. Both are more
+  work and each adds its own tail (extra Blender, or attribution).
+- **Only then:** Bandai Namco CC BY-NC, with the licence decision written down.

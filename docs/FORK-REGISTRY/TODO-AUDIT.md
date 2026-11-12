@@ -565,20 +565,33 @@ not a rewrite.
       Verified on the phone with the fox: two frames on load differ by 0 pixels.
       Requested playback (`playAnimation`, `playEmotion`, `playTrigger`) is
       untouched.
-- [ ] K7. Run Blender on Google Colab, on request and only then, to export the
-      Mesh2Motion emotion/emote sources and retarget the VRMA clips onto a CC0
-      character into a single `.glb` with clips named `angry`, `happy`, `shy`,
-      `aojiao`, `cry`. There is no Blender on the developer machine and CI does
-      not run it, so Colab is the only route. Blender runs headless there
-      (`blender -b -P script.py`), and the VRM Add-on for Blender
-      (`saturday06/VRM-Addon-for-Blender`) must be installed inside the session
-      to import `.vrm` characters and `.vrma` motion. Install from the Colab
-      Blender script or by downloading the extension zip and calling
-      `bpy.ops.preferences.addon_install`. The input assets are already
-      downloaded and inspected: `/tmp/opencode/models/vrma/` and
-      `/tmp/opencode/models/m2m/`. Do this only once the user asks; follow the
-      Colab quota rule in `AGENTS.md` and close the session immediately after.
-      See `AVATAR-MODEL-ACQUISITION-PLAN.md` for the exact files and mapping.
+- [x] K7. The model pipeline is proven end to end (2026-11-12). Headless
+      Blender on Colab, with the VRM Add-on for Blender installed as an
+      extension, takes a VRM character and a set of VRMA clips and produces one
+      plain `.glb` carrying five animations named `angry`, `aojiao`, `cry`,
+      `happy`, `shy`. The working script is `tools/colab/build_avatar_moods.py`;
+      it and its proof live in `screenshots/avatar-moods-2026-11-12/` (build of
+      the 100Avatars CC0 "Devil" character with the internal Mixamo benchmark
+      clips, plus phone screenshots and a preview GIF).
+
+      The key finding is that a rig whose bones share the `mixamorig:*` names
+      with the clips can still have a very different rest pose (here
+      `LeftUpLeg` differed by ~180 degrees), so copying local rotations by name
+      twists the body. A direct matrix retarget written against the glTF JSON
+      was tried and produced bent poses. The reliable route is the VRM Add-on:
+      import the character, switch it to VRM 1.0, auto-map its bones to the
+      humanoid, then let `bpy.ops.import_scene.vrma(...)` retarget each clip,
+      because the importer normalises both rigs through a T-pose first. Verified
+      on the phone: the model renders and frames itself, holds its rest pose on
+      load, lists all five clips, and plays a clip on Preview with continuous
+      motion across twelve frames.
+
+      What remains is not the mechanics but the choice: the Mixamo benchmark
+      clips are internal-only (their licence forbids redistribution), and the
+      shipped clips must come from the permissive sources in
+      `AVATAR-MODEL-ACQUISITION-PLAN.md`, judged one by one on the phone
+      (angry read as nearly static, "Leaning" as weak shy, "Shaking Head No" as
+      a passable aojiao). That per-clip judgement is the next step.
 
 ## Status snapshot — 2026-11-05
 

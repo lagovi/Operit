@@ -187,22 +187,25 @@ Recommended: build the **fully permissive route first**, and only reach for the
 NC route if the assembled aojiao looks wrong on the device. The permissive route
 already satisfies "every mood has a credible clip".
 
-## Internal-only / trial download (not for shipping)
+## Internal-only download, kept on purpose (not for shipping)
 
-The user asked to also consider grabbing a licence-incompatible model purely to
-test quality internally. That is acceptable as a **local experiment that is never
-committed and never published**: download, put it on the test phone, judge the
-motion, then delete. Concretely worth a trial:
+The user asked to also grab licence-restricted models purely to test quality
+internally, and decided they are **kept, not deleted**, because many builds and
+internal tests are expected and Mixamo's licence permits download and use. They
+stay outside the shipped asset pack: never committed to the app or the asset
+repository, never included in a released APK, but retained locally for repeated
+testing. Worth having on hand:
 
 - **Mixamo** emotion clips ("Angry Gesture", "Defeated", "Thinking", etc.) - the
-  widest set of clean standing emotes, instantly readable. Good as a quality
-  benchmark for how a mood should look, and as a target to imitate with a
-  permissive clip. Never ship; never commit; delete after the check.
-- **ZeroEGGS / LAFAN1** for gesture richness - same rule: local benchmark only.
+  widest set of clean standing emotes, instantly readable. A quality benchmark
+  for how a mood should look, and a target to imitate with a permissive clip.
+- **ZeroEGGS / LAFAN1** for gesture richness - same rule: internal benchmark
+  only, kept locally.
 
-The value of the trial is calibration: once we have seen a Mixamo "Sad" on the
-phone, we can judge whether the CC0 `Sad.vrma` reads as well, and only then
-commit to a permissive clip or invest in hand-fixing.
+The value is calibration: once a Mixamo "Sad" has been seen on the phone, we can
+judge whether the CC0 `Sad.vrma` reads as well, and only then commit to a
+permissive clip or invest in hand-fixing. Because these stay available, the
+comparison can be repeated on any future build instead of being redone once.
 
 ## Concrete next actions
 
@@ -217,4 +220,6 @@ commit to a permissive clip or invest in hand-fixing.
    `shame`/`pride` clips and compare.
 4. Only if permissive still falls short, decide the CC BY-NC question for
    Bandai Namco and record the decision in K4.
-5. Trial Mixamo/ZeroEGGS locally once, as a quality benchmark, then delete.
+5. Download Mixamo/ZeroEGGS for the internal benchmark, keep them locally
+   (not committed, not shipped) so the comparison can be repeated on later
+   builds.

@@ -546,6 +546,20 @@ not a rewrite.
 
 - [ ] K6. Decide whether the avatar preview should always play the default clip,
       so a T-posed rig never shows its rest pose.
+- [ ] K7. Run Blender on Google Colab, on request and only then, to export the
+      Mesh2Motion emotion/emote sources and retarget the VRMA clips onto a CC0
+      character into a single `.glb` with clips named `angry`, `happy`, `shy`,
+      `aojiao`, `cry`. There is no Blender on the developer machine and CI does
+      not run it, so Colab is the only route. Blender runs headless there
+      (`blender -b -P script.py`), and the VRM Add-on for Blender
+      (`saturday06/VRM-Addon-for-Blender`) must be installed inside the session
+      to import `.vrm` characters and `.vrma` motion. Install from the Colab
+      Blender script or by downloading the extension zip and calling
+      `bpy.ops.preferences.addon_install`. The input assets are already
+      downloaded and inspected: `/tmp/opencode/models/vrma/` and
+      `/tmp/opencode/models/m2m/`. Do this only once the user asks; follow the
+      Colab quota rule in `AGENTS.md` and close the session immediately after.
+      See `AVATAR-MODEL-ACQUISITION-PLAN.md` for the exact files and mapping.
 
 ## Status snapshot — 2026-11-05
 

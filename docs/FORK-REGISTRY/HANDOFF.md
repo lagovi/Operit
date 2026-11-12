@@ -6,10 +6,40 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-10-31, HEAD `c96de0f4` plus the uncommitted batch below,
-branch `feat/english-only-build`
+**Date:** 2026-11-12, branch `feat/english-only-build` (see the CURRENT block
+below; the older blocks are kept for history)
 
-**CURRENT 07.11 — CI on the fork can be switched off by GitHub itself.**
+**CURRENT 12.11 — avatar preview solved; fox and K6 closed; model plan
+written.**
+
+Three things on the avatar front are done and verified on the phone, all on
+branch `feat/english-only-build`:
+
+- The preview now frames itself by moving the camera (distance plus an aim point
+  that follows the measured silhouette), so the figure is drawn large and sharp
+  at about 70% of the height, centred, for any model. The earlier blocky look was
+  the 2D layer stretching a few dozen pixels; it now applies only a small
+  remainder. Code: `core/avatar/impl/gltf/view/GltfSurfaceView.kt` and
+  `GltfRenderer.kt`. The auto-frame listener is re-bound in the AndroidView
+  `update` block, because the controller is recreated on a model change.
+- The fox draws now. It was authored in centimetres under two sibling scene
+  roots; wrapping both under one `FoxAvatarRoot` with scale 0.01 fixed it with no
+  code change. Proof and the fixed file: `screenshots/fox-render-2026-11-12/`.
+- K6 decided and implemented: nothing plays on load. The avatar holds its rest
+  pose until a mood or trigger is requested; the glTF and FBX controllers no
+  longer auto-select a clip. Verified: two frames on load differ by 0 pixels.
+
+Model acquisition: `AVATAR-MODEL-ACQUISITION-PLAN.md` lists verified CC0/MIT
+sources for all five moods (Mesh2Motion CC0, the MIT VRMA set with `Blush` for
+shy and `Sad` for cry, Quaternius CC0), the mocap fallbacks, the blocked
+licences, and the rule "look at a model on the phone first, only then touch
+Blender". Blender itself is not on the developer machine and CI does not run it,
+so exporting any `.blend` sources and retargeting is a Colab task (K7 in
+`TODO-AUDIT.md`), to be started only on the user's request. Downloaded research
+assets live in `/tmp/opencode/models/{vrma,m2m,mixamo-benchmark}` (not
+committed). The Mixamo benchmark is intentionally kept, not deleted.
+
+**EARLIER 07.11 — CI on the fork can be switched off by GitHub itself.**
 
 `gh workflow run` fails with `HTTP 422: Actions has been disabled for this
 repository`. This is not a local problem, not a billing problem and not
@@ -26,7 +56,7 @@ inspect `gh api repos/.../actions/permissions`, which answers `enabled: true`
 even while dispatch is refused, and do not propose billing changes. The last
 successful run before this happened is `42184391446`.
 
-**CURRENT 05.11 — Colab is on pause (GPU quota exhausted); the user is
+**EARLIER 05.11 — Colab is on pause (GPU quota exhausted); the user is
 testing the app by hand.**
 
 `colab new --gpu T4` answers "Service Unavailable". The account is drained: on
@@ -98,7 +128,7 @@ this model and review them) and J (free-tier T4 video models supplied by the
 user, Wan 2.1 / CogVideoX 2b and 5b / LTX-Video / Wan 2.2 TIW2V via Wan2GP,
 for testing whether an animated assistant avatar is feasible).
 
-**CURRENT 01.11 — avatar gallery accepted in CI `41251376299`.**
+**EARLIER 01.11 — avatar gallery accepted in CI `41251376299`.**
 Commit `dfdc111e`, APK
 `/home/uzzzver/operit-fork/apk/20261031_231010Z/app-debug.apk`
 (99,834,656 B, sha256
@@ -195,7 +225,7 @@ Implemented in this batch, for quick orientation:
 - Packages/workflow: clearer market install status text and a Workflow guide
   dialog. Tool Tester fixture renamed. Help banner was made two-row for 360 dp.
 
-**CURRENT 23.10 — Assistant/Agent help and anchor disposal accepted.**
+**EARLIER 23.10 — Assistant/Agent help and anchor disposal accepted.**
 Phone runs CI `39917337180` (APK dir `apk/20261023_072258Z/`,
 99,716,848 B, sha256 `d3752386bce44197457d9063fa10e98653f274c7f1cb750e87d11a38d9e2fc3d`),
 commit `c8ecd067` (code `9242665b`). This is the previous candidate

@@ -90,18 +90,14 @@ class GltfAvatarController(
             return
         }
 
+        // Nothing plays on load. The product decision is that the avatar holds its
+        // rest pose until a mood or trigger is requested; selecting a default clip
+        // here made the preview animate by itself on every open. A clip that is
+        // already playing is left alone.
         val current = _state.value.currentAnimation
         if (current != null && merged.contains(current)) {
             return
         }
-
-        val defaultAnimation = model.defaultAnimation?.trim()
-        val next = if (!defaultAnimation.isNullOrBlank() && merged.contains(defaultAnimation)) {
-            defaultAnimation
-        } else {
-            null
-        }
-        _state.value = _state.value.copy(currentAnimation = next, isLooping = next != null)
     }
 
     override fun setEmotion(newEmotion: AvatarEmotion) {

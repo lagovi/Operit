@@ -276,9 +276,23 @@ Measured from the files, not guessed:
 | model | clips | verdict |
 | --- | --- | --- |
 | Xbot | agree, headShake, idle, run, sad_pose, sneak_pose, walk | Structurally sound. Rest pose is a T-pose. `sad_pose` and `sneak_pose` are 2-frame 0.07 s stills, not motion. Walk/run/sneak carry root translation. |
-| Fox | Survey, Walk, Run | Two scene roots (skeleton and mesh are siblings), geometry in centimetres with no root scale. |
+| Fox | Survey, Walk, Run | Two scene roots (skeleton and mesh are siblings), geometry in centimetres with no root scale. Fixed in the data, see below. |
 | Morph Cube | Square | Morph-target cube only, node scale 100 and a combined X/Y rotation. Morph targets move only top-face vertices. |
 | Soldier | Idle, Run, TPose, Walk | Sound; `TPose` is a 2-frame still. |
+
+**Fox resolved in the data, 2026-11-12.** The fox drew nothing while Xbot and
+Robot did. The cause was measured, not guessed: the fox mesh is authored in
+centimetres (POSITION span ~25 x 79 x 155) under two sibling scene roots, while
+the working presets are in metres. A root-scale sweep on the phone proved the
+root scale is the deciding factor, not the root count: at scale 0.001-0.05 it
+draws (only ~130 px wide), at 0.5 it is visible but clipped, and at 1.0 and 2.0
+it draws nothing (the framing gives up after 80 frames). The fix is a data-only
+rewrite: both scene roots are wrapped under one new root `FoxAvatarRoot` with
+`scale = [0.01, 0.01, 0.01]`, made the only scene root. Clips (`Survey`, `Walk`,
+`Run`), the 24-joint skin and the bind pose are untouched. Verified on the phone:
+the fox is drawn and animates in Assistant Config -> Avatar Configuration
+(screenshots and the file in `screenshots/fox-render-2026-11-12/`, sha256
+`25a40cd7eec03d8bb032b17d70daa931a391f7046e3c9fbd9e0716f76d0554ab`).
 
 **Mood coverage is the real problem, not the rendering.** None of the four
 expresses the five product moods (angry, happy, shy, aojiao, cry) with a

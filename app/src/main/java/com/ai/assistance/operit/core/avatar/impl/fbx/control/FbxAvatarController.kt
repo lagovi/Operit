@@ -78,20 +78,14 @@ class FbxAvatarController(
             return
         }
 
+        // Nothing plays on load. The avatar holds its rest pose until a mood or
+        // trigger is requested; auto-selecting a clip here made the preview
+        // animate by itself on every open. A clip that is already playing is
+        // left alone.
         val currentAnimation = _state.value.currentAnimation
         if (currentAnimation != null && mergedAnimations.contains(currentAnimation)) {
             return
         }
-
-        val defaultAnimation = model.defaultAnimation?.trim()
-        val nextAnimation =
-            if (!defaultAnimation.isNullOrBlank() && mergedAnimations.contains(defaultAnimation)) {
-                defaultAnimation
-            } else {
-                mergedAnimations.firstOrNull()
-            }
-
-        _state.value = _state.value.copy(currentAnimation = nextAnimation, isLooping = nextAnimation != null)
     }
 
     override fun setEmotion(newEmotion: AvatarEmotion) {

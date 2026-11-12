@@ -558,8 +558,13 @@ options, in order of how much they depend on unknown APIs:
 Option 1 is preferred if the readback works; the check is a small experiment,
 not a rewrite.
 
-- [ ] K6. Decide whether the avatar preview should always play the default clip,
-      so a T-posed rig never shows its rest pose.
+- [x] K6. Decided and implemented: nothing plays on load. The avatar holds its
+      rest pose until a mood or trigger is requested. The glTF controller no
+      longer auto-selects `defaultAnimation` and the FBX controller no longer
+      falls back to the first clip; both just keep an already-playing clip.
+      Verified on the phone with the fox: two frames on load differ by 0 pixels.
+      Requested playback (`playAnimation`, `playEmotion`, `playTrigger`) is
+      untouched.
 - [ ] K7. Run Blender on Google Colab, on request and only then, to export the
       Mesh2Motion emotion/emote sources and retarget the VRMA clips onto a CC0
       character into a single `.glb` with clips named `angry`, `happy`, `shy`,

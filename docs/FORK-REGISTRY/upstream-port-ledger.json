@@ -177,18 +177,18 @@
     {
       "upstream_sha": "d2e6584b",
       "upstream_subject": "fix(web): guard the external chat SSE writer close the same way",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "same crash class on external-chat path; after fcd9b55a",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "41e76f87",
+      "reason": "Ported to the fork; the close-phase IOException is now absorbed by closeSseWriter, so a client disconnect no longer crashes the app.",
+      "decided": "2026-11-13"
     },
     {
       "upstream_sha": "fcd9b55a",
       "upstream_subject": "fix(web): stop SSE client disconnect from crashing the app",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "web-chat disconnect crash",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "a00c5863",
+      "reason": "Ported to the fork; the close-phase IOException is now absorbed by closeSseWriter, so a client disconnect no longer crashes the app.",
+      "decided": "2026-11-13"
     },
     {
       "upstream_sha": "22319590",

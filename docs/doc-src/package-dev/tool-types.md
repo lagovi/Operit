@@ -131,6 +131,12 @@ interface ToolResultMap {
 - `test_model_config_connection` → `ModelConfigConnectionTestResultData`
 - `trigger_tasker_event` → `string`
 
+BLE characteristic writes choose their mode from the characteristic properties: `write_no_response` uses an unacknowledged write, `write` alone uses an acknowledged write, and a characteristic that advertises neither is rejected. `bluetooth_ble_write_characteristic` and `bluetooth_ble_write_and_read_characteristic` share this behavior, and their parameters and return types are unchanged.
+
+Unacknowledged writes are split into chunks of the current session MTU minus three bytes, starting from an MTU of 23, so at most 20 bytes per chunk; only a successful MTU callback raises the ceiling, and the tools never request a larger MTU themselves. Complete writes to one session run in order, each chunk waiting for its own successful callback and then waiting 15 ms before the next one. Acknowledged writes stay a single submission, and an empty payload still submits one write.
+
+A failed submission, a failed callback, a chunk wait longer than 5 seconds, or a cancelled call stops the remaining chunks; `bytesWritten` is complete only when every chunk succeeded, and on failure the peripheral may already hold part of the data. A successful Android write callback means the Bluetooth stack finished the write; it does not mean a printer or other peripheral has consumed those bytes.
+
 ### UI 操作
 
 - `get_page_info` → `UIPageResultData`

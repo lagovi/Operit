@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat.library
 
 import android.content.Context
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.core.tools.AIToolHandler
@@ -75,14 +76,18 @@ class ChatMemoryRebuildManager private constructor(private val context: Context)
     @Volatile
     private var runningJob: Job? = null
 
-    fun start(chatIds: List<String>, windowMessageCount: Int) {
+    fun start(
+        chatIds: List<String>,
+        windowMessageCount: Int,
+        timeScope: ChatMemoryRebuildTimeScope
+    ) {
         if (runningJob?.isActive == true) return
         val distinctChatIds = chatIds.filter(String::isNotBlank).distinct()
         if (distinctChatIds.isEmpty()) return
 
         runningJob = scope.launch {
             operationMutex.withLock {
-                rebuild(distinctChatIds, windowMessageCount)
+                rebuild(distinctChatIds, windowMessageCount, timeScope)
             }
         }
     }
@@ -91,7 +96,11 @@ class ChatMemoryRebuildManager private constructor(private val context: Context)
         runningJob?.cancel()
     }
 
-    private suspend fun rebuild(chatIds: List<String>, windowMessageCount: Int) {
+    private suspend fun rebuild(
+        chatIds: List<String>,
+        windowMessageCount: Int,
+        timeScope: ChatMemoryRebuildTimeScope
+    ) {
         var serviceLease: MultiServiceManager.ServiceLease? = null
         try {
             _progress.value = Progress(status = Status.PREPARING, totalChats = chatIds.size)
@@ -105,7 +114,7 @@ class ChatMemoryRebuildManager private constructor(private val context: Context)
                 val messages = chatHistoryManager.loadChatMessages(history.id)
                 PlannedChat(
                     history = history,
-                    windows = ChatMemoryWindowPlanner.plan(messages, windowMessageCount),
+                    windows = ChatMemoryWindowPlanner.plan(messages, windowMessageCount, timeScope),
                     memoryProfileId = resolveMemoryProfileId(history, activeProfileId)
                 )
             }
@@ -113,7 +122,14 @@ class ChatMemoryRebuildManager private constructor(private val context: Context)
             val totalSourceMessages = plannedChats.sumOf { plannedChat ->
                 plannedChat.windows.sumOf { window -> window.sourceMessageCount }
             }
-            require(totalWindows > 0) { "Selected chats do not contain any user messages to rebuild" }
+            require(totalWindows > 0) {
+                when (timeScope) {
+                    ChatMemoryRebuildTimeScope.EntireChat ->
+                        "Selected chats do not contain any user messages to rebuild"
+                    is ChatMemoryRebuildTimeScope.InclusiveLocalRange ->
+                        context.getString(R.string.chat_memory_rebuild_empty_range)
+                }
+            }
 
             val toolHandler = AIToolHandler.getInstance(context)
             val lease = EnhancedAIService.acquireAIServiceForFunction(context, FunctionType.MEMORY)

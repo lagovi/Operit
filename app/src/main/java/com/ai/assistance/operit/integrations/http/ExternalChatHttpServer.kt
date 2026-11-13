@@ -250,7 +250,7 @@ class ExternalChatHttpServer(
 
         val streamJob: Job =
             serviceScope.launch(Dispatchers.IO) {
-                pipeOutput.bufferedWriter(StandardCharsets.UTF_8).use { writer ->
+                val writer = pipeOutput.bufferedWriter(StandardCharsets.UTF_8)
                     try {
                         when (
                             val startResult =
@@ -352,8 +352,8 @@ class ExternalChatHttpServer(
                         streamSession?.responseStreamSession?.cancel()
                     } finally {
                         streamingSessionRef.get()?.cleanup()
+                        closeSseWriter(writer, "requestId=$resolvedRequestId")
                     }
-                }
             }
 
         val responseInput =

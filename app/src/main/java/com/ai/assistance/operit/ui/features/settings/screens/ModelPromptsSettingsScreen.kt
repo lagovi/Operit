@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -88,6 +89,7 @@ import com.ai.assistance.operit.ui.features.settings.components.CharacterCardDia
 import com.ai.assistance.operit.ui.features.settings.components.AvatarGalleryDialog
 import com.ai.assistance.operit.ui.features.settings.components.CompactAvatarPicker
 import com.ai.assistance.operit.ui.features.settings.components.CompactTextFieldWithExpand
+import com.ai.assistance.operit.ui.features.settings.components.rememberPromptEditorState
 import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.ui.common.rememberLocal
 import com.ai.assistance.operit.util.ColorQrCodeUtil
@@ -3152,8 +3154,8 @@ private fun GroupCardDialog(
     onAvatarChange: () -> Unit,
     onAvatarReset: () -> Unit
 ) {
-    var name by remember(group.id) { mutableStateOf(group.name) }
-    var description by remember(group.id) { mutableStateOf(group.description) }
+    val nameEditor = rememberPromptEditorState(group.id, "name", group.name)
+    val descriptionEditor = rememberPromptEditorState(group.id, "description", group.description)
     var members by remember(group.id) {
         mutableStateOf(group.members.sortedBy { it.orderIndex })
     }
@@ -3217,8 +3219,7 @@ private fun GroupCardDialog(
                         modifier = Modifier.weight(1f)
                     ) {
                         CompactTextFieldWithExpand(
-                            value = name,
-                            onValueChange = { name = it },
+                            editor = nameEditor,
                             label = stringResource(R.string.group_name),
                             singleLine = true,
                             onExpandClick = { /* 可选：添加全屏编辑 */ }
@@ -3227,8 +3228,7 @@ private fun GroupCardDialog(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         CompactTextFieldWithExpand(
-                            value = description,
-                            onValueChange = { description = it },
+                            editor = descriptionEditor,
                             label = stringResource(R.string.description_optional),
                             maxLines = 2,
                             onExpandClick = { /* 可选：添加全屏编辑 */ }
@@ -3394,7 +3394,7 @@ private fun GroupCardDialog(
 
                     Button(
                         onClick = {
-                            val normalizedName = name.trim()
+                            val normalizedName = nameEditor.text.trim()
                             if (normalizedName.isBlank()) return@Button
 
                             val normalizedMembers = members.mapIndexed { order, member ->
@@ -3404,7 +3404,7 @@ private fun GroupCardDialog(
                             onSave(
                                 group.copy(
                                     name = normalizedName,
-                                    description = description.trim(),
+                                    description = descriptionEditor.text.trim(),
                                     members = normalizedMembers,
                                     updatedAt = System.currentTimeMillis()
                                 )
@@ -3487,19 +3487,20 @@ fun TagItem(
 }
 
 // 标签对话框
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TagDialog(
     tag: PromptTag,
     onDismiss: () -> Unit,
     onSave: (PromptTag) -> Unit
 ) {
-    // The tag editor also re-lays out its dialog when the IME appears; persist the scroll
-    // state per tag id so the view does not jump to the top after the user scrolls down.
+    // The outer form and the field interior each have their own viewport; the field text and
+    // selection must not be rebuilt when the layout switches.
     val dialogScrollState =
         rememberSaveable(tag.id, saver = ScrollState.Saver) { ScrollState(0) }
-    var name by remember { mutableStateOf(tag.name) }
-    var description by remember { mutableStateOf(tag.description) }
-    var promptContent by remember { mutableStateOf(tag.promptContent) }
+    val nameEditor = rememberPromptEditorState(tag.id, "name", tag.name)
+    val descriptionEditor = rememberPromptEditorState(tag.id, "description", tag.description)
+    val promptEditor = rememberPromptEditorState(tag.id, "promptContent", tag.promptContent)
 
         AlertDialog(
         onDismissRequest = onDismiss,
@@ -3519,28 +3520,27 @@ fun TagDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
+                    state = nameEditor.textFieldState,
+                    scrollState = nameEditor.scrollState,
                     label = { Text(stringResource(R.string.tag_name)) },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
-                    value = description,
-                    onValueChange = { description = it },
+                    state = descriptionEditor.textFieldState,
+                    scrollState = descriptionEditor.scrollState,
                     label = { Text(stringResource(R.string.description_optional)) },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
-                    value = promptContent,
-                    onValueChange = { promptContent = it },
+                    state = promptEditor.textFieldState,
+                    scrollState = promptEditor.scrollState,
                     label = { Text(stringResource(R.string.prompt_content)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 120.dp, max = 280.dp),
-                    minLines = 4,
-                    maxLines = 12
+                    lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 4, maxHeightInLines = 12)
                 )
                 }
             },
@@ -3549,9 +3549,9 @@ fun TagDialog(
                     onClick = {
                     onSave(
                         tag.copy(
-                            name = name,
-                            description = description,
-                            promptContent = promptContent,
+                            name = nameEditor.text,
+                            description = descriptionEditor.text,
+                            promptContent = promptEditor.text,
                             tagType = tag.tagType
                         )
                     )

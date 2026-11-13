@@ -9,7 +9,7 @@ In `ToolPkgComposeDslGeneratedRenderers.kt`:
 
 Although `rememberLazyListState()` is itself saveable, saveable only works while the composition is still alive or the host has saved the composition state. The Compose DSL tree is rebuilt by JS after every state update, and conditional branches, tabs and dialog rebuilds make the list leave composition.
 
-The `when (currentTab)` of `ModelPromptsSettingsScreen` likewise replaces the whole tab content; the `rememberScrollState()` of `CharacterCardDialog` and `TagDialog` only exists in the current composition of the dialog.
+The `when (currentTab)` of `ModelPromptsSettingsScreen` likewise replaces the whole tab content. The outer `rememberScrollState()` of `CharacterCardDialog` and `TagDialog` is itself saveable, and swapping its Saver alone cannot handle the scroll, selection and focus changes inside the input fields; the follow-up fix for that part is covered in [Character card prompt editor completion](2_CharacterCardEditors.md).
 
 ## New implementation
 
@@ -23,4 +23,5 @@ The `when (currentTab)` of `ModelPromptsSettingsScreen` likewise replaces the wh
 ## Verification
 
 - JVM unit test: `ComposeDslScrollStateStoreTest`.
-- Manual check: switching item state in the worldbook list, typing in the edit page, typing in the character card and tag editors, and round-tripping the settings tabs all keep the scroll position; after a list reload it still shows the user's scroll position.
+- Manual acceptance scope: switching item state in the worldbook list, typing in the edit page, typing in the character card and tag editors, round-tripping the settings tabs, and the scroll position after a list reload.
+- 2026-11-05 user feedback: the character card's character setting, opening statement, other content, custom prompt and marks still have issues, so the original patch did not fully cover the editor's internal state and these windows cannot be recorded as verified.

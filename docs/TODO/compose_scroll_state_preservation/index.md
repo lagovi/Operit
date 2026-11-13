@@ -9,7 +9,7 @@ issue: 709
 
 - The `LazyColumn` of the `ToolPkg Compose DSL` called `rememberLazyListState()` directly inside the renderer. The whole tree is rebuilt after a JS state change, so once the list node leaves composition the scroll state is lost with it.
 - `LazyRow` did not pass an explicit `LazyListState` at all.
-- The character card editor and the tag editor used `rememberScrollState()`; the tab content is replaced by a `when` branch, so the list jumps back to the top after leaving composition.
+- The outer `rememberScrollState()` of the character card editor and the tag editor was already saveable, but did not manage each input field's internal viewport and selection separately; the tab content is replaced by a `when` branch, and there was no tab state host.
 - The `items` of the character card list and the tag list had no stable key, so a data refresh rebound entries by position.
 
 ## Intent
@@ -29,3 +29,4 @@ Pages that already manage their own scroll state separately, such as the main ch
 ## Steps
 
 1. [LazyListState persistence](1_LazyListStatePreservation.md) [DONE]
+2. [Character card prompt editor completion](2_CharacterCardEditors.md): implementation and release build complete, real-device acceptance by the user passed, Android instrumentation cases remain to be executed

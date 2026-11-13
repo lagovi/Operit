@@ -149,6 +149,19 @@ object ToolPkgArtifactMinifier {
                 } else {
                     emptySet()
                 }
+            if (minify) {
+                // Pruning is rooted at the directory that holds the manifest. If the wrong manifest
+                // is chosen here (for example a nested manifest slipped into the package), the real
+                // entry becomes unreachable and is dropped, producing a package that installs but is
+                // an empty shell. Hence the explicit validation.
+                require(manifestEntryName in reachableEntryNames) {
+                    "Minified toolpkg lost its manifest entry: $manifestEntryName"
+                }
+                val missingExecutables = executableEntryNames.filterNot { it in reachableEntryNames }
+                require(missingExecutables.isEmpty()) {
+                    "Minified toolpkg lost executable entries: ${missingExecutables.joinToString()}"
+                }
+            }
             ZipOutputStream(outputBytes).use { zipOutput ->
                 archiveEntries.forEach { entry ->
                     val normalizedName = ToolPkgArchiveParser.normalizeZipEntryPath(entry.name)

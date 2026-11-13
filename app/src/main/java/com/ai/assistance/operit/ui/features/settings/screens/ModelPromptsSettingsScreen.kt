@@ -2,6 +2,7 @@ package com.ai.assistance.operit.ui.features.settings.screens
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +22,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -868,6 +871,11 @@ fun ModelPromptsSettingsScreen(
         }
     }
 
+    // Each tab's list state must survive tab switches. When a tab's content is replaced by a
+    // when branch it leaves composition, and rememberSaveable alone cannot restore it; it has
+    // to be saved by a SaveableStateHolder keyed per tab.
+    val tabStateHolder = rememberSaveableStateHolder()
+
     CustomScaffold() { paddingValues ->
         Box(
             modifier = Modifier
@@ -949,8 +957,9 @@ fun ModelPromptsSettingsScreen(
                     }
                 }
 
-                // 内容区域
-                when (currentTab) {
+                // Content area
+                tabStateHolder.SaveableStateProvider(currentTab) {
+                    when (currentTab) {
                     0 -> CharacterCardTab(
                         characterCards = allCharacterCards,
                         activePrompt = activePrompt,
@@ -1093,10 +1102,11 @@ fun ModelPromptsSettingsScreen(
                             }
                         }
                     )
+                    }
                 }
             }
 
-            // 成功保存消息
+            // Success save message
             if (showSaveSuccessMessage) {
                 LaunchedEffect(Unit) {
                     kotlinx.coroutines.delay(1500)
@@ -2431,8 +2441,8 @@ fun CharacterCardTab(
             }
         }
 
-        // 角色卡列表
-        items(sortedCharacterCards) { characterCard ->
+        // Character card list
+        items(sortedCharacterCards, key = { it.id }) { characterCard ->
             CharacterCardItem(
                 characterCard = characterCard,
                 isActive = (activePrompt as? ActivePrompt.CharacterCard)?.id == characterCard.id,
@@ -2860,7 +2870,7 @@ fun TagTab(
                 )
             }
 
-            items(sortedTags) { tag ->
+            items(sortedTags, key = { it.id }) { tag ->
                 TagItem(
                     tag = tag,
                     onEdit = { onEditTag(tag) },
@@ -3483,6 +3493,10 @@ fun TagDialog(
     onDismiss: () -> Unit,
     onSave: (PromptTag) -> Unit
 ) {
+    // The tag editor also re-lays out its dialog when the IME appears; persist the scroll
+    // state per tag id so the view does not jump to the top after the user scrolls down.
+    val dialogScrollState =
+        rememberSaveable(tag.id, saver = ScrollState.Saver) { ScrollState(0) }
     var name by remember { mutableStateOf(tag.name) }
     var description by remember { mutableStateOf(tag.description) }
     var promptContent by remember { mutableStateOf(tag.promptContent) }
@@ -3501,7 +3515,7 @@ fun TagDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 360.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(dialogScrollState),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(

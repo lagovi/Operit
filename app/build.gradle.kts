@@ -839,6 +839,9 @@ dependencies {
     
     // 协程测试依赖
     testImplementation(libs.coroutines.test)
+    // Download-chain tests: fake local 403/404/timeout/206 responses, covering failover
+    // and integrity verification.
+    testImplementation(libs.okhttp.mockwebserver)
     // NOTE (fork): no androidTest uses coroutines-test, and its startup
     // initializer (TestMainDispatcherFactory) crashes the minified app
     // under instrumentation (stripped MainDispatcherFactory$DefaultImpls).

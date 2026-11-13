@@ -2081,6 +2081,7 @@
     <string name="update_latest">Latest</string>
     <string name="update_view_release">View Release</string>
     <string name="update_download">Download</string>
+    <string name="update_source_failed_reason">%1$s failed: %2$s</string>
     <string name="action_retry">Retry</string>
     <string name="common_collapse">Collapse</string>
     <string name="common_expand_more">Expand More</string>

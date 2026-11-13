@@ -20,14 +20,20 @@ sealed class UpdateStatus {
             val newVersion: String,
             val updateUrl: String,
             val releaseNotes: String,
-            val downloadUrl: String = "" // 保留下载URL字段用于浏览器打开
+            val downloadUrl: String = "", // keep the download URL field for opening in a browser
+            // GitHub-published sha256 and size of the APK asset, used to verify integrity after download
+            val downloadSha256: String? = null,
+            val downloadSize: Long? = null
     ) : UpdateStatus()
     data class PatchAvailable(
             val newVersion: String,
             val updateUrl: String,
             val releaseNotes: String,
             val patchUrl: String,
-            val metaUrl: String
+            val metaUrl: String,
+            // GitHub-published sha256 of the target meta / patch assets, used to verify downloaded content
+            val metaSha256: String? = null,
+            val patchSha256: String? = null
     ) : UpdateStatus()
     object UpToDate : UpdateStatus()
     data class Error(val message: String) : UpdateStatus()
@@ -147,7 +153,9 @@ class UpdateManager private constructor(private val context: Context) {
                             newVersion = releaseInfo.version,
                             updateUrl = releaseInfo.releasePageUrl,
                             releaseNotes = releaseInfo.releaseNotes,
-                            downloadUrl = releaseInfo.downloadUrl
+                            downloadUrl = releaseInfo.downloadUrl,
+                            downloadSha256 = releaseInfo.downloadSha256,
+                            downloadSize = releaseInfo.downloadSize
                             )
                         } else {
                             UpdateStatus.UpToDate

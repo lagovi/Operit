@@ -76,8 +76,8 @@ const SendMessageOptionsClass = Java.type("com.ai.assistance.operit.api.chat.Enh
 // ChatMarkupRegex.kt). Tag names must stay in sync with the host, otherwise tag
 // stripping and "last tool block" location break and the final summary degrades
 // into the whole execution log.
-const TOOL_TAG_NAME = "tool(?:_(?!result(?:_|\\b))[A-Za-z0-9_]*)?";
-const TOOL_RESULT_TAG_NAME = "tool_result(?:_[A-Za-z0-9_]*)?";
+const TOOL_TAG_NAME = "tool(?:_(?!result(?:_|\\b))[A-Za-z0-9_]+)?";
+const TOOL_RESULT_TAG_NAME = "tool_result(?:_[A-Za-z0-9_]+)?";
 // Paired regexes bind matching open/close tags through a backreference so that
 // <tool_A ...> ... </tool_B> cannot be swallowed as one block.
 const TOOL_TAG = new RegExp(`<(${TOOL_TAG_NAME})\\b[\\s\\S]*?<\\/\\1>`, "gi");
@@ -431,6 +431,7 @@ async function runSubagent(params) {
         return finalXml(runId, true, toolCount, summary);
     }
     catch (error) {
+        console.error("Subagent execution failed", error);
         return finalXml(runId, false, toolCount, clipText(`执行失败：${toErrorText(error)}`, 220));
     }
 }
@@ -439,6 +440,7 @@ async function subagent_run(params) {
         return await runSubagent(params);
     }
     catch (error) {
+        console.error("Subagent entry failed", error);
         const runId = createRunId();
         return finalXml(runId, false, 0, clipText(`执行失败：${toErrorText(error)}`, 220));
     }

@@ -233,7 +233,10 @@ class A2aHttpHandler(
                         while (true) {
                             val event = eventChannel.receive()
                             writeSseEvent(writer, jsonRpcStreamResponse(requestId, eventToJson(event)))
-                            if (event is A2aTaskEvent.Status && event.final) {
+                            if (
+                                event is A2aTaskEvent.Status &&
+                                    A2aTaskManager.isTerminalState(event.task.state)
+                            ) {
                                 break
                             }
                         }
@@ -274,7 +277,7 @@ class A2aHttpHandler(
 
     private fun eventToJson(event: A2aTaskEvent): JSONObject {
         return when (event) {
-            is A2aTaskEvent.Status -> statusUpdateEvent(event.task, event.final)
+            is A2aTaskEvent.Status -> statusUpdateEvent(event.task)
             is A2aTaskEvent.Artifact -> JSONObject().put(
                 "artifactUpdate",
                 JSONObject().apply {
@@ -288,14 +291,13 @@ class A2aHttpHandler(
         }
     }
 
-    private fun statusUpdateEvent(task: A2aTaskSnapshot, final: Boolean): JSONObject {
+    private fun statusUpdateEvent(task: A2aTaskSnapshot): JSONObject {
         return JSONObject().put(
             "statusUpdate",
             JSONObject().apply {
                 put("taskId", task.id)
                 put("contextId", task.contextId)
                 put("status", statusToJson(task))
-                put("final", final)
             }
         )
     }

@@ -33,7 +33,12 @@ data class A2aTaskSnapshot(
 )
 
 sealed interface A2aTaskEvent {
-    data class Status(val task: A2aTaskSnapshot, val final: Boolean) : A2aTaskEvent
+    /**
+     * A task status change. A2A 1.0 exposes no `final` member on `TaskStatusUpdateEvent`, so the
+     * stream ends on the status whose state is terminal, and every publication of a terminal state
+     * is the closing frame.
+     */
+    data class Status(val task: A2aTaskSnapshot) : A2aTaskEvent
 
     data class Artifact(
         val task: A2aTaskSnapshot,
@@ -216,7 +221,7 @@ class A2aTaskManager(
                 } else {
                     streamingSession = session
                     state = TASK_STATE_WORKING
-                    publishLocked(A2aTaskEvent.Status(snapshotLocked(), final = false))
+                    publishLocked(A2aTaskEvent.Status(snapshotLocked()))
                     true
                 }
             }
@@ -308,7 +313,7 @@ class A2aTaskManager(
                     state = targetState
                     error = targetError
                     val task = snapshotLocked()
-                    publishLocked(A2aTaskEvent.Status(task, final = true))
+                    publishLocked(A2aTaskEvent.Status(task))
                     terminalTask.complete(task)
                 }
             }
@@ -322,7 +327,7 @@ class A2aTaskManager(
                     state = TASK_STATE_CANCELED
                     error = "A2A task was cancelled"
                     val task = snapshotLocked()
-                    publishLocked(A2aTaskEvent.Status(task, final = true))
+                    publishLocked(A2aTaskEvent.Status(task))
                     terminalTask.complete(task)
                     Cancellation(task, streamingSession, job)
                 }

@@ -69,42 +69,24 @@ import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
 
-/**
- * Maps an element rect (CSS px, viewport-relative) to WebView-local touch coordinates (view px).
- *
- * The WebView properties feeding this mapping are passed in as primitives on purpose: `WebView`
- * getters (`scale`, `width`, `height`) run `checkThread()` and must be read on the main thread, so
- * the caller reads them there and hands the values over. Keeping the arithmetic free of Android
- * types also lets the coordinate mapping be covered by plain JVM unit tests. See #1318.
- */
-internal fun nativeTapCoordinates(
-    rectLeft: Int,
-    rectTop: Int,
-    rectRight: Int,
-    rectBottom: Int,
-    rawPageScale: Float,
-    viewWidth: Int,
-    viewHeight: Int
-): Pair<Float, Float> {
-    val pageScale = rawPageScale.takeIf { it > 0f } ?: 1f
-    val x =
-        (((rectLeft + rectRight) / 2f) * pageScale)
-            .coerceIn(1f, (viewWidth - 1).coerceAtLeast(1).toFloat())
-    val y =
-        (((rectTop + rectBottom) / 2f) * pageScale)
-            .coerceIn(1f, (viewHeight - 1).coerceAtLeast(1).toFloat())
-    return x to y
-}
-
 class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor {
 
     companion object {
         private const val TAG = "BrowserSessionTools"
         internal const val DEFAULT_TIMEOUT_MS = 10_000L
         internal const val MAX_EVENT_LOG_ENTRIES = 500
+        internal const val DESKTOP_CHROME_MAJOR_VERSION = "124"
+        internal const val DESKTOP_CHROME_FULL_VERSION = "124.0.0.0"
+        internal const val DEFAULT_DESKTOP_VIEWPORT_WIDTH = 1280
+        internal const val DEFAULT_DESKTOP_VIEWPORT_HEIGHT = 720
+        internal const val MAX_VIEWPORT_DIMENSION_CSS_PX = 4096
+        internal const val MAX_VIEWPORT_PIXEL_COUNT = 8_388_608L
+        internal const val MAX_VIEWPORT_LAYOUT_PIXEL_COUNT = 33_554_432L
+        internal const val MAX_SCREENSHOT_DIMENSION_PX = 32_768
+        internal const val MAX_SCREENSHOT_PIXEL_COUNT = 16_777_216L
         internal const val DEFAULT_USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-                "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+                "(KHTML, like Gecko) Chrome/$DESKTOP_CHROME_FULL_VERSION Safari/537.36"
         internal const val MOBILE_USER_AGENT =
             "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 " +
                 "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
@@ -191,7 +173,7 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
         @Volatile var pendingDialog: PendingDialog? = null
         @Volatile var viewportWidthPx: Int? = null
         @Volatile var viewportHeightPx: Int? = null
-        @Volatile var appliedViewportScaleFactor: Float = 1f
+        @Volatile var hasExplicitViewportSize: Boolean = false
         @Volatile var lastSnapshot: BrowserSnapshot? = null
         val stateSignal: Object = Object()
         @Volatile var stateVersion: Long = 0L
@@ -426,23 +408,14 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
 
     private fun dispatchNativeTapByRef(webView: WebView, ref: String): Boolean {
         val rect = resolveElementRect(webView, ref) ?: return false
+        val pageScale = webView.scale.takeIf { it > 0f } ?: 1f
+        val x =
+            (((rect.left + rect.right) / 2f) * pageScale)
+                .coerceIn(1f, (webView.width - 1).coerceAtLeast(1).toFloat())
+        val y =
+            (((rect.top + rect.bottom) / 2f) * pageScale)
+                .coerceIn(1f, (webView.height - 1).coerceAtLeast(1).toFloat())
         return runOnMainSync {
-            // WebView#getScale()/getWidth()/getHeight() internally call checkThread(), so reading
-            // them off the main thread throws "A WebView method was called on thread ...".
-            // browserClick runs on a tool thread, so the CSS-px -> view-px mapping must be read
-            // here, on the main thread, together with the touch dispatch. Keeping it outside the
-            // try below means a threading violation still surfaces instead of being swallowed.
-            // Fix for #1318.
-            val (x, y) =
-                nativeTapCoordinates(
-                    rectLeft = rect.left,
-                    rectTop = rect.top,
-                    rectRight = rect.right,
-                    rectBottom = rect.bottom,
-                    rawPageScale = webView.scale,
-                    viewWidth = webView.width,
-                    viewHeight = webView.height
-                )
             try {
                 webView.requestFocus()
                 val downTime = SystemClock.uptimeMillis()
@@ -1432,6 +1405,27 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
         if (width <= 0 || height <= 0) {
             return error(tool.name, "width and height must be positive integers")
         }
+        val density =
+            context.resources.displayMetrics.density
+                .takeIf { it.isFinite() && it > 0f }
+                ?: 1f
+        val cssPixelCount = width.toLong() * height.toLong()
+        val layoutWidth = kotlin.math.ceil(width.toDouble() * density).toLong()
+        val layoutHeight = kotlin.math.ceil(height.toDouble() * density).toLong()
+        val layoutPixelCount = layoutWidth * layoutHeight
+        if (
+            width > MAX_VIEWPORT_DIMENSION_CSS_PX ||
+                height > MAX_VIEWPORT_DIMENSION_CSS_PX ||
+                cssPixelCount > MAX_VIEWPORT_PIXEL_COUNT ||
+                layoutPixelCount > MAX_VIEWPORT_LAYOUT_PIXEL_COUNT
+        ) {
+            return error(
+                tool.name,
+                "viewport is too large for this device; maximum side is " +
+                    "$MAX_VIEWPORT_DIMENSION_CSS_PX CSS px and the requested pixel area " +
+                    "must fit the device rendering budget"
+            )
+        }
 
         val session =
             runOnMainSync {
@@ -1439,9 +1433,10 @@ class StandardBrowserSessionTools(internal val context: Context) : ToolExecutor 
             }
         runOnMainSync<Unit> {
             ensureSessionAttachedOnMain(session.id)
-            browserHost?.setViewportSize(width, height)
             session.viewportWidthPx = width
             session.viewportHeightPx = height
+            session.hasExplicitViewportSize = true
+            browserHost?.setViewportSize(width, height)
             applyViewportOverride(session)
             refreshSessionUiOnMain(session.id)
         }

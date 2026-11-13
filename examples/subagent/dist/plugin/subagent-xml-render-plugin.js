@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.onToolXmlRender = onToolXmlRender;
 exports.onToolResultXmlRender = onToolResultXmlRender;
-const subagent_status_ui_1 = __importDefault(require("../ui/subagent-status.ui"));
+const subagent_status_ui_1 = __importDefault(require("../ui/subagent-status.ui.js"));
 const SUBAGENT_TOOL_NAME = "subagent_run";
 function normalizePayload(input) {
     const record = input;

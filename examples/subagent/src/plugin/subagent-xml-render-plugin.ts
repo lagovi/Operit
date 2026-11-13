@@ -1,4 +1,4 @@
-import SubagentStatusScreen from "../ui/subagent-status.ui";
+import SubagentStatusScreen from "../ui/subagent-status.ui.js";
 import type { ToolPkg } from "../../../types";
 
 const SUBAGENT_TOOL_NAME = "subagent_run";

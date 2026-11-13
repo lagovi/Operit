@@ -3,6 +3,7 @@ package com.ai.assistance.operit.util
 import android.content.Context
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
+import com.ai.assistance.operit.ui.common.markdown.XmlRenderPluginRegistry
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.stream
@@ -38,6 +39,33 @@ object WaifuMessageProcessor {
         Regex("""(?<![@\w])(?:www\.)?(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?::\d+)?(?:[/?#]$URL_CHARS*)?""")
     private val ENTITY_PLACEHOLDER_REGEX =
         Regex("${Regex.escape(ENTITY_PLACEHOLDER_PREFIX)}\\d+${Regex.escape(ENTITY_PLACEHOLDER_SUFFIX)}")
+
+    /**
+     * Internal tags that must not be released as "plugin render tags": control data,
+     * context wrapper tags, and emotion, which is still handled separately by the emoji
+     * conversion path. Even when a plugin registers a renderer under the same name these
+     * tags keep being filtered, otherwise the thinking process, tool calls and attachment
+     * context would reappear inside the chat bubble.
+     */
+    private val nonRenderableXmlTags =
+        setOf(
+            "think",
+            "thinking",
+            "search",
+            "tool",
+            "tool_result",
+            "status",
+            "meta",
+            "emotion",
+            "memory",
+            "attachment",
+            "workspace_attachment",
+            "proxy_sender",
+            "reply_to",
+            "content",
+            "error",
+            "param",
+        )
     
     private var customEmojiRepository: CustomEmojiRepository? = null
     private var activePromptManager: ActivePromptManager? = null
@@ -117,7 +145,15 @@ object WaifuMessageProcessor {
             val blockType = blockGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
             when (blockType) {
                 MarkdownProcessorType.XML_BLOCK -> {
-                    blockGroup.stream.collect { }
+                    // An XML block is complete only when its group stream closes, so collect
+                    // the whole thing before deciding; otherwise half a tag would be frozen
+                    // into a segment.
+                    val blockBuilder = StringBuilder()
+                    blockGroup.stream.collect { blockBuilder.append(it) }
+                    val rawBlock = blockBuilder.toString()
+                    if (isRenderablePluginXmlContent(rawBlock)) {
+                        appendRenderableText(rawBlock)
+                    }
                 }
 
                 MarkdownProcessorType.CODE_BLOCK,
@@ -736,6 +772,57 @@ object WaifuMessageProcessor {
         }
     }
 
+    /**
+     * Tells whether a tag name is taken over by a plugin renderer, excluding the internal
+     * control tags.
+     *
+     * The registration data of [XmlRenderPluginRegistry] is reused here rather than
+     * duplicated as another allowlist on the message path: tags registered by a ToolPkg
+     * through `registerXmlRenderPlugin` (such as voice) enter the registry together with
+     * the package, so segments keep only those tags while any other unknown XML is still
+     * dropped as control data.
+     */
+    private fun isRenderablePluginTagName(rawTagName: String): Boolean {
+        val tagName = rawTagName.trim().lowercase()
+        if (tagName.isEmpty() || tagName in nonRenderableXmlTags) {
+            return false
+        }
+        if (ChatMarkupRegex.isToolTagName(tagName) || ChatMarkupRegex.isToolResultTagName(tagName)) {
+            return false
+        }
+        return XmlRenderPluginRegistry.supportsTag(tagName)
+    }
+
+    /**
+     * Tells whether a raw XML text is a complete block of a registered render tag.
+     *
+     * An unclosed tag does not count: during streaming only half of it may have arrived,
+     * and treating it as segment content would freeze an incomplete tag; it is emitted by
+     * the next segment snapshot after the tag closes.
+     */
+    internal fun isRenderablePluginXmlContent(rawContent: String): Boolean {
+        val trimmed = rawContent.trim()
+        if (!trimmed.startsWith("<")) {
+            return false
+        }
+        val rawTagName = ChatMarkupRegex.extractOpeningTagName(trimmed) ?: return false
+        if (!isRenderablePluginTagName(rawTagName)) {
+            return false
+        }
+        if (trimmed.endsWith("/>")) {
+            return true
+        }
+        return trimmed.contains("</$rawTagName>", ignoreCase = true)
+    }
+
+    internal fun isRenderablePluginXmlBlock(block: StructuredAssistantContentParser.Block): Boolean {
+        if (block.kind != StructuredAssistantContentParser.BlockKind.XML) {
+            return false
+        }
+        val rawTagName = block.rawTagName ?: return false
+        return block.closed && isRenderablePluginTagName(rawTagName)
+    }
+
     fun buildRenderableContentForWaifu(content: String): String {
         if (content.isBlank()) {
             return ""
@@ -753,7 +840,15 @@ object WaifuMessageProcessor {
                     builder.append(block.rawContent)
                 }
 
-                StructuredAssistantContentParser.BlockKind.XML -> Unit
+                // Only control XML is dropped; tags of registered plugin renderers (such
+                // as voice) must stay in the message, otherwise the renderer registration
+                // would be pointless and voice bubbles and similar content could never
+                // appear.
+                StructuredAssistantContentParser.BlockKind.XML -> {
+                    if (isRenderablePluginXmlBlock(block)) {
+                        builder.append(block.rawContent)
+                    }
+                }
             }
         }
 
@@ -839,8 +934,11 @@ object WaifuMessageProcessor {
             MarkdownProcessorType.TABLE,
             MarkdownProcessorType.IMAGE -> true
 
-            MarkdownProcessorType.HORIZONTAL_RULE,
+            // buildRenderableContentForWaifu already filtered the control XML, so an
+            // XML_BLOCK reaching sentence splitting can only be a registered render tag
+            // (such as voice), which is a stable visible atomic paragraph.
             MarkdownProcessorType.XML_BLOCK,
+            MarkdownProcessorType.HORIZONTAL_RULE,
             MarkdownProcessorType.BOLD,
             MarkdownProcessorType.ITALIC,
             MarkdownProcessorType.INLINE_CODE,
@@ -883,6 +981,11 @@ object WaifuMessageProcessor {
                             MarkdownProcessorType.CODE_BLOCK,
                             MarkdownProcessorType.TABLE,
                             MarkdownProcessorType.BLOCK_LATEX -> true
+                            // A registered render tag is complete visible content here (such
+                            // as a voice bubble) and must be kept as an indivisible atomic
+                            // paragraph like a code block, not split again by the tag
+                            // cleanup of cleanContentForWaifu.
+                            MarkdownProcessorType.XML_BLOCK -> isRenderablePluginXmlContent(block)
                             else -> false
                         }
 

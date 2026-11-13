@@ -109,6 +109,22 @@ object XmlRenderPluginRegistry {
         }
     }
 
+    /**
+     * Renderer lookup for non-Compose callers.
+     *
+     * The message processing pipeline (Waifu sentence splitting, XML filtering) needs to
+     * know whether a tag is taken over by a plugin renderer so it can keep registered
+     * render tags such as voice while dropping control tags such as think/tool. The same
+     * registration data is reused here instead of maintaining a second tag allowlist on
+     * the message path, which would drift out of sync.
+     */
+    fun supportsTag(tagName: String): Boolean {
+        if (tagName.isBlank()) {
+            return false
+        }
+        return plugins.any { plugin -> plugin.supports(tagName) }
+    }
+
     fun notifyChanged() {
         changeVersionMutable.update { current -> current + 1 }
     }

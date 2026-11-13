@@ -953,10 +953,10 @@
     {
       "upstream_sha": "128d4265",
       "upstream_subject": "fix(character-card): keep cleared default voice prompt empty",
-      "status": "deferred",
-      "fork_commit": null,
+      "status": "ported",
+      "fork_commit": "43880a2a",
       "reason": "cleared voice prompt re-seeds",
-      "decided": "2026-11-12"
+      "decided": "2026-11-13"
     },
     {
       "upstream_sha": "9cf8283ee4b669b97ed67631e826d53e0d2c02cf",
@@ -1121,10 +1121,10 @@
     {
       "upstream_sha": "5a332577",
       "upstream_subject": "fix(permissions): synchronize concurrent tool descriptions",
-      "status": "deferred",
-      "fork_commit": null,
+      "status": "ported",
+      "fork_commit": "43880a2a",
       "reason": "ConcurrentModificationException",
-      "decided": "2026-11-12"
+      "decided": "2026-11-13"
     },
     {
       "upstream_sha": "1ea5133fd8fd69fa37bb8bac77e5d3093c44ce84",

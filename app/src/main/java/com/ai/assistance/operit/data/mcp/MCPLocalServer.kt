@@ -130,7 +130,11 @@ class MCPLocalServer private constructor(private val context: Context) {
             @SerializedName("autoApprove")
             val autoApprove: List<String>? = emptyList(),
             @SerializedName("env")
-            val env: Map<String, String>? = emptyMap()
+            val env: Map<String, String>? = emptyMap(),
+            // Standard MCP stdio field. Keeping it in the model is what allows a server that
+            // lives outside ~/mcp_plugins to be started with its own working directory.
+            @SerializedName("cwd")
+            val cwd: String? = null
         )
     }
 
@@ -391,7 +395,8 @@ class MCPLocalServer private constructor(private val context: Context) {
             args = args,
             disabled = serverConfig.disabled,
             autoApprove = autoApprove,
-            env = env
+            env = env,
+            cwd = serverConfig.cwd?.trim()?.takeIf { it.isNotEmpty() }
         )
     }
 
@@ -410,7 +415,10 @@ class MCPLocalServer private constructor(private val context: Context) {
     ): Boolean {
         return existing.command != replacement.command ||
             existing.args.orEmpty() != replacement.args.orEmpty() ||
-            existing.env.orEmpty() != replacement.env.orEmpty()
+            existing.env.orEmpty() != replacement.env.orEmpty() ||
+            // Changing cwd must reset the runtime, otherwise a running process keeps the old
+            // working directory and the next start silently uses stale state.
+            existing.cwd != replacement.cwd
     }
 
     private fun hasRemoteRuntimeConfigurationChanged(
@@ -533,7 +541,8 @@ class MCPLocalServer private constructor(private val context: Context) {
         args: List<String>? = emptyList(),
         env: Map<String, String>? = emptyMap(),
         disabled: Boolean = false,
-        autoApprove: List<String>? = emptyList()
+        autoApprove: List<String>? = emptyList(),
+        cwd: String? = null
     ) {
         val normalizedCommand = command?.trim()
         require(!normalizedCommand.isNullOrEmpty()) { context.getString(R.string.mcp_server_command_empty, serverId) }
@@ -547,7 +556,8 @@ class MCPLocalServer private constructor(private val context: Context) {
                 val key = entry.key?.takeIf { it.isNotBlank() }
                 val value = entry.value
                 if (key == null || value == null) null else key to value
-            }?.toMap() ?: emptyMap()
+            }?.toMap() ?: emptyMap(),
+            cwd = cwd?.trim()?.takeIf { it.isNotEmpty() }
         )
         var shouldResetRuntime = false
         _mcpConfig.update { currentConfig ->
@@ -626,7 +636,8 @@ class MCPLocalServer private constructor(private val context: Context) {
                                     args = importedServer.args,
                                     disabled = importedServer.disabled,
                                     autoApprove = importedServer.autoApprove,
-                                    env = importedServer.env
+                                    env = importedServer.env,
+                                    cwd = importedServer.cwd
                                 )
                                 val existingServer = newServers[importedServer.id]
                                 val existingMetadata = newMetadata[importedServer.id]
@@ -909,7 +920,10 @@ class MCPLocalServer private constructor(private val context: Context) {
                     args = serverConfig.args ?: emptyList(),
                     env = serverConfig.env ?: emptyMap(),
                     disabled = !enabled,
-                    autoApprove = serverConfig.autoApprove ?: emptyList()
+                    autoApprove = serverConfig.autoApprove ?: emptyList(),
+                    // Preserve the configured working directory; dropping it would silently
+                    // change how the process resolves relative arguments on the next start.
+                    cwd = serverConfig.cwd
                 )
                 AppLogger.d(TAG, "服务器启用状态已更新(本地): $serverId, enabled=$enabled")
                 return
@@ -927,36 +941,68 @@ class MCPLocalServer private constructor(private val context: Context) {
     }
 
     fun getPluginRuntimeDirectory(pluginId: String): String {
-        val pluginHomeDir = "~/mcp_plugins"
-        return "$pluginHomeDir/${pluginId.split("/").last()}"
-    }
-
-    private fun getPluginCommandName(pluginId: String): String? {
-        return getMCPServer(pluginId)?.command
-            ?.trim()
-            ?.substringAfterLast('/')
-            ?.substringAfterLast('\\')
-            ?.lowercase(Locale.ROOT)
-    }
-
-    private fun pluginRuntimeRequiresFiles(pluginId: String): Boolean {
-        return when (getPluginCommandName(pluginId)) {
-            "npx", "uvx", "uv" -> false
-            else -> true
+        val serverConfig = getMCPServer(pluginId)
+        return if (serverConfig != null) {
+            McpStdioConfigResolver.resolveWorkingDirectory(
+                configuredCwd = serverConfig.cwd,
+                pluginId = pluginId,
+                command = serverConfig.command,
+                args = serverConfig.args ?: emptyList()
+            )
+        } else {
+            val pluginHomeDir = "~/mcp_plugins"
+            "$pluginHomeDir/${pluginId.split("/").last()}"
         }
     }
 
+    /** True when the service is launched from the app-managed ~/mcp_plugins/<id> directory. */
+    private fun pluginRuntimeUsesAppManagedDirectory(pluginId: String): Boolean {
+        val serverConfig = getMCPServer(pluginId) ?: return true
+        return McpStdioConfigResolver.usesAppManagedRuntimeDirectory(
+            command = serverConfig.command,
+            args = serverConfig.args ?: emptyList(),
+            cwd = serverConfig.cwd
+        )
+    }
+
+    /** npx/uvx/uv download their own payload through a package manager, so an empty runtime directory is acceptable. */
+    private fun pluginRuntimeAllowsEmptyDirectory(pluginId: String): Boolean {
+        val serverConfig = getMCPServer(pluginId) ?: return false
+        return McpStdioConfigResolver.commandName(serverConfig.command) in
+            setOf("npx", "uvx", "uv")
+    }
+
     /**
-     * 检查插件运行目录是否已就绪
-     * 对于 npx/uvx/uv 类型：目录存在即可，允许为空目录
-     * 对于普通本地插件：目录存在且至少包含一个文件
+     * Checks whether the plugin runtime directory is ready.
+     *
+     * A stdio service with an absolute command, an absolute entry script or an explicit cwd
+     * does not depend on Operit copying a plugin directory, so it is considered ready as is;
+     * otherwise the existing ~/mcp_plugins/<id> rules apply.
+     * For npx/uvx/uv: the directory only has to exist and may be empty.
+     * For an ordinary local plugin: the directory has to exist and contain at least one file.
      */
     suspend fun isPluginRuntimeReady(pluginId: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val metadata = getPluginMetadata(pluginId)
 
             if (metadata?.type == "remote") {
-                AppLogger.d(TAG, "插件 $pluginId 是远程服务，运行目录视为已就绪")
+                AppLogger.d(TAG, "Plugin $pluginId is a remote service; its runtime directory is considered ready")
+                return@withContext true
+            }
+
+            val serverConfig = getMCPServer(pluginId)
+            if (serverConfig == null) {
+                AppLogger.w(TAG, "Plugin $pluginId has no mcpServers config; the runtime directory cannot be determined")
+                return@withContext false
+            }
+
+            if (!pluginRuntimeUsesAppManagedDirectory(pluginId)) {
+                AppLogger.d(
+                    TAG,
+                    "Plugin $pluginId uses a command/directory already present in the terminal; " +
+                        "no app-side plugin directory is needed: " +
+                        "command=${serverConfig.command}, cwd=${serverConfig.cwd}"
+                )
                 return@withContext true
             }
 
@@ -975,12 +1021,12 @@ class MCPLocalServer private constructor(private val context: Context) {
                             (existsResult.result as FileExistsData).exists
             
             if (!dirExists) {
-                AppLogger.d(TAG, "插件 $pluginId 运行目录不存在: $pluginDir")
+                AppLogger.d(TAG, "Plugin $pluginId runtime directory does not exist: $pluginDir")
                 return@withContext false
             }
 
-            if (!pluginRuntimeRequiresFiles(pluginId)) {
-                AppLogger.d(TAG, "插件 $pluginId 运行目录已就绪: $pluginDir (允许空目录)")
+            if (pluginRuntimeAllowsEmptyDirectory(pluginId)) {
+                AppLogger.d(TAG, "Plugin $pluginId runtime directory is ready: $pluginDir (empty directory allowed)")
                 return@withContext true
             }
 
@@ -1000,10 +1046,10 @@ class MCPLocalServer private constructor(private val context: Context) {
                 false
             }
 
-            AppLogger.d(TAG, "插件 $pluginId 运行目录检查: $hasFiles (路径: $pluginDir, 包含${if (hasFiles) "有" else "无"}文件)")
+            AppLogger.d(TAG, "Plugin $pluginId runtime directory check: $hasFiles (path: $pluginDir, ${if (hasFiles) "has" else "has no"} files)")
             return@withContext hasFiles
         } catch (e: Exception) {
-            AppLogger.e(TAG, "检查插件运行目录状态时出错: $pluginId", e)
+            AppLogger.e(TAG, "Error while checking the plugin runtime directory state: $pluginId", e)
             return@withContext false
         }
     }

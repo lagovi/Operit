@@ -22,7 +22,8 @@ internal data class StdioMcpImportedServer(
     val args: List<String>,
     val env: Map<String, String>,
     val autoApprove: List<String>,
-    override val disabled: Boolean
+    override val disabled: Boolean,
+    val cwd: String? = null
 ) : McpImportedServer
 
 internal data class RemoteMcpImportedServer(
@@ -92,7 +93,8 @@ internal object McpConfigImportParser {
             args = config.optionalStringList(context, "args", serverId),
             env = config.optionalStringMap(context, "env", serverId),
             autoApprove = config.optionalStringList(context, "autoApprove", serverId),
-            disabled = config.optionalBoolean(context, "disabled", serverId)
+            disabled = config.optionalBoolean(context, "disabled", serverId),
+            cwd = config.optionalNonBlankString(context, "cwd", serverId)
         )
     }
 
@@ -137,6 +139,13 @@ internal object McpConfigImportParser {
         val value = get(field) ?: return null
         require(value.isJsonPrimitive && value.asJsonPrimitive.isString) { context.getString(R.string.mcp_config_field_must_be_string, field) }
         return value.asString
+    }
+
+    private fun JsonObject.optionalNonBlankString(context: Context, field: String, serverId: String): String? {
+        val value = optionalString(context, field) ?: return null
+        val trimmed = value.trim()
+        require(trimmed.isNotEmpty()) { context.getString(R.string.mcp_config_field_must_not_be_blank, serverId, field) }
+        return trimmed
     }
 
     private fun JsonObject.optionalBoolean(context: Context, field: String, serverId: String): Boolean {

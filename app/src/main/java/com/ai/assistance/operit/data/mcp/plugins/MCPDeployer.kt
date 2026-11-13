@@ -110,6 +110,22 @@ class MCPDeployer(private val context: Context) {
                         val serverConfig = mcpLocalServer.getMCPServer(pluginId)
                         val command = serverConfig?.command?.lowercase() ?: "npx/uvx/uv"
 
+                        val usesAppManagedDirectory = serverConfig != null &&
+                            com.ai.assistance.operit.data.mcp.McpStdioConfigResolver
+                                .usesAppManagedRuntimeDirectory(
+                                    command = serverConfig.command,
+                                    args = serverConfig.args.orEmpty(),
+                                    cwd = serverConfig.cwd
+                                )
+                        if (!usesAppManagedDirectory) {
+                            // Absolute command, absolute entry, or an explicit external cwd: the
+                            // files already exist in the terminal, and creating a directory would
+                            // touch the user's own paths, so only confirm the config is usable.
+                            AppLogger.d(TAG, "Plugin $pluginId uses a command/directory already present in the terminal; no deployment needed")
+                            statusCallback(DeploymentStatus.Success(context.getString(R.string.mcp_deployment_minimal_complete, command)))
+                            return@withContext true
+                        }
+
                         AppLogger.d(TAG, "插件 $pluginId 使用 $command 命令（虚拟路径），开始最小化部署...")
                         statusCallback(DeploymentStatus.InProgress(context.getString(R.string.mcp_deployment_virtual_plugin_detected, command)))
 
@@ -457,6 +473,9 @@ class MCPDeployer(private val context: Context) {
                 val args = serverConfig.getAsJsonArray("args")?.map { it.asString } ?: emptyList()
                 val disabled = serverConfig.get("disabled")?.asBoolean ?: false
                 val autoApprove = serverConfig.getAsJsonArray("autoApprove")?.map { it.asString } ?: emptyList()
+                // cwd is a standard MCP stdio field; dropping it would start a relative entry
+                // script in the wrong directory.
+                val cwd = serverConfig.get("cwd")?.takeIf { !it.isJsonNull }?.asString
 
                 // 提取环境变量
                 val env = mutableMapOf<String, String>()
@@ -466,7 +485,7 @@ class MCPDeployer(private val context: Context) {
                     }
                 }
 
-                AppLogger.d(TAG, "解析MCP配置 - 服务器: $serverName, 命令: $command, 参数: $args")
+                AppLogger.d(TAG, "Parsed MCP config - server: $serverName, command: $command, args: $args, cwd: $cwd")
 
                 // 保存到MCPLocalServer
                 mcpLocalServer.addOrUpdateMCPServer(
@@ -475,7 +494,8 @@ class MCPDeployer(private val context: Context) {
                     args = args,
                     env = env,
                     disabled = disabled,
-                    autoApprove = autoApprove
+                    autoApprove = autoApprove,
+                    cwd = cwd
                 )
 
                 true

@@ -18,6 +18,7 @@ import com.ai.assistance.operit.util.stream.SharedStream
 import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
 import com.ai.assistance.operit.util.stream.TextStreamEventType
 import com.ai.assistance.operit.util.stream.TextStreamRevisionTracker
+import com.ai.assistance.operit.util.stream.applyRevisionEvents
 import com.ai.assistance.operit.util.TtsSegmenter
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.ai.assistance.operit.data.preferences.ApiPreferences
@@ -362,15 +363,18 @@ class MessageProcessingDelegate(
     private fun resolveFinalContent(aiMessage: ChatMessage): String {
         val sharedStream = aiMessage.contentStream as? SharedStream<String>
         val replayChunks = sharedStream?.replayCache
-        val eventCarrier = aiMessage.contentStream as? TextStreamEventCarrier
-
-        return if (eventCarrier?.eventChannel?.replayCache?.isNotEmpty() == true) {
-            aiMessage.content
-        } else if (!replayChunks.isNullOrEmpty()) {
-            replayChunks.joinToString(separator = "")
-        } else {
-            aiMessage.content
+        if (!replayChunks.isNullOrEmpty()) {
+            val rawContent = replayChunks.joinToString(separator = "")
+            val events =
+                (aiMessage.contentStream as? TextStreamEventCarrier)?.eventChannel?.replayCache
+                    ?: emptyList()
+            // Replaying the complete chunk and event history is the only derivation that stays
+            // identical to what the stream produced. The live aiMessage.content snapshot can be
+            // older than the replay cache when a turn ends, and a raw concatenation still contains
+            // the discarded attempt of a retried request.
+            return applyRevisionEvents(rawContent, events)
         }
+        return aiMessage.content
     }
 
     private fun ChatMessage.withTurnMetrics(
@@ -1395,18 +1399,29 @@ class MessageProcessingDelegate(
                                             when (event.eventType) {
                                                 TextStreamEventType.SAVEPOINT -> {
                                                     revisionMutex.withLock {
-                                                        revisionTracker.savepoint(event.id)
+                                                        revisionTracker.savepoint(
+                                                            event.id,
+                                                            event.contentLength
+                                                        )
                                                     }
                                                 }
 
                                                 TextStreamEventType.ROLLBACK -> {
                                                     val rollbackResult =
                                                         revisionMutex.withLock {
-                                                            revisionTracker.rollback(event.id)?.let { content ->
+                                                            revisionTracker.rollback(
+                                                                event.id,
+                                                                event.contentLength,
+                                                                event.discardedLength
+                                                            )?.let { content ->
                                                                 content.toString() to claimStreamingSnapshot()
                                                             }
                                                         } ?: return@collect
                                                     val (snapshot, shouldPersist) = rollbackResult
+                                                    AppLogger.d(
+                                                        TAG,
+                                                        "revision rollback id=${event.id} targetLength=${event.contentLength} resultingLength=${snapshot.length}"
+                                                    )
 
                                                     aiMessage.content = snapshot
 
@@ -1457,7 +1472,12 @@ class MessageProcessingDelegate(
                                     // Cancellation must publish the final revision before statistics are persisted.
                                     aiMessage.content =
                                         revisionMutex.withLock {
-                                            revisionTracker.currentContent().toString()
+                                            revisionTracker
+                                                .applyEventHistory(
+                                                    revisableStream?.eventChannel?.replayCache
+                                                        ?: emptyList()
+                                                )
+                                                .toString()
                                         }
                                 }
                             }
@@ -1831,15 +1851,26 @@ class MessageProcessingDelegate(
                                 when (event.eventType) {
                                     TextStreamEventType.SAVEPOINT -> {
                                         revisionMutex.withLock {
-                                            revisionTracker.savepoint(event.id)
+                                            revisionTracker.savepoint(
+                                                event.id,
+                                                event.contentLength
+                                            )
                                         }
                                     }
 
                                     TextStreamEventType.ROLLBACK -> {
                                         val snapshot =
                                             revisionMutex.withLock {
-                                                revisionTracker.rollback(event.id)?.toString()
+                                                revisionTracker.rollback(
+                                                    event.id,
+                                                    event.contentLength,
+                                                    event.discardedLength
+                                                )?.toString()
                                             } ?: return@collect
+                                        AppLogger.d(
+                                            TAG,
+                                            "revision rollback(regenerate) id=${event.id} targetLength=${event.contentLength} resultingLength=${snapshot.length}"
+                                        )
                                         aiMessage.content = snapshot
                                     }
                                 }
@@ -1859,7 +1890,11 @@ class MessageProcessingDelegate(
                 revisionJob?.cancelAndJoin()
                 aiMessage.content =
                     revisionMutex.withLock {
-                        revisionTracker.currentContent().toString()
+                        revisionTracker
+                            .applyEventHistory(
+                                revisableStream?.eventChannel?.replayCache ?: emptyList()
+                            )
+                            .toString()
                     }
             }
 

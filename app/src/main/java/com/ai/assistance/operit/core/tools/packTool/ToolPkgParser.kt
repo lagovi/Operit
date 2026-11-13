@@ -1642,10 +1642,7 @@ internal object ToolPkgArchiveParser {
     }
 
     fun readToolPkgManifestPreview(inputStreamFactory: () -> InputStream): ToolPkgManifestPreview? {
-        var bestEntryName: String? = null
-        var bestManifestText: String? = null
-        var bestRank = Int.MAX_VALUE
-        var bestDepth = Int.MAX_VALUE
+        val manifests = linkedMapOf<String, String>()
 
         inputStreamFactory().use { input ->
             ZipInputStream(input.buffered()).use { zipInput ->
@@ -1653,45 +1650,20 @@ internal object ToolPkgArchiveParser {
                     val entry = zipInput.nextEntry ?: break
                     val normalizedName = normalizeZipEntryPath(entry.name)
                     if (!entry.isDirectory && normalizedName != null && isManifestEntryName(normalizedName)) {
-                        val rank = manifestEntryPriority(normalizedName)
-                        val depth = normalizedName.count { it == '/' }
-                        if (rank < bestRank || (rank == bestRank && depth < bestDepth)) {
-                            bestEntryName = normalizedName
-                            // Read the entry without closing the shared ZipInputStream:
-                            // closing a reader over it would close the whole archive stream.
-                            bestManifestText =
-                                String(zipInput.readBytes(), StandardCharsets.UTF_8)
-                            bestRank = rank
-                            bestDepth = depth
-                        }
+                        // Do not close a reader over the shared ZipInputStream.
+                        manifests[normalizedName] = String(zipInput.readBytes(), StandardCharsets.UTF_8)
                     }
                     zipInput.closeEntry()
-                    if (bestRank == 0) break
                 }
             }
         }
 
-        val entryName = bestEntryName ?: return null
-        val manifestText = bestManifestText ?: return null
+        val entryName = findManifestEntry(manifests.keys) ?: return null
+        val manifestText = manifests.getValue(entryName)
         return ToolPkgManifestPreview(
             entryName = entryName,
             manifest = parseToolPkgManifest(manifestText, entryName)
         )
-    }
-
-    /**
-     * 与 findManifestEntry 保持一致的优先级：根目录 hjson > 根目录 json > 嵌套 hjson > 嵌套 json。
-     * 避免打包时混入的嵌套 manifest（例如工作区 .backup/ 残留）被当成包的根 manifest。
-     */
-    private fun manifestEntryPriority(normalizedName: String): Int {
-        val isNested = normalizedName.contains('/')
-        val isHjson = normalizedName.endsWith(".hjson", ignoreCase = true)
-        return when {
-            !isNested && isHjson -> 0
-            !isNested -> 1
-            isHjson -> 2
-            else -> 3
-        }
     }
 
     fun extractZipEntriesFromExternal(zipFilePath: String, destinationDir: File): Boolean {
@@ -1754,22 +1726,38 @@ internal object ToolPkgArchiveParser {
         return true
     }
 
-    private fun findManifestEntry(entryNames: Collection<String>): String? {
-        val exactHjson = entryNames.firstOrNull { it.equals("manifest.hjson", ignoreCase = true) }
-        if (exactHjson != null) return exactHjson
+    internal fun findManifestEntry(entryNames: Collection<String>): String? {
+        return entryNames
+            .asSequence()
+            .mapNotNull(::normalizeZipEntryPath)
+            .filter(::isManifestEntryName)
+            .minWithOrNull(Comparator(::compareManifestEntries))
+    }
 
-        val exactJson = entryNames.firstOrNull { it.equals("manifest.json", ignoreCase = true) }
-        if (exactJson != null) return exactJson
+    private fun compareManifestEntries(left: String, right: String): Int {
+        return compareValuesBy(
+            left,
+            right,
+            ::manifestEntryPriority,
+            ::manifestEntryDepth,
+            { it.lowercase() },
+            { it }
+        )
+    }
 
-        val nestedHjson =
-            entryNames.firstOrNull {
-                it.substringAfterLast('/').equals("manifest.hjson", ignoreCase = true)
-            }
-        if (nestedHjson != null) return nestedHjson
-
-        return entryNames.firstOrNull {
-            it.substringAfterLast('/').equals("manifest.json", ignoreCase = true)
+    private fun manifestEntryPriority(entryName: String): Int {
+        val nested = entryName.contains('/')
+        val hjson = entryName.endsWith(".hjson", ignoreCase = true)
+        return when {
+            !nested && hjson -> 0
+            !nested -> 1
+            hjson -> 2
+            else -> 3
         }
+    }
+
+    private fun manifestEntryDepth(entryName: String): Int {
+        return entryName.count { it == '/' }
     }
 
     private fun isManifestEntryName(entryName: String): Boolean {

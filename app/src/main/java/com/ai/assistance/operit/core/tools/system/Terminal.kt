@@ -196,6 +196,10 @@ class Terminal private constructor(private val context: Context) {
     /**
      * Sends an interrupt signal (Ctrl+C) to the named session without changing the foreground
      * session.
+     *
+     * TerminalCore delivers the control bytes straight to the target PTY, bypassing the text
+     * writer that a large input may be occupying; the underlying write finishes within three
+     * seconds or returns WRITE_TIMED_OUT so the caller can run its post-cancel cleanup.
      */
     suspend fun sendInterruptSignal(sessionId: String): SessionInputResult {
         return withContext(Dispatchers.IO) {

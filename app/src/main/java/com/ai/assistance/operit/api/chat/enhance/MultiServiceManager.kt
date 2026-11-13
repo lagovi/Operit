@@ -16,6 +16,8 @@ import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.stats.LlmIoLogRepository
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
@@ -35,9 +37,19 @@ class MultiServiceManager(private val context: Context) {
         private val closed = AtomicBoolean(false)
 
         suspend fun close() {
-            if (closed.compareAndSet(false, true)) {
-                closeAction()
+            // Request cancellation must still return its lease, including while waiting for
+            // the manager mutex; otherwise retired native models remain alive indefinitely.
+            withContext(NonCancellable) {
+                if (closed.compareAndSet(false, true)) {
+                    closeAction()
+                }
             }
+        }
+
+        suspend inline fun <T> use(block: (ServiceLease) -> T): T = try {
+            block(this)
+        } finally {
+            close()
         }
     }
 
@@ -100,14 +112,7 @@ class MultiServiceManager(private val context: Context) {
             serviceMutex.withLock {
                 getOrCreateServiceForFunctionLocked(functionType).also { it.activeLeases += 1 }
             }
-        val modelParameters =
-            modelConfigManager.getModelParametersForConfig(managedService.modelConfig.id)
-        return ServiceLease(
-            closeAction = { releaseLease(managedService) },
-            service = managedService.service,
-            modelConfig = managedService.modelConfig,
-            modelParameters = modelParameters
-        )
+        return createLease(managedService)
     }
 
     suspend fun acquireServiceForConfig(configId: String, modelIndex: Int): ServiceLease {
@@ -116,14 +121,23 @@ class MultiServiceManager(private val context: Context) {
             serviceMutex.withLock {
                 getOrCreateServiceForConfigLocked(configId, modelIndex).also { it.activeLeases += 1 }
             }
-        val modelParameters =
-            modelConfigManager.getModelParametersForConfig(managedService.modelConfig.id)
-        return ServiceLease(
-            closeAction = { releaseLease(managedService) },
-            service = managedService.service,
-            modelConfig = managedService.modelConfig,
-            modelParameters = modelParameters
-        )
+        return createLease(managedService)
+    }
+
+    private suspend fun createLease(managedService: ManagedService): ServiceLease {
+        try {
+            val modelParameters =
+                modelConfigManager.getModelParametersForConfig(managedService.modelConfig.id)
+            return ServiceLease(
+                closeAction = { releaseLease(managedService) },
+                service = managedService.service,
+                modelConfig = managedService.modelConfig,
+                modelParameters = modelParameters
+            )
+        } catch (error: Throwable) {
+            withContext(NonCancellable) { releaseLease(managedService) }
+            throw error
+        }
     }
 
     private suspend fun getOrCreateServiceForFunctionLocked(functionType: FunctionType): ManagedService {
@@ -217,11 +231,12 @@ class MultiServiceManager(private val context: Context) {
     }
 
     suspend fun resetTokenCountersForFunction(functionType: FunctionType) {
-        val service = getServiceForFunction(functionType)
-        try {
-            service.resetTokenCounts()
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "重置功能${functionType}的token计数器时出错", e)
+        acquireServiceForFunction(functionType).use { lease ->
+            try {
+                lease.service.resetTokenCounts()
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "重置功能${functionType}的token计数器时出错", e)
+            }
         }
     }
 
@@ -256,12 +271,11 @@ class MultiServiceManager(private val context: Context) {
 
             serviceInstances.clear()
             customServiceInstances.clear()
-            retiredServices.clear()
             defaultService = null
             services.forEach { service ->
-                closeManagedServiceLocked(service, cancelStreaming = true)
+                retireManagedServiceLocked(service)
             }
-            AppLogger.d(TAG, "已清除所有服务实例缓存并释放资源")
+            AppLogger.d(TAG, "已清除服务缓存，使用中的实例将在租约归还后释放")
         }
     }
 
@@ -280,20 +294,17 @@ class MultiServiceManager(private val context: Context) {
 
     private fun closeRetiredServiceLocked(managedService: ManagedService) {
         if (managedService.retired && managedService.activeLeases == 0) {
-            closeManagedServiceLocked(managedService, cancelStreaming = false)
+            closeManagedServiceLocked(managedService)
         }
     }
 
-    private fun closeManagedServiceLocked(managedService: ManagedService, cancelStreaming: Boolean) {
+    private fun closeManagedServiceLocked(managedService: ManagedService) {
         if (managedService.released) {
             return
         }
         managedService.released = true
         retiredServices.remove(managedService)
         try {
-            if (cancelStreaming) {
-                managedService.service.cancelStreaming()
-            }
             managedService.service.release()
             AppLogger.d(TAG, "已释放服务资源: providerModel=${managedService.service.providerModel}")
         } catch (e: Exception) {

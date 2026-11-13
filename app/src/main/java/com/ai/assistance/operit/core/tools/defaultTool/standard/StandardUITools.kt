@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.media.projection.MediaProjection
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.core.config.FunctionalPrompts
 import com.ai.assistance.operit.core.tools.AutomationExecutionResult
 import com.ai.assistance.operit.core.tools.SimplifiedUINode
@@ -357,9 +358,11 @@ open class StandardUITools(protected val context: Context) : ToolImplementations
             )
         }
 
+        var serviceLease: MultiServiceManager.ServiceLease? = null
         return try {
-            // 获取专用于 UI_CONTROLLER 的 AIService 实例
-            val uiService = EnhancedAIService.getAIServiceForFunction(context, FunctionType.UI_CONTROLLER)
+            val lease = EnhancedAIService.acquireAIServiceForFunction(context, FunctionType.UI_CONTROLLER)
+            serviceLease = lease
+            val uiService = lease.service
             val systemPrompt = buildUiAutomationSystemPrompt()
 
             val metrics = context.resources.displayMetrics
@@ -451,6 +454,8 @@ open class StandardUITools(protected val context: Context) : ToolImplementations
                 result = StringResultData(""),
                 error = "Error running UI subagent: ${e.message}"
             )
+        } finally {
+            serviceLease?.close()
         }
     }
 

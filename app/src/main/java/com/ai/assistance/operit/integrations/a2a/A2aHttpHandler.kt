@@ -281,8 +281,8 @@ class A2aHttpHandler(
                     put("taskId", event.task.id)
                     put("contextId", event.task.contextId)
                     put("artifact", artifactToJson(event.task.id, event.text))
-                    put("append", true)
-                    put("lastChunk", false)
+                    put("append", event.append)
+                    put("lastChunk", event.lastChunk)
                 }
             )
         }

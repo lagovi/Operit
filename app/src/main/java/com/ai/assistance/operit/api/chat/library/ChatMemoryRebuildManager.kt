@@ -2,6 +2,7 @@ package com.ai.assistance.operit.api.chat.library
 
 import android.content.Context
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
@@ -91,6 +92,7 @@ class ChatMemoryRebuildManager private constructor(private val context: Context)
     }
 
     private suspend fun rebuild(chatIds: List<String>, windowMessageCount: Int) {
+        var serviceLease: MultiServiceManager.ServiceLease? = null
         try {
             _progress.value = Progress(status = Status.PREPARING, totalChats = chatIds.size)
             val chatHistoryManager = ChatHistoryManager.getInstance(context)
@@ -114,7 +116,9 @@ class ChatMemoryRebuildManager private constructor(private val context: Context)
             require(totalWindows > 0) { "Selected chats do not contain any user messages to rebuild" }
 
             val toolHandler = AIToolHandler.getInstance(context)
-            val memoryService = EnhancedAIService.getAIServiceForFunction(context, FunctionType.MEMORY)
+            val lease = EnhancedAIService.acquireAIServiceForFunction(context, FunctionType.MEMORY)
+            serviceLease = lease
+            val memoryService = lease.service
             var completedChats = 0
             var completedWindows = 0
             var processedSourceMessages = 0
@@ -196,6 +200,8 @@ class ChatMemoryRebuildManager private constructor(private val context: Context)
                 status = Status.FAILED,
                 errorMessage = error.localizedMessage ?: error.javaClass.simpleName
             )
+        } finally {
+            serviceLease?.close()
         }
     }
 

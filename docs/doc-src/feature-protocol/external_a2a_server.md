@@ -119,10 +119,14 @@ curl -N -X POST "http://DEVICE_IP:8094/a2a" \
 
 The first event contains `result.task`. Subsequent events contain `result.statusUpdate` or `result.artifactUpdate`. The final `statusUpdate` carries `final: true`, then the SSE connection closes.
 
+Live text chunks use `append: true`. Before a normally collected response reaches its terminal status, a final artifact update uses the same `artifactId` with `append: false` and `lastChunk: true`. Clients must replace that artifact's text, including when the replacement is empty. This update removes discarded output from an automatically retried request and makes the final streamed text agree with `GetTask`.
+
 ```text
 data: {"jsonrpc":"2.0","id":2,"result":{"task":{"id":"task-uuid","contextId":"context-uuid","status":{"state":"TASK_STATE_WORKING"}}}}
 
 data: {"jsonrpc":"2.0","id":2,"result":{"artifactUpdate":{"taskId":"task-uuid","contextId":"context-uuid","artifact":{"artifactId":"task-uuid-result","parts":[{"text":"这是回答的第一部分。"}]},"append":true,"lastChunk":false}}}
+
+data: {"jsonrpc":"2.0","id":2,"result":{"artifactUpdate":{"taskId":"task-uuid","contextId":"context-uuid","artifact":{"artifactId":"task-uuid-result","parts":[{"text":"这是完整的最终回答。"}]},"append":false,"lastChunk":true}}}
 
 data: {"jsonrpc":"2.0","id":2,"result":{"statusUpdate":{"taskId":"task-uuid","contextId":"context-uuid","status":{"state":"TASK_STATE_COMPLETED"},"final":true}}}
 ```
@@ -144,6 +148,8 @@ data: {"jsonrpc":"2.0","id":2,"result":{"statusUpdate":{"taskId":"task-uuid","co
 ```
 
 `SubscribeToTask` returns the same SSE format as `SendStreamingMessage`. It is available while a task is active. `CancelTask` returns the canceled Task and changes the task to `TASK_STATE_CANCELED`.
+
+The initial task snapshot includes output accumulated before the subscription. Subsequent artifact events contain changes published after that snapshot; a chunk already included in the snapshot is not appended a second time.
 
 Tasks are held in memory for the lifetime of the external HTTP service. Restarting or disabling that service removes its A2A task records.
 

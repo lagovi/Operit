@@ -7,7 +7,7 @@
   "note": "One entry per upstream commit after fork_point. status: ported | skipped | deferred | superseded. Keys: upstream_sha (7+ hex prefix), upstream_subject, status, fork_commit (our commit short-sha when ported, else null), reason (one line), decided (YYYY-MM-DD). An upstream commit with no entry is UNCLASSIFIED and reported by `python3 ci/script/fork_audit.py --ports`.",
   "entries": [
     {
-      "upstream_sha": "aeb569bf",
+      "upstream_sha": "aeb569bfb166aa6ad8e9a2040856dd88bd5aea0a",
       "upstream_subject": "chore(release): bump version to 1.12.2+2",
       "status": "skipped",
       "fork_commit": null,
@@ -23,7 +23,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "dd882918",
+      "upstream_sha": "dd88291820ae57dc5827694383eb4a0fe02bb7b7",
       "upstream_subject": "chore(release): bump version to 1.12.2+1",
       "status": "skipped",
       "fork_commit": null,
@@ -31,7 +31,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "de01cd35",
+      "upstream_sha": "de01cd35a6c49c534e7a70f187f50f6a19f0bbcb",
       "upstream_subject": "revert(chat): restore Room v21 for Operit2 imports",
       "status": "skipped",
       "fork_commit": null,
@@ -63,7 +63,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "8b9d8539",
+      "upstream_sha": "8b9d853931c6e9a3e74de61c4c8bc8cbbb17fc6e",
       "upstream_subject": "test(chat): align entity conversion checks with folder identity",
       "status": "skipped",
       "fork_commit": null,
@@ -79,7 +79,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "614b022a",
+      "upstream_sha": "614b022a2c2d34f6bdc3148ad5639e27e3611af1",
       "upstream_subject": "feat(chat): add nested conversation folders and independent ordering",
       "status": "skipped",
       "fork_commit": null,
@@ -87,7 +87,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "1957624d",
+      "upstream_sha": "1957624dfb0366fd1c79e5445806f9ae6f9a071e",
       "upstream_subject": "feat(draw): support GPT Image 2.6 animated GIF output",
       "status": "skipped",
       "fork_commit": null,
@@ -103,7 +103,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "c6b65b1a",
+      "upstream_sha": "c6b65b1adc5c7f04fd807f65f7e1f210f38de846",
       "upstream_subject": "fix(draw): support GPT Image models in OpenAI draw",
       "status": "skipped",
       "fork_commit": null,
@@ -111,7 +111,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "b078c742",
+      "upstream_sha": "b078c7424a29da688422ee5d0d6ea5c86a754d18",
       "upstream_subject": "fix: gate market installation by ToolPkg API compatibility (#1474)",
       "status": "skipped",
       "fork_commit": null,
@@ -119,7 +119,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "1124d173",
+      "upstream_sha": "1124d1736cc085a2ce5a4e9a2ef459dd9fc53960",
       "upstream_subject": "fix: complete terminal and subagent feedback corrections",
       "status": "deferred",
       "fork_commit": null,
@@ -175,7 +175,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "d2e6584b",
+      "upstream_sha": "d2e6584ba98cbec8b13f45d89ff31f539ae646f5",
       "upstream_subject": "fix(web): guard the external chat SSE writer close the same way",
       "status": "ported",
       "fork_commit": "41e76f87",
@@ -183,7 +183,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "fcd9b55a",
+      "upstream_sha": "fcd9b55ad345b23adf9e99165a34d90a5db1d488",
       "upstream_subject": "fix(web): stop SSE client disconnect from crashing the app",
       "status": "ported",
       "fork_commit": "a00c5863",
@@ -191,7 +191,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "22319590",
+      "upstream_sha": "22319590ec80d3ede6bf4f30bfdffdd77e180ddc",
       "upstream_subject": "fix(packages): clear the env var warning once a required value is set",
       "status": "ported",
       "fork_commit": "f5482ff2",
@@ -231,7 +231,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "0e2e1911",
+      "upstream_sha": "0e2e19114756581d55ae7ee62a3654319fcf634e",
       "upstream_subject": "fix(tools): carry real line numbers through grep match context (#1346)",
       "status": "deferred",
       "fork_commit": null,
@@ -249,8 +249,8 @@
     {
       "upstream_sha": "217a7df8ddad0d2bd8c0f78a9e11ff63ac047478",
       "upstream_subject": "fix(mcp): smartConvert 尊重显式声明的 string 类型，不再把纯数字字符串强转为 number",
-      "status": "deferred",
-      "fork_commit": null,
+      "status": "ported",
+      "fork_commit": "f5482ff2",
       "reason": "smartConvert coerces numeric-looking strings to number even when the MCP schema declares string; fork's when() has no string branch.",
       "decided": "2026-11-13"
     },
@@ -279,7 +279,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "0a932692",
+      "upstream_sha": "0a93269249ab67b8bffab4cb743763ead8a02fe1",
       "upstream_subject": "fix: reconcile web history, functional service leases and A2A output",
       "status": "deferred",
       "fork_commit": null,
@@ -303,7 +303,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "d5313b3a",
+      "upstream_sha": "d5313b3a8cc69c22eec9110d3b0a28027c58d778",
       "upstream_subject": "fix(terminal): keep target-session writes off the main thread",
       "status": "deferred",
       "fork_commit": null,
@@ -311,7 +311,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "2e2215ba",
+      "upstream_sha": "2e2215ba19f3283fd540e44204f484b2298b361d",
       "upstream_subject": "fix(terminal): interrupt the requested session without switching the active one",
       "status": "deferred",
       "fork_commit": null,
@@ -327,7 +327,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "51d2429a",
+      "upstream_sha": "51d2429a9fb8784452ceeed576cb92e643657002",
       "upstream_subject": "fix(a2a): identify text parts by the Part content member",
       "status": "ported",
       "fork_commit": "f5482ff2",
@@ -343,7 +343,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "49be9a0f",
+      "upstream_sha": "49be9a0fb3cbdd68135353c150ce8f1440dc7e35",
       "upstream_subject": "fix(anr): bound thread dump memory and capture rate",
       "status": "deferred",
       "fork_commit": null,
@@ -351,7 +351,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "7d83ae2e",
+      "upstream_sha": "7d83ae2e0a8c4708fec713922f5feeead9c68108",
       "upstream_subject": "docs: add missing Trendshift badges",
       "status": "skipped",
       "fork_commit": null,
@@ -439,7 +439,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "7dbab534",
+      "upstream_sha": "7dbab53443fee304a55207558323d43b85af4b01",
       "upstream_subject": "fix(functional): validate cached service against persisted config on every lookup",
       "status": "deferred",
       "fork_commit": null,
@@ -455,7 +455,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "7fbc7cdd",
+      "upstream_sha": "7fbc7cdde8efc7542aa8cbc1d309332cb2d05b04",
       "upstream_subject": "fix(update): keep trying other sources and verify the downloaded package",
       "status": "deferred",
       "fork_commit": null,
@@ -495,7 +495,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "271e733b",
+      "upstream_sha": "271e733be78a82c809ec199580e307c3474ae354",
       "upstream_subject": "fix(chat): reconcile retry revisions for Waifu and final responses",
       "status": "deferred",
       "fork_commit": null,
@@ -511,7 +511,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "4bb740d6",
+      "upstream_sha": "4bb740d67bf8a422755eec9e5ba03e0922a980e5",
       "upstream_subject": "fix(mcp): honor stdio cwd and surface local startup failures",
       "status": "deferred",
       "fork_commit": null,
@@ -519,7 +519,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "3ca9a8ab",
+      "upstream_sha": "3ca9a8abb57c476357ce7df2d3a05abf6ae1709f",
       "upstream_subject": "fix(chat): keep streamed revisions aligned across retries and consumers",
       "status": "deferred",
       "fork_commit": null,
@@ -535,7 +535,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "84a6b6fd",
+      "upstream_sha": "84a6b6fd58a976902ef188a454e84b342ba01de7",
       "upstream_subject": "fix(chat): 保留已注册 XML 渲染标签并修复发送卡死",
       "status": "deferred",
       "fork_commit": null,
@@ -543,7 +543,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "d6c22c9f",
+      "upstream_sha": "d6c22c9f27a2c9c78944703f7e3d002847af0a8e",
       "upstream_subject": "fix(chat): read NUL message content without truncation",
       "status": "deferred",
       "fork_commit": null,
@@ -553,8 +553,8 @@
     {
       "upstream_sha": "d431f9be32d616b7b25581f121b487cecc6884e5",
       "upstream_subject": "fix(memory): bound document block editors to prevent constraint overflow",
-      "status": "deferred",
-      "fork_commit": null,
+      "status": "ported",
+      "fork_commit": "43880a2a",
       "reason": "DocumentViewDialog.kt puts block OutlinedTextFields in a LazyColumn with fillMaxSize and no heightIn bound, so a long block exceeds the 262143 px Compose limit and crashes.",
       "decided": "2026-11-13"
     },
@@ -655,7 +655,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "b6dc07d3",
+      "upstream_sha": "b6dc07d31633999d6c5c791e2c1a302bf332c12e",
       "upstream_subject": "Revert \"feat(provider): add Antigravity OAuth login and fingerprint spoofing (#1257)\" (#1450)",
       "status": "deferred",
       "fork_commit": null,
@@ -839,7 +839,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "664d87e1",
+      "upstream_sha": "664d87e174207ed661ed9256512414a31e7a492a",
       "upstream_subject": "feat(chat): allow memory rebuild over a selected date range",
       "status": "deferred",
       "fork_commit": null,
@@ -951,7 +951,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "128d4265",
+      "upstream_sha": "128d4265a54856ab312a423dddbc99ac1dc4665e",
       "upstream_subject": "fix(character-card): keep cleared default voice prompt empty",
       "status": "ported",
       "fork_commit": "43880a2a",
@@ -1103,7 +1103,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "d3c107dd",
+      "upstream_sha": "d3c107dd822f3b6bc44c58fdbba7c6015205fed5",
       "upstream_subject": "fix(mcp): register remote MCP tools when discovery succeeds",
       "status": "deferred",
       "fork_commit": null,
@@ -1119,7 +1119,7 @@
       "decided": "2026-11-12"
     },
     {
-      "upstream_sha": "5a332577",
+      "upstream_sha": "5a332577b7129d2a1e4b6dd23df7084851d232f0",
       "upstream_subject": "fix(permissions): synchronize concurrent tool descriptions",
       "status": "ported",
       "fork_commit": "43880a2a",
@@ -1167,7 +1167,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "1140f8d5",
+      "upstream_sha": "1140f8d541c2207f01a19f279d599e00fa92bde3",
       "upstream_subject": "DeepSeek Responses: commentary 改写为 reasoning item + 正文实时流式输出",
       "status": "deferred",
       "fork_commit": null,
@@ -1247,7 +1247,7 @@
       "decided": "2026-11-13"
     },
     {
-      "upstream_sha": "7e3e8530",
+      "upstream_sha": "7e3e853020d07afea2e1f5d9997f91dd3b40847e",
       "upstream_subject": "fix(waifu): keep block LaTeX renderable in Waifu mode (#852)",
       "status": "deferred",
       "fork_commit": null,

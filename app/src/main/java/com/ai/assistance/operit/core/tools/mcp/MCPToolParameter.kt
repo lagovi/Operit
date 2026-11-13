@@ -77,6 +77,8 @@ data class MCPToolParameter(
             if (value !is String) return value
 
             return when (typeName?.lowercase()) {
+                // Explicitly declared string: return as-is, do not guess a numeric type.
+                "string" -> value
                 "number" -> {
                     try {
                         if (value.contains(".")) value.toDouble() else value.toLong()

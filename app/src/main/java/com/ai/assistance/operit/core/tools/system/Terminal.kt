@@ -6,6 +6,7 @@ import com.ai.assistance.operit.util.AppLogger
 import androidx.annotation.RequiresApi
 import com.ai.assistance.operit.terminal.CommandExecutionEvent
 import com.ai.assistance.operit.terminal.SessionDirectoryEvent
+import com.ai.assistance.operit.terminal.SessionInputResult
 import com.ai.assistance.operit.terminal.TerminalManager
 import com.ai.assistance.operit.terminal.data.TerminalState
 import com.ai.assistance.operit.terminal.provider.type.HiddenExecResult
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -180,19 +182,25 @@ class Terminal private constructor(private val context: Context) {
     }
     
     /**
-     * 发送输入到当前会话
+     * Sends input to the named session without changing the foreground session.
+     *
+     * The pty write is blocking I/O, and callers are usually on the main thread, so it runs on
+     * the IO dispatcher.
      */
-    fun sendInput(sessionId: String, input: String) {
-        terminalManager.switchToSession(sessionId)
-        terminalManager.sendInput(input)
+    suspend fun sendInput(sessionId: String, input: String): SessionInputResult {
+        return withContext(Dispatchers.IO) {
+            terminalManager.sendInputToSession(sessionId, input)
+        }
     }
 
     /**
-     * 发送中断信号 (Ctrl+C)
+     * Sends an interrupt signal (Ctrl+C) to the named session without changing the foreground
+     * session.
      */
-    fun sendInterruptSignal(sessionId: String) {
-        terminalManager.switchToSession(sessionId)
-        terminalManager.sendInterruptSignal()
+    suspend fun sendInterruptSignal(sessionId: String): SessionInputResult {
+        return withContext(Dispatchers.IO) {
+            terminalManager.sendInterruptSignalToSession(sessionId)
+        }
     }
 
     /**

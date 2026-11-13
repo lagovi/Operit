@@ -2024,12 +2024,14 @@ fun ChatHistorySelector(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
                 .padding(end = 2.dp)
         ) {
             LazyColumn(
                 state = actualLazyListState,
                 modifier = Modifier
-                    .fillMaxWidth()
+                    // Short histories still need the whole viewport while a row is dragged down.
+                    .fillMaxSize()
                     .padding(start = 10.dp, end = 22.dp)
             ) {
                 items(

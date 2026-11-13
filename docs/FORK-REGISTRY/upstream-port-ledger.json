@@ -193,10 +193,10 @@
     {
       "upstream_sha": "22319590",
       "upstream_subject": "fix(packages): clear the env var warning once a required value is set",
-      "status": "deferred",
-      "fork_commit": null,
+      "status": "ported",
+      "fork_commit": "f5482ff2",
       "reason": "env-var warning state bug",
-      "decided": "2026-11-12"
+      "decided": "2026-11-13"
     },
     {
       "upstream_sha": "720ea9d1dfc7a5a55e19b1a3b903cbc8a7706e0e",
@@ -329,10 +329,10 @@
     {
       "upstream_sha": "51d2429a",
       "upstream_subject": "fix(a2a): identify text parts by the Part content member",
-      "status": "deferred",
-      "fork_commit": null,
+      "status": "ported",
+      "fork_commit": "f5482ff2",
       "reason": "A2A Part protocol compliance",
-      "decided": "2026-11-12"
+      "decided": "2026-11-13"
     },
     {
       "upstream_sha": "64b6d6c54cfb1d57930b8965b2aaf647e1c3fb7d",

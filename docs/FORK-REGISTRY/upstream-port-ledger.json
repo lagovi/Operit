@@ -209,8 +209,8 @@
     {
       "upstream_sha": "30fffec51980bfabdd6cfa367f9d7a766449fbcf",
       "upstream_subject": "fix(chat): stop streaming auto-follow from snapping back after user drag",
-      "status": "deferred",
-      "fork_commit": null,
+      "status": "ported",
+      "fork_commit": "57b3ed59",
       "reason": "Streaming auto-follow re-arms on every chunk and snaps the list back after the user drags; fork has the unconditioned pendingJumpToMessageTimestamp effect.",
       "decided": "2026-11-13"
     },

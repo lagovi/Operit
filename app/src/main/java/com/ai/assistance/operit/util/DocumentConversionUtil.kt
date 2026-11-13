@@ -91,7 +91,9 @@ object DocumentConversionUtil {
             // Step 2: Check if the extracted text is meaningful. If not, trigger OCR.
             if (extractedText.trim().length > 20) { // Threshold for meaningful text
                 // Success with direct extraction
-                FileOutputStream(targetFile).bufferedWriter().use { it.write(extractedText) }
+                FileOutputStream(targetFile).bufferedWriter().use {
+                    it.write(stripNullCharacters(extractedText))
+                }
                 return true
             } else {
                 // Fallback to OCR
@@ -147,7 +149,7 @@ object DocumentConversionUtil {
 
             // Write the aggregated text to the target file
             FileOutputStream(targetFile).bufferedWriter().use { writer ->
-                writer.write(fullText.toString())
+                writer.write(stripNullCharacters(fullText.toString()))
             }
             return true
         } catch (e: Exception) {
@@ -955,4 +957,14 @@ object DocumentConversionUtil {
         } while (current >= 0)
         return result.toString()
     }
+
+    /**
+     * Removes U+0000 from extracted text.
+     *
+     * PDFBox writes NUL when a PDF font mapping lacks a glyph, and SQLite LENGTH/SUBSTR truncate
+     * TEXT at the first NUL, which made a whole tool result and the following replies disappear
+     * when they were reloaded. NUL carries no visible information, so it is dropped before the
+     * extracted text is written.
+     */
+    internal fun stripNullCharacters(text: String): String = text.replace("\u0000", "")
 }

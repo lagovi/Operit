@@ -8,62 +8,32 @@ import androidx.compose.ui.graphics.toArgb
 /**
  * The complete <html> document used to render a status card inside a WebView.
  *
- * The icons of <metric> / <badge> are Material Symbols ligature glyphs. The document used
- * to fetch the font from fonts.googleapis.com via <link>: the card text appeared with the
- * document, but the icons had to wait for the whole 5.35 MB variable font to download, taking
- * 10-40 seconds on a weak network, and offline it simply drew the icon names as literal text
- * (issue #930). The font subset is now bundled with the APK and inlined into the document as
- * a data: URI, so icons and text appear together and no network is needed.
+ * The icons of <metric> / <badge> are Material Symbols ligature glyphs. The document used to
+ * fetch the font from fonts.googleapis.com via <link>: the card text appeared with the document,
+ * but the icons had to wait for the whole 5.36 MB variable font to download, taking 10-40 seconds
+ * on a weak network, and offline it drew the icon names as literal text (issue #930). The full
+ * static font instance is now bundled with the APK and inlined into the document as a data: URI,
+ * so icons and text appear together and no network is needed.
  */
 internal object StatusCardHtmlDocument {
 
-    /** The icon font bundled in assets, covering only the icons in [ICON_NAMES]. */
-    const val ICON_FONT_ASSET: String = "fonts/material_symbols_rounded_subset.woff2"
-
     /**
-     * The icon names the font subset covers, the same list given to the model in the tag
-     * market's "AI status card" prompt.
+     * The full static instance of Google Fonts Material Symbols Rounded v370.
+     * The four axes are pinned at opsz=24 / wght=400 / FILL=1 / GRAD=0, matching the rendering
+     * style below. The WOFF2 is 456,052 bytes; the same version with the same full icon range as
+     * a four-axis variable font is 5,360,840 bytes.
      *
-     * Adding or removing an icon requires changing this, that prompt, and regenerating the font
-     * with the same set of names (the list stays sorted and deduplicated so the URL below is
-     * reproducible):
-     * https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&icon_names=<comma-separated names>
+     * Font source:
+     * https://fonts.gstatic.com/s/materialsymbolsrounded/v370/syl0-zNym6YjUruM-QrEh7-nyTnjDwKNJ_190FjpZIvDmUSVOK7BDJ_vb9vUSzq3wzLK-P0J-V_Zs-QtQth3-jOcbTCVpeRL2w5rwZu2rIelXxc.woff2
+     * Corresponding CSS:
+     * https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=block
+     * SHA-256: 19a71b30e6267416493a0e4e925a6f14be60a9c3a83148a0dc0dcf507a8fb382
      *
-     * All four axes are pinned to single values (opsz=24 / wght=400 / FILL=1 / GRAD=0), so the
-     * fetched result is a static instance that matches the font-variation-settings of
-     * .material-symbols-rounded below; for these same 140 icons, the variable font with all axis
-     * interpolation data is 9 times larger.
+     * Keeping the full font matters: the status card renderer has always accepted any valid
+     * Material Symbols name, and historical messages and previously installed tags may contain
+     * icons not listed in the current built-in samples.
      */
-    val ICON_NAMES: List<String> = listOf(
-        "account_circle", "alarm", "analytics", "auto_awesome", "autorenew",
-        "badge", "bar_chart", "battery_alert", "battery_charging_full", "battery_full",
-        "bedtime", "block", "bolt", "book", "bookmark",
-        "bug_report", "build", "calendar_month", "campaign", "cancel",
-        "celebration", "chat", "check_circle", "close", "cloud",
-        "cloud_done", "cloud_off", "code", "construction", "dark_mode",
-        "data_usage", "description", "developer_board", "diamond", "directions_run",
-        "done_all", "draw", "eco", "edit", "electric_bolt",
-        "emoji_emotions", "emoji_events", "error", "event", "explore",
-        "extension", "face", "favorite", "flight", "forum",
-        "grade", "group", "groups", "handshake", "help",
-        "history", "home", "hourglass_empty", "hourglass_top", "hub",
-        "image", "info", "insights", "key", "leaderboard",
-        "light_mode", "lightbulb", "local_cafe", "local_fire_department", "lock",
-        "map", "memory", "menu_book", "military_tech", "monitor_heart",
-        "monitoring", "mood", "mood_bad", "music_note", "neurology",
-        "notifications", "palette", "park", "pause", "pending",
-        "person", "person_search", "pets", "pie_chart", "place",
-        "play_arrow", "priority_high", "psychology", "psychology_alt", "public",
-        "query_stats", "refresh", "report", "restaurant", "rocket_launch",
-        "schedule", "science", "search", "security", "self_improvement",
-        "sentiment_dissatisfied", "sentiment_neutral", "sentiment_satisfied", "sentiment_very_dissatisfied", "sentiment_very_satisfied",
-        "settings", "shield", "show_chart", "smart_toy", "speed",
-        "star", "storage", "sync", "task_alt", "terminal",
-        "thermostat", "thumb_down", "thumb_up", "timeline", "timer",
-        "tips_and_updates", "today", "translate", "travel_explore", "trending_down",
-        "trending_up", "tune", "update", "verified", "visibility",
-        "water_drop", "waving_hand", "wifi", "wifi_off", "workspace_premium",
-    )
+    const val ICON_FONT_ASSET: String = "fonts/material_symbols_rounded_static.woff2"
 
     @Volatile
     private var cachedIconFontBase64: String? = null

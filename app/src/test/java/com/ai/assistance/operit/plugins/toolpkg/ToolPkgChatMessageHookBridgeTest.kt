@@ -2,6 +2,7 @@ package com.ai.assistance.operit.plugins.toolpkg
 
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
+import com.ai.assistance.operit.data.model.MessageVariantEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
@@ -54,7 +55,7 @@ class ToolPkgChatMessageHookBridgeTest {
     }
 
     @Test
-    fun `dispatchMessagePersisted triggers test listener with correct variant information`() {
+    fun `dispatchMessagePersisted uses the materialized message variant`() {
         var receivedChatId: String? = null
         var receivedMessage: ChatMessage? = null
 
@@ -64,16 +65,32 @@ class ToolPkgChatMessageHookBridgeTest {
         }
 
         try {
-            val variantMessage = ChatMessage(
+            val baseMessage = ChatMessage(
+                sender = "ai",
+                timestamp = 1700000000000L,
+                content = "Original hidden response",
+                displayMode = ChatMessageDisplayMode.HIDDEN_PLACEHOLDER,
+                isFavorite = true,
+            )
+            val generatedMessage = ChatMessage(
                 sender = "ai",
                 content = "Regenerated content from roll",
-                timestamp = 1700000000000L,
-                selectedVariantIndex = 3
+                timestamp = 1700000001000L,
+                displayMode = ChatMessageDisplayMode.NORMAL,
+                isFavorite = false,
             )
+            val persistedVariant =
+                MessageVariantEntity.fromChatMessage(
+                    chatId = "chat-abc",
+                    messageTimestamp = baseMessage.timestamp,
+                    variantIndex = 3,
+                    message = generatedMessage.copy(selectedVariantIndex = 3, variantCount = 4),
+                )
+            val persistedMessage = persistedVariant.applyTo(baseMessage, variantCount = 4)
 
             ToolPkgChatMessageHookBridge.dispatchMessagePersisted(
                 chatId = "chat-abc",
-                message = variantMessage
+                message = persistedMessage,
             )
 
             assertEquals("chat-abc", receivedChatId)
@@ -81,6 +98,8 @@ class ToolPkgChatMessageHookBridgeTest {
             assertEquals("Regenerated content from roll", receivedMessage?.content)
             assertEquals(1700000000000L, receivedMessage?.timestamp)
             assertEquals(3, receivedMessage?.selectedVariantIndex)
+            assertEquals(ChatMessageDisplayMode.HIDDEN_PLACEHOLDER, receivedMessage?.displayMode)
+            assertEquals(true, receivedMessage?.isFavorite)
         } finally {
             ToolPkgChatMessageHookBridge.onMessagePersistedDispatchedForTest = null
         }

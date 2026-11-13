@@ -12,6 +12,7 @@ import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.chat.hooks.toPromptTurns
 import com.ai.assistance.operit.util.AssetCopyUtils
+import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.ImagePoolManager
 import com.ai.assistance.operit.util.MediaPoolManager
@@ -51,6 +52,20 @@ data class ModelConnectionTestReport(
 }
 
 object ModelConfigConnectionTester {
+    /**
+     * Builds a diagnosable error text: the exception message may be empty (such as an
+     * IOException with no message), so prepend the exception type to avoid showing only
+     * "Unknown error" (#915).
+     */
+    private fun describeError(e: Exception): String {
+        val message = e.message?.takeIf { it.isNotBlank() }
+        return if (message != null) {
+            "${e::class.simpleName}: $message"
+        } else {
+            "${e::class.simpleName}: (no message)"
+        }
+    }
+
     /**
      * One complete tool-call round trip for the Tool Call probe: the user asks, the assistant calls
      * the tool, the tool answers.
@@ -106,6 +121,9 @@ object ModelConfigConnectionTester {
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
+                        // Log the stack trace for every failed test item, otherwise the real
+                        // cause is invisible during debugging (#915).
+                        AppLogger.e("ModelConfigConnectionTester", "Connection test item failed: ${type.name}", e)
                         Result.failure(e)
                     }
                 val latencyMs = (System.nanoTime() - startedAtNs) / 1_000_000
@@ -121,7 +139,7 @@ object ModelConfigConnectionTester {
                     ModelConnectionTestItem(
                         type = type,
                         success = result.isSuccess,
-                        error = rawMessage,
+                        error = exception?.let { describeError(it) },
                         requestUrl = configForTest.apiEndpoint,
                         httpStatus = status,
                         latencyMs = latencyMs,
@@ -267,12 +285,16 @@ object ModelConfigConnectionTester {
             runCatching { service.cancelStreaming() }
             throw e
         } catch (e: Exception) {
+            // Outer catch-all: exceptions outside runCase (such as service creation or
+            // parameter read failure) must also surface the real cause, otherwise only
+            // "Unknown error" is returned and it cannot be located during debugging (#915).
+            AppLogger.e("ModelConfigConnectionTester", "Connection test failed", e)
             if (items.none { it.type == ModelConnectionTestType.CHAT }) {
                 items.add(
                     ModelConnectionTestItem(
                         type = ModelConnectionTestType.CHAT,
                         success = false,
-                        error = e.message ?: "Unknown error"
+                        error = describeError(e)
                     )
                 )
             }

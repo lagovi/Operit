@@ -23,7 +23,15 @@ import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** 管理多个AIService实例，根据功能类型提供不同的服务配置 */
-class MultiServiceManager(private val context: Context) {
+class MultiServiceManager(
+    private val context: Context,
+    functionalConfigManager: FunctionalConfigManager = FunctionalConfigManager(context),
+    modelConfigManager: ModelConfigManager = ModelConfigManager(context),
+    private val serviceFactory: (ModelConfigData, ModelConfigManager, Context, String?) -> AIService =
+        { config, manager, ctx, functionTag ->
+            AIServiceFactory.createService(config, manager, ctx, functionTag)
+        },
+) {
     companion object {
         private const val TAG = "MultiServiceManager"
     }
@@ -56,14 +64,15 @@ class MultiServiceManager(private val context: Context) {
     private class ManagedService(
         val service: AIService,
         val modelConfig: ModelConfigData,
+        val modelIndex: Int,
         var activeLeases: Int = 0,
         var retired: Boolean = false,
         var released: Boolean = false
     )
 
     // 配置管理器
-    private val functionalConfigManager = FunctionalConfigManager(context)
-    private val modelConfigManager = ModelConfigManager(context)
+    private val functionalConfigManager = functionalConfigManager
+    private val modelConfigManager = modelConfigManager
 
     // 服务实例缓存
     private val serviceInstances = mutableMapOf<FunctionType, ManagedService>()
@@ -141,18 +150,24 @@ class MultiServiceManager(private val context: Context) {
     }
 
     private suspend fun getOrCreateServiceForFunctionLocked(functionType: FunctionType): ManagedService {
-        serviceInstances[functionType]?.let {
-            return it
-        }
-
         val configMapping = functionalConfigManager.getConfigMappingForFunction(functionType)
         val config = modelConfigManager.getModelConfigFlow(configMapping.configId).first()
+        val cachedService = serviceInstances[functionType]
+        if (cachedService != null && isCacheValid(cachedService, configMapping.configId, configMapping.modelIndex, config)) {
+            return cachedService
+        }
+
+        cachedService?.let {
+            retireManagedServiceLocked(it)
+            AppLogger.d(TAG, "The cached service for function ${functionType} has changed config; retiring the old instance and rebuilding")
+        }
 
         val service =
             createServiceFromConfig(config, configMapping.modelIndex, functionTag = functionType.name)
         val managedService = ManagedService(
             service = service,
-            modelConfig = config
+            modelConfig = config,
+            modelIndex = configMapping.modelIndex
         )
         serviceInstances[functionType] = managedService
 
@@ -167,9 +182,17 @@ class MultiServiceManager(private val context: Context) {
     private suspend fun getOrCreateServiceForConfigLocked(configId: String, modelIndex: Int): ManagedService {
         val normalizedIndex = modelIndex.coerceAtLeast(0)
         val cacheKey = "$configId#$normalizedIndex"
-        customServiceInstances[cacheKey]?.let { return it }
-
         val config = modelConfigManager.getModelConfigFlow(configId).first()
+        val cachedService = customServiceInstances[cacheKey]
+        if (cachedService != null && isCacheValid(cachedService, configId, normalizedIndex, config)) {
+            return cachedService
+        }
+
+        cachedService?.let {
+            retireManagedServiceLocked(it)
+            AppLogger.d(TAG, "The cached service for custom config ${cacheKey} has changed config; retiring the old instance and rebuilding")
+        }
+
         val service =
             createServiceFromConfig(
                 config,
@@ -178,7 +201,8 @@ class MultiServiceManager(private val context: Context) {
             )
         val managedService = ManagedService(
             service = service,
-            modelConfig = config
+            modelConfig = config,
+            modelIndex = normalizedIndex
         )
         customServiceInstances[cacheKey] = managedService
 
@@ -186,11 +210,31 @@ class MultiServiceManager(private val context: Context) {
         return managedService
     }
 
+    /**
+     * Whether the cached service instance still matches the current persisted config.
+     *
+     * [ManagedService.modelConfig] is the [ModelConfigData] snapshot taken when the service was
+     * built, and [ManagedService.modelIndex] is the model index chosen at build time. As soon as
+     * the DataStore config changes (model list, API key, provider, model index binding, etc.), a
+     * mismatch of either one marks the cache stale and the service is rebuilt on the next lookup,
+     * without needing every config write path to call refresh manually.
+     */
+    private fun isCacheValid(
+        cachedService: ManagedService,
+        expectedConfigId: String,
+        expectedModelIndex: Int,
+        currentConfig: ModelConfigData
+    ): Boolean {
+        return cachedService.modelConfig == currentConfig &&
+                cachedService.modelConfig.id == expectedConfigId &&
+                cachedService.modelIndex == expectedModelIndex
+    }
+
     /** 获取默认服务（通常是CHAT功能的服务） */
     suspend fun getDefaultService(): AIService {
         ensureInitialized()
         return serviceMutex.withLock {
-            (defaultService ?: getOrCreateServiceForFunctionLocked(FunctionType.CHAT)).service
+            getOrCreateServiceForFunctionLocked(FunctionType.CHAT).service
         }
     }
 
@@ -246,13 +290,16 @@ class MultiServiceManager(private val context: Context) {
         serviceMutex.withLock {
             serviceInstances.remove(functionType)?.let { retireManagedServiceLocked(it) }
 
+            // When a function binding changes, customServiceInstances (custom services cached by
+            // configId#modelIndex) may still hold the old snapshot of the same config, so retire
+            // them as well.
             if (functionType == FunctionType.CHAT) {
                 defaultService = null
-                val customServices = customServiceInstances.values.toList()
-                customServiceInstances.clear()
-                customServices.forEach { service ->
-                    retireManagedServiceLocked(service)
-                }
+            }
+            val customServices = customServiceInstances.values.toList()
+            customServiceInstances.clear()
+            customServices.forEach { service ->
+                retireManagedServiceLocked(service)
             }
 
             AppLogger.d(TAG, "已移除功能${functionType}的服务实例缓存")
@@ -335,11 +382,11 @@ class MultiServiceManager(private val context: Context) {
         
         AppLogger.d(TAG, "创建服务: 原始模型='${config.modelName}', 选中模型='$selectedModelName' (请求索引=$modelIndex, 实际索引=$actualIndex)")
 
-        val rawService = AIServiceFactory.createService(
-            config = configWithSelectedModel,
-            modelConfigManager = modelConfigManager,
-            context = context,
-            functionTag = functionTag
+        val rawService = serviceFactory(
+            configWithSelectedModel,
+            modelConfigManager,
+            context,
+            functionTag
         )
 
         val requestLimitPerMinute = config.requestLimitPerMinute.coerceAtLeast(0)

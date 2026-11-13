@@ -1271,8 +1271,13 @@ ${FunctionalPrompts.translationBatchUserPrompt(targetLanguage, texts)}
         userIntent: String?,
         multiServiceManager: MultiServiceManager
     ): String {
+        // Borrow the service through a lease: on a config change the old service is only
+        // retired (released once the lease returns), so it is not released while the image
+        // recognition request is still in flight.
+        val lease = multiServiceManager.acquireServiceForFunction(FunctionType.IMAGE_RECOGNITION)
         return try {
-            val service = multiServiceManager.getServiceForFunction(FunctionType.IMAGE_RECOGNITION)
+            val service = lease.service
+            val modelParameters = lease.modelParameters
             
             // 添加图片到池子并获取ID
             val imageId = com.ai.assistance.operit.util.ImagePoolManager.addImage(imagePath)
@@ -1287,9 +1292,6 @@ ${FunctionalPrompts.translationBatchUserPrompt(targetLanguage, texts)}
             } else {
                 "$imageLink\n$userIntent"
             }
-            
-            // 获取模型参数
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.IMAGE_RECOGNITION)
             
             // 调用AI服务分析图片
             val result = StringBuilder()
@@ -1308,6 +1310,8 @@ ${FunctionalPrompts.translationBatchUserPrompt(targetLanguage, texts)}
         } catch (e: Exception) {
             AppLogger.e(TAG, "识图分析失败", e)
             "Image recognition failed: ${e.message}"
+        } finally {
+            lease.close()
         }
     }
 
@@ -1316,8 +1320,10 @@ ${FunctionalPrompts.translationBatchUserPrompt(targetLanguage, texts)}
         userIntent: String?,
         multiServiceManager: MultiServiceManager
     ): String {
+        val lease = multiServiceManager.acquireServiceForFunction(FunctionType.AUDIO_RECOGNITION)
         return try {
-            val service = multiServiceManager.getServiceForFunction(FunctionType.AUDIO_RECOGNITION)
+            val service = lease.service
+            val modelParameters = lease.modelParameters
 
             val mimeType = android.webkit.MimeTypeMap.getSingleton()
                 .getMimeTypeFromExtension(java.io.File(audioPath).extension.lowercase())
@@ -1335,8 +1341,6 @@ ${FunctionalPrompts.translationBatchUserPrompt(targetLanguage, texts)}
                 "$audioLink\n$userIntent"
             }
 
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.AUDIO_RECOGNITION)
-
             val result = StringBuilder()
             service.sendMessage(
                 context = context,
@@ -1351,6 +1355,8 @@ ${FunctionalPrompts.translationBatchUserPrompt(targetLanguage, texts)}
         } catch (e: Exception) {
             AppLogger.e(TAG, "音频识别失败", e)
             "Audio recognition failed: ${e.message}"
+        } finally {
+            lease.close()
         }
     }
 
@@ -1359,8 +1365,10 @@ ${FunctionalPrompts.translationBatchUserPrompt(targetLanguage, texts)}
         userIntent: String?,
         multiServiceManager: MultiServiceManager
     ): String {
+        val lease = multiServiceManager.acquireServiceForFunction(FunctionType.VIDEO_RECOGNITION)
         return try {
-            val service = multiServiceManager.getServiceForFunction(FunctionType.VIDEO_RECOGNITION)
+            val service = lease.service
+            val modelParameters = lease.modelParameters
 
             val mimeType = android.webkit.MimeTypeMap.getSingleton()
                 .getMimeTypeFromExtension(java.io.File(videoPath).extension.lowercase())
@@ -1378,8 +1386,6 @@ ${FunctionalPrompts.translationBatchUserPrompt(targetLanguage, texts)}
                 "$videoLink\n$userIntent"
             }
 
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.VIDEO_RECOGNITION)
-
             val result = StringBuilder()
             service.sendMessage(
                 context = context,
@@ -1394,6 +1400,8 @@ ${FunctionalPrompts.translationBatchUserPrompt(targetLanguage, texts)}
         } catch (e: Exception) {
             AppLogger.e(TAG, "视频识别失败", e)
             "Video recognition failed: ${e.message}"
+        } finally {
+            lease.close()
         }
     }
 }

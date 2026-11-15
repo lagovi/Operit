@@ -121,7 +121,7 @@ class CodexProvider(
         )
     }
 
-    override suspend fun getModelsList(_context: Context): Result<List<ModelOption>> {
+    override suspend fun getModelsList(context: Context): Result<List<ModelOption>> {
         return CodexModelListFetcher.getModelsList(httpClient, proxy)
     }
 

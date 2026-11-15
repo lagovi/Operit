@@ -210,7 +210,7 @@ class OpenAiToolCallHistoryTest {
             ),
             placeholder
         )
-        assertFalse(placeholder.contains("用户取消"))
+        assertTrue(placeholder.contains("This is not a user cancellation"))
         assertEquals(4, messages.length())
     }
 

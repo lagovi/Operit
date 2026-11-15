@@ -41,10 +41,10 @@
     {
       "upstream_sha": "79db185a6d68d1ab91fd275db78511590f5cbb20",
       "upstream_subject": "fix(chat): read persisted bindings for prompt hook metadata",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Prompt-hook metadata read from the lazy history StateFlow misses bindings before any UI subscribes; switch to a persisted snapshot so the first hook uses the chat's real role/group.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "702d224b",
+      "reason": "Ported to the fork in 702d224b: read persisted bindings for prompt hook metadata.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "66be5a9c45957d03c4c03216ad46c1d245a9300c",
@@ -73,10 +73,10 @@
     {
       "upstream_sha": "30aee703b000fb0ee035a6bb1ce018e747c50163",
       "upstream_subject": "fix(chat): fill history viewport during short-list dragging",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "History sidebar does not fill the viewport while dragging a short list; adding weight(1f)/fillMaxSize fixes the drop target.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "63ffe883",
+      "reason": "Ported to the fork in 63ffe883: chat: fill history viewport during short-list dragging.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "614b022a2c2d34f6bdc3148ad5639e27e3611af1",
@@ -97,10 +97,10 @@
     {
       "upstream_sha": "b1708fcf3dc875134df7d70ad1947bcdbdaa157a",
       "upstream_subject": "fix(market): place featured filter after sort label and default it off",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "MarketBrowse controls exist verbatim here and still default featuredOnly=true, so the featured-first ordering bug applies.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "eda27d58",
+      "reason": "Ported to the fork in eda27d58: market: place featured filter after sort label and default it off.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "c6b65b1adc5c7f04fd807f65f7e1f210f38de846",
@@ -121,10 +121,10 @@
     {
       "upstream_sha": "1124d1736cc085a2ce5a4e9a2ef459dd9fc53960",
       "upstream_subject": "fix: complete terminal and subagent feedback corrections",
-      "status": "deferred",
+      "status": "skipped",
       "fork_commit": null,
-      "reason": "forces terminal submodule bump",
-      "decided": "2026-11-12"
+      "reason": "The terminal half landed in 42f8bbf60 (TerminalCommandOutcome, sessionAlive, timeout-as-failure). The rest is the ToolPkg execution-session and subtask-policy redesign; the fork does not implement that subsystem, so advertising ToolPkg API 1.2.0 would be false and the 4023-line JS/subagent rewrite has no target here.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "0b21ef92308dbf299731cc74c91466f7f7db61c0",
@@ -145,10 +145,10 @@
     {
       "upstream_sha": "89eaa85a79210b69940becb5af56d22090dda768",
       "upstream_subject": "fix: align integrated UI and subagent boundary behavior",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Subagent tag-regex * to + tightening plus console.error on failure; the ExternalChatHttpServer hunk is whitespace-only and absent parts are already localized.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "b845d426",
+      "reason": "Ported to the fork in b845d426: subagent: tighten tool tag regex and log failures.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "df35a53e87c4c6ac79e3e6fffe8b5b3d19896411",
@@ -161,18 +161,18 @@
     {
       "upstream_sha": "3ef4cfc8f153b35702374df7b8b800ca43a10e48",
       "upstream_subject": "fix(subagent): align tool tag matching with host random suffix",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Host rewrites tool tags to tool_<suffix>/tool_result_<suffix>, so exact-name regexes never match and the subagent returns the execution log instead of the summary.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "76992699",
+      "reason": "Ported to the fork in 76992699: subagent: align tool tag matching with host random suffix.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "4422bd0f1817dee3959d972b62499f3e335b1bd2",
       "upstream_subject": "fix(subagent): resolve toolpkg module resolution and modernize i18n/UI",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Subagent plugin import lacks the .js suffix so the host cannot resolve the module; port must fix imports and keep strings English-only.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "e4bcceed",
+      "reason": "Ported to the fork in e4bcceed: subagent: resolve toolpkg module resolution (.ui.js suffix).",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "d2e6584ba98cbec8b13f45d89ff31f539ae646f5",
@@ -233,18 +233,18 @@
     {
       "upstream_sha": "0e2e19114756581d55ae7ee62a3654319fcf634e",
       "upstream_subject": "fix(tools): carry real line numbers through grep match context (#1346)",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "wrong line numbers returned to the model",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "b3ff3cf1",
+      "reason": "Ported to the fork in b3ff3cf1: carry real line numbers through grep match context.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "611ffa088772d4d0d289863b1d8edb21e6186e57",
       "upstream_subject": "fix(terminal): report a timed-out command as a failure, not a success",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "didTimeout -> null reports a killed command as success with partial output on all three terminal paths; fork still has didTimeout -> null.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "c3835e3d",
+      "reason": "Ported to the fork in c3835e3d: report a timed-out command as a failure, not a success.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "217a7df8ddad0d2bd8c0f78a9e11ff63ac047478",
@@ -265,10 +265,10 @@
     {
       "upstream_sha": "f314afcc5a7e990e8791850f5ef45dae4249c639",
       "upstream_subject": "ci: avoid installing the removed Android tools package",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Our pr-check.yml calls setup-android without packages:, so the removed tools SDK package still breaks PR checks; add packages: ''.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "a742be26",
+      "reason": "Ported to the fork in a742be26: ci: avoid installing the removed Android tools package.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "728cef62d2181c4fee51261573055790fbb2b975",
@@ -281,50 +281,50 @@
     {
       "upstream_sha": "0a93269249ab67b8bffab4cb743763ead8a02fe1",
       "upstream_subject": "fix: reconcile web history, functional service leases and A2A output",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "large; after terminal submodule move",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "5faa1221",
+      "reason": "Ported to the fork in 5faa1221: reconcile web history, functional service leases and A2A output.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "e0aac27d32268025df437dbc882b10efba5f14fb",
       "upstream_subject": "fix(markdown): preserve Unicode URLs and IPv6 hosts",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Depends on BareUrlLinkifier.kt, absent in this fork; the 428bf086 linkifier port must be taken first, then extended to keep Unicode URLs and IPv6 hosts.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "fffe3963",
+      "reason": "Ported to the fork in fffe3963: preserve Unicode URLs and IPv6 hosts.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "428bf086f97b2bca6771d06b73140c3572002864",
       "upstream_subject": "fix(markdown): linkify bare http and https URLs in chat text",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "MarkdownInlineSpannable.kt still renders plain-text URLs with no URLSpan, so bare http/https URLs in chat are not tappable; upstream adds BareUrlLinkifier.kt.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "3a80231a",
+      "reason": "Ported to the fork in 3a80231a: linkify bare http/https URLs in chat text.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "d5313b3a8cc69c22eec9110d3b0a28027c58d778",
       "upstream_subject": "fix(terminal): keep target-session writes off the main thread",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "ANR from blocking PTY writes; after 2e2215ba",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "c3835e3d",
+      "reason": "Ported to the fork in c3835e3d: d5313b3a terminal: route input/interrupt through the named session off the main thread.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "2e2215ba19f3283fd540e44204f484b2298b361d",
       "upstream_subject": "fix(terminal): interrupt the requested session without switching the active one",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Ctrl+C hijacks the terminal UI; needs terminal submodule bump",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "c3835e3d",
+      "reason": "Ported to the fork in c3835e3d: d5313b3a terminal: route input/interrupt through the named session off the main thread.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "8b60f191f27ce78b874f6352f849ef7317da7d1a",
       "upstream_subject": "fix(a2a): drop the schema-external final member from streaming status updates",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "A2A streaming status frames include a schema-external 'final' member that makes strict a2a-sdk clients abort; fork still emits 'final'.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "1211ea01",
+      "reason": "Ported to the fork in 1211ea01: a2a: drop schema-external final member from streaming status updates.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "51d2429a9fb8784452ceeed576cb92e643657002",
@@ -337,18 +337,18 @@
     {
       "upstream_sha": "64b6d6c54cfb1d57930b8965b2aaf647e1c3fb7d",
       "upstream_subject": "fix(tts): read only the reply body when the XML tag filter is on",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "TTS applies the cleaner regex before stripping reasoning, so it reads the chain-of-thought and base64 meta aloud; fork has only clean(), no cleanForSpeech().",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "4c61708b",
+      "reason": "Ported to the fork in 4c61708b: read only the reply body when the XML tag filter is on.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "49be9a0fb3cbdd68135353c150ce8f1440dc7e35",
       "upstream_subject": "fix(anr): bound thread dump memory and capture rate",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "ANR monitor OOM; new AnrCaptureBudget.kt, reapply fork EN log lines",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "6ddfbf7c",
+      "reason": "Ported to the fork in 6ddfbf7c: ANR: bound thread dump memory and capture rate.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "7d83ae2e0a8c4708fec713922f5feeead9c68108",
@@ -361,18 +361,18 @@
     {
       "upstream_sha": "959b1afb6b67abe4fd2e1b9b93c32e6b24f03b66",
       "upstream_subject": "ci: preserve LF for shell scripts and container definitions",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "The fork has no .gitattributes, so shell scripts and tracked binaries are unprotected against CRLF/mangling on checkout.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "c3b88420",
+      "reason": "Ported to the fork in c3b88420: ci: preserve LF for shell scripts and container definitions.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "f1a57f7f541cea964e5e49daa376effd4f72ffd8",
       "upstream_subject": "fix(settings): preserve prompt editor text selection and scroll state",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Prompt editor loses selection/scroll across rerenders; adds PromptEditorState.kt and depends on 41d882b4 scroll-state store, neither present in fork.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "39261af2",
+      "reason": "Ported to the fork in 39261af2: settings: preserve prompt editor text selection and scroll.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "abfa5fe2b4f791f46d734753f43ce61b86cffd85",
@@ -433,34 +433,34 @@
     {
       "upstream_sha": "41d882b49661047be7118003cb92aaea1477f3a5",
       "upstream_subject": "fix(ui): preserve scroll state across list updates",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "ToolPkg Compose DSL LazyColumn/LazyRow lose scroll position on every JS state rebuild; fork has no ComposeDslScrollStateStore and the generator lives at tools/compose_dsl/.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "39261af2",
+      "reason": "Ported to the fork in 39261af2: settings: preserve prompt editor text selection and scroll.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "7dbab53443fee304a55207558323d43b85af4b01",
       "upstream_subject": "fix(functional): validate cached service against persisted config on every lookup",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "stale provider cache used after model switch",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "f03cea78",
+      "reason": "Ported to the fork in f03cea78: functional: validate cached service against persisted config.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "375ce5ff40087d33f0cc3cb2158d0c6643a75932",
       "upstream_subject": "fix(standard): honor BLE write properties and transfer complete payloads",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "BluetoothSessionManager.writeBleCharacteristic always uses WRITE_TYPE_DEFAULT with no MTU chunking/write mutex, so write_no_response-only peripherals reject writes and large payloads truncate.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "ee82e7f5",
+      "reason": "Ported to the fork in ee82e7f5: BLE: honor write properties and transfer complete payloads.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "7fbc7cdde8efc7542aa8cbc1d309332cb2d05b04",
       "upstream_subject": "fix(update): keep trying other sources and verify the downloaded package",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "update APK had no integrity check; flaky-mirror loop",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "7daae687",
+      "reason": "Ported to the fork in 7daae687: update: keep trying other sources and verify the downloaded package.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "20da8d7d168c17b4bae10f2921f5545e472bbd7b",
@@ -497,58 +497,58 @@
     {
       "upstream_sha": "271e733be78a82c809ec199580e307c3474ae354",
       "upstream_subject": "fix(chat): reconcile retry revisions for Waifu and final responses",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "large; depends on 3ca9a8ab",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "6e9c5963",
+      "reason": "Ported to the fork in 6e9c5963: reconcile retry revisions for Waifu and final responses.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "2541e5cecc8cc3a7efb6afcc3d211a579c97672f",
       "upstream_subject": "fix(browser): validate click targets and navigation outcomes",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Large click-target/navigation-outcome validation rewrite (needs new BrowserNavigationDiagnostics.kt) building on 5c667090 and fb7b8232; browser code diverged.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "3fc80c2b",
+      "reason": "Ported to the fork in 3fc80c2b: validate click targets and navigation outcomes.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "4bb740d67bf8a422755eec9e5ba03e0922a980e5",
       "upstream_subject": "fix(mcp): honor stdio cwd and surface local startup failures",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "decide whether fork ships the MCP stdio JS bridge",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "a69cc53e",
+      "reason": "Ported to the fork in a69cc53e: d3c107dd MCP: honor stdio cwd, surface startup failures, register remote tools.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "3ca9a8abb57c476357ce7df2d3a05abf6ae1709f",
       "upstream_subject": "fix(chat): keep streamed revisions aligned across retries and consumers",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "large; needs focused port session",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "b831ba07",
+      "reason": "Ported to the fork in b831ba07: keep streamed revisions aligned across retries and consumers.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "5c66709058db8081d030c6168cefc88aa6f87be3",
       "upstream_subject": "fix(browser): read WebView metrics on the main thread for ref taps",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Ref taps read WebView width/height off the tool thread, tripping checkThread; fork reads them outside runOnMainSync.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "ca50a5e5",
+      "reason": "Ported to the fork in ca50a5e5: read WebView metrics on the main thread for ref taps.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "84a6b6fd58a976902ef188a454e84b342ba01de7",
       "upstream_subject": "fix(chat): 保留已注册 XML 渲染标签并修复发送卡死",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "send hang; needs 7e3e8530 first",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "6e9c5963",
+      "reason": "Ported to the fork in 6e9c5963: reconcile retry revisions for Waifu and final responses.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "d6c22c9f27a2c9c78944703f7e3d002847af0a8e",
       "upstream_subject": "fix(chat): read NUL message content without truncation",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "silent data loss: NUL in PDF text truncates message history",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "99164b95",
+      "reason": "Ported to the fork in 99164b95: read NUL message content without truncation.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "d431f9be32d616b7b25581f121b487cecc6884e5",
@@ -561,18 +561,18 @@
     {
       "upstream_sha": "07523fafb0970b6805377561f77089d302cf0042",
       "upstream_subject": "fix(notification): open originating chat when notification is tapped (#1427)",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "AIForegroundService pending intent has no chatId extra, so tapping an AI reply notification opens the app but not the originating chat.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "4c45148b",
+      "reason": "Ported to the fork in 4c45148b: notification: open the originating chat when tapped.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "c2e6487c8e0f8cd81ea256798de298384c128747",
       "upstream_subject": "fix(gemini): stop serializing empty parts into request contents (#1428)",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "GeminiProvider unconditionally puts text parts, so a blank/thinking-only history produces an invalid proto3 oneof Part and a 400 retried forever.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "ab40ea59",
+      "reason": "Ported to the fork in ab40ea59: gemini: stop serializing empty parts into contents.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "f73cca99dd07e34926c8896ef72a1d58768c299c",
@@ -659,8 +659,8 @@
       "upstream_subject": "Revert \"feat(provider): add Antigravity OAuth login and fingerprint spoofing (#1257)\" (#1450)",
       "status": "deferred",
       "fork_commit": null,
-      "reason": "decide: upstream dropped Antigravity which the fork deliberately ported",
-      "decided": "2026-11-12"
+      "reason": "Upstream reverted Antigravity OAuth and fingerprint spoofing. The fork deliberately keeps an Antigravity provider, so this is a product decision for the owner; not applied.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "f1bbcd80b927bdbda50d07483322a805b1bfe432",
@@ -681,10 +681,10 @@
     {
       "upstream_sha": "08b34ad93162711af58f153865018f089ea0ab84",
       "upstream_subject": "修复 DeepSeek/XAI 单元测试工作流失败 (#1282)",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Fixes JVM test/build failures (kapt.include.compile.classpath=false, @ConsistentCopyVisibility, decoder guard, UpdateScreen override param) that still apply to our kapt/ReleaseKey code.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "adc9258a",
+      "reason": "Ported to the fork in adc9258a: fix unit-test workflow and build warnings.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "29d678120994ab535ddb80bda171a4fa77b4f1bc",
@@ -697,10 +697,10 @@
     {
       "upstream_sha": "ef1bf4b6c307f9d64e16912fc8ac256d14d57f15",
       "upstream_subject": "feat(draw): add image-to-image to bundled image packages",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Adds image-to-image (image_urls/image_paths, /v1/images/edits) to bundled draw plugins; our draw plugins lack those parameters.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "aaafabb7",
+      "reason": "Ported to the fork in aaafabb7: draw: add image-to-image to bundled image packages.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "14c8afdc3bfb3bb22caa824d164bb49b57d7bff1",
@@ -841,18 +841,18 @@
     {
       "upstream_sha": "664d87e174207ed661ed9256512414a31e7a492a",
       "upstream_subject": "feat(chat): allow memory rebuild over a selected date range",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "feature, decide if wanted",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "4709fc15",
+      "reason": "Ported to the fork in 4709fc15: chat: allow memory rebuild over a selected date range.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "2f31844886a3eaa6f2ccade354c41d6bbc0a648c",
       "upstream_subject": "fix(i18n): clarify API key placeholder text for key pool awareness",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Our default bucket still says api_key_placeholder_default = 'Using default key, you can input directly', which misstates reality; the corrected text applies.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "af4e38c2",
+      "reason": "Ported to the fork in af4e38c2: i18n: clarify API key placeholder text.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "ddb87ffc7c816ffb134701de9ae3b980791325f0",
@@ -929,18 +929,18 @@
     {
       "upstream_sha": "5ce7d623f31f17343326eea5fb6a16bb2a9cd02f",
       "upstream_subject": "fix(chat): materialize variant event base message",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Companion to 2349946b: addMessageVariant passes a MessageEntity to applyTo(ChatMessage), so toChatMessage() is required; port together with 2349946b.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "84004713",
+      "reason": "Ported to the fork in 84004713: persist variant event snapshots.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "2349946b1a9fd193ce8cae06998b284e26d8c5a2",
       "upstream_subject": "fix(chat): persist variant event snapshots",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Variant snapshots are not persisted; addMessageVariant returns a materialized AddedMessageVariant so message_persisted carries correct content/displayMode.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "84004713",
+      "reason": "Ported to the fork in 84004713: persist variant event snapshots.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "6bb2a2452ee72c9634487ee6a2362d32ce6749f4",
@@ -977,10 +977,10 @@
     {
       "upstream_sha": "9232766522a486401bcce48f0e0167f28d95f4cb",
       "upstream_subject": "fix(provider): align proxy tool history and provider labels",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Provider-selector grouping (generic vs dedicated) plus OpenAI-Codex -> Codex label renames; needs English strings and manual work because settings diverged with Codex auth.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "6937b2ba",
+      "reason": "Ported to the fork in 6937b2ba: provider: align proxy tool history and provider labels.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "aab620e322e0e5974dd483745d6d3e469ee1585b",
@@ -1057,26 +1057,26 @@
     {
       "upstream_sha": "aa97fff56165390855c2d54fbb018a6ae8dbaea6",
       "upstream_subject": "fix(toolpkg): unify manifest selection",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Unifies manifest selection in the archive preview so a stray nested manifest is not chosen; requires e7fadf0e then f978f906 first.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "60a77ebe",
+      "reason": "Ported to the fork in 60a77ebe: unify manifest selection.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "f978f906b13b8e02cecf063f6c3b8887867d7e83",
       "upstream_subject": "fix(toolpkg): avoid closing shared ZipInputStream in manifest preview",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Replaces bufferedReader().use (which closes the shared ZipInputStream) with readBytes to stop 'Stream closed' during asset manifest scanning.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "437d0608",
+      "reason": "Ported to the fork in 437d0608: avoid closing shared ZipInputStream in manifest preview.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "e7fadf0e5daf9e21b40898946fb7a3388b910e67",
       "upstream_subject": "fix(toolpkg): exclude hidden workspace dirs and align manifest resolution (#1084)",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Scans all manifest entries by priority and adds a minifier guard so a wrong manifest cannot silently produce an empty package.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "9b71831e",
+      "reason": "Ported to the fork in 9b71831e: exclude hidden workspace dirs and align manifest resolution.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "e295a82a8e22b284381b22128edafe10c139c385",
@@ -1097,18 +1097,18 @@
     {
       "upstream_sha": "f9eded982c3b69c7c2ee783bd8f64452677613a3",
       "upstream_subject": "fix(chat): preserve full offline Material Symbols icon coverage",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Finishes the offline font work by swapping the subset for the full static Material Symbols font; depends on 808c76d2.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "8d144193",
+      "reason": "Ported to the fork in 8d144193: chat: full offline Material Symbols icon coverage.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "d3c107dd822f3b6bc44c58fdbba7c6015205fed5",
       "upstream_subject": "fix(mcp): register remote MCP tools when discovery succeeds",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "remote MCP tools never reach the AI",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "a69cc53e",
+      "reason": "Ported to the fork in a69cc53e: d3c107dd MCP: honor stdio cwd, surface startup failures, register remote tools.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "a19d7ef8debc20748d60aa30cf98f9afd8730c19",
@@ -1161,34 +1161,34 @@
     {
       "upstream_sha": "8bcaf3e4f8de28866d283c37aeabc8f4e5524c92",
       "upstream_subject": "feat(opencode): update Zen and Go provider requirements",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Our OpenCodeProvider has isGo() but protocolFor lacks the Go/agent-specific routing and no User-Agent/x-opencode-session headers.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "09563b6f",
+      "reason": "Ported to the fork in 09563b6f: opencode: update Zen and Go provider requirements.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "1140f8d541c2207f01a19f279d599e00fa92bde3",
       "upstream_subject": "DeepSeek Responses: commentary 改写为 reasoning item + 正文实时流式输出",
-      "status": "deferred",
+      "status": "skipped",
       "fork_commit": null,
-      "reason": "DeepseekProvider deleted in fork; decide",
-      "decided": "2026-11-12"
+      "reason": "The DeepSeek provider was removed from the fork (08d8c1e6d, china-out). The provider-agnostic parts of this commit (Claude thinking gating, toolCallName matching, Gemini per-request thinking state) are already present in the fork; the JS dispatch simplification conflicts with the fork's per-call ToolPkg session tracking.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "fb7b8232ce0f524135a94bdcf41b45732cd400bc",
       "upstream_subject": "fix(browser): emulate desktop viewport and user-agent metadata",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Desktop viewport emulation via UserAgentMetadata/WebSettingsCompat replaces the fork's zoomBy approach; browser JS lives at assets/packages/browser.js here.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "c0691109",
+      "reason": "Ported to the fork in c0691109: emulate desktop viewport and user-agent metadata.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "1c4d0da847d99b50ca05f94733f62c9987e939e1",
       "upstream_subject": "feat(chat): show cache hit rate in token stats brief and message info",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Cache hit-rate display: new TokenHitRateFormat.kt plus footer/dialog token summary; fork's footer matches the pre-state but strings are English-only.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "e9b4d0e2",
+      "reason": "Ported to the fork in e9b4d0e2: chat: show cache hit rate.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "d1a2847384dc58b522bfa9e19fb640b5c6d31e2a",
@@ -1217,10 +1217,10 @@
     {
       "upstream_sha": "17a0213c60171239d4d5062a1b54f9b868d840fc",
       "upstream_subject": "fix(chat): show token generation speed (#949)",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Optional token generation speed in message footers; adds a showTokenSpeed preference the fork lacks.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "270a6672",
+      "reason": "Ported to the fork in 270a6672: chat: show token generation speed.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "6f231956a5bb8693c80f23fb13f6c44c6f3fa516",
@@ -1233,27 +1233,27 @@
     {
       "upstream_sha": "7080187e60022ab80c25d18bd8af3ece4ea6b586",
       "upstream_subject": "fix(ui): adapt AutoGLM text colors to theme",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Minor dark-theme readability fix: explicit onSurface/onSurfaceVariant colors for AutoGLM texts.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "9c837df2",
+      "reason": "Ported to the fork in 9c837df2: ui: adapt AutoGLM text colors to theme.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "808c76d20fc0e98c48ffb0029a7488141d930979",
       "upstream_subject": "fix(chat): bundle the status card icon font instead of fetching it at render time",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "Status-card icons are fetched from fonts.googleapis.com at render time, so they appear late or never offline; this creates StatusCardHtmlDocument.kt with a bundled subset.",
-      "decided": "2026-11-13"
+      "status": "ported",
+      "fork_commit": "38b487a0",
+      "reason": "Ported to the fork in 38b487a0: chat: bundle the status card icon font.",
+      "decided": "2026-11-16"
     },
     {
       "upstream_sha": "7e3e853020d07afea2e1f5d9997f91dd3b40847e",
       "upstream_subject": "fix(waifu): keep block LaTeX renderable in Waifu mode (#852)",
-      "status": "deferred",
-      "fork_commit": null,
-      "reason": "prerequisite of 84a6b6fd",
-      "decided": "2026-11-12"
+      "status": "ported",
+      "fork_commit": "6fc62b0c",
+      "reason": "Ported to the fork in 6fc62b0c: keep block LaTeX renderable in Waifu mode.",
+      "decided": "2026-11-16"
     }
   ],
-  "generated": "2026-11-13"
+  "generated": "2026-11-16"
 }

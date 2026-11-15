@@ -9,6 +9,54 @@
 **Date:** 2026-11-12, branch `feat/english-only-build` (see the CURRENT block
 below; the older blocks are kept for history)
 
+**CURRENT 16.11 — upstream port backlog closed; one owner decision left.**
+
+All 156 non-merge upstream commits after the stable merge base are now
+classified in `upstream-port-ledger.json`: 88 ported, 62 skipped, 5 superseded,
+1 deferred. `python3 ci/script/fork_audit.py --ports` reports UNCLASSIFIED 0 and
+STALE 0.
+
+The last batch landed in three waves. Terminal and ANR work (cluster A):
+`c3835e3d`, `4549efde`/`42f8bbf60`, `6ddfbf7c`, `a69cc53e`, `ee82e7f5`,
+`4c45148b`, plus submodule `OperitTerminalCore` commits `ead64e3` and `f581eb5`
+(the submodule pointer moved). Chat streaming (cluster B): `b831ba07`,
+`6e9c5963`, `5faa1221`, `84004713`, `702d224b`, `5f70e728`, `4c61708b`,
+`99164b95`. Browser/markdown/grep (cluster C): `ca50a5e5`, `c0691109`,
+`3fc80c2b`, `3a80231a`/`fffe3963`, `b3ff3cf1`, `9b71831e`, `437d0608`,
+`60a77ebe`. Providers, UI, market, update and draw (cluster D): `4709fc15`,
+`38b487a0`, `8d144193`, `eda27d58`, `a742be26`, `c3b88420`, `270a6672`,
+`e9b4d0e2`, `af4e38c2`, `63ffe883`, `9c837df2`, `f03cea78`, `7daae687`,
+`09563b6f`, `6937b2ba`, `ab40ea59`, `aaafabb7`, `39261af2`, `2ad95abb`,
+`5f70e728`. Subagent and A2A (cluster E): `76992699`, `e4bccced`, `b845d426`,
+`1211ea01`/`ab4d24ba`. The Kotlin 2.2 test-workflow fixes from `08b34ad9`
+landed separately as `adc9258a`.
+
+Two commits were deliberately not ported. `1140f8d5` (DeepSeek Responses
+commentary to reasoning) has no target: the fork deleted the DeepSeek provider
+in `08d8c1e6`, and its provider-agnostic halves (Claude thinking gating,
+`toolCallName` matching, Gemini per-request thinking state) were already in the
+tree. `1124d173` lost its terminal half to `42f8bbf60`; the remainder is the
+ToolPkg execution-session and subtask-policy redesign, which the fork does not
+implement, so advertising ToolPkg API 1.2.0 would be false.
+
+**Open items, in order:**
+
+1. `b6dc07d3` is the only deferred entry and needs the owner: upstream reverted
+   Antigravity OAuth and fingerprint spoofing, while the fork keeps a working
+   Antigravity provider. Nothing is applied until the owner says whether the
+   provider should go.
+2. The batch has not been built by CI yet and has not been accepted on the test
+   phone. Run the `assembleDebug` dispatch on `feat/english-only-build`, put the
+   APK in `apk/<UTC start>/` with `CHANGES.md`, then install and smoke-test.
+3. The written report on the 62 skipped commits (what each did and why it was
+   refused) is still owed to the user.
+
+Caution about this batch: several subagents staged their work with `git add -A`
+at the same time, so files leaked between commits (for example `42f8bbf60`,
+`84004713`, `76992699`, `e4bccced` carry foreign files). The content is intact
+and builds as a whole, but a per-commit bisect is not trustworthy. Stage only
+your own paths from now on and never run `git add -A` while another agent works.
+
 **CURRENT 12.11 — avatar preview solved; fox and K6 closed; model plan
 written.**
 

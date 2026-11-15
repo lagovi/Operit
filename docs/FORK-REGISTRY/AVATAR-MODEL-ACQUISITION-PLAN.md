@@ -470,6 +470,32 @@ exact. Free for non-commercial use.
 - **Rework needed.** None for retarget; but it inherits the NC licence.
 - **Verdict.** Tie it to decision 7; not needed on the permissive route.
 
+### 11. Polyfork — 3000+ models, claim of commercial use (unverified)
+
+Reported by the user on 2026-11-13 and added to the backlog as a lead. The site
+(polyfork.dev) advertises a library of 3000+ free 3D models for game
+development, editable, exportable to Blender, Unity, Godot and three.js, with
+MCP access so an agent can search and assemble scenes, and states that the
+models may be used in commercial projects.
+
+- **Fit if verified.** Broad asset coverage beyond characters: props, buildings,
+  vehicles, vegetation. An MCP endpoint is interesting for the agent workflows
+  the fork already supports, and for scene assembly if avatars ever need an
+  environment. Formats overlap with the engines we already target.
+- **Open questions before any download.** The "free for commercial use" claim is
+  marketing text, not a licence. Every source in this plan is judged by the
+  per-asset licence text (CC0/CC-BY/MIT) and by whether redistribution inside the
+  APK or the avatar catalogue is permitted, so Polyfork must be checked the same
+  way: what licence each model carries, whether a mixed catalogue aggregates
+  third-party licences, whether export keeps the rig (retargeting still needed
+  for the five mood clips), and whether the MCP access has its own terms.
+- **Ranking.** Not a motion source and unlikely to beat VRoid/100Avatars for
+  rigged humanoids, so it does not displace the route above. It is a candidate
+  for props, environments or variety characters if its licence holds up.
+- **Verdict.** Backlog lead, licences unverified. Do not download or ship until
+  the per-asset licence and redistribution terms are written down here, as done
+  for the other ten sources.
+
 ### What this adds up to
 
 - **Permissive route (recommended first):** character from VRoid sample or

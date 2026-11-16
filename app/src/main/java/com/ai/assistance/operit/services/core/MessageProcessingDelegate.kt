@@ -874,6 +874,8 @@ class MessageProcessingDelegate(
             var turnCachedInputTokens = 0L
             var calculateNextWindowSize: (suspend () -> Long?)? = null
             var cancellationToPropagate: kotlinx.coroutines.CancellationException? = null
+            val effectivePersistTurn = turnOptions.persistTurn
+            val effectiveHideUserMessage = effectivePersistTurn && turnOptions.hideUserMessage
             // Building and persisting the user message, attaching the workspace hook and
             // generating the title all run before the model request and can throw as well
             // (input-processing hooks, workspace snapshots). Leaving them outside the try
@@ -883,8 +885,6 @@ class MessageProcessingDelegate(
             // the case that exposed this gap, so the whole preparation runs under the
             // recovery handler.
             try {
-            val effectivePersistTurn = turnOptions.persistTurn
-            val effectiveHideUserMessage = effectivePersistTurn && turnOptions.hideUserMessage
             // 检查这是否是聊天中的第一条用户消息（忽略AI的开场白）
             val isFirstMessage = !hasUserMessage(chatId)
             val titleFallback = if (effectivePersistTurn && isFirstMessage && chatId != null) {

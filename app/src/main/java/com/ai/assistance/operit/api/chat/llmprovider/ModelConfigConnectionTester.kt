@@ -57,7 +57,7 @@ object ModelConfigConnectionTester {
      * IOException with no message), so prepend the exception type to avoid showing only
      * "Unknown error" (#915).
      */
-    private fun describeError(e: Exception): String {
+    private fun describeError(e: Throwable): String {
         val message = e.message?.takeIf { it.isNotBlank() }
         return if (message != null) {
             "${e::class.simpleName}: $message"

@@ -133,5 +133,6 @@ private fun AutoGlmToolContent(
                     .fillMaxSize()
                     .verticalScroll(logScrollState)
             )
+        }
     }
 }

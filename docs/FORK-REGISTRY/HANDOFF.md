@@ -45,11 +45,14 @@ implement, so advertising ToolPkg API 1.2.0 would be false.
    Antigravity OAuth and fingerprint spoofing, while the fork keeps a working
    Antigravity provider. Nothing is applied until the owner says whether the
    provider should go.
-2. The batch has not been built by CI yet and has not been accepted on the test
-   phone. Run the `assembleDebug` dispatch on `feat/english-only-build`, put the
-   APK in `apk/<UTC start>/` with `CHANGES.md`, then install and smoke-test.
-3. The written report on the 62 skipped commits (what each did and why it was
-   refused) is still owed to the user.
+2. Nothing else. The batch is verified: CI run 43785030796 built the debug APK
+   (`apk/20261116_011400Z/`, 100,489,851 bytes) and the app was installed and
+   launched on the test phone in English, through onboarding to the AI Chat
+   screen. The JVM suite is green too (1648 tests, run 43796730987) after
+   `c5a507a0`/`8fc64da1`/`e7b93150` repaired three compile errors, the
+   unpublished submodule pointer and four stale test expectations.
+3. The report on the 62 skipped commits is written in
+   `docs/FORK-REGISTRY/UPSTREAM-SKIPPED-REPORT.md`.
 
 Caution about this batch: several subagents staged their work with `git add -A`
 at the same time, so files leaked between commits (for example `42f8bbf60`,

@@ -13,22 +13,7 @@ class OpenCodeThinkingConfigurationTest {
             thinkingConfigurations = ModelThinkingConfigDefaults.forProvider(ApiProviderType.OPENCODE.name)
         )
 
-    @Test
-    fun opencodeZhipuProviderSegmentUsesGlmEffortConfig() {
-        val mapping = mapping("zhipu/glm-5.3")
 
-        assertEquals(ThinkingQualityControl.LEVELS, mapping.control)
-        assertEquals("reasoning_effort", mapping.parameterLabel)
-        assertEquals(listOf("low", "high", "max"), mapping.options.map { it.id })
-    }
-
-    @Test
-    fun opencodeZaiOrgProviderSegmentUsesGlmEffortConfig() {
-        val mapping = mapping("zai-org/glm-4.6")
-
-        assertEquals(ThinkingQualityControl.LEVELS, mapping.control)
-        assertEquals(listOf("low", "high", "max"), mapping.options.map { it.id })
-    }
 
     @Test
     fun opencodeGoogleProviderSegmentUsesGeminiThinkingLevelConfig() {

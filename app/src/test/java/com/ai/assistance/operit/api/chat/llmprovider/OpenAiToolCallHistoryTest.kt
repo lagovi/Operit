@@ -224,8 +224,14 @@ class OpenAiToolCallHistoryTest {
         val historyEnd =
             StructuredToolCallBridge.unmatchedToolResultContent("history_end", "echo")
 
-        assertEquals("工具结果缺失：read_file 没有匹配到执行结果。这不是用户取消。", partialBatch)
-        assertEquals("工具结果缺失：echo 后续对话历史已到达，但未返回执行结果。这不是用户取消。", historyEnd)
+        assertEquals(
+            "Tool result missing: read_file no matching execution result. This is not a user cancellation.",
+            partialBatch
+        )
+        assertEquals(
+            "Tool result missing: echo later history arrived with no execution result. This is not a user cancellation.",
+            historyEnd
+        )
         assertFalse(partialBatch.contains("User cancelled"))
         assertFalse(historyEnd.contains("User cancelled"))
     }

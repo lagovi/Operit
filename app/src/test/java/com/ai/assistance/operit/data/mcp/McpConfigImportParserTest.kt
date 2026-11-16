@@ -5,18 +5,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.stubbing.Answer
 
 class McpConfigImportParserTest {
 
     // The parser needs a Context only to resolve rejection strings; the test
     // asserts structure, not message text, so a stub returning "" is enough.
-    private val context: Context = mock {
-        on { getString(any()) } doReturn ""
-        on { getString(any(), any()) } doReturn ""
-    }
+    private val context: Context = mock(
+        defaultAnswer = Answer { invocation ->
+            if (invocation.method.name == "getString") "" else null
+        }
+    )
 
     @Test
     fun parse_classifiesStdioAndRemoteTransports() {

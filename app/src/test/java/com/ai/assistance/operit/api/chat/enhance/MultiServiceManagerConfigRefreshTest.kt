@@ -200,8 +200,8 @@ class MultiServiceManagerConfigRefreshTest {
             name = "b",
             apiKey = "key-b",
             modelName = "model-b",
-            apiProviderType = ApiProviderType.DEEPSEEK,
-            apiProviderTypeId = ApiProviderType.DEEPSEEK.name
+            apiProviderType = ApiProviderType.MISTRAL,
+            apiProviderTypeId = ApiProviderType.MISTRAL.name
         )
         writeModelConfig(modelStore, configA.copy()) // write only config-a
         // Manually write config-b as well

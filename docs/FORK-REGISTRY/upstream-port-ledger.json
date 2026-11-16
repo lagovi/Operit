@@ -657,9 +657,9 @@
     {
       "upstream_sha": "b6dc07d31633999d6c5c791e2c1a302bf332c12e",
       "upstream_subject": "Revert \"feat(provider): add Antigravity OAuth login and fingerprint spoofing (#1257)\" (#1450)",
-      "status": "deferred",
+      "status": "skipped",
       "fork_commit": null,
-      "reason": "Upstream reverted Antigravity OAuth and fingerprint spoofing. The fork deliberately keeps an Antigravity provider, so this is a product decision for the owner; not applied.",
+      "reason": "Fork keeps Antigravity deliberately (owner decision, 2026-11-16). Upstream reverted a feature that never shipped in a release tag, for release hygiene, and the original PR #1257 was never verified against a real account. No policy or licence justification is documented. Rationale and code evidence: docs/FORK-REGISTRY/ANTIGRAVITY-DECISION.md.",
       "decided": "2026-11-16"
     },
     {

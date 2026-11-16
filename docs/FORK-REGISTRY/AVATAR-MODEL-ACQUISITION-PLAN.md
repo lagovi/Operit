@@ -492,9 +492,28 @@ models may be used in commercial projects.
 - **Ranking.** Not a motion source and unlikely to beat VRoid/100Avatars for
   rigged humanoids, so it does not displace the route above. It is a candidate
   for props, environments or variety characters if its licence holds up.
-- **Verdict.** Backlog lead, licences unverified. Do not download or ship until
-  the per-asset licence and redistribution terms are written down here, as done
-  for the other ten sources.
+- **Checked 2026-11-17 (closes the lead).** The catalogue index is public at
+  `github.com/lucas-martinic/polyfork-catalog`: 3 347 entries (the site itself
+  shows 3 372, or 3 367 on another page — the three numbers disagree), of which
+  about 2 113 are props, 436 buildings, 199 characters, 244 animals, 198
+  vehicles; 317 entries are rigged humanoids. Facts that decide the question:
+  - The `.glb` files embed only `Idle`, `Walk` and `Run`. The other ~44 clips,
+    mostly Mixamo-derived, exist only on the CDN, and Polyfork states it cannot
+    distribute them as files. There are no `Angry`, `Cry`, `Shy`, `Happy` or
+    `Aojiao` clips; `Laughing` is the closest to `happy`.
+  - The advertised "emotions" are static face geometry variants
+    (`neutral`, `warm`, `stern`, `weary`, `alert`, `squint`), not animation and
+    not blend shapes.
+  - The style is blocky western low-poly, not anime, so it does not match the
+    three mood presets that already ship.
+  - Licensing: individual `.glb` files are CC BY 4.0 with attribution, but the
+    separate "Polyfork licence" forbids redistributing the files, and `.mjs`
+    scene files, HD editions and CDN clips are in the same position. That is
+    incompatible with bundling them in this GPL repository or in the public
+    avatar catalogue.
+- **Verdict.** Not a source for the five moods and not shippable. At most a
+  local experiment for a base humanoid mesh under CC BY attribution. Removed
+  from the unverified backlog.
 
 ### What this adds up to
 

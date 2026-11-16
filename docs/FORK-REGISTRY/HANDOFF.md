@@ -6,8 +6,61 @@
 
 **From:** the agent building the English-only Operit fork
 **To:** me, fresh context, same job
-**Date:** 2026-11-12, branch `feat/english-only-build` (see the CURRENT block
+**Date:** 2026-11-17, branch `feat/english-only-build` (see the CURRENT block
 below; the older blocks are kept for history)
+
+**CURRENT 17.11 — Antigravity kept; avatar model catalogue and offline
+animation check.**
+
+The last deferred ledger entry is resolved: `b6dc07d3` (upstream revert of
+Antigravity) is now `skipped` by owner decision, so the ledger reads 88 ported,
+63 skipped, 5 superseded, 0 deferred, and `--ports` still reports UNCLASSIFIED 0
+and STALE 0. The reasoning is written down in
+`docs/FORK-REGISTRY/ANTIGRAVITY-DECISION.md`: upstream removed a feature that
+never shipped in a release tag, for release hygiene, and the original PR #1257
+was never verified against a real account; no policy or licence justification
+exists in the revert or its review. The fork's provider deliberately presents
+itself as the native `antigravity/hub/2.9.1 darwin/arm64` client (user agent,
+HTTP/1.1, derived session id, no `safetySettings`), and the code comments in
+`AntigravityOAuthClient.kt` / `AntigravityProvider.kt` are the only "why" that
+survives anywhere. If upstream re-adds Antigravity, that new commit is the port
+target and the decision document must be revisited.
+
+New on the avatar front:
+
+- `docs/FORK-REGISTRY/AVATAR-MODEL-CATALOGUE.md` — one table for all nine
+  presets (licence, size, clips with measured lengths, geometry counts), the
+  mood matrix, the per-model notes and the licences that block redistribution.
+  Answer to "do we have a catalogue": we do now; before this only the plan and
+  research docs existed, and `presets.json` has no mood binding.
+- `tools/avatar/mood_collage.py` — offline `.glb` inspector and contact-sheet
+  renderer (numpy + Pillow, no Blender, no GPU, no phone). `inspect` prints
+  clips and geometry; `collage` samples 18 frames per clip, skins the mesh on
+  the CPU, draws 3x3 pages with the timestamp on each cell. `--frames 9` gives
+  one page. Limitation: morph targets are not applied, so `gltf.cube` renders
+  static by design.
+
+Agent verification done on 2026-11-17: Rose on both pages of all five clips,
+Kate and Jennifer on page 1 of all five (same retargeted motion set; rig fit
+confirmed). All fifteen pairs read as the intended mood. Findings recorded in
+the catalogue: Xbot `sad_pose` and `sneak_pose` are 0.067 s stills, not
+animations; the local Mixamo benchmark (Devil) has a nearly static `angry` and a
+stretch instead of `shy`, so it is only good for happy/aojiao/cry smoke tests;
+Polyfork is closed as a source (no mood clips, CDN-only Mixamo motion, licence
+forbids redistributing files).
+
+**Open items:**
+
+1. Device verification of the fifteen mood pairs (three models x five moods) is
+   still pending and is the acceptance gate. Procedure: push the model to
+   `Android/data/com.ai.assistance.operit.debug/files/avatars/<Name>/model.glb`,
+   menu -> Assistant Config -> Current Model, expand Mood Trigger Mapping, set
+   Mapped Action, press Preview. Record the result in the catalogue matrix.
+2. `presets.json` still has no `moods` field; the three mood presets rely on
+   clip names equal to mood keys. If more mood-capable models are added, extend
+   the schema and the app together instead of hand-mapping.
+3. Xbot and Soldier are Mixamo exports distributed with the three.js examples;
+   their terms need a decision before any wider redistribution.
 
 **CURRENT 16.11 — upstream port backlog closed; one owner decision left.**
 

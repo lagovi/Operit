@@ -1358,21 +1358,43 @@ class GltfSurfaceView @JvmOverloads constructor(
         val halfExtentZ: Double
     )
 
-    private enum class BoundsSource { MESH, BONES }
+    private enum class BoundsSource { MESH, BONES, UNION }
 
     /**
-     * Bounds source for the camera fit: joints for a skinned asset, the mesh box otherwise.
+     * Camera bounds for a skinned asset: the union of the mesh box and the posed joints.
      *
-     * A skinned mesh is drawn from its joint matrices, so the world positions of the joints are
-     * the only description that matches the pixels. Its `asset.boundingBox` is the unskinned
-     * vertex box transformed by the mesh node, and the two live in different spaces whenever the
-     * file was authored with a scaled armature (Xbot: mesh half height 0.0090 against joints
-     * standing 1.5 m tall). An unskinned mesh is drawn from its node transform, so its box is the
-     * matching description there.
+     * The two boxes answer different questions and neither contains the other. `asset.boundingBox`
+     * covers every vertex but in the mesh node's space; the joints cover the drawn skeleton but
+     * only up to the last bone. Xbot's mesh box is tiny because its mesh node sits under a 0.01
+     * armature, so fitting it would frame a 1.6 m figure as if it were 1.6 cm. The fox's joints
+     * end at the skull, so fitting them crops the snout and the tail that the mesh box includes.
+     * The camera has to hold everything that can be drawn, so the fit takes the union.
+     *
+     * The tuner keeps `MESH` and `BONES` as single-source overrides for measuring a suspect file.
      */
-    private fun resolveAutoBoundsSource(asset: com.google.android.filament.gltfio.FilamentAsset): BoundsSource {
-        val skinCount = runCatching { asset.instance.skinCount }.getOrDefault(0)
-        return if (skinCount > 0) BoundsSource.BONES else BoundsSource.MESH
+    private fun resolveUnionBounds(asset: com.google.android.filament.gltfio.FilamentAsset): PosedBounds? {
+        val mesh = resolveMeshBounds(asset)
+        val posed = resolvePosedBounds(asset)
+        if (mesh == null) {
+            return posed
+        }
+        if (posed == null) {
+            return mesh
+        }
+        val minX = min(mesh.centerX - mesh.halfExtentX, posed.centerX - posed.halfExtentX)
+        val maxX = max(mesh.centerX + mesh.halfExtentX, posed.centerX + posed.halfExtentX)
+        val minY = min(mesh.centerY - mesh.halfExtentY, posed.centerY - posed.halfExtentY)
+        val maxY = max(mesh.centerY + mesh.halfExtentY, posed.centerY + posed.halfExtentY)
+        val minZ = min(mesh.centerZ - mesh.halfExtentZ, posed.centerZ - posed.halfExtentZ)
+        val maxZ = max(mesh.centerZ + mesh.halfExtentZ, posed.centerZ + posed.halfExtentZ)
+        return PosedBounds(
+            centerX = (minX + maxX) / 2.0,
+            centerY = (minY + maxY) / 2.0,
+            centerZ = (minZ + maxZ) / 2.0,
+            halfExtentX = (maxX - minX) / 2.0,
+            halfExtentY = (maxY - minY) / 2.0,
+            halfExtentZ = (maxZ - minZ) / 2.0
+        )
     }
 
     /** `asset.boundingBox`: the range Filament reports for the mesh it draws. */
@@ -1492,7 +1514,7 @@ class GltfSurfaceView @JvmOverloads constructor(
         val resolvedSource = when (tuner.boundsSource) {
             GltfTuner.BoundsSource.MESH -> BoundsSource.MESH
             GltfTuner.BoundsSource.BONES -> BoundsSource.BONES
-            GltfTuner.BoundsSource.AUTO -> resolveAutoBoundsSource(asset)
+            GltfTuner.BoundsSource.AUTO -> BoundsSource.UNION
         }
 
         // Diagnostic: log both bounds descriptions and the root scale so the disagreement between
@@ -1519,6 +1541,7 @@ class GltfSurfaceView @JvmOverloads constructor(
         val bounds = when (resolvedSource) {
             BoundsSource.BONES -> resolvePosedBounds(asset)
             BoundsSource.MESH -> resolveMeshBounds(asset)
+            BoundsSource.UNION -> resolveUnionBounds(asset)
         }
         if (bounds == null) {
             AppLogger.w(TAG, "Skip camera auto-fit: no usable bounds ($resolvedSource) for the loaded asset")
@@ -1643,11 +1666,12 @@ class GltfSurfaceView @JvmOverloads constructor(
      * frame, so a model that starts far too small needs several steps. Each step therefore returns
      * "not settled" and the caller measures again.
      *
-     * The distance is scaled by the ratio between the current and target fill, bounded below so the
-     * eye never enters the geometry (below that the near faces are clipped and the silhouette
-     * shrinks instead of growing). The target is shifted by the pixel distance between the
-     * silhouette centre and the viewport centre at the current distance, so the figure ends centred
-     * even when its authored bounds centre lies somewhere else.
+     * The distance is scaled by the ratio between the current and target fill, bounded in both
+     * directions so one bad measurement neither throws the eye inside the geometry (where the near
+     * faces are clipped and the silhouette shrinks instead of growing) nor drops the figure to a
+     * speck. The target is shifted by the pixel distance between the silhouette centre and the
+     * viewport centre at the current distance, so the figure ends centred even when its authored
+     * bounds centre lies somewhere else.
      *
      * @return true when the fill and the centre are within tolerance, false when another step is
      *   needed.
@@ -1726,11 +1750,14 @@ class GltfSurfaceView @JvmOverloads constructor(
         // Shrink the distance by the size ratio that is still missing, bounded so a single step is
         // never extreme and the eye never enters the geometry.
         if (!fillSettled) {
-            // The distance is multiplied by the missing-size ratio directly, so the step allowed is
-            // the reciprocal of the zoom bounds: a small fill shrinks the distance, a large one grows
-            // it, and neither jumps more than the bounds allow.
+            // The distance is multiplied by the missing-size ratio directly, so neither direction
+            // can jump more than the bounds allow.
+            // Both directions are allowed: a figure smaller than the goal pulls the camera in, a
+            // figure that overflows the frame pushes it out. Clamping only the shrinking side left
+            // an overflowing model with nowhere to go: the fox measured a full frame, every step
+            // moved the camera closer, and forty steps later the eye sat inside the muzzle.
             val step = (currentFill / fillGoal)
-                .coerceIn(1.0 / SILHOUETTE_ZOOM_MAX_STEP, 1.0 / SILHOUETTE_ZOOM_MIN_STEP)
+                .coerceIn(1.0 / SILHOUETTE_ZOOM_MAX_STEP, SILHOUETTE_ZOOM_MAX_STEP)
             autoDistanceScale = (autoDistanceScale * step)
                 .coerceIn(SILHOUETTE_ZOOM_MIN_TOTAL, SILHOUETTE_ZOOM_MAX_TOTAL)
         }

@@ -253,10 +253,12 @@ What the tuner already established on Xbot, so nobody repeats it:
   2026-11-17 (see "Model scale changes when a clip starts" below). With the
   skinned bind pose pushed through the animator, a skinned model renders at its
   authored scale and the joint bounds are in the same space as the pixels.
-- Bounds source: joints for a skinned asset, mesh box otherwise. On Xbot the
+- Bounds source: the automatic choice is the union of the joint box and the
+  mesh box (see "Model scale changes when a clip starts" below). On Xbot the
   mesh box is 0.009 half height while the joints stand 0.74 half height in
-  world space; the joints are the drawn size, so the automatic choice is
-  `bones`.
+  world space, so only the joints describe the drawn figure there; on the fox
+  the mesh box is the larger one. `mesh` and `bones` stay as single-source
+  overrides.
 - On Xbot the model renders at about 39-49% of the preview height, horizontally
   centred, and `distanceMultiplier` between 0.5 and 1.0 scales it predictably.
   `targetY` shifts it vertically only above roughly 30 units, because the model
@@ -655,14 +657,44 @@ bone matrices, not of the camera.
    `animator.updateBoneMatrices()` right after load when the asset has a skin.
    The rest state and every animated frame then use the same matrices and the
    model keeps one size.
-3. `resolvePosedBounds()` reads `getWorldTransformAccurate` instead of the local
-   joint transform. The local values are authored in the file's units (Xbot's
-   skeleton is in centimetres, so local bounds reported 74 units for a 1.5 m
-   figure); the world transform is the drawn space.
-4. `resolveAutoBoundsSource()` is back to "joints when the asset has a skin,
-   mesh box otherwise", which is now honest because both states agree.
+3. `resolvePosedBounds()` reads `TransformManager.getWorldTransform` in double
+   precision instead of the local joint transform. The local values are authored
+   in the file's units (Xbot's skeleton is in centimetres, so local bounds
+   reported 74 units for a 1.5 m figure); the world transform is the drawn space.
+4. The automatic bounds are the **union** of the mesh box and the posed joints.
+   Neither contains the other: Xbot's mesh box is 100 times too small (its mesh
+   node sits under a 0.01 armature) while the fox's joints end at the skull and
+   leave its snout and tail outside. The camera has to hold everything that can
+   be drawn, so it takes both. The tuner keeps `mesh` and `bones` as single
+   source overrides.
+5. The silhouette framing used to clamp its distance step to
+   `[1/2.5, 1/1.1]`, so it could only ever move the camera **closer**. A model
+   whose first frame already overflowed therefore got larger with every step
+   until the 50x total bound: the fox ended with the eye inside its muzzle
+   (`distanceScale=0.0201`, silhouette 385x678 of a 385 px tall preview). Both
+   directions are now allowed, up to 2.5x per step.
 
 `GltfTuner.skipUnitCube` was removed with the transform it controlled.
+
+### Verification on the phone (build from CI run 44026315684)
+
+Xbot, Soldier, Fox and Rose were re-downloaded into a fresh install and each
+model was measured at rest and during a clip:
+
+| model | rest | walk/idle/happy | outcome |
+|---|---|---|---|
+| Xbot | 270x258 | 256-272 high over six frames | fixed |
+| Soldier | 274 | 264-267 over six frames | stable |
+| Rose | 272x263 | 247-284 over six frames | stable, as before |
+| Fox | 370x660 (card border, model overflowing) | 370x660 | **broken**: the camera ran away |
+
+Xbot was the reported case: before this build its rest frame was correct and
+pressing Preview replaced the figure with a single shoulder, with two empty
+frames at the start of `idle`. That is gone. The fox failure is the clamp bug in
+point 5, not the bind pose: its joints are 0.607 high against a 0.79 mesh, so a
+joint-only fit starts already overflowing and the broken step clamp then zoomed
+in on it. Points 4 and 5 landed after that measurement and still need a phone
+pass.
 
 Expected after the fix, for all four skinned presets: authored world height
 (Xbot 1.6 m, soldier 1.8 m, fox 1.55 m, rose 1.65 m) at rest and during playback,

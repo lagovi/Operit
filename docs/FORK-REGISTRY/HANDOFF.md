@@ -9,6 +9,53 @@
 **Date:** 2026-11-17, branch `feat/english-only-build` (see the CURRENT block
 below; the older blocks are kept for history)
 
+**CURRENT 17.11b — the model-scale bug is fixed and verified; the wrists are
+narrowed down but not fixed.**
+
+Reported by the user: "one of the models has a scale problem when the animation
+turns on, one of our old first ones" — the Xbot mannequin. Three renderer
+changes landed (`9de06c3c7`, `f37845cf4`, `4f8de913e`) and the full story with
+measurements is in `TODO-AUDIT.md`, section "Model scale changes when a clip
+starts — 2026-11-17". In short: `transformToUnitCube` is gone; the bind pose is
+pushed through `animator.updateBoneMatrices()` at load so the rest state and
+every animated frame use the same matrices; the camera is fitted to the union
+of the posed joints and `asset.boundingBox`, because neither contains the other
+(Xbot's mesh box is 100x too small, the fox's joints stop at the skull); and
+the silhouette framing may now move the camera away as well as closer, which it
+never could before.
+
+Verified on the phone with the debug build of CI run 44069463730, archived as
+`apk/20261117_105643Z/` (APK + `measure/` with the captures): Xbot 270 px at
+rest and 271 px while `walk` plays (was one giant shoulder), Soldier 272 -> 262,
+Fox 270 -> 267-277 (was overflowing the whole card), Rose 272 -> 252-281. The
+log shows `source=UNION` and a single settling step for each model.
+
+**Open: the twisted wrists on Rose, Kate and Jennifer.** Measured facts, so
+nobody repeats the work:
+
+- `mood_collage.py audit` reports WRIST on all fifteen shipped clips, 41-76 deg
+  mean against 6-18 deg on Xbot and Soldier.
+- The shipped rotation is the MIT source's own rotation: the wrist angle
+  relative to the forearm differs from `tk256ailab`'s clip by 0.1 deg in every
+  frame of `Angry`, so the retarget copies it faithfully. The bending plane
+  matches the elbow plane (2-4 deg), so this is not a rolled or mirrored bone.
+- The MIT VRMA files animate 51 humanoid bones and **no fingers**, so the hand
+  mesh stays rigid in its T-pose while the wrist bends 60-70 deg. That is what
+  makes the hand look like a board snapped at the wrist in the close-up
+  (`/tmp/opencode/hand_angry.png` if it still exists).
+- The source pose itself is plausible for hands-on-hips; the defect that
+  remains to be judged on the phone is the frozen hand, plus Kate's `aojiao`
+  and `cry` scaling the body to 0.93-0.99 of rest, plus `shy` being asymmetric
+  (right palm faces away from the torso, left does not).
+
+Two ways forward, in order of cost: (a) offline patch of the five GLB clips in
+Python, adding a static finger pose per mood (the fingers exist in the rigs and
+are simply not animated; no Blender, no Colab, no new licence); (b) ask the
+owner for permission to rebuild the clips in Colab with the VRM add-on so the
+fingers are retargeted properly. Do not start either without the phone
+acceptance of the current build, and record the outcome in
+`AVATAR-MODEL-CATALOGUE.md`, whose matrix still says PASS for all fifteen pairs.
+
 **CURRENT 17.11 — Antigravity kept; avatar model catalogue and offline
 animation check.**
 

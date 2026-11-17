@@ -676,29 +676,31 @@ bone matrices, not of the camera.
 
 `GltfTuner.skipUnitCube` was removed with the transform it controlled.
 
-### Verification on the phone (build from CI run 44026315684)
+### Verification on the phone
 
-Xbot, Soldier, Fox and Rose were re-downloaded into a fresh install and each
-model was measured at rest and during a clip:
+Measured on the debug build of CI run 44026315684 (bind pose, single-source
+bounds) and 44069463730 (union bounds, two-way framing). Each model was
+downloaded into a fresh install, framed at rest, then a clip was mapped to the
+Angry trigger and played; the number is the figure height in pixels inside the
+385 px tall preview card.
 
-| model | rest | walk/idle/happy | outcome |
+| model | rest | clip | outcome |
 |---|---|---|---|
-| Xbot | 270x258 | 256-272 high over six frames | fixed |
-| Soldier | 274 | 264-267 over six frames | stable |
-| Rose | 272x263 | 247-284 over six frames | stable, as before |
-| Fox | 370x660 (card border, model overflowing) | 370x660 | **broken**: the camera ran away |
+| Xbot | 270 | `walk`: 271 over six frames | fixed (was a shoulder, first frames empty) |
+| Soldier | 272 | `Walk`: 262-263 | stable |
+| Fox | 270 | `Walk`: 267-277 | fixed (was overflowing the whole card) |
+| Rose | 272 | `happy`: 252-281 | stable, as before |
 
-Xbot was the reported case: before this build its rest frame was correct and
-pressing Preview replaced the figure with a single shoulder, with two empty
-frames at the start of `idle`. That is gone. The fox failure is the clamp bug in
-point 5, not the bind pose: its joints are 0.607 high against a 0.79 mesh, so a
-joint-only fit starts already overflowing and the broken step clamp then zoomed
-in on it. Points 4 and 5 landed after that measurement and still need a phone
-pass.
+Xbot was the reported case: before the first build its rest frame was correct
+and pressing Preview replaced the figure with a single shoulder, with two empty
+frames at the start of `idle`. The fox broke in the first build for a second
+reason, the one-way step clamp in point 5: a joint-only fit started it already
+overflowing and every step then moved the camera closer until the eye sat
+inside the muzzle (`distanceScale=0.0201`). The union fit and the two-way clamp
+both landed in the second build, and the log now shows `source=UNION` followed
+by a single settling step (`fill=0.686 -> 0.700, distanceScale=0.8868`) for
+every preset.
 
-Expected after the fix, for all four skinned presets: authored world height
-(Xbot 1.6 m, soldier 1.8 m, fox 1.55 m, rose 1.65 m) at rest and during playback,
-camera at distance 2-3 instead of 232, and no change of size when a clip starts.
 
 ## Status snapshot — 2026-11-05
 

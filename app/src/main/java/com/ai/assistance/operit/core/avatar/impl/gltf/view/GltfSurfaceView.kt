@@ -1406,9 +1406,9 @@ class GltfSurfaceView @JvmOverloads constructor(
      * values at load time and does not follow the pose (Filament's own documentation says so). For a
      * humanoid the joints span the visible figure, which is exactly the range the camera has to fit.
      *
-     * The positions have to be read with [TransformManager.getWorldTransformAccurate]: the local
-     * transform of a joint is authored in the file's own units (Xbot stores its skeleton in
-     * centimetres), so using it directly described a figure sixty times larger than the one drawn.
+     * The positions have to be read with [TransformManager.getWorldTransform] in double precision:
+     * the local transform of a joint is authored in the file's own units (Xbot stores its skeleton
+     * in centimetres), so using it directly described a figure sixty times larger than the one drawn.
      *
      * A model with no joints yields null, and the caller logs that there is no usable bounds rather
      * than inventing one.
@@ -1441,7 +1441,7 @@ class GltfSurfaceView @JvmOverloads constructor(
                     continue
                 }
                 val transform = runCatching {
-                    transformManager.getWorldTransformAccurate(jointInstance, DoubleArray(16))
+                    transformManager.getWorldTransform(jointInstance, DoubleArray(16))
                 }.getOrNull() ?: continue
                 if (transform.size < 16 || !transform.all(::isFiniteDouble)) {
                     continue

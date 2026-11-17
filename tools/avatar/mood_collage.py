@@ -184,7 +184,7 @@ class Scene:
     def pose(self, t, anim):
         local = [node_trs(n) for n in self.nodes]
         if anim is not None:
-            a = anim[0]
+            a = anim
             for ch in a["channels"]:
                 path = ch["target"]["path"]
                 if path not in ("translation", "rotation", "scale"):
@@ -266,63 +266,174 @@ class Scene:
         return np.tile(np.array(base), (len(tris), 1))
 
 
-def render(scene, anim_name, times, cell_w, cell_h, ss=2, yaw=0.0):
-    anim = scene.animations.get(anim_name)
+def _rot(p, c, yaw):
+    if not yaw:
+        return p
+    cy = math.cos(yaw)
+    sy = math.sin(yaw)
+    out = p.copy()
+    x = p[:, 0] - c[0]
+    z = p[:, 2] - c[2]
+    out[:, 0] = c[0] + x * cy + z * sy
+    out[:, 2] = c[2] - x * sy + z * cy
+    return out
+
+
+def render(scene, anim_name, times, cell_w, cell_h, ss=2, yaw=0.0, fit="clip"):
+    """Render frames and page them. fit='clip' frames the whole clip, 'rest'
+    frames the un-animated pose so scale drift between rest and animation stays
+    visible, 'none' keeps the caller's camera when times is (t, center, span)."""
+    hit = scene.animations.get(anim_name)
+    anim = hit[0] if hit else None
     prims = scene.meshes()
     frames = []
     for t in times:
         world = scene.pose(t, anim)
-        pts = []
-        for prim in prims:
-            v = scene.skin(prim, world)
-            pts.append(v)
-        allv = np.concatenate(pts, axis=0)
-        frames.append((t, world, pts, allv))
-    lo = np.min(np.stack([f[3] for f in frames]), axis=(0, 1))
-    hi = np.max(np.stack([f[3] for f in frames]), axis=(0, 1))
+        pts = [scene.skin(prim, world) for prim in prims]
+        frames.append((t, world, pts, np.concatenate(pts, axis=0)))
+    if fit == "rest":
+        rw = scene.pose(0.0, None)
+        ref = np.concatenate([scene.skin(prim, rw) for prim in prims], axis=0)
+        lo, hi = ref.min(0), ref.max(0)
+    else:
+        lo = np.min(np.stack([f[3] for f in frames]), axis=(0, 1))
+        hi = np.max(np.stack([f[3] for f in frames]), axis=(0, 1))
     c = (lo + hi) / 2
     h = max(hi[1] - lo[1], 1e-6)
     w = max(hi[0] - lo[0], 1e-6)
     scale = 0.92 * min((cell_w * ss) / w, (cell_h * ss) / h)
-    cy = math.cos(yaw)
-    sy = math.sin(yaw)
+    light1 = np.array([0.45, 0.55, 0.70])
+    light1 = light1 / np.linalg.norm(light1)
+    light2 = np.array([-0.70, 0.20, 0.40])
+    light2 = light2 / np.linalg.norm(light2)
 
     pages = []
     for t, world, pts, _ in frames:
         img = Image.new("RGB", (cell_w * ss, cell_h * ss), (250, 250, 252))
         drw = ImageDraw.Draw(img)
         W, H = img.size
+        floor = H / 2 - (0.0 - c[1]) * scale
+        if 0 <= floor < H:
+            drw.line([(0, floor), (W, floor)], fill=(214, 216, 220), width=max(1, ss))
         tris_all = []
         cols_all = []
         for prim, v in zip(prims, pts):
-            p = v.copy()
-            if yaw:
-                x = p[:, 0] - c[0]
-                z = p[:, 2] - c[2]
-                p[:, 0] = c[0] + x * cy + z * sy
-                p[:, 2] = c[2] - x * sy + z * cy
+            p = _rot(v, c, yaw)
             x = (p[:, 0] - c[0]) * scale + W / 2
             y = H / 2 - (p[:, 1] - c[1]) * scale
             idx = prim["idx"].reshape(-1, 3)
-            tris_all.append(np.stack([x[idx], y[idx], p[idx, 2]], axis=-1))
+            tri_xyz = p[idx]
+            screen = np.stack([x[idx], y[idx]], axis=-1)
+            tris_all.append((screen, tri_xyz))
             cols_all.append(scene.colors(prim, idx))
-        tris = np.concatenate(tris_all, 0)
+        screens = np.concatenate([t[0] for t in tris_all], 0)
+        xyz = np.concatenate([t[1] for t in tris_all], 0)
         cols = np.concatenate(cols_all, 0)
-        e1 = tris[:, 1] - tris[:, 0]
-        e2 = tris[:, 2] - tris[:, 0]
-        nz = e1[:, 0] * e2[:, 1] - e1[:, 1] * e2[:, 0]
-        keep = np.abs(nz) > 1e-9
-        tris, cols, nz = tris[keep], cols[keep], nz[keep]
-        depth = tris[:, :, 2].mean(axis=1)
-        order = np.argsort(depth)
-        shade = 0.55 + 0.45 * (nz / (np.abs(nz) + 1e-9))
-        shade = 0.5 + 0.5 * np.abs(shade)
-        for ti, ci, sh in zip(order, cols[order], shade[order]):
-            tri = tris[ti]
-            col = tuple(int(min(255, max(0, ch * sh * 1.1))) for ch in ci)
-            drw.polygon([(tri[0, 0], tri[0, 1]), (tri[1, 0], tri[1, 1]), (tri[2, 0], tri[2, 1])], fill=col, outline=col)
+        n = np.cross(xyz[:, 1] - xyz[:, 0], xyz[:, 2] - xyz[:, 0])
+        ln = np.linalg.norm(n, axis=1)
+        keep = ln > 1e-9
+        screens, xyz, cols, n, ln = screens[keep], xyz[keep], cols[keep], n[keep], ln[keep]
+        nn = n / ln[:, None]
+        l1 = np.abs(nn @ light1)
+        l2 = np.abs(nn @ light2)
+        area = np.abs((screens[:, 1, 0] - screens[:, 0, 0]) * (screens[:, 2, 1] - screens[:, 0, 1])
+                      - (screens[:, 2, 0] - screens[:, 0, 0]) * (screens[:, 1, 1] - screens[:, 0, 1]))
+        shade = 0.34 + 0.52 * l1 + 0.20 * l2
+        order = np.argsort(xyz[:, :, 2].mean(axis=1))
+        for ti in order:
+            tri = screens[ti]
+            col = tuple(int(min(255, max(0, ch * shade[ti]))) for ch in cols[ti])
+            drw.polygon([(tri[0, 0], tri[0, 1]), (tri[1, 0], tri[1, 1]), (tri[2, 0], tri[2, 1])],
+                        fill=col, outline=col)
         pages.append(img.resize((cell_w, cell_h), Image.LANCZOS))
     return pages
+
+
+def _bone_index(scene):
+    return {n.get("name"): i for i, n in enumerate(scene.g.get("nodes", [])) if n.get("name")}
+
+
+def _arm_metrics(scene, world, idx):
+    """Wrist bend and elbow flexion in degrees for both arms, or None."""
+    out = {}
+    for side in ("Left", "Right"):
+        names = [f"mixamorig:{side}Arm", f"mixamorig:{side}ForeArm", f"mixamorig:{side}Hand",
+                 f"mixamorig:{side}HandMiddle1"]
+        if not all(n in idx for n in names):
+            continue
+        up = world[idx[names[0]]][:3, 3]
+        el = world[idx[names[1]]][:3, 3]
+        ha = world[idx[names[2]]][:3, 3]
+        mi = world[idx[names[3]]][:3, 3]
+
+        def angle(a, b):
+            na = np.linalg.norm(a)
+            nb = np.linalg.norm(b)
+            if na < 1e-9 or nb < 1e-9:
+                return 0.0
+            return float(np.degrees(np.arccos(np.clip(a @ b / na / nb, -1, 1))))
+
+        out[side] = (180.0 - angle(up - el, ha - el), angle(ha - el, mi - ha))
+    return out
+
+
+def audit(scene):
+    """Report scale, ground and joint-angle anomalies per clip.
+
+    Designed to catch what a silhouette cannot: a body that changes size when
+    the animation starts, feet below the floor, a wrist bent past human range.
+    Thresholds are deliberately loose so that only real defects fire."""
+    idx = _bone_index(scene)
+    prims = scene.meshes()
+
+    def frame_stats(anim, t):
+        world = scene.pose(t, anim)
+        v = np.concatenate([scene.skin(p, world) for p in prims], axis=0)
+        lo, hi = v.min(0), v.max(0)
+        body = None
+        if "mixamorig:Hips" in idx and "mixamorig:Head" in idx:
+            body = float(np.linalg.norm(world[idx["mixamorig:Hips"]][:3, 3] - world[idx["mixamorig:Head"]][:3, 3]))
+        return dict(h=float(hi[1] - lo[1]), w=float(hi[0] - lo[0]), ymin=float(lo[1]), body=body,
+                    arms=_arm_metrics(scene, world, idx))
+
+    rest = frame_stats(None, 0.0)
+    problems = 0
+    for name, (anim, dur) in scene.animations.items():
+        ts = np.linspace(0, dur, 18)
+        frames = [frame_stats(anim, float(t)) for t in ts]
+        hs = [f["h"] for f in frames]
+        ws = [f["w"] for f in frames]
+        ymin = min(f["ymin"] for f in frames)
+        body = [f["body"] for f in frames if f["body"] is not None]
+        notes = []
+        if rest["body"] and body:
+            ratio = (min(body) / rest["body"], max(body) / rest["body"])
+            if ratio[0] < 0.95 or ratio[1] > 1.05:
+                notes.append(f"SCALE body {ratio[0]:.2f}..{ratio[1]:.2f} of rest")
+        hratio = (min(hs) / rest["h"], max(hs) / rest["h"])
+        if hratio[0] < 0.75 or hratio[1] > 1.25:
+            notes.append(f"HEIGHT {hratio[0]:.2f}..{hratio[1]:.2f} of rest")
+        if ymin < -0.03 * rest["h"]:
+            notes.append(f"FLOOR min y {ymin:.3f} ({ymin / rest['h'] * 100:.0f}% of height)")
+        for side in ("Left", "Right"):
+            vals = [f["arms"][side][1] for f in frames if f["arms"].get(side)]
+            if vals:
+                mean = float(np.mean(vals))
+                worst = float(np.max(vals))
+                if mean > 35.0 or worst > 75.0:
+                    notes.append(f"WRIST {side} mean {mean:.0f} max {worst:.0f} deg")
+        for side in ("Left", "Right"):
+            vals = [f["arms"][side][0] for f in frames if f["arms"].get(side)]
+            if vals:
+                mean = float(np.mean(vals))
+                if mean > 150.0:
+                    notes.append(f"ELBOW {side} mean {mean:.0f} deg (folded shut)")
+        if notes:
+            problems += 1
+        print(f"  {name:14s} dur {dur:5.3f}s  h {hratio[0]:.2f}..{hratio[1]:.2f}  "
+              f"w {min(ws) / rest['w']:.2f}..{max(ws) / rest['w']:.2f}  "
+              f"{'FAIL ' + '; '.join(notes) if notes else 'ok'}")
+    return problems
 
 
 def sheet(model, clip, pages, out_dir, cell_w, cell_h, font):
@@ -363,6 +474,8 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     ins = sub.add_parser("inspect")
     ins.add_argument("glb", nargs="+")
+    aud = sub.add_parser("audit")
+    aud.add_argument("glb", nargs="+")
     col = sub.add_parser("collage")
     col.add_argument("glb")
     col.add_argument("--out", required=True)
@@ -370,6 +483,7 @@ def main():
     col.add_argument("--frames", type=int, default=18)
     col.add_argument("--cell", type=int, default=340)
     col.add_argument("--yaw", type=float, default=0.0)
+    col.add_argument("--fit", choices=["clip", "rest"], default="clip")
     a = ap.parse_args()
 
     if a.cmd == "inspect":
@@ -382,6 +496,22 @@ def main():
                 print(f"  mesh verts={len(p['pos'])} tris={len(p['idx']) // 3} skinned={p['jnt'] is not None}")
         return
 
+    if a.cmd == "audit":
+        total = 0
+        for path in a.glb:
+            base = os.path.splitext(os.path.basename(path))[0]
+            name = os.path.basename(os.path.dirname(os.path.abspath(path))) if base in ("model", "avatar") else base
+            try:
+                sc = Scene(Glb(path))
+            except Exception as error:
+                print(f"{name}: cannot parse: {error}")
+                total += 1
+                continue
+            print(f"{name} ({path})")
+            total += audit(sc)
+        print(f"clips with findings: {total}")
+        return
+
     font = ImageFont.truetype(DEFAULT_FONT, 18)
     sc = Scene(Glb(a.glb))
     clips = a.clip or sc.clip_names()
@@ -390,7 +520,7 @@ def main():
     for clip in clips:
         dur = sc.animations[clip][1]
         times = [dur * i / (a.frames - 1) for i in range(a.frames)] if a.frames > 1 else [dur / 2]
-        pages = render(sc, clip, times, a.cell, int(a.cell * 1.3), yaw=a.yaw)
+        pages = render(sc, clip, times, a.cell, int(a.cell * 1.3), yaw=a.yaw, fit=a.fit)
         for path in sheet(names, clip, list(zip(times, pages)), a.out, a.cell, int(a.cell * 1.3), font):
             print(path)
 

@@ -47,8 +47,6 @@ object GltfTuner {
         /** Override the target X and Z in model units. */
         val targetX: Float? = null,
         val targetZ: Float? = null,
-        /** Skip transformToUnitCube when true. */
-        val skipUnitCube: Boolean? = null,
         /** Disable the model-space orbit fallback when true, relying on the camera orbit alone. */
         val disableModelOrbit: Boolean? = null
     ) {
@@ -61,7 +59,6 @@ object GltfTuner {
                     targetY != null ||
                     targetX != null ||
                     targetZ != null ||
-                    skipUnitCube != null ||
                     disableModelOrbit != null ||
                     boundsSource != BoundsSource.AUTO
     }
@@ -127,7 +124,6 @@ object GltfTuner {
             targetY = root.optNullableFloat("targetY"),
             targetX = root.optNullableFloat("targetX"),
             targetZ = root.optNullableFloat("targetZ"),
-            skipUnitCube = root.optNullableBoolean("skipUnitCube"),
             disableModelOrbit = root.optNullableBoolean("disableModelOrbit")
         )
     }

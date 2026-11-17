@@ -240,22 +240,23 @@ Supported keys, all optional; anything absent keeps the normal value:
 
 | key | meaning |
 | --- | --- |
-| `boundsSource` | `auto` (bones for skinned, mesh otherwise), `mesh`, `bones` |
+| `boundsSource` | `auto` (bones when the asset has a skin, mesh otherwise), `mesh`, `bones` |
 | `distanceMultiplier` | scales the computed fit distance, 1.0 = as computed |
 | `verticalFovDegrees` | vertical field of view used for fitting |
 | `fitMargin` | extra margin as a multiplier, default 1.12 |
 | `targetX`, `targetY`, `targetZ` | override the camera target in model units |
-| `skipUnitCube` | skip `transformToUnitCube` |
 | `disableModelOrbit` | do not rotate the model on top of the camera orbit |
 
 What the tuner already established on Xbot, so nobody repeats it:
 
-- `skipUnitCube: true` makes a skinned model **disappear**. The unit-cube
-  transform is what puts its geometry where the camera can see it, even though
-  it scales the mesh and not the joints. Keeping it on is correct.
-- With the transform on, framing from the mesh bounds and framing from the bone
-  bounds both produce a visible model after normalisation, because the two spans
-  agree. The automatic choice therefore resolves to the mesh.
+- `skipUnitCube` no longer exists: the transform itself was removed on
+  2026-11-17 (see "Model scale changes when a clip starts" below). With the
+  skinned bind pose pushed through the animator, a skinned model renders at its
+  authored scale and the joint bounds are in the same space as the pixels.
+- Bounds source: joints for a skinned asset, mesh box otherwise. On Xbot the
+  mesh box is 0.009 half height while the joints stand 0.74 half height in
+  world space; the joints are the drawn size, so the automatic choice is
+  `bones`.
 - On Xbot the model renders at about 39-49% of the preview height, horizontally
   centred, and `distanceMultiplier` between 0.5 and 1.0 scales it predictably.
   `targetY` shifts it vertically only above roughly 30 units, because the model
@@ -418,6 +419,10 @@ enlarge of a small figure is no longer visible; (2) the camera loop with the
 target moved in lockstep; (3) replace `transformToUnitCube` by a single root
 transform applied to mesh and skeleton alike, which would make the bounds honest
 and the framing a plain calculation.
+
+Point 3 was implemented on 2026-11-17, in the form of removing the normalisation
+altogether instead of replacing it: see "Model scale changes when a clip starts"
+below.
 
 **Attempt 1 (supersampled render), 2026-11-10: rejected.** `UiHelper.setDesiredSize`
 plus a direct `SurfaceTexture.setDefaultBufferSize` and a matching render
@@ -597,6 +602,71 @@ not a rewrite.
       `AVATAR-MODEL-ACQUISITION-PLAN.md`, judged one by one on the phone
       (angry read as nearly static, "Leaning" as weak shy, "Shaking Head No" as
       a passable aojiao). That per-clip judgement is the next step.
+
+## Model scale changes when a clip starts — 2026-11-17
+
+Reported by the user: "one of the models has a scale problem when the animation
+turns on, one of our old first ones". Reproduced on the phone, measured, and
+fixed in the renderer.
+
+### Reproduction
+
+Assistant Config -> Avatar Configuration -> Current Model -> `xbot`, then
+Mood Trigger Mapping -> Angry -> Mapped Action `walk` -> Preview. Rest shows the
+T-posed mannequin framed at 270 px of the 380 px preview. Pressing Preview
+replaces it with one red shoulder filling the whole card; the same with `idle`,
+where the first two frames draw nothing at all and the rest fill the card. The
+screen was captured into `screenshots/xbot-scale-2026-11-17/` (rest, walk, idle).
+`rose` with `happy` stays at 256-280 px across eight frames, so the defect is not
+universal: it hits the assets whose mesh and skeleton are authored at different
+scales.
+
+### Cause
+
+`transformToUnitCube()` normalises the scene by *replacing* the root transform
+with `2 / maxExtent` of `asset.boundingBox`. For a skinned mesh that box is the
+**unskinned** vertex box measured through the mesh node, while the animator
+draws from joint matrices in the authored space:
+
+- Xbot's mesh node sits under a 0.01 armature and its vertices are 1.6 m tall,
+  so `asset.boundingBox` half height is 0.0090 and the normalisation scale is
+  110.54.
+- Filament starts with an **empty bone buffer**, so the rest pose is drawn from
+  the mesh node transform — with the unit-cube root that lands at the right
+  size, which is why the preview looked correct at rest all along.
+- The first `animator.updateBoneMatrices()` builds `inverse(meshWorld) *
+  jointWorld * IBM` (gltfio's Animator.cpp) and the shader multiplies the mesh
+  node transform back in. After normalisation the joint world already carries
+  the 110.54 root while the inverse bind matrices were baked against the
+  authored 0.01, so the product jumps by the ratio of the two, about 100x.
+
+Measured proof that the root normalisation is not what makes the rest visible:
+with `boundsSource: mesh` and no unit cube the model is drawn correctly at rest
+(the silhouette framing converges on it), and it still explodes to a shoulder
+the moment a clip plays. The exploding state is therefore a property of the
+bone matrices, not of the camera.
+
+### Fix
+
+1. The unit-cube normalisation is gone for every model. The camera fit already
+   computes distance and target from bounds, so nothing needs the root at the
+   origin.
+2. `applySkinnedBindPose()` pushes the bind pose through
+   `animator.updateBoneMatrices()` right after load when the asset has a skin.
+   The rest state and every animated frame then use the same matrices and the
+   model keeps one size.
+3. `resolvePosedBounds()` reads `getWorldTransformAccurate` instead of the local
+   joint transform. The local values are authored in the file's units (Xbot's
+   skeleton is in centimetres, so local bounds reported 74 units for a 1.5 m
+   figure); the world transform is the drawn space.
+4. `resolveAutoBoundsSource()` is back to "joints when the asset has a skin,
+   mesh box otherwise", which is now honest because both states agree.
+
+`GltfTuner.skipUnitCube` was removed with the transform it controlled.
+
+Expected after the fix, for all four skinned presets: authored world height
+(Xbot 1.6 m, soldier 1.8 m, fox 1.55 m, rose 1.65 m) at rest and during playback,
+camera at distance 2-3 instead of 232, and no change of size when a clip starts.
 
 ## Status snapshot — 2026-11-05
 

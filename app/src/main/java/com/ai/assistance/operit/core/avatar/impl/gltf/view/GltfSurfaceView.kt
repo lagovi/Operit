@@ -415,7 +415,7 @@ class GltfSurfaceView @JvmOverloads constructor(
             retainedResourceBuffers = nextResourceBuffers
 
             currentModelPath = modelPath
-            applySafeUnitCubeTransform()
+            applySkinnedBindPose()
             captureBaseRootTransform()
             updateFittedCameraDistance()
             applyCameraPose()
@@ -1361,31 +1361,18 @@ class GltfSurfaceView @JvmOverloads constructor(
     private enum class BoundsSource { MESH, BONES }
 
     /**
-     * Bounds source for the camera fit. Always the mesh box.
+     * Bounds source for the camera fit: joints for a skinned asset, the mesh box otherwise.
      *
-     * This used to compare the mesh box against the joint spread and prefer the joints when they
-     * were much larger, on the theory that a tiny mesh box meant unskinned authoring-space
-     * vertices. That theory does not hold once [applySafeUnitCubeTransform] has run: the unit-cube
-     * transform scales the mesh but not the joints, so afterwards the two describe the same asset
-     * in different units and are not comparable at all. The ratio is therefore always extreme -
-     * Xbot reports 0.009 against 74 - and the heuristic always chose the joints, which put the
-     * camera at distance 232 where the figure is entirely outside the frame.
-     *
-     * What is drawn is the mesh, and after the unit-cube transform its box is the one in the same
-     * space as the rendered geometry. Verified on the phone: forcing MESH shows Xbot centred at
-     * about 65% of the preview height, while BONES leaves an empty preview.
+     * A skinned mesh is drawn from its joint matrices, so the world positions of the joints are
+     * the only description that matches the pixels. Its `asset.boundingBox` is the unskinned
+     * vertex box transformed by the mesh node, and the two live in different spaces whenever the
+     * file was authored with a scaled armature (Xbot: mesh half height 0.0090 against joints
+     * standing 1.5 m tall). An unskinned mesh is drawn from its node transform, so its box is the
+     * matching description there.
      */
     private fun resolveAutoBoundsSource(asset: com.google.android.filament.gltfio.FilamentAsset): BoundsSource {
-        // The camera always starts from the mesh box. Measured with the `Bounds diagnostic` line on
-        // two skinned presets in one build: RobotExpressive mesh half height 2.40 against joints
-        // 0.0074, Xbot mesh 0.0090 against joints 74.2. The two sources are not just different, they
-        // are inverted between models, because `transformToUnitCube` puts mesh and joints into
-        // different spaces and each model is authored at a different scale. The joints therefore put
-        // Xbot's camera at distance 232 with an empty preview, while the mesh box is the space the
-        // renderer actually draws in and gives a sane start for both. The mesh box is only the
-        // starting distance: the exact size and centring are corrected afterwards from the drawn
-        // pixels, which is the only description that matches what is visible.
-        return BoundsSource.MESH
+        val skinCount = runCatching { asset.instance.skinCount }.getOrDefault(0)
+        return if (skinCount > 0) BoundsSource.BONES else BoundsSource.MESH
     }
 
     /** `asset.boundingBox`: the range Filament reports for the mesh it draws. */
@@ -1419,6 +1406,10 @@ class GltfSurfaceView @JvmOverloads constructor(
      * values at load time and does not follow the pose (Filament's own documentation says so). For a
      * humanoid the joints span the visible figure, which is exactly the range the camera has to fit.
      *
+     * The positions have to be read with [TransformManager.getWorldTransformAccurate]: the local
+     * transform of a joint is authored in the file's own units (Xbot stores its skeleton in
+     * centimetres), so using it directly described a figure sixty times larger than the one drawn.
+     *
      * A model with no joints yields null, and the caller logs that there is no usable bounds rather
      * than inventing one.
      */
@@ -1449,13 +1440,15 @@ class GltfSurfaceView @JvmOverloads constructor(
                 if (jointInstance == 0) {
                     continue
                 }
-                val transform = transformManager.getTransform(jointInstance, FloatArray(16))
-                if (!transform.all(::isFiniteFloat)) {
+                val transform = runCatching {
+                    transformManager.getWorldTransformAccurate(jointInstance, DoubleArray(16))
+                }.getOrNull() ?: continue
+                if (transform.size < 16 || !transform.all(::isFiniteDouble)) {
                     continue
                 }
-                val x = transform[12].toDouble()
-                val y = transform[13].toDouble()
-                val z = transform[14].toDouble()
+                val x = transform[12]
+                val y = transform[13]
+                val z = transform[14]
                 if (x < minX) minX = x
                 if (y < minY) minY = y
                 if (z < minZ) minZ = z
@@ -1576,12 +1569,12 @@ class GltfSurfaceView @JvmOverloads constructor(
     /**
      * Measures the drawn silhouette once and reframes the camera on it.
      *
-     * The asset bounds cannot be trusted for a skinned glTF: after
-     * [applySafeUnitCubeTransform] the mesh lives in a unit cube while the joints stay in
-     * authoring space, so `asset.boundingBox` and [resolvePosedBounds] describe two different
-     * spaces, neither of which matches the pixels on screen. Measured proof is in TODO-AUDIT.md
-     * under the slider reference: the logged bounds predict a figure at 57% of the preview height
-     * while the phone shows about 9%.
+     * The asset bounds are only a starting estimate. For a skinned glTF the joints describe the
+     * authored space, and `asset.boundingBox` describes the unskinned mesh node, so the two can be
+     * far apart (Xbot: mesh half height 0.0090 against a figure 1.5 m tall), and neither is the
+     * pixel size until the model has actually been drawn. Measured proof is in TODO-AUDIT.md under
+     * the slider reference: the logged bounds predict a figure at 57% of the preview height while
+     * the phone shows about 9%.
      *
      * So the only dependable source is the rendered image itself. Filament renders one frame into
      * a Bitmap for us through ModelViewer, the background is transparent, and everything opaque is
@@ -1959,39 +1952,39 @@ class GltfSurfaceView @JvmOverloads constructor(
         baseEntityTransforms = captured
     }
 
-    private fun applySafeUnitCubeTransform() {
+    /**
+     * Renders the bind pose through the animator, in the same space the clips are drawn in.
+     *
+     * A skinned glTF must be drawn with its mesh node transform ignored: the joint matrices
+     * already describe the pose in the authored space, and gltfio accounts for the mesh node when
+     * it builds them (the animator multiplies by the inverse of the skin target's world transform).
+     * Filament's bone buffer, however, starts out empty, so before the first animation frame a
+     * skinned mesh is drawn from its node transform instead. Those two spaces are not the same
+     * asset: Xbot's mesh node sits under a 0.01 armature while its skeleton is authored in
+     * centimetres, so the model renders at one size at rest and a hundred times larger the moment
+     * a clip starts. Pushing the bind pose through the animator at load makes the rest state use
+     * the same matrices as every animated frame and removes the jump.
+     *
+     * The root is left at the authored transform on purpose. `transformToUnitCube` replaces that
+     * root with a normalisation derived from `asset.boundingBox`, which for a skinned mesh is an
+     * unskinned vertex box from a different space; the animator then multiplies the joints by the
+     * new root and the geometry lands far outside the frame (measured on Xbot: framed at rest,
+     * a single shoulder filling the preview as soon as `walk` plays).
+     */
+    private fun applySkinnedBindPose() {
         val asset = modelViewer.asset ?: return
-
-        // A skinned model is left in its authoring space on purpose. transformToUnitCube scales the
-        // mesh but not the joints, so afterwards the drawn geometry and the bone positions describe
-        // two different spaces: the camera was framed from one and the mesh rendered in the other,
-        // which put the camera inside the model. The camera fit reads bone positions, so the mesh
-        // has to stay in that same space.
-        // transformToUnitCube stays on for skinned models as well. Suppressing it to keep the mesh
-        // in the same space as its joints sounded right, but it made the model vanish: the renderer
-        // draws nothing usable when a skinned mesh is left in authoring scale. The unit-cube
-        // transform is what puts the geometry where the camera can see it.
-        val tuner = GltfTuner.settings(context)
-        if (tuner.skipUnitCube == true) {
-            AppLogger.i(TAG, "Skip transformToUnitCube: requested by tuner")
+        val skinCount = runCatching { asset.instance.skinCount }.getOrDefault(0)
+        if (skinCount <= 0) {
             return
         }
-
-        val halfExtent = asset.boundingBox.halfExtent
-        val maxHalfExtent = halfExtent.maxOrNull() ?: 0f
-        val maxExtent = maxHalfExtent * 2f
-        if (!isFiniteFloat(maxExtent) || maxExtent <= 1e-6f) {
-            AppLogger.w(
-                TAG,
-                "Skip transformToUnitCube due to invalid bounds: halfExtent=${halfExtent.joinToString()}"
-            )
-            runCatching { modelViewer.clearRootTransform() }
+        val animator = modelViewer.animator
+        if (animator == null) {
+            AppLogger.w(TAG, "Skinned asset has no animator; the bind pose stays in node space")
             return
         }
-        runCatching { modelViewer.transformToUnitCube() }
+        runCatching { animator.updateBoneMatrices() }
             .onFailure { error ->
-                AppLogger.w(TAG, "transformToUnitCube failed: ${error.message}")
-                runCatching { modelViewer.clearRootTransform() }
+                AppLogger.w(TAG, "Failed to apply the skinned bind pose: ${error.message}")
             }
     }
 
@@ -2180,6 +2173,10 @@ class GltfSurfaceView @JvmOverloads constructor(
     }
 
     private fun isFiniteFloat(value: Float): Boolean {
+        return !(value.isNaN() || value.isInfinite())
+    }
+
+    private fun isFiniteDouble(value: Double): Boolean {
         return !(value.isNaN() || value.isInfinite())
     }
 

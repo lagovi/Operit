@@ -59,8 +59,13 @@ the existing finger rotation curves by 2.6 in `angry`, `aojiao`, `cry` and `shy`
 face. The rendered close-ups show a loose fist instead of a flat plate, and the
 phone preview of Rose `angry` grips the belt instead of presenting a board. The
 three GLBs are published in the assets repo (`b097475`) with updated
-`sizeBytes`/`sha256` in `presets.json`. Still open: Kate and Jennifer are not
-downloaded on the test phone, so the fifteen-pair matrix is not filled.
+`sizeBytes`/`sha256` in `presets.json`. Still open: the fifteen-pair matrix. Rose `happy` is phone-verified (250-283 px
+wide, hands up near the face as the source cheer intends). The other moods are
+blocked by `/tmp/opencode/verify_all.py`: after the first model it cannot scroll
+the avatar card back to the top (`scroll_to_cloud`), and the expanded Mood
+Trigger Mapping section persists across restarts, so the swipes land on the mood
+cards. Collapse that section before scrolling, or pass a fresh screen state per
+model.
 
 The step that was agreed in the previous revision of this block: Reusing the pipeline's own
 curves avoids guessing a curl axis. `tools/avatar` already has the reader, and

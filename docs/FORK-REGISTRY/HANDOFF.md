@@ -65,7 +65,11 @@ blocked by `/tmp/opencode/verify_all.py`: after the first model it cannot scroll
 the avatar card back to the top (`scroll_to_cloud`), and the expanded Mood
 Trigger Mapping section persists across restarts, so the swipes land on the mood
 cards. Collapse that section before scrolling, or pass a fresh screen state per
-model.
+model. A `collapse_moods()` helper that taps `Collapse` before scrolling was
+added but does not clear it: the failure leaves the `Current Model` dropdown
+open, and the dropdown plus the expanded section survive restarts, so each run
+starts in an unknown scroll state. Press BACK twice at the start of a run and
+re-navigate from AI Chat, then collapse and scroll.
 
 The step that was agreed in the previous revision of this block: Reusing the pipeline's own
 curves avoids guessing a curl axis. `tools/avatar` already has the reader, and

@@ -30,31 +30,37 @@ rest and 271 px while `walk` plays (was one giant shoulder), Soldier 272 -> 262,
 Fox 270 -> 267-277 (was overflowing the whole card), Rose 272 -> 252-281. The
 log shows `source=UNION` and a single settling step for each model.
 
-**Open: the twisted wrists on Rose, Kate and Jennifer.** Measured facts, so
-nobody repeats the work:
+**Open: the twisted wrists on Rose, Kate and Jennifer.**
 
-- `mood_collage.py audit` reports WRIST on all fifteen shipped clips, 41-76 deg
-  mean against 6-18 deg on Xbot and Soldier.
-- The shipped rotation is the MIT source's own rotation: the wrist angle
-  relative to the forearm differs from `tk256ailab`'s clip by 0.1 deg in every
-  frame of `Angry`, so the retarget copies it faithfully. The bending plane
-  matches the elbow plane (2-4 deg), so this is not a rolled or mirrored bone.
-- The MIT VRMA files animate 51 humanoid bones and **no fingers**, so the hand
-  mesh stays rigid in its T-pose while the wrist bends 60-70 deg. That is what
-  makes the hand look like a board snapped at the wrist in the close-up
-  (`/tmp/opencode/hand_angry.png` if it still exists).
-- The source pose itself is plausible for hands-on-hips; the defect that
-  remains to be judged on the phone is the frozen hand, plus Kate's `aojiao`
-  and `cry` scaling the body to 0.93-0.99 of rest, plus `shy` being asymmetric
-  (right palm faces away from the torso, left does not).
+The motion itself is faithful, measured three ways on the shipped `angry`:
 
-Two ways forward, in order of cost: (a) offline patch of the five GLB clips in
-Python, adding a static finger pose per mood (the fingers exist in the rigs and
-are simply not animated; no Blender, no Colab, no new licence); (b) ask the
-owner for permission to rebuild the clips in Colab with the VRM add-on so the
-fingers are retargeted properly. Do not start either without the phone
-acceptance of the current build, and record the outcome in
-`AVATAR-MODEL-CATALOGUE.md`, whose matrix still says PASS for all fifteen pairs.
+- bone directions in world space, source against target: upper arm 1.0 deg,
+  forearm 1.0 deg, hand 4.5-5.2 deg over six timestamps. A wrong retarget would
+  not land this close, so the arms and the wrist are where the MIT clip puts
+  them.
+- the wrist angle relative to the forearm equals the source's, 64-76 deg.
+- the bending plane matches the elbow plane (2-4 deg), so the bone is not
+  rolled or mirrored.
+
+What remains is a proportion and styling problem. Rose, Kate and Jennifer have
+much longer arms than the source avatar (rest wrist at x 0.872 against 0.513 of
+hip height), and the source clips curl the fingers only about 30 deg, so a flat
+plate of a hand is folded 64 deg at the wrist and reads as broken. The close-ups
+of `angry` from four yaws at four timestamps show the fingers still nearly
+straight while the palm rests on the hip. Also: the VRMA does animate all thirty
+finger bones, so the data is present and points the right way; only its amount is
+too small for these rigs. Kate's `aojiao` and `cry` additionally scale the body
+to 0.93-0.99 of rest, and `shy` is asymmetric (right palm faces away from the
+torso, left does not).
+
+Agreed next step: scale the existing finger rotation curves of the five clips by
+about 2.5-3 in the shipped GLBs, offline in Python. Reusing the pipeline's own
+curves avoids guessing a curl axis. `tools/avatar` already has the reader, and
+`/tmp/opencode/hand_view.py` renders hand close-ups from four yaws per timestamp
+for before/after; iterate there, then reinstall the assets on the phone. No
+Blender, no Colab, no new licence. If scaling turns out to over-curl the thumb,
+handle the thumb separately. Record the outcome in `AVATAR-MODEL-CATALOGUE.md`,
+whose matrix still says PASS for all fifteen pairs.
 
 **CURRENT 17.11 — Antigravity kept; avatar model catalogue and offline
 animation check.**

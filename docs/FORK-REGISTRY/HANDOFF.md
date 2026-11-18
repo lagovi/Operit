@@ -53,8 +53,16 @@ too small for these rigs. Kate's `aojiao` and `cry` additionally scale the body
 to 0.93-0.99 of rest, and `shy` is asymmetric (right palm faces away from the
 torso, left does not).
 
-Agreed next step: scale the existing finger rotation curves of the five clips by
-about 2.5-3 in the shipped GLBs, offline in Python. Reusing the pipeline's own
+Done on 2026-11-18: `tools/avatar/curl_fingers.py` (commit `b6698c7e9`) scales
+the existing finger rotation curves by 2.6 in `angry`, `aojiao`, `cry` and `shy`;
+`happy` keeps its open palm because the clip is a cheer with the hands near the
+face. The rendered close-ups show a loose fist instead of a flat plate, and the
+phone preview of Rose `angry` grips the belt instead of presenting a board. The
+three GLBs are published in the assets repo (`b097475`) with updated
+`sizeBytes`/`sha256` in `presets.json`. Still open: Kate and Jennifer are not
+downloaded on the test phone, so the fifteen-pair matrix is not filled.
+
+The step that was agreed in the previous revision of this block: Reusing the pipeline's own
 curves avoids guessing a curl axis. `tools/avatar` already has the reader, and
 `/tmp/opencode/hand_view.py` renders hand close-ups from four yaws per timestamp
 for before/after; iterate there, then reinstall the assets on the phone. No

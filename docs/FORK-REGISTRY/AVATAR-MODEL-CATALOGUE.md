@@ -8,6 +8,16 @@ Related: `AVATAR-MODEL-ACQUISITION-PLAN.md` (what to buy or build next),
 `AVATAR-RETARGET-PLAYBOOK.md` (how a character and clips were merged),
 `TODO-AUDIT.md` K4/K5 (the product rule that no cloud model is bundled).
 
+## Phone re-check after the finger-curl fix (2026-11-18)
+
+Rose, Kate and Jennifer were downloaded on the test phone from the published
+assets (with the 2.6x finger curl in `angry`, `aojiao`, `cry`, `shy`). `angry`
+was replayed for each: the hands grip the waist instead of showing a flat
+plate, and the framed width stays within a few pixels of the rest pose (Rose
+270, Kate 272-283, Jennifer 267-278). The other four moods on these three
+models are still pending; the matrix above keeps the earlier PASS marks from
+the offline renders, not from the phone.
+
 ## Where the list comes from
 
 The in-app gallery is driven entirely by the asset repository

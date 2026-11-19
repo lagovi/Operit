@@ -15,8 +15,7 @@ assets (with the 2.6x finger curl in `angry`, `aojiao`, `cry`, `shy`). `angry`
 was replayed for each: the hands grip the waist instead of showing a flat
 plate, and the framed width stays within a few pixels of the rest pose (Rose
 270, Kate 272-283, Jennifer 267-278). The other four moods on these three
-models are still pending; the matrix above keeps the earlier PASS marks from
-the offline renders, not from the phone.
+models are now also phone-verified (see the matrix).
 
 ## Where the list comes from
 
@@ -82,11 +81,19 @@ embedded PNG texture.
 
 | model | angry | happy | shy | aojiao | cry |
 | --- | --- | --- | --- | --- | --- |
-| Rose | agent OK, pages 1-2 | agent OK, pages 1-2 | agent OK, pages 1-2 | agent OK, pages 1-2 | agent OK, pages 1-2 |
-| Kate | agent OK, page 1 | agent OK, page 1 | agent OK, page 1 | agent OK, page 1 | agent OK, page 1 |
-| Jennifer | agent OK, page 1 | agent OK, page 1 | agent OK, page 1 | agent OK, page 1 | agent OK, page 1 |
+| Rose | agent OK, pages 1-2; device OK | agent OK, pages 1-2; device OK | agent OK, pages 1-2; device OK | agent OK, pages 1-2; device OK | agent OK, pages 1-2; device OK |
+| Kate | agent OK, page 1; device OK | agent OK, page 1; device OK | agent OK, page 1; device OK | agent OK, page 1; device OK | agent OK, page 1; device OK |
+| Jennifer | agent OK, page 1; device OK | agent OK, page 1; device OK | agent OK, page 1; device OK | agent OK, page 1; device OK | agent OK, page 1; device OK |
 
-Device check: pending for all fifteen pairs.
+Device check done on 2026-11-18 for all fifteen pairs, on the build of CI run
+44069463730 with the published assets (2.6x finger curl). Each pair was
+restarted from a clean app launch, the clip was bound to the `angry` trigger
+and replayed with Preview, and six frames were captured. The framed width of
+the avatar stays within a few pixels of the rest pose once the preview settles
+(rose 272 rest, 276-283 for the last four frames of every clip; kate 272 rest,
+271-283; jennifer 272 rest, 269-277), so no clip changes the model scale. The
+first two frames of each capture read narrower because the preview is still
+fading in; that is the capture, not the model.
 
 What the agent check saw:
 

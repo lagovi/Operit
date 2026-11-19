@@ -184,6 +184,42 @@ Its limitations: morph targets are not applied, CUBICSPLINE samplers are
 approximated by their middle key, and shading is flat with a texture-average
 face color, so it is a motion check, not a look check.
 
+## Local bundles for models we cannot publish
+
+Two presets left the public repository on 2026-11-19: `gltf.xbot` and
+`gltf.soldier`. Both are Mixamo exports shipped with the three.js examples, and
+the terms do not allow us to redistribute them from our asset repository
+(assets commit `ccba011`). The Mixamo benchmark build is in the same position.
+
+They remain usable on a phone through a local bundle: a zip that the app imports
+from storage without touching the public catalogue.
+
+How a bundle is made, with `tools/avatar/pack_local_bundle.py`:
+
+    python3 tools/avatar/pack_local_bundle.py --name Xbot         --model /path/to/Xbot.glb         --out-dir ~/local-bundles         --origin https://github.com/mrdoob/three.js/blob/dev/examples/models/gltf/Xbot.glb         --license "three.js examples bundle, Mixamo export; redistribution terms not cleared"
+
+The zip holds `Xbot/model.glb`, `Xbot/LICENSE.txt` and `Xbot/README.txt`, which
+is exactly what `AvatarRepository.importAvatarFromZip` looks for: it unzips into
+the cache, lets every avatar delegate scan the directories, and copies each
+match into `files/avatars/<Name>`. Several models can be packed into one zip by
+putting several `<Name>/` directories in it, but one zip per model is easier to
+keep track of.
+
+Install on the phone: copy the zip to the internal storage, open Assistant
+Config, Avatar Configuration, tap the Import Model button next to Current Model,
+pick the zip, then select the model in the Current Model list. Verified on
+2026-11-19 with `Xbot.zip`: the log reads `ZIP extracted: entryCount=3`,
+`Imported avatar model: name=Xbot, type=GLTF`, `Import completed:
+importedConfigs=1`, and the model renders at the right scale.
+
+Two things about this device that cost an hour to find, so they are written
+down: the DocumentsUI file list on the Galaxy A20s ignores injected taps
+(`adb shell input tap`) on rows while scrolling and toolbar taps work, so drive
+it with `input keyevent 20`/`66` (DPAD down, enter) to enter a folder and open a
+file; and the "Большие файлы" chip in the Download overview filters the list,
+which hides a 1 MB zip entirely. A dedicated folder (`Download/bundles`) avoids
+the chip altogether.
+
 ## Open items
 
 - Device verification of all fifteen mood pairs is still pending and is the
@@ -191,4 +227,5 @@ face color, so it is a motion check, not a look check.
 - `presets.json` lacks a `moods` field. If more mood-capable models appear,
   either keep the mood-key naming convention or add the mapping to the schema
   and the app together.
-- Xbot and Soldier licences need a decision before any wider redistribution.
+- Xbot and Soldier were resolved on 2026-11-19: removed from the public
+  repository and distributed as local bundles (see the section above).

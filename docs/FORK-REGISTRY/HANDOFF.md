@@ -59,17 +59,12 @@ the existing finger rotation curves by 2.6 in `angry`, `aojiao`, `cry` and `shy`
 face. The rendered close-ups show a loose fist instead of a flat plate, and the
 phone preview of Rose `angry` grips the belt instead of presenting a board. The
 three GLBs are published in the assets repo (`b097475`) with updated
-`sizeBytes`/`sha256` in `presets.json`. Still open: the fifteen-pair matrix. Rose `happy` is phone-verified (250-283 px
-wide, hands up near the face as the source cheer intends). The other moods are
-blocked by `/tmp/opencode/verify_all.py`: after the first model it cannot scroll
-the avatar card back to the top (`scroll_to_cloud`), and the expanded Mood
-Trigger Mapping section persists across restarts, so the swipes land on the mood
-cards. Collapse that section before scrolling, or pass a fresh screen state per
-model. A `collapse_moods()` helper that taps `Collapse` before scrolling was
-added but does not clear it: the failure leaves the `Current Model` dropdown
-open, and the dropdown plus the expanded section survive restarts, so each run
-starts in an unknown scroll state. Press BACK twice at the start of a run and
-re-navigate from AI Chat, then collapse and scroll.
+`sizeBytes`/`sha256` in `presets.json`. The fifteen-pair matrix is closed on 2026-11-18 for Rose, Kate and Jennifer on
+the same build: every clip was bound to the `angry` trigger and replayed, and
+the framed width stays within a few pixels of the rest pose. The verification
+driver now restarts the app for every pair and skips the cloud download when
+`/sdcard/Android/data/<pkg>/files/avatars/<Name>/model.glb` exists, which
+removes the scroll-state failures described earlier.
 
 The step that was agreed in the previous revision of this block: Reusing the pipeline's own
 curves avoids guessing a curl axis. `tools/avatar` already has the reader, and

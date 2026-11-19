@@ -9,6 +9,21 @@
 **Date:** 2026-11-17, branch `feat/english-only-build` (see the CURRENT block
 below; the older blocks are kept for history)
 
+**CURRENT 19.11 — the licence-blocked avatars moved to local bundles.**
+
+Xbot and Soldier are Mixamo exports from the three.js examples, so they are no
+longer published in the public preset repository (assets commit `ccba011`, which
+also drops them from `presets.json`; the cloud list now has seven presets).
+They stay usable on a phone through a zip bundle: `tools/avatar/pack_local_bundle.py`
+writes `<Name>/model.glb` plus a licence and a readme, and the app imports it
+through Avatar Configuration -> Import Model. The three bundles built here are
+in `/home/uzzzver/operit-fork/local-bundles/` (Xbot, Soldier, and Devil, the
+Mixamo benchmark), outside git. Verified on the phone on 2026-11-19: the log
+shows `Imported avatar model: name=Xbot, type=GLTF` and the model renders at
+the right scale. The device quirks that blocked the picker are documented in
+the catalogue: injected taps do not reach the file list, DPAD plus ENTER does;
+the "large files" chip hides small zips.
+
 **CURRENT 17.11b — the model-scale bug is fixed and verified; the wrists are
 narrowed down but not fixed.**
 

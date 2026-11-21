@@ -9,6 +9,203 @@
 **Date:** 2026-11-17, branch `feat/english-only-build` (see the CURRENT block
 below; the older blocks are kept for history)
 
+**CURRENT 19.11b — fresh-session notes: what to know, what not to repeat.**
+
+Nothing is half-finished in git. Everything described here was committed and
+pushed, the app was installed from a green CI build, and the avatar work was
+checked on the phone. This block exists because the numbers and the dead ends
+are expensive to rediscover.
+
+### Working environment
+
+- There is no local Android SDK. `./gradlew :app:compileDebugKotlin` does not
+  run here; the compiler is CI. A local JDK 21 lives in `/tmp/opencode/jdk` and
+  is only useful for `javap`/`retrace`-style inspection.
+- Build: `gh workflow run 353537953 --ref feat/english-only-build -f
+  gradle_task=assembleDebug`, 17-21 minutes. Tests: workflow `353537955`.
+- The run uploads several artifacts. Filter by name before downloading, and
+  check the zip afterwards, because a truncated download looks like a broken
+  APK later:
+  `gh api .../artifacts --jq '.artifacts[] | select(.name|test("operit-android-[0-9]+$")) | .id'`,
+  then `unzip -tq`. The mapping artifact is separate and 290 MB in the best
+  case; do not download it unless you need to read a production stack trace.
+- Disk: the machine sat at 99% and a file write failed with `No space left on
+  device` in the middle of an edit. `apk/` holds ~850 MB, `/tmp/opencode/venv`
+  ~274 MB, the oldest apk folder 372 MB (mostly `mapping.txt`). Delete before
+  large operations, and never conclude "the tool is broken" before checking
+  `df -h`.
+- Colab is forbidden without the owner's explicit permission. That removes
+  Blender and any GPU retargeting from the toolbox. Everything avatar-related in
+  this session was done with numpy, Pillow and the GLB bytes.
+
+### Device and app navigation
+
+- Phone: `adb connect 192.168.1.69:5555`, package
+  `com.ai.assistance.operit.debug`, 720x1560. Wi-Fi adb drops (`device
+  offline`, RTT 100-300 ms) and needs a retry wrapper; `/tmp/opencode/drive.py`
+  has one.
+- The CI key changes between runs, so `adb uninstall` is mandatory and wipes app
+  data. After a fresh install: onboarding, grant storage/location through `pm
+  grant` and `appops`, then re-download the presets through the cloud icon.
+- Config path: menu (40,110) -> Assistant Config -> Avatar Configuration. On
+  that screen the cloud icon is at about (555,1040) and the Import Model icon at
+  about (650,1040); the model dropdown order changes as models are added or
+  removed, so always re-read the dump instead of reusing coordinates.
+- The app log is `files/logs/operit.log`, read with
+  `adb shell "run-as com.ai.assistance.operit.debug tail -n N files/logs/operit.log"`.
+  `adb logcat` shows almost nothing of this code. Grep for
+  `GltfSurfaceView|GltfTuner|AvatarRepository`.
+- `uiautomator dump` occasionally returns an empty tree; retry, and take a
+  screenshot in the same breath.
+
+### State of the avatar work
+
+- Scale jump fixed (`9de06c3c7`, `f37845cf4`, `4f8de913e`): the unit-cube
+  normalisation is gone, the bind pose is pushed through
+  `animator.updateBoneMatrices()` at load, bounds are the union of the joint box
+  and `asset.boundingBox`, and the silhouette step may now move the camera in
+  both directions. Verified on CI 44069463730: rest against clip width is 270
+  against 271 for Xbot, 272 against 262-277 for Fox, and the accepted APK is in
+  `apk/20261117_105643Z/`.
+- Flat hands fixed (`b6698c7e9`, assets `b097475`): the shipped clips curl the
+  fingers only about 30 degrees, which reads as a board on these long-armed
+  rigs. `tools/avatar/curl_fingers.py` scales the existing curves by 2.6 for
+  `angry`, `aojiao`, `cry` and `shy`; `happy` keeps the open palm. All fifteen
+  pairs were re-checked on the phone (matrix in `AVATAR-MODEL-CATALOGUE.md`).
+- Licence-blocked models moved out of the public repository (assets `ccba011`)
+  and into phone-importable bundles (`3288245eb`,
+  `/home/uzzzver/operit-fork/local-bundles/`).
+
+### Negative results, with the measurements behind them
+
+These are things that do not work or that looked right and were not. Read them
+before "improving" anything nearby.
+
+1. `TransformManager.getWorldTransformAccurate` does not exist in the Java
+   bindings of Filament 1.69.2. It is a C++ helper inside gltfio and it is
+   mentioned all over the documentation, which is why it is tempting. The Java
+   API is `getWorldTransform(int, float[])` / `getWorldTransform(int,
+   double[])`. The first CI build of this fix failed with exactly that
+   unresolved reference.
+2. `transformToUnitCube` is the wrong normalisation for skinned models. It
+   replaces the root transform with `2 / maxExtent` of `asset.boundingBox`,
+   which for a skinned mesh is the unskinned vertex box measured through the
+   mesh node. Filament starts with an empty bone buffer, so the rest pose is
+   drawn from the mesh node and looked correct, while the first animated frame
+   multiplies `inverse(meshWorld) * jointWorld * IBM` by a root that is now
+   110x too large. The visible result: a T-pose at 270 px and one shoulder
+   filling the card the moment Preview is pressed.
+3. The silhouette framing could only zoom in. The clamp was
+   `coerceIn(1.0 / SILHOUETTE_ZOOM_MAX_STEP, 1.0 / SILHOUETTE_ZOOM_MIN_STEP)`,
+   that is `[0.4, 0.909]`, a pure reduction of the distance. An overflowing
+   model therefore got worse on every attempt: the fox reached
+   `distanceScale=0.0201` with a silhouette of 385x678 px in a 385 px wide card,
+   which means the camera was inside the muzzle. Two-way clamping fixed it.
+4. Joint-only bounds are not enough, and neither is the mesh box. On Xbot the
+   mesh box has a half height of 0.0090 while the joints stand 0.74 high in
+   world space; on the fox the joints stop at the skull (0.304 tall) while the
+   mesh reaches 0.395. Only the union of the two describes the drawn figure for
+   both models, which is why `BoundsSource` has a `UNION` member and `AUTO`
+   maps to it.
+5. The mood retarget is faithful. Do not "fix" it. Measured in world space
+   against the MIT VRMA on `angry` at six timestamps: upper arm direction
+   differs by 1.0 deg, forearm by 1.0 deg, hand by 4.5-5.2 deg. The wrist angle
+   relative to the forearm is 64-76 deg in both, and the bending plane matches
+   the elbow plane within 2-4 deg. The clip really puts the hands on the hips
+   with a strongly bent wrist.
+6. Comparing angle magnitudes is not a fidelity proof, and comparing
+   parent-relative rotation matrices across different rigs is meaningless
+   because the parent frames differ. Both mistakes were made here: the first
+   "faithful to 0.1 deg" claim compared the bend angle only, and a later
+   matrix comparison produced a bogus 105 deg "error". The valid test is the
+   angle between world-space bone direction vectors.
+7. "The VRMA has no finger bones" was wrong. The VRM 1.0 humanoid bone names
+   are `leftMiddleProximal` and so on; looking for the VRM 0.x
+   `leftHandMiddleProximal` finds nothing and answers "no fingers". There are 51
+   mapped bones, 30 of them fingers, and the shipped clips animate them.
+8. Do not scale the finger curl of `happy`. That clip is a cheer with the hands
+   near the face and open palms; the close-up renders show a 2.6x curl turning
+   it into a fist next to the cheek. That is why `curl_fingers.py` takes
+   `--clips` and the published assets leave `happy` untouched.
+9. The DocumentsUI file list on this Galaxy A20s ignores injected taps. `adb
+   shell input tap` and even a 150 ms in-place `input touchscreen swipe` do
+   nothing on rows, while swipes scroll the list and toolbar taps work. Drive
+   it with `input keyevent 20` (DPAD_DOWN, repeat to move the focus) and `66`
+   (ENTER): that is how the bundle was imported. Search mode is worse: the
+   results list is covered by the search view and neither taps nor scrolls
+   reach it, and the old rows stay on screen, which makes it look like a layout
+   bug.
+10. The "Большие файлы" chip in the Download overview filters the listing. A
+    1.1 MB zip simply disappears from the folder and it looks like the file was
+    not copied. A dedicated folder (`Download/bundles`) avoids the chip; that is
+    where the successful import came from.
+11. Any automation that drives the config screen must start from a known state.
+    The expanded Mood Trigger Mapping section and an open Current Model
+    dropdown survive app restarts, so a script that assumes the avatar card is
+    at the top scrolls the mood cards instead. The fix that works: force-stop
+    and relaunch the app for every scenario, then navigate, and skip the cloud
+    download when the model file already exists on the phone
+    (`/sdcard/Android/data/<pkg>/files/avatars/<Name>/model.glb`).
+12. Phone captures of a fresh Preview make the first two frames look narrower
+    (rose 250-280 px against 276-283 once settled). That is the preview fading
+    in, not a scale change; judge only the last four frames.
+13. The fox and jennifer rigs have no `mixamorig:` bone names, so
+    `_arm_metrics` in `mood_collage.py` returns an empty dict for them (a
+    `KeyError: 'Left'` path). The audit therefore only reports arms for
+    rose/kate/xbot/soldier. Fixing it means matching by bone suffix, not by the
+    Mixamo prefix.
+14. Kate's `aojiao` and `cry` scale the whole body to 0.93-0.99 of rest, and
+    `shy` is asymmetric (the right palm faces away from the torso, the left does
+    not). Both were left alone on purpose: the clips come from the source as
+    they are and the phone review did not call them broken. Do not "correct"
+    them silently; if they are to change, it is a decision, not a bug fix.
+15. `tools/avatar/pack_local_bundle.py` must not receive a `LICENSE.txt` as
+    `--extra` together with its generated one; the first version wrote a
+    duplicate entry and `zipfile` warned. Extras now overwrite generated
+    members by name.
+16. `actions/setup-android` defaults to the `tools platform-tools` package set,
+    but the `tools` package was removed from the SDK repository, so the step
+    fails before the job starts. Pin `packages: platform-tools`.
+
+### Open items, fully specified
+
+1. **Import `Soldier.zip` and `Devil.zip` on the phone.** Only `Xbot.zip` was
+   imported end to end. The archives are in
+   `/home/uzzzver/operit-fork/local-bundles/`. Copy to
+   `/sdcard/Download/bundles/`, open Assistant Config -> Avatar Configuration ->
+   the Import Model icon, navigate with DPAD and ENTER (see negative result 9),
+   then confirm the log line `Import completed: importedConfigs=1` and that the
+   model renders. `Devil.zip` is the Mixamo benchmark and is mood-capable
+   (`angry`, `happy`, `shy`, `aojiao`, `cry`), so it is also a spare model for
+   checking the mood pipeline without touching published assets.
+2. **Decide about Kate's body scale and `shy` asymmetry** (negative result 14).
+   Needs a phone look at Kate `aojiao`, `cry` and `shy` side by side with rose,
+   then either accept it or patch the scale channels out of those clips with a
+   tool in the same style as `curl_fingers.py`.
+3. **`presets.json` has no `moods` field.** The three mood presets rely on clip
+   names equal to the mood keys. If a mood-capable model with other clip names
+   is added, the schema and the app have to be extended together, not
+   hand-mapped. Tracked in `AVATAR-MODEL-CATALOGUE.md`.
+4. **Bundle regeneration is manual.** If the mood pipeline or the curl factor
+   changes, `pack_local_bundle.py` has to be re-run by hand; nothing in CI
+   produces the bundles and they are deliberately outside git. That is the
+   intended state, not a gap to close by committing them.
+
+### Recipes
+
+- Re-render a hand close-up offline:
+  `python3 /tmp/opencode/hand_view.py <model.glb> angry /tmp/out`
+  (one row per timestamp, one column per yaw; copies the projection from
+  `mood_collage.render`).
+- Re-run the phone matrix for one pair:
+  `python3 /tmp/opencode/verify_all.py <outdir> rose:shy`. It restarts the app,
+  picks the model, binds the clip to the `angry` trigger, replays Preview and
+  measures six frames.
+- Re-pack a blocked model: see the "Local bundles" section of
+  `AVATAR-MODEL-CATALOGUE.md`.
+- For a different project that needs GitHub-built Android APKs, the portable
+  guide is `docs/ANDROID-CI-BUILDS.md`.
+
 **CURRENT 19.11 — the licence-blocked avatars moved to local bundles.**
 
 Xbot and Soldier are Mixamo exports from the three.js examples, so they are no

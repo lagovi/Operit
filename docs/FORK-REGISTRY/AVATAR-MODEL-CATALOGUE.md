@@ -222,10 +222,12 @@ the chip altogether.
 
 ## Open items
 
-- Device verification of all fifteen mood pairs is still pending and is the
-  acceptance gate for any change to the preset catalogue.
+- The fifteen mood pairs are device-verified (matrix above, 2026-11-18). Any
+  change to the mood clips or the finger curl needs that run again.
 - `presets.json` lacks a `moods` field. If more mood-capable models appear,
   either keep the mood-key naming convention or add the mapping to the schema
   and the app together.
 - Xbot and Soldier were resolved on 2026-11-19: removed from the public
-  repository and distributed as local bundles (see the section above).
+  repository and distributed as local bundles (see the section above). Only
+  `Xbot.zip` was imported on the phone; `Soldier.zip` and `Devil.zip` are built
+  but not yet installed anywhere.

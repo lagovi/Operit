@@ -57,6 +57,11 @@ are expensive to rediscover.
   `GltfSurfaceView|GltfTuner|AvatarRepository`.
 - `uiautomator dump` occasionally returns an empty tree; retry, and take a
   screenshot in the same breath.
+- State of the test phone at the end of this session: seven cloud presets
+  downloaded (the three mood ones included) plus `Xbot` imported from the local
+  bundle, so `files/avatars/Xbot/` holds `model.glb`, `LICENSE.txt` and
+  `README.txt` next to each other. The tuning file `files/gltf_tuner.json` was
+  deleted during the scale work; the app recreates it on the next tuner change.
 
 ### State of the avatar work
 
@@ -112,7 +117,10 @@ before "improving" anything nearby.
    differs by 1.0 deg, forearm by 1.0 deg, hand by 4.5-5.2 deg. The wrist angle
    relative to the forearm is 64-76 deg in both, and the bending plane matches
    the elbow plane within 2-4 deg. The clip really puts the hands on the hips
-   with a strongly bent wrist.
+   with a strongly bent wrist. Consequence: `mood_collage.py audit` keeps
+   printing a WRIST line for all fifteen clips. That threshold was set before
+   the curl fix and the wrist bend itself is untouched, so the line is expected,
+   not a regression. Only the `BEND` line (0 degrees at rest) works as a check.
 6. Comparing angle magnitudes is not a fidelity proof, and comparing
    parent-relative rotation matrices across different rigs is meaningless
    because the parent frames differ. Both mistakes were made here: the first
@@ -221,13 +229,16 @@ for the hands.
 ### Recipes
 
 - Re-render a hand close-up offline:
-  `python3 /tmp/opencode/hand_view.py <model.glb> angry /tmp/out`
+  `python3 tools/avatar/phone/hand_view.py <model.glb> angry /tmp/out`
   (one row per timestamp, one column per yaw; copies the projection from
   `mood_collage.render`).
 - Re-run the phone matrix for one pair:
-  `python3 /tmp/opencode/verify_all.py <outdir> rose:shy`. It restarts the app,
-  picks the model, binds the clip to the `angry` trigger, replays Preview and
-  measures six frames.
+  `python3 tools/avatar/phone/verify_all.py <outdir> rose:shy`. It restarts the
+  app, picks the model, downloads it if the file is absent, binds the clip to
+  the `angry` trigger, replays Preview and measures six frames. Requires
+  `adb connect 192.168.1.69:5555` and numpy/Pillow; the measured widths of
+  `rose:shy` are 272 at rest, 253/253 on the two fade frames and 279-282 after,
+  which is the expected result on the current assets.
 - Re-pack a blocked model: see the "Local bundles" section of
   `AVATAR-MODEL-CATALOGUE.md`.
 - For a different project that needs GitHub-built Android APKs, the portable
@@ -305,13 +316,13 @@ driver now restarts the app for every pair and skips the cloud download when
 `/sdcard/Android/data/<pkg>/files/avatars/<Name>/model.glb` exists, which
 removes the scroll-state failures described earlier.
 
-The step that was agreed in the previous revision of this block: Reusing the pipeline's own
-curves avoids guessing a curl axis. `tools/avatar` already has the reader, and
-`/tmp/opencode/hand_view.py` renders hand close-ups from four yaws per timestamp
-for before/after; iterate there, then reinstall the assets on the phone. No
-Blender, no Colab, no new licence. If scaling turns out to over-curl the thumb,
-handle the thumb separately. Record the outcome in `AVATAR-MODEL-CATALOGUE.md`,
-whose matrix still says PASS for all fifteen pairs.
+The pipeline's own curves are reused, which avoids guessing a curl axis:
+`tools/avatar/mood_collage.py` holds the reader and
+`tools/avatar/phone/hand_view.py` renders hand close-ups from four yaws per
+timestamp for before and after; iterate there, then reinstall the assets on the
+phone. No Blender, no Colab, no new licence. If the curl over-curls the thumb,
+handle the thumb separately. The outcome is recorded in
+`AVATAR-MODEL-CATALOGUE.md`, whose matrix is filled for all fifteen pairs.
 
 **CURRENT 17.11 — Antigravity kept; avatar model catalogue and offline
 animation check.**

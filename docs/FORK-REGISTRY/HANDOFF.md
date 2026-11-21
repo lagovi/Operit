@@ -191,6 +191,33 @@ before "improving" anything nearby.
    produces the bundles and they are deliberately outside git. That is the
    intended state, not a gap to close by committing them.
 
+### Publishing presets, and which paths are outside git
+
+The mood presets live in a second repository, `lagovi/OperitAvatarAssets`,
+checked out at `/run/user/1000/opencode-tmp/opencode/OperitAvatarAssets`
+(branch `master`). The app reads `presets.json` from there and downloads the
+models on demand. Three fields must be recomputed for every changed model, or
+the app keeps the old file: `sizeBytes`, `sha256` and, if the names changed,
+`animations`. After a push, a phone that already installed the preset keeps its
+cached copy until the model is downloaded again, which is why the asset
+verification started from a fresh install or from the cloud icon.
+
+Outside git on purpose, so a `git status` in the repository stays clean and
+nothing is added by accident:
+
+- `/home/uzzzver/operit-fork/apk/<UTC>/` accepted APKs with `CHANGES.md`
+- `/home/uzzzver/operit-fork/screenshots/` phone captures kept as evidence
+- `/home/uzzzver/operit-fork/local-bundles/` the importable zips
+- `/home/uzzzver/operit-fork/internal-assets/` the Mixamo benchmark, never
+  redistributed
+- `/tmp/opencode/` the drivers, render dumps and the Python venv
+
+One consequence worth knowing before reinstalling: the APK in
+`apk/20261117_105643Z/` is the last build that contains the scale fix, and the
+finger curl never needed an app change. Any APK from that build onwards plus the
+current assets is the current state; an older APK with new assets is also fine
+for the hands.
+
 ### Recipes
 
 - Re-render a hand close-up offline:
